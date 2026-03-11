@@ -1,8 +1,9 @@
 {
   "id": "Halo-Mythic-Foundry-Updated",
-  "title": "Mythic System Prototype",
-  "description": "A minimal starter scaffold for a custom Foundry VTT system.",
-  "version": "0.0.1",
+  "title": "Halo Mythic Foundry Updated",
+  "description": "Community Foundry VTT system project for the Halo Mythic ruleset.",
+  "version": "0.1.0-alpha.1",
+  "license": "SEE LICENSE and LICENSE.assets",
   "compatibility": {
     "minimum": 12,
     "verified": 13

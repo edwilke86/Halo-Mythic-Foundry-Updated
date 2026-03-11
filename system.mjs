@@ -3,7 +3,7 @@ class MythicActorSheet extends ActorSheet {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["mythic-system", "sheet", "actor"],
       template: "systems/Halo-Mythic-Foundry-Updated/templates/actor/actor-sheet.hbs",
-      width: 860,
+      width: 980,
       height: 760,
       submitOnChange: true,
       submitOnClose: true,
@@ -22,8 +22,10 @@ class MythicActorSheet extends ActorSheet {
     const data = super.getData(options);
     const faction = data.actor?.system?.header?.faction ?? "";
     const customLogo = data.actor?.system?.header?.logoPath ?? "";
+    data.mythicSidebarCollapsed = Boolean(this.actor.getFlag("Halo-Mythic-Foundry-Updated", "sidebarCollapsed"));
     data.mythicLogo = customLogo || this._getFactionLogoPath(faction);
     data.mythicFactionIndex = this._getFactionIndex(faction);
+    data.mythicCharacteristicModifiers = this._getCharacteristicModifiers(data.actor?.system?.characteristics);
     data.mythicFactionOptions = [
       "United Nations Space Command",
       "Office of Naval Intelligence",
@@ -35,6 +37,18 @@ class MythicActorSheet extends ActorSheet {
       "Other"
     ];
     return data;
+  }
+
+  _getCharacteristicModifiers(characteristics) {
+    const keys = ["str", "tou", "agi", "wfm", "wfr", "int", "per", "crg", "cha", "ldr"];
+    const mods = {};
+
+    for (const key of keys) {
+      const score = Number(characteristics?.[key] ?? 0);
+      mods[key] = Number.isFinite(score) ? Math.floor(score / 10) : 0;
+    }
+
+    return mods;
   }
 
   _getFactionIndex(faction) {
@@ -69,8 +83,97 @@ class MythicActorSheet extends ActorSheet {
     return map[key] ?? fallback;
   }
 
+  _applyHeaderAutoFit(root) {
+    if (!root) return;
+
+    const fields = root.querySelectorAll(".mythic-header-row input[type='text'], .mythic-header-row select");
+    if (!fields.length) return;
+
+    const measurer = document.createElement("span");
+    measurer.style.position = "absolute";
+    measurer.style.visibility = "hidden";
+    measurer.style.pointerEvents = "none";
+    measurer.style.whiteSpace = "pre";
+    measurer.style.left = "-10000px";
+    measurer.style.top = "-10000px";
+    root.appendChild(measurer);
+
+    for (const field of fields) {
+      const styles = window.getComputedStyle(field);
+      const paddingLeft = Number.parseFloat(styles.paddingLeft) || 0;
+      const paddingRight = Number.parseFloat(styles.paddingRight) || 0;
+      const availableWidth = Math.max(12, field.clientWidth - paddingLeft - paddingRight - 4);
+
+      let text = "";
+      if (field.tagName === "SELECT") {
+        const option = field.options[field.selectedIndex];
+        text = option?.text ?? "";
+      } else {
+        text = field.value ?? "";
+      }
+
+      text = String(text || field.getAttribute("placeholder") || "");
+
+      measurer.style.fontFamily = styles.fontFamily;
+      measurer.style.fontWeight = styles.fontWeight;
+      measurer.style.letterSpacing = styles.letterSpacing;
+
+      let finalSize = 10;
+      for (const size of [14, 12, 10]) {
+        measurer.style.fontSize = `${size}px`;
+        measurer.textContent = text;
+        if (measurer.offsetWidth <= availableWidth) {
+          finalSize = size;
+          break;
+        }
+      }
+
+      field.style.fontSize = `${finalSize}px`;
+      field.classList.toggle("header-ellipsis", finalSize === 10);
+    }
+
+    measurer.remove();
+  }
+
+  async close(options = {}) {
+    if (this._headerFitObserver) {
+      this._headerFitObserver.disconnect();
+      this._headerFitObserver = null;
+    }
+    return super.close(options);
+  }
+
   activateListeners(html) {
     super.activateListeners(html);
+
+    const root = html[0];
+    const refreshHeaderFit = () => this._applyHeaderAutoFit(root);
+    requestAnimationFrame(refreshHeaderFit);
+
+    if (this._headerFitObserver) {
+      this._headerFitObserver.disconnect();
+    }
+
+    this._headerFitObserver = new ResizeObserver(() => refreshHeaderFit());
+    this._headerFitObserver.observe(root);
+
+    html.find(".mythic-header-row input[type='text'], .mythic-header-row select").on("input change", () => {
+      refreshHeaderFit();
+    });
+
+    html.find(".sidebar-toggle").on("click", async (event) => {
+      event.preventDefault();
+      const root = html[0];
+      const collapsed = !root.classList.contains("sidebar-collapsed");
+      root.classList.toggle("sidebar-collapsed", collapsed);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "sidebarCollapsed", collapsed);
+    });
+
+    html.find('input[name^="system.characteristics."]').on("change", (event) => {
+      const input = event.currentTarget;
+      const value = Number(input.value);
+      input.value = Number.isFinite(value) ? String(Math.max(0, value)) : "0";
+    });
 
     html.find(".roll-characteristic").on("click", async (event) => {
       event.preventDefault();

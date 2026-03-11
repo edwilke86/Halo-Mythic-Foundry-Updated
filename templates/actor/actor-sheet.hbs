@@ -1,5 +1,8 @@
-<form class="{{cssClass}} mythic-character-sheet" data-faction="{{mythicFactionIndex}}" autocomplete="off">
+<form class="{{cssClass}} mythic-character-sheet{{#if mythicSidebarCollapsed}} sidebar-collapsed{{/if}}" data-faction="{{mythicFactionIndex}}" autocomplete="off">
   <aside class="sheet-nav">
+    <button class="sidebar-toggle action-btn" type="button" title="Toggle Sidebar Width">
+      <i class="fas {{#if mythicSidebarCollapsed}}fa-angles-right{{else}}fa-angles-left{{/if}}"></i>
+    </button>
     <nav class="sheet-tabs tabs" data-group="primary">
       <a class="item" data-tab="main" title="Main">
         <i class="fas fa-user"></i>
@@ -39,12 +42,18 @@
             <input name="system.header.rank" type="text" value="{{actor.system.header.rank}}" />
           </div>
           <div class="mythic-header-row">
-            <label>Build / Size</label>
+            <label>Size</label>
             <input name="system.header.buildSize" type="text" value="{{actor.system.header.buildSize}}" />
           </div>
           <div class="mythic-header-row">
             <label>Specialisation</label>
             <input name="system.header.specialisation" type="text" value="{{actor.system.header.specialisation}}" />
+          </div>
+          <div class="mythic-header-row mythic-header-row-split">
+            <label>Height</label>
+            <input name="system.header.height" type="text" value="{{actor.system.header.height}}" />
+            <label>Weight</label>
+            <input name="system.header.weight" type="text" value="{{actor.system.header.weight}}" />
           </div>
         </section>
 
@@ -56,10 +65,6 @@
           <div class="mythic-header-row">
             <label>Player Name</label>
             <input name="system.header.playerName" type="text" value="{{actor.system.header.playerName}}" />
-          </div>
-          <div class="mythic-header-row">
-            <label>Gender</label>
-            <input name="system.header.gender" type="text" value="{{actor.system.header.gender}}" />
           </div>
           <div class="mythic-header-row">
             <label>Race</label>
@@ -77,6 +82,14 @@
             <label>Lifestyle</label>
             <input name="system.header.lifestyle" type="text" value="{{actor.system.header.lifestyle}}" />
           </div>
+          <div class="mythic-header-row">
+            <label>Gender</label>
+            <input name="system.header.gender" type="text" value="{{actor.system.header.gender}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Age</label>
+            <input name="system.header.age" type="text" value="{{actor.system.header.age}}" />
+          </div>
         </section>
       </div>
     </header>
@@ -88,52 +101,62 @@
         <div class="characteristics-strip">
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="str" data-label="STR" title="Strength">STR</button>
-            <input name="system.characteristics.str" type="number" value="{{actor.system.characteristics.str}}" />
+            <input name="system.characteristics.str" type="number" min="0" value="{{actor.system.characteristics.str}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "str"}}</div>
           </div>
 
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="tou" data-label="TOU" title="Toughness">TOU</button>
-            <input name="system.characteristics.tou" type="number" value="{{actor.system.characteristics.tou}}" />
+            <input name="system.characteristics.tou" type="number" min="0" value="{{actor.system.characteristics.tou}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "tou"}}</div>
           </div>
 
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="agi" data-label="AGI" title="Agility">AGI</button>
-            <input name="system.characteristics.agi" type="number" value="{{actor.system.characteristics.agi}}" />
+            <input name="system.characteristics.agi" type="number" min="0" value="{{actor.system.characteristics.agi}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "agi"}}</div>
           </div>
 
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="wfm" data-label="WFM" title="Warfare Melee">WFM</button>
-            <input name="system.characteristics.wfm" type="number" value="{{actor.system.characteristics.wfm}}" />
+            <input name="system.characteristics.wfm" type="number" min="0" value="{{actor.system.characteristics.wfm}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "wfm"}}</div>
           </div>
 
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="wfr" data-label="WFR" title="Warfare Ranged">WFR</button>
-            <input name="system.characteristics.wfr" type="number" value="{{actor.system.characteristics.wfr}}" />
+            <input name="system.characteristics.wfr" type="number" min="0" value="{{actor.system.characteristics.wfr}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "wfr"}}</div>
           </div>
 
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="int" data-label="INT" title="Intellect">INT</button>
-            <input name="system.characteristics.int" type="number" value="{{actor.system.characteristics.int}}" />
+            <input name="system.characteristics.int" type="number" min="0" value="{{actor.system.characteristics.int}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "int"}}</div>
           </div>
 
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="per" data-label="PER" title="Perception">PER</button>
-            <input name="system.characteristics.per" type="number" value="{{actor.system.characteristics.per}}" />
+            <input name="system.characteristics.per" type="number" min="0" value="{{actor.system.characteristics.per}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "per"}}</div>
           </div>
 
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="crg" data-label="CRG" title="Courage">CRG</button>
-            <input name="system.characteristics.crg" type="number" value="{{actor.system.characteristics.crg}}" />
+            <input name="system.characteristics.crg" type="number" min="0" value="{{actor.system.characteristics.crg}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "crg"}}</div>
           </div>
 
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="cha" data-label="CHA" title="Charisma">CHA</button>
-            <input name="system.characteristics.cha" type="number" value="{{actor.system.characteristics.cha}}" />
+            <input name="system.characteristics.cha" type="number" min="0" value="{{actor.system.characteristics.cha}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "cha"}}</div>
           </div>
 
           <div class="characteristic-block">
             <button class="roll-characteristic" type="button" data-characteristic="ldr" data-label="LDR" title="Leadership">LDR</button>
-            <input name="system.characteristics.ldr" type="number" value="{{actor.system.characteristics.ldr}}" />
+            <input name="system.characteristics.ldr" type="number" min="0" value="{{actor.system.characteristics.ldr}}" />
+            <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "ldr"}}</div>
           </div>
         </div>
       </section>

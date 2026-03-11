@@ -1,0 +1,43 @@
+{
+  "id": "Halo-Mythic-Foundry-Updated",
+  "title": "Mythic System Prototype",
+  "description": "A minimal starter scaffold for a custom Foundry VTT system.",
+  "version": "0.0.1",
+  "compatibility": {
+    "minimum": 12,
+    "verified": 13
+  },
+  "authors": [
+    {
+      "name": "edwil"
+    }
+  ],
+  "esmodules": [
+    "system.mjs"
+  ],
+  "styles": [
+    "styles/system.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "documentTypes": {
+    "Actor": {
+      "character": {}
+    },
+    "Item": {
+      "gear": {}
+    }
+  },
+  "grid": {
+    "distance": 5,
+    "units": "ft"
+  },
+  "primaryTokenAttribute": null,
+  "secondaryTokenAttribute": null,
+  "socket": false
+}

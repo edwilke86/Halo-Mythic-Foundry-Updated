@@ -1,0 +1,550 @@
+/* ============================================================
+   Fonts — match Roll20 source sheet exactly
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron&family=Saira+Semi+Condensed&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400&display=swap');
+
+/* ============================================================
+   CSS Custom Properties — Roll20 source palette
+   ============================================================ */
+:root {
+  /* Core Roll20 palette */
+  --mythic-input-bg:   #394C6A;   /* inputs, selects, h3 backgrounds */
+  --mythic-dark-bg:    #404040;   /* characteristics bar, box backgrounds */
+  --mythic-table-bg:   #4a648c;   /* panel borders, table rows, border-full */
+  --mythic-box-bg:     #4d4d4d;   /* .box background */
+  --mythic-hover:      rgb(200, 0, 0);  /* all interactive hover state */
+  --mythic-text:       #ffffff;
+
+  /* Faction background gradients (used via .mythic-faction-* classes) */
+  --mythic-faction-1:  white;                               /* default / no faction */
+  --mythic-faction-2:  linear-gradient(#738132, #4b5320);   /* UNSC */
+  --mythic-faction-3:  linear-gradient(#8f489d, #59357a);   /* Covenant */
+  --mythic-faction-4:  linear-gradient(#C45911, #833C0B);   /* Forerunner */
+  --mythic-faction-5:  linear-gradient(#aa3f3c, #772C2A);   /* Banished */
+  --mythic-faction-6:  linear-gradient(#266daa, #17466e);   /* ONI */
+  --mythic-faction-7:  linear-gradient(#9c8c60, #695d3f);   /* URF */
+  --mythic-faction-8:  linear-gradient(#a42444, #66001a);   /* SOS */
+}
+
+/* ============================================================
+   Foundry system-level override
+   ============================================================ */
+.mythic-system {
+  --color-border-light-primary: var(--mythic-table-bg);
+}
+
+/* ============================================================
+   Sheet root — dark base matching Roll20 .sheet-box colour
+   ============================================================ */
+.mythic-character-sheet {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  height: 100%;
+  padding: 12px;
+  color: var(--mythic-text);
+  background: var(--mythic-dark-bg);
+  font-family: 'Saira Semi Condensed', sans-serif;
+}
+
+/* Faction background overrides applied to the sheet root */
+.mythic-character-sheet[data-faction="2"] { background: var(--mythic-faction-2); }
+.mythic-character-sheet[data-faction="3"] { background: var(--mythic-faction-3); }
+.mythic-character-sheet[data-faction="4"] { background: var(--mythic-faction-4); }
+.mythic-character-sheet[data-faction="5"] { background: var(--mythic-faction-5); }
+.mythic-character-sheet[data-faction="6"] { background: var(--mythic-faction-6); }
+.mythic-character-sheet[data-faction="7"] { background: var(--mythic-faction-7); }
+.mythic-character-sheet[data-faction="8"] { background: var(--mythic-faction-8); }
+
+/* ============================================================
+   Tab nav sidebar
+   ============================================================ */
+.mythic-character-sheet .sheet-nav {
+  border: 1px solid var(--mythic-table-bg);
+  background: rgba(57, 76, 106, 0.85);
+}
+
+.mythic-character-sheet .sheet-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mythic-character-sheet .sheet-tabs .item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  height: 84px;
+  color: var(--mythic-text);
+  font-family: Orbitron, sans-serif;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(74, 100, 140, 0.5);
+}
+
+.mythic-character-sheet .sheet-tabs .item i {
+  font-size: 20px;
+}
+
+.mythic-character-sheet .sheet-tabs .item.active {
+  background: var(--mythic-table-bg);
+  color: var(--mythic-text);
+}
+
+.mythic-character-sheet .sheet-tabs .item:hover {
+  background: var(--mythic-hover);
+  cursor: pointer;
+}
+
+/* ============================================================
+   Main content area
+   ============================================================ */
+.mythic-character-sheet .sheet-content {
+  overflow: auto;
+}
+
+/* ============================================================
+   Sticky header — matches Roll20 header_logo panel
+   ============================================================ */
+.mythic-character-sheet .mythic-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  margin-bottom: 8px;
+  background: var(--mythic-input-bg);
+  border-radius: 0 0 6px 6px;
+}
+
+.mythic-character-sheet .mythic-header-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 130px minmax(260px, 1fr);
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+}
+
+.mythic-character-sheet .mythic-header-column {
+  display: grid;
+  gap: 4px;
+}
+
+.mythic-character-sheet .mythic-header-row {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 4px;
+  align-items: center;
+}
+
+.mythic-character-sheet .mythic-header-row label {
+  font-size: 13px;
+  font-family: Orbitron, sans-serif;
+  letter-spacing: 1px;
+  color: var(--mythic-text);
+  font-weight: bold;
+}
+
+.mythic-character-sheet .mythic-header-row select,
+.mythic-character-sheet .mythic-header-row input[type="text"],
+.mythic-character-sheet .mythic-header-row input[type="number"] {
+  height: 28px;
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-family: 'Saira Semi Condensed', sans-serif;
+  text-align: center;
+}
+
+.mythic-character-sheet .mythic-header-row select option {
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+}
+
+.mythic-character-sheet .mythic-header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mythic-character-sheet .mythic-faction-logo {
+  max-width: 120px;
+  max-height: 110px;
+  object-fit: contain;
+}
+
+/* ============================================================
+   Generic panels — matches Roll20 .sheet-border_full
+   ============================================================ */
+.mythic-character-sheet .panel {
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 3px solid var(--mythic-table-bg);
+  background: var(--mythic-table-bg);
+  overflow: hidden;
+}
+
+.mythic-character-sheet .panel h2 {
+  margin: 0 0 8px;
+  font-family: Orbitron, sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  text-align: center;
+  text-decoration: underline;
+  color: var(--mythic-text);
+}
+
+/* ============================================================
+   Typography — h2, h3 match Roll20
+   ============================================================ */
+.mythic-character-sheet h2,
+.mythic-character-sheet h3 {
+  color: var(--mythic-text);
+  font-family: Orbitron, sans-serif;
+  letter-spacing: 1px;
+  text-align: center;
+  font-size: 16px;
+  margin: 0;
+}
+
+.mythic-character-sheet h2 {
+  text-decoration: underline;
+}
+
+.mythic-character-sheet h3 {
+  background: var(--mythic-input-bg);
+  padding: 3px 0;
+}
+
+/* ============================================================
+   Labels
+   ============================================================ */
+.mythic-character-sheet label {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--mythic-text);
+}
+
+/* ============================================================
+   Inputs, selects — match Roll20 base styles
+   ============================================================ */
+.mythic-character-sheet input[type="text"],
+.mythic-character-sheet input[type="number"] {
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: 'Saira Semi Condensed', sans-serif;
+  text-align: center;
+}
+
+.mythic-character-sheet select {
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: 'Saira Semi Condensed', sans-serif;
+  text-align: center;
+}
+
+.mythic-character-sheet select option {
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+}
+
+.mythic-character-sheet input::placeholder {
+  color: var(--mythic-text);
+  opacity: 0.7;
+}
+
+/* ============================================================
+   Textareas — Roboto Mono like Roll20
+   ============================================================ */
+.mythic-character-sheet textarea {
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  resize: vertical;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================
+   Buttons — match Roll20 roll/action button styles
+   ============================================================ */
+.mythic-character-sheet button {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  cursor: pointer;
+}
+
+/* Roll buttons: black bg like Roll20 button[type='roll'] */
+.mythic-character-sheet .roll-btn {
+  background: #000000;
+  color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: 'Saira Semi Condensed', sans-serif;
+  text-shadow: none;
+}
+
+/* Action buttons: input-bg like Roll20 button[type='action'] */
+.mythic-character-sheet .action-btn {
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: 'Saira Semi Condensed', sans-serif;
+}
+
+/* Universal hover → red, matching Roll20 */
+.mythic-character-sheet .roll-btn:hover,
+.mythic-character-sheet .action-btn:hover,
+.mythic-character-sheet button:hover {
+  background: var(--mythic-hover) !important;
+  color: var(--mythic-text) !important;
+}
+
+/* ============================================================
+   Characteristics bar — matches Roll20 .sheet-characteristics_background
+   ============================================================ */
+.mythic-character-sheet .characteristics-strip {
+  background: var(--mythic-dark-bg);
+  border-top:    3px solid var(--mythic-dark-bg);
+  border-bottom: 4px solid var(--mythic-dark-bg);
+  border-left:   2px solid var(--mythic-dark-bg);
+  border-right:  2px solid var(--mythic-dark-bg);
+  border-radius: 6px;
+  display: grid;
+  column-gap: 0.5%;
+  grid-template-columns: repeat(9, calc(100% / 10 - 0.5%)) calc(100% / 10);
+  grid-template-rows: 26px 40px 26px;
+  padding: 0;
+  margin-right: -0.1%;
+  overflow: visible;
+}
+
+.mythic-character-sheet .characteristic-block {
+  display: contents; /* children participate directly in the strip grid */
+}
+
+/* Each characteristic occupies one column across all 3 rows */
+.mythic-character-sheet .characteristic-roll-btn {
+  grid-row: 1;
+  width: calc(100% - 8px);
+  margin-left: 0.1%;
+  background: #000000;
+  color: var(--mythic-text);
+  border: none;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.mythic-character-sheet .characteristic-value {
+  grid-row: 2;
+  width: 100%;
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  border: none;
+  font-size: 30px;
+  text-align: center;
+  font-family: 'Saira Semi Condensed', sans-serif;
+}
+
+.mythic-character-sheet .characteristic-advance {
+  grid-row: 3;
+  width: 100%;
+  height: 100%;
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  border: none;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 12px;
+  text-align: center;
+}
+
+.mythic-character-sheet .characteristic-roll-btn:hover {
+  background: var(--mythic-hover) !important;
+}
+
+/* ============================================================
+   Table / skill rows — matches Roll20 .sheet-table
+   ============================================================ */
+.mythic-character-sheet .mythic-table {
+  background: var(--mythic-table-bg);
+  color: var(--mythic-text);
+  font-family: 'Saira Semi Condensed', sans-serif;
+}
+
+/* ============================================================
+   Border-full container — matches Roll20 .sheet-border_full
+   ============================================================ */
+.mythic-character-sheet .border-full {
+  border-radius: 10px;
+  border: 3px solid var(--mythic-table-bg);
+  background: var(--mythic-table-bg);
+  overflow: hidden;
+}
+
+/* ============================================================
+   Box panels — matches Roll20 .sheet-box
+   ============================================================ */
+.mythic-character-sheet .mythic-box {
+  background: var(--mythic-box-bg);
+  border-top: 3px solid black;
+  border-radius: 0;
+  color: var(--mythic-text);
+  overflow: hidden;
+  margin-top: -4px;
+}
+
+/* ============================================================
+   HR dividers — matches Roll20
+   ============================================================ */
+.mythic-character-sheet hr {
+  border-top: 1px dotted black;
+  border-bottom: none;
+}
+
+/* ============================================================
+   Tab content sections
+   ============================================================ */
+.mythic-character-sheet .tab {
+  height: 100%;
+}
+
+/* ============================================================
+   Responsive — narrow windows
+   ============================================================ */
+@media (max-width: 740px) {
+  .mythic-character-sheet {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-sheet .mythic-sticky-header {
+    position: static;
+  }
+
+  .mythic-character-sheet .mythic-header-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-sheet .mythic-header-row {
+    grid-template-columns: 100px 1fr;
+  }
+
+  .mythic-character-sheet .sheet-tabs {
+    flex-direction: row;
+  }
+
+  .mythic-character-sheet .sheet-tabs .item {
+    flex: 1;
+    height: 64px;
+    border-right: 1px solid rgba(74, 100, 140, 0.5);
+    border-bottom: 0;
+  }
+
+  .mythic-character-sheet .characteristics-strip {
+    grid-template-columns: repeat(5, calc(100% / 5 - 0.5%));
+    grid-template-rows: 26px 40px 26px 26px 40px 26px;
+  }
+}
+
+/* ============================================================
+   Chat card — roll template styling
+   ============================================================ */
+.chat-message .mythic-chat-card {
+  background: var(--mythic-table-bg);
+  border-radius: 10px;
+  border: 1px solid grey;
+  overflow: hidden;
+  color: var(--mythic-text);
+  line-height: 1.6em;
+  font-size: 1.1em;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  padding: 0;
+}
+
+.chat-message .mythic-chat-card.success {
+  box-shadow: inset 0 0 0 2px #3FB315;
+}
+
+.chat-message .mythic-chat-card.failure {
+  box-shadow: inset 0 0 0 2px #B31515;
+}
+
+.chat-message .mythic-chat-header {
+  border-top: 1px solid grey;
+  background: var(--mythic-input-bg);
+  text-align: center;
+  text-decoration: underline;
+  padding: 4px 8px;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 13px;
+}
+
+.chat-message .mythic-chat-title {
+  color: var(--mythic-text);
+  font-weight: 700;
+}
+
+.chat-message .mythic-chat-outcome {
+  font-weight: 700;
+  text-align: right;
+  margin-right: 5px;
+}
+
+.chat-message .mythic-chat-outcome.success {
+  color: #3FB315;
+}
+
+.chat-message .mythic-chat-outcome.failure {
+  color: #B31515;
+}
+
+.chat-message .mythic-chat-inline-stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.chat-message .mythic-chat-inline-stats span {
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--mythic-input-bg);
+}
+
+.chat-message .mythic-chat-inline-stats .stat.success {
+  border: 3px solid #3FB315;
+}
+
+.chat-message .mythic-chat-inline-stats .stat.failure {
+  border: 3px solid #B31515;
+}
+
+.chat-message .mythic-chat-inline-stats .stat.important {
+  border: 3px solid #4A57ED;
+}
+
+.chat-message .mythic-chat-inline-stats strong {
+  margin-right: 4px;
+  color: var(--mythic-text);
+}
+
+/* Inline roll result pip — matches Roll20 .inlinerollresult */
+.chat-message .mythic-inline-result {
+  display: inline-block;
+  min-width: 1.5em;
+  text-align: center;
+  border: 1px solid white;
+  border-radius: 3px;
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  line-height: 1.6em;
+  font-size: 1.2em;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-weight: bold;
+  padding: 0 4px;
+}

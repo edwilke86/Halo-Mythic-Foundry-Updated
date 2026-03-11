@@ -1,0 +1,149 @@
+<form class="{{cssClass}} mythic-character-sheet" data-faction="{{mythicFactionIndex}}" autocomplete="off">
+  <aside class="sheet-nav">
+    <nav class="sheet-tabs tabs" data-group="primary">
+      <a class="item" data-tab="main" title="Main">
+        <i class="fas fa-user"></i>
+        <span>Main</span>
+      </a>
+      <a class="item" data-tab="setup" title="Setup">
+        <i class="fas fa-gear"></i>
+        <span>Setup</span>
+      </a>
+    </nav>
+  </aside>
+
+  <section class="sheet-content">
+    <header class="mythic-sticky-header panel">
+      <div class="mythic-header-grid">
+        <section class="mythic-header-column left">
+          <div class="mythic-header-row">
+            <label>Character Name</label>
+            <input name="name" type="text" value="{{actor.name}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Faction</label>
+            <select name="system.header.faction">
+              {{#select actor.system.header.faction}}
+                {{#each mythicFactionOptions as |option|}}
+                  <option value="{{option}}">{{option}}</option>
+                {{/each}}
+              {{/select}}
+            </select>
+          </div>
+          <div class="mythic-header-row">
+            <label>Soldier Type</label>
+            <input name="system.header.soldierType" type="text" value="{{actor.system.header.soldierType}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Rank</label>
+            <input name="system.header.rank" type="text" value="{{actor.system.header.rank}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Build / Size</label>
+            <input name="system.header.buildSize" type="text" value="{{actor.system.header.buildSize}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Specialisation</label>
+            <input name="system.header.specialisation" type="text" value="{{actor.system.header.specialisation}}" />
+          </div>
+        </section>
+
+        <section class="mythic-header-center">
+          <img src="{{mythicLogo}}" alt="Faction Logo" class="mythic-faction-logo" />
+        </section>
+
+        <section class="mythic-header-column right">
+          <div class="mythic-header-row">
+            <label>Player Name</label>
+            <input name="system.header.playerName" type="text" value="{{actor.system.header.playerName}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Gender</label>
+            <input name="system.header.gender" type="text" value="{{actor.system.header.gender}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Race</label>
+            <input name="system.header.race" type="text" value="{{actor.system.header.race}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Upbringing</label>
+            <input name="system.header.upbringing" type="text" value="{{actor.system.header.upbringing}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Environment</label>
+            <input name="system.header.environment" type="text" value="{{actor.system.header.environment}}" />
+          </div>
+          <div class="mythic-header-row">
+            <label>Lifestyle</label>
+            <input name="system.header.lifestyle" type="text" value="{{actor.system.header.lifestyle}}" />
+          </div>
+        </section>
+      </div>
+    </header>
+
+    <div class="tab main" data-group="primary" data-tab="main">
+      <section class="panel">
+        <h2>Characteristics</h2>
+
+        <div class="characteristics-strip">
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="str" data-label="STR" title="Strength">STR</button>
+            <input name="system.characteristics.str" type="number" value="{{actor.system.characteristics.str}}" />
+          </div>
+
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="tou" data-label="TOU" title="Toughness">TOU</button>
+            <input name="system.characteristics.tou" type="number" value="{{actor.system.characteristics.tou}}" />
+          </div>
+
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="agi" data-label="AGI" title="Agility">AGI</button>
+            <input name="system.characteristics.agi" type="number" value="{{actor.system.characteristics.agi}}" />
+          </div>
+
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="wfm" data-label="WFM" title="Warfare Melee">WFM</button>
+            <input name="system.characteristics.wfm" type="number" value="{{actor.system.characteristics.wfm}}" />
+          </div>
+
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="wfr" data-label="WFR" title="Warfare Ranged">WFR</button>
+            <input name="system.characteristics.wfr" type="number" value="{{actor.system.characteristics.wfr}}" />
+          </div>
+
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="int" data-label="INT" title="Intellect">INT</button>
+            <input name="system.characteristics.int" type="number" value="{{actor.system.characteristics.int}}" />
+          </div>
+
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="per" data-label="PER" title="Perception">PER</button>
+            <input name="system.characteristics.per" type="number" value="{{actor.system.characteristics.per}}" />
+          </div>
+
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="crg" data-label="CRG" title="Courage">CRG</button>
+            <input name="system.characteristics.crg" type="number" value="{{actor.system.characteristics.crg}}" />
+          </div>
+
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="cha" data-label="CHA" title="Charisma">CHA</button>
+            <input name="system.characteristics.cha" type="number" value="{{actor.system.characteristics.cha}}" />
+          </div>
+
+          <div class="characteristic-block">
+            <button class="roll-characteristic" type="button" data-characteristic="ldr" data-label="LDR" title="Leadership">LDR</button>
+            <input name="system.characteristics.ldr" type="number" value="{{actor.system.characteristics.ldr}}" />
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="tab" data-group="primary" data-tab="setup">
+      <section class="panel">
+        <h2>Setup</h2>
+        <p>System setup options will go here in later steps.</p>
+      </section>
+    </div>
+  </section>
+</form>

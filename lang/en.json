@@ -1,0 +1,13 @@
+{
+  "MYTHIC": {
+    "SystemName": "Mythic System Prototype"
+  },
+  "TYPES": {
+    "Actor": {
+      "character": "Character"
+    },
+    "Item": {
+      "gear": "Gear"
+    }
+  }
+}

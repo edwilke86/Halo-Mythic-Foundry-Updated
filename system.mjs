@@ -301,7 +301,12 @@ function getSkillTierBonus(tier, category) {
   return MYTHIC_SKILL_BONUS_BY_TIER[key] ?? 0;
 }
 
-class MythicActorSheet extends ActorSheet {
+const V1ActorSheet = foundry.appv1.sheets.ActorSheet;
+const V1ItemSheet = foundry.appv1.sheets.ItemSheet;
+const ActorCollection = foundry.documents.collections.Actors;
+const ItemCollection = foundry.documents.collections.Items;
+
+class MythicActorSheet extends V1ActorSheet {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["mythic-system", "sheet", "actor"],
@@ -748,7 +753,7 @@ class MythicActorSheet extends ActorSheet {
   }
 }
 
-class MythicItemSheet extends ItemSheet {
+class MythicItemSheet extends V1ItemSheet {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["mythic-system", "sheet", "item"],
@@ -762,14 +767,14 @@ class MythicItemSheet extends ItemSheet {
 Hooks.once("init", () => {
   console.log("[mythic-system] Initializing minimal system scaffold");
 
-  Actors.unregisterSheet("core", ActorSheet);
-  Actors.registerSheet("Halo-Mythic-Foundry-Updated", MythicActorSheet, {
+  ActorCollection.unregisterSheet("core", V1ActorSheet);
+  ActorCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicActorSheet, {
     makeDefault: true,
     types: ["character"]
   });
 
-  Items.unregisterSheet("core", ItemSheet);
-  Items.registerSheet("Halo-Mythic-Foundry-Updated", MythicItemSheet, {
+  ItemCollection.unregisterSheet("core", V1ItemSheet);
+  ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicItemSheet, {
     makeDefault: true,
     types: ["gear"]
   });

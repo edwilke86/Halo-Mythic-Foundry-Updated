@@ -232,7 +232,7 @@
             <div class="movement-strip">
               <div class="movement-block movement-block-wide">
                 <div class="movement-value">{{mythicDerived.perceptiveRange.standard}}</div>
-                <div class="movement-label">PER Range</div>
+                <div class="movement-label">Perceptive Range</div>
               </div>
             </div>
             <details class="movement-reference" data-collapse-key="sight-reference">
@@ -411,7 +411,7 @@
                 <div class="bio-row">
                   <label>Status</label>
                   <select name="system.biography.history.dutyStations.{{index}}.status">
-                    {{selectOptions ../mythicDutyStationStatusOptions selected=entry.status}}
+                      {{selectOptions ../mythicDutyStationStatusOptions selected=entry.status}}
                   </select>
                 </div>
                 <button class="bio-remove-entry action-btn" type="button" data-path="biography.history.dutyStations" data-index="{{index}}">Remove</button>
@@ -471,4 +471,3 @@
     </div>
   </section>
 </form>
-

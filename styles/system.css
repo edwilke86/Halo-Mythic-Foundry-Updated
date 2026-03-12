@@ -8,7 +8,7 @@
    CSS Custom Properties — Roll20 source palette
    ============================================================ */
 :root {
-  /* Core Roll20 palette */
+  /* Core Roll20 palette - From Warhound's Roll20 Character Sheet Style Guide and source CSS */
   --mythic-input-bg:   #394C6A;   /* inputs, selects, h3 backgrounds */
   --mythic-dark-bg:    #404040;   /* characteristics bar, box backgrounds */
   --mythic-table-bg:   #4a648c;   /* panel borders, table rows, border-full */
@@ -493,6 +493,217 @@
 }
 
 /* ============================================================
+   Mythic and derived stat cards (main-tab 4-column row)
+   ============================================================ */
+.mythic-character-sheet .mythic-derived-panel {
+  overflow: visible;
+}
+
+.mythic-character-sheet .mythic-derived-4col {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr;
+  gap: 6px;
+  align-items: start;
+}
+
+/* Each card is a collapsible <details> */
+.mythic-character-sheet .mythic-derived-card {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  background: rgba(64, 64, 64, 0.35);
+  padding: 6px;
+  overflow: hidden;
+}
+
+.mythic-character-sheet .mythic-derived-card > summary {
+  cursor: pointer;
+  font-family: Orbitron, sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 3px 0 6px;
+  list-style: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mythic-character-sheet .mythic-derived-card > summary::-webkit-details-marker { display: none; }
+
+/* ---- Mythic mini characteristics ---- */
+.mythic-character-sheet .mythic-mini-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.mythic-character-sheet .mythic-mini-block {
+  display: grid;
+  grid-template-rows: 17px 28px;
+  min-width: 0;
+}
+
+.mythic-character-sheet .mythic-mini-label {
+  background: #000000;
+  color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-bottom: none;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mythic-character-sheet .mythic-mini-block input[type="number"] {
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-top: none;
+  border-radius: 0 0 2px 2px;
+  font-size: 18px;
+  text-align: center;
+  font-family: 'Saira Semi Condensed', sans-serif;
+}
+
+/* ---- Movement / stat display strip ---- */
+.mythic-character-sheet .movement-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+
+.mythic-character-sheet .movement-block {
+  flex: 1;
+  display: grid;
+  grid-template-rows: 30px 16px;
+  min-width: 0;
+}
+
+.mythic-character-sheet .movement-block-wide {
+  flex: 2;
+}
+
+.mythic-character-sheet .movement-value {
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mythic-character-sheet .movement-label {
+  background: #000000;
+  color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-top: none;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ---- Collapsible movement/reference sub-section ---- */
+.mythic-character-sheet .movement-reference {
+  margin-top: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.mythic-character-sheet .movement-reference > summary {
+  cursor: pointer;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 4px 6px;
+  list-style: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mythic-character-sheet .movement-reference > summary::-webkit-details-marker { display: none; }
+
+.mythic-character-sheet .movement-ref-content {
+  padding: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  display: grid;
+  gap: 4px;
+}
+
+.mythic-character-sheet .movement-ref-content p {
+  margin: 0;
+}
+
+.mythic-character-sheet .movement-ref-content hr {
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom: none;
+  margin: 2px 0;
+}
+
+.mythic-character-sheet .movement-ref-row {
+  display: grid;
+  grid-template-columns: minmax(80px, auto) auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.mythic-character-sheet .movement-ref-row span:last-child {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mythic-character-sheet .movement-ref-row label {
+  font-size: 12px;
+}
+
+.mythic-character-sheet .movement-ref-row input[type="number"],
+.mythic-character-sheet .movement-ref-row select {
+  font-size: 12px;
+  height: 24px;
+}
+
+.mythic-character-sheet .movement-ref-row input[type="number"] {
+  width: 56px;
+}
+
+.mythic-character-sheet .gravity-input-row input[type="number"] {
+  width: 56px;
+}
+
+.mythic-character-sheet .movement-ref-content {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.mythic-character-sheet .movement-ref-content p {
+  word-break: break-word;
+  line-height: 1.35;
+  font-size: 12px;
+}
+
+/* ============================================================
    Table / skill rows — matches Roll20 .sheet-table
    ============================================================ */
 .mythic-character-sheet .mythic-table {
@@ -547,6 +758,112 @@
 }
 
 /* ============================================================
+   Biography tab
+   ============================================================ */
+.mythic-character-sheet .biography-tab {
+  display: grid;
+  gap: 8px;
+}
+
+.mythic-character-sheet .bio-section {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(57, 76, 106, 0.28);
+  padding: 6px;
+}
+
+.mythic-character-sheet .bio-section > summary {
+  cursor: pointer;
+  font-family: Orbitron, sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 4px 6px;
+}
+
+.mythic-character-sheet .bio-grid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.mythic-character-sheet .bio-portrait-panel {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.mythic-character-sheet .bio-portrait-preview {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+}
+
+.mythic-character-sheet .bio-fields {
+  display: grid;
+  gap: 6px;
+}
+
+.mythic-character-sheet .bio-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.mythic-character-sheet .bio-row .file-picker {
+  width: 34px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+}
+
+.mythic-character-sheet .bio-block {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.mythic-character-sheet .bio-block textarea,
+.mythic-character-sheet .bio-repeating-item textarea {
+  width: 100%;
+  min-height: 56px;
+  resize: vertical;
+}
+
+.mythic-character-sheet .bio-repeating-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mythic-character-sheet .bio-repeating-item {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  padding: 6px;
+  background: rgba(64, 64, 64, 0.35);
+  display: grid;
+  gap: 6px;
+}
+
+.mythic-character-sheet .bio-posting-item,
+.mythic-character-sheet .bio-family-item {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.mythic-character-sheet .bio-remove-entry {
+  justify-self: end;
+  align-self: start;
+  min-width: 72px;
+}
+
+.mythic-character-sheet .bio-add-entry {
+  justify-self: start;
+}
+
+/* ============================================================
    Responsive — narrow windows
    ============================================================ */
 @media (max-width: 740px) {
@@ -559,6 +876,19 @@
   }
 
   .mythic-character-sheet .mythic-header-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-sheet .bio-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-sheet .mythic-derived-4col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mythic-character-sheet .bio-posting-item,
+  .mythic-character-sheet .bio-family-item {
     grid-template-columns: 1fr;
   }
 

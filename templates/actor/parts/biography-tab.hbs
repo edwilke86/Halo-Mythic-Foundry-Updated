@@ -7,11 +7,16 @@
       <div class="bio-grid">
         <div class="bio-portrait-panel">
           <img src="{{actor.img}}" alt="Character Portrait" class="bio-portrait-preview" />
-          <div class="bio-row">
-            <label>Portrait</label>
-            <input type="text" name="img" value="{{actor.img}}" />
-            <button class="file-picker action-btn" type="button" data-type="image" data-target="img" title="Browse Files">
-              <i class="fas fa-file-import"></i>
+          <input type="hidden" name="img" value="{{actor.img}}" />
+          <input type="hidden" name="prototypeToken.texture.src" value="{{actor.prototypeToken.texture.src}}" />
+          <div class="bio-portrait-controls">
+            <button class="action-btn portrait-view-toggle portrait-toggle-btn" type="button" title="Show portrait image">Portrait</button>
+            <button class="action-btn portrait-view-toggle token-toggle-btn" type="button" title="Show token image">Token</button>
+            <button class="file-picker action-btn portrait-upload-btn" type="button" data-type="image" data-target="img" title="Upload portrait image">
+              <i class="fas fa-file-import"></i> Portrait
+            </button>
+            <button class="file-picker action-btn token-upload-btn" type="button" data-type="image" data-target="prototypeToken.texture.src" title="Upload token image">
+              <i class="fas fa-file-import"></i> Token
             </button>
           </div>
         </div>
@@ -20,7 +25,7 @@
           <div class="bio-row"><label>Height</label><input type="text" name="system.biography.physical.height" value="{{mythicBiography.physical.height}}" /></div>
           <div class="bio-row"><label>Weight</label><input type="text" name="system.biography.physical.weight" value="{{mythicBiography.physical.weight}}" /></div>
           <div class="bio-row"><label>Age</label><input type="text" name="system.biography.physical.age" value="{{mythicBiography.physical.age}}" /></div>
-          <div class="bio-row"><label>Gender</label><input type="text" name="system.biography.physical.gender" value="{{actor.system.header.gender}}" readonly /></div>
+          <div class="bio-row"><label>Gender</label><input type="text" name="system.biography.physical.gender" value="{{mythicBiography.physical.gender}}" /></div>
           <div class="bio-row"><label>Hair</label><input type="text" name="system.biography.physical.hair" value="{{mythicBiography.physical.hair}}" /></div>
           <div class="bio-row"><label>Skin</label><input type="text" name="system.biography.physical.skin" value="{{mythicBiography.physical.skin}}" /></div>
           <div class="bio-row"><label>Eyes</label><input type="text" name="system.biography.physical.eyes" value="{{mythicBiography.physical.eyes}}" /></div>

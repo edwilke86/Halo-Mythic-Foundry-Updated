@@ -1,28 +1,35 @@
-<div class="{{cssClass}} mythic-character-sheet{{#if mythicSidebarCollapsed}} sidebar-collapsed{{/if}}" data-faction="{{mythicFactionIndex}}">
+<div class="{{cssClass}} mythic-character-sheet" data-faction="{{mythicFactionIndex}}">
   <aside class="sheet-nav">
-    <button class="sidebar-toggle action-btn" type="button" title="Toggle Sidebar Width">
-      <i class="fas {{#if mythicSidebarCollapsed}}fa-angles-right{{else}}fa-angles-left{{/if}}"></i>
-    </button>
     <nav class="sheet-tabs tabs" data-group="primary">
       <a class="item" data-tab="main" title="Main">
         <i class="fas fa-user"></i>
-        <span>Main</span>
       </a>
       <a class="item" data-tab="skills" title="Skills &amp; Educations">
         <i class="fas fa-list"></i>
-        <span>Skills &amp; Educations</span>
       </a>
       <a class="item" data-tab="abilities" title="Abilities">
         <i class="fas fa-bolt"></i>
-        <span>Abilities</span>
+      </a>
+      <a class="item" data-tab="equipment" title="Equipment">
+        <i class="fas fa-toolbox"></i>
+      </a>
+      <a class="item" data-tab="medical" title="Medical">
+        <i class="fas fa-heart-pulse"></i>
+      </a>
+      <a class="item" data-tab="advancements" title="Advancements">
+        <i class="fas fa-arrow-trend-up"></i>
+      </a>
+      <a class="item" data-tab="notes" title="Notes">
+        <i class="fas fa-note-sticky"></i>
       </a>
       <a class="item" data-tab="biography" title="Biography">
         <i class="fas fa-book-open"></i>
-        <span>Biography</span>
       </a>
-      <a class="item" data-tab="setup" title="Setup">
+      <a class="item" data-tab="vehicles" title="Vehicles">
+        <i class="fas fa-truck"></i>
+      </a>
+      <a class="item" data-tab="setup" title="Settings">
         <i class="fas fa-gear"></i>
-        <span>Setup</span>
       </a>
     </nav>
   </aside>
@@ -33,7 +40,12 @@
       {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab.hbs"}}
       {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/skills-tab.hbs"}}
       {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/abilities-tab.hbs"}}
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/equipment-tab.hbs"}}
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/medical-tab.hbs"}}
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/advancements-tab.hbs"}}
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/notes-tab.hbs"}}
       {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs"}}
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicles-tab.hbs"}}
       {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs"}}
     </div>
   </section>

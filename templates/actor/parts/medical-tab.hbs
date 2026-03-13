@@ -1,0 +1,28 @@
+<div class="tab medical" data-group="primary" data-tab="medical">
+  <section class="panel mythic-phase4-panel">
+    <h2>Medical</h2>
+
+    <div class="mythic-phase4-grid two-column">
+      <div class="mythic-phase4-card">
+        <h3>Current Condition</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field"><span>Wounds</span><input type="number" min="0" name="system.combat.wounds.current" value="{{mythicCombat.wounds.current}}" /></div>
+          <div class="mythic-mini-field"><span>Wounds Max</span><input type="number" min="0" value="{{mythicCombat.wounds.max}}" readonly /></div>
+          <div class="mythic-mini-field"><span>Fatigue</span><input type="number" min="0" name="system.combat.fatigue.current" value="{{mythicCombat.fatigue.current}}" /></div>
+          <div class="mythic-mini-field"><span>Coma Threshold</span><input type="number" min="0" value="{{mythicCombat.fatigue.max}}" readonly /></div>
+          <div class="mythic-mini-field"><span>Luck</span><input type="number" min="0" name="system.combat.luck.current" value="{{mythicCombat.luck.current}}" /></div>
+          <div class="mythic-mini-field"><span>Shields</span><input type="number" min="0" name="system.combat.shields.current" value="{{mythicCombat.shields.current}}" /></div>
+        </div>
+        <div class="bio-row"><label>Status Summary</label><input type="text" name="system.medical.status" value="{{mythicSystem.medical.status}}" placeholder="Ex: Stable, critical, medicated" /></div>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Treatment</h3>
+        <label>Treatment Notes</label>
+        <textarea name="system.medical.treatmentNotes" rows="6">{{mythicSystem.medical.treatmentNotes}}</textarea>
+        <label>Recovery Notes</label>
+        <textarea name="system.medical.recoveryNotes" rows="6">{{mythicSystem.medical.recoveryNotes}}</textarea>
+      </div>
+    </div>
+  </section>
+</div>

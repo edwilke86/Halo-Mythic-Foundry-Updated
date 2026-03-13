@@ -1,0 +1,26 @@
+<div class="tab advancements" data-group="primary" data-tab="advancements">
+  <section class="panel mythic-phase4-panel">
+    <h2>Advancements</h2>
+
+    <div class="mythic-phase4-grid two-column">
+      <div class="mythic-phase4-card">
+        <h3>XP Summary</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field"><span>XP Earned</span><input type="number" min="0" name="system.advancements.xpEarned" value="{{mythicAdvancements.earned}}" /></div>
+          <div class="mythic-mini-field"><span>XP Spent</span><input type="number" min="0" name="system.advancements.xpSpent" value="{{mythicAdvancements.spent}}" /></div>
+          <div class="mythic-phase4-stat full"><span>XP Available</span><strong>{{mythicAdvancements.available}}</strong></div>
+        </div>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Unlocked Features</h3>
+        <textarea name="system.advancements.unlockedFeatures" rows="8">{{mythicSystem.advancements.unlockedFeatures}}</textarea>
+      </div>
+    </div>
+
+    <div class="mythic-phase4-card full-width">
+      <h3>Spend Log</h3>
+      <textarea name="system.advancements.spendLog" rows="8">{{mythicSystem.advancements.spendLog}}</textarea>
+    </div>
+  </section>
+</div>

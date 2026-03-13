@@ -80,7 +80,12 @@ const MYTHIC_ACTOR_PARTIAL_TEMPLATES = [
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/skills-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/abilities-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/equipment-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/medical-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/advancements-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/notes-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicles-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs"
 ];
 
@@ -140,6 +145,191 @@ const MYTHIC_EDUCATION_DEFINITIONS = [
 
 const MYTHIC_ABILITY_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/abilities.json";
 let mythicAbilityDefinitionsCache = null;
+
+const MYTHIC_ACTOR_SCHEMA_VERSION = 1;
+const MYTHIC_ABILITY_SCHEMA_VERSION = 1;
+const MYTHIC_EDUCATION_SCHEMA_VERSION = 1;
+const MYTHIC_WORLD_MIGRATION_VERSION = 2;
+const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
+const MYTHIC_CHARACTERISTIC_KEYS = ["str", "tou", "agi", "wfm", "wfr", "int", "per", "crg", "cha", "ldr"];
+
+function coerceSchemaVersion(value, fallback = 1) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(1, Math.floor(numeric)) : fallback;
+}
+
+function coerceMigrationVersion(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : fallback;
+}
+
+function toNonNegativeNumber(value, fallback = 0) {
+  const numeric = Number(value ?? fallback);
+  return Number.isFinite(numeric) ? Math.max(0, numeric) : fallback;
+}
+
+function toNonNegativeWhole(value, fallback = 0) {
+  return Math.floor(toNonNegativeNumber(value, fallback));
+}
+
+function computeCharacteristicModifiers(characteristics = {}) {
+  const mods = {};
+  for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+    mods[key] = Math.floor(toNonNegativeNumber(characteristics?.[key], 0) / 10);
+  }
+  return mods;
+}
+
+function computeCharacterDerivedValues(systemData = {}) {
+  const characteristics = systemData?.characteristics ?? {};
+  const mythic = systemData?.mythic?.characteristics ?? {};
+  const modifiers = computeCharacteristicModifiers(characteristics);
+
+  const gravity = Number(systemData?.gravity ?? 1.0);
+  const isZeroG = gravity === 0;
+  const safeGravity = isZeroG ? 1.0 : gravity;
+  const gravDist = (value) => (isZeroG ? value : (value / safeGravity));
+
+  const mythicStr = toNonNegativeNumber(mythic?.str, 0);
+  const mythicTou = toNonNegativeNumber(mythic?.tou, 0);
+  const mythicAgi = toNonNegativeNumber(mythic?.agi, 0);
+
+  const touModifier = toNonNegativeWhole(modifiers.tou, 0);
+  const touCombined = touModifier + mythicTou;
+
+  const woundsMaximum = ((touModifier + mythicTou) * 2) + 40;
+  const fatigueThreshold = touModifier * 2;
+
+  const movMod = Math.max(0, modifiers.agi + mythicAgi);
+  const halfBase = movMod;
+  const fullBase = halfBase * 2;
+  const jumpDistanceBase = Math.max(0, modifiers.str / 4);
+  const leapDistanceBase = Math.max(0, Math.max(modifiers.str / 2, modifiers.agi / 2));
+
+  const movement = {
+    half: Math.floor(halfBase),
+    full: Math.floor(fullBase),
+    charge: Math.floor(halfBase * 3),
+    run: Math.floor(halfBase * 6),
+    jump: roundToOne(gravDist(jumpDistanceBase)),
+    leap: roundToOne(gravDist(leapDistanceBase)),
+    sprint: Math.floor(halfBase * 8),
+    climbNoTest: Math.floor(gravDist(halfBase)),
+    climbWithTest: Math.floor(gravDist(fullBase)),
+    swimSpeed: Math.max(0, Math.floor(modifiers.str)),
+    initiativeBonus: mythicAgi > 0 ? Math.max(1, Math.floor(mythicAgi / 2)) : 0
+  };
+
+  const perception = toNonNegativeNumber(characteristics.per, 0);
+  const perceptiveRange = {
+    standard:            perception * 2,
+    brightOrLowLight:    perception,
+    blindingOrDarkness:  Math.floor(perception / 2),
+    penalty20Max:        perception * 4,
+    penalty60Max:        perception * 6
+  };
+
+  const baseCarry = ((toNonNegativeNumber(characteristics.str, 0) + toNonNegativeNumber(characteristics.tou, 0)) / 2)
+    + (mythicStr * 10) + (mythicTou * 10);
+  const gravCarry = isZeroG ? baseCarry : roundToOne(baseCarry / safeGravity);
+
+  const carryingCapacity = {
+    carry: gravCarry,
+    lift:  roundToOne(gravCarry * 3),
+    push:  roundToOne(gravCarry * 5)
+  };
+
+  return {
+    modifiers,
+    mythicCharacteristics: {
+      str: mythicStr,
+      tou: mythicTou,
+      agi: mythicAgi
+    },
+    touModifier,
+    touCombined,
+    woundsMaximum,
+    fatigueThreshold,
+    movement,
+    perceptiveRange,
+    carryingCapacity
+  };
+}
+
+async function runWorldSchemaMigration() {
+  let actorMigrations = 0;
+  let itemMigrations = 0;
+
+  for (const actor of game.actors ?? []) {
+    if (actor.type !== "character") continue;
+    const normalized = normalizeCharacterSystemData(actor.system);
+    const diff = foundry.utils.diffObject(actor.system ?? {}, normalized);
+    if (!foundry.utils.isEmpty(diff)) {
+      await actor.update({ system: normalized }, { render: false, diff: false });
+      actorMigrations += 1;
+    }
+  }
+
+  for (const item of game.items ?? []) {
+    let normalized = null;
+    if (item.type === "ability") {
+      normalized = normalizeAbilitySystemData(item.system ?? {});
+    } else if (item.type === "education") {
+      normalized = normalizeEducationSystemData(item.system ?? {});
+    }
+
+    if (!normalized) continue;
+
+    const diff = foundry.utils.diffObject(item.system ?? {}, normalized);
+    if (!foundry.utils.isEmpty(diff)) {
+      await item.update({ system: normalized }, { render: false, diff: false });
+      itemMigrations += 1;
+    }
+  }
+
+  return {
+    actorMigrations,
+    itemMigrations,
+    totalMigrations: actorMigrations + itemMigrations
+  };
+}
+
+async function maybeRunWorldMigration() {
+  if (!game.user?.isGM) return;
+
+  const storedVersion = coerceMigrationVersion(
+    game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_WORLD_MIGRATION_SETTING_KEY),
+    0
+  );
+
+  if (storedVersion >= MYTHIC_WORLD_MIGRATION_VERSION) {
+    return;
+  }
+
+  ui.notifications?.info(
+    `Halo Mythic: running world migration ${storedVersion} -> ${MYTHIC_WORLD_MIGRATION_VERSION}.`
+  );
+
+  try {
+    const result = await runWorldSchemaMigration();
+    await game.settings.set(
+      "Halo-Mythic-Foundry-Updated",
+      MYTHIC_WORLD_MIGRATION_SETTING_KEY,
+      MYTHIC_WORLD_MIGRATION_VERSION
+    );
+
+    console.log(
+      `[mythic-system] World migration ${storedVersion} -> ${MYTHIC_WORLD_MIGRATION_VERSION} complete: ${result.actorMigrations} actors, ${result.itemMigrations} world items.`
+    );
+
+    ui.notifications?.info(
+      `Halo Mythic migration complete: ${result.actorMigrations} actors and ${result.itemMigrations} world items updated.`
+    );
+  } catch (error) {
+    console.error("[mythic-system] World migration failed.", error);
+    ui.notifications?.error("Halo Mythic migration failed. Check browser console for details.");
+  }
+}
 
 async function loadMythicAbilityDefinitions() {
   if (Array.isArray(mythicAbilityDefinitionsCache)) return mythicAbilityDefinitionsCache;
@@ -220,6 +410,7 @@ function buildCanonicalSkillsSchema() {
 
 function getCanonicalCharacterSystemData() {
   return {
+    schemaVersion: MYTHIC_ACTOR_SCHEMA_VERSION,
     header: {
       faction: "",
       logoPath: "",
@@ -277,6 +468,45 @@ function getCanonicalCharacterSystemData() {
       }
     },
     gravity: 1.0,
+    equipment: {
+      credits: 0,
+      carriedWeight: 0,
+      primaryWeapon: "",
+      secondaryWeapon: "",
+      armorName: "",
+      utilityLoadout: "",
+      inventoryNotes: ""
+    },
+    medical: {
+      status: "",
+      treatmentNotes: "",
+      recoveryNotes: ""
+    },
+    advancements: {
+      xpEarned: 0,
+      xpSpent: 0,
+      unlockedFeatures: "",
+      spendLog: ""
+    },
+    notes: {
+      missionLog: "",
+      personalNotes: "",
+      gmNotes: ""
+    },
+    vehicles: {
+      currentVehicle: "",
+      role: "",
+      callsign: "",
+      notes: ""
+    },
+    settings: {
+      automation: {
+        enforceAbilityPrereqs: true,
+        showRollHints: true,
+        keepSidebarCollapsed: false,
+        preferTokenPreview: false
+      }
+    },
     skills: buildCanonicalSkillsSchema(),
     biography: {
       physical: {
@@ -388,7 +618,7 @@ function normalizeCharacterSystemData(systemData) {
     recursive: true
   });
 
-  for (const key of ["str", "tou", "agi", "wfm", "wfr", "int", "per", "crg", "cha", "ldr"]) {
+  for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
     const value = Number(merged.characteristics?.[key] ?? 0);
     merged.characteristics[key] = Number.isFinite(value) ? Math.max(0, value) : 0;
   }
@@ -400,11 +630,7 @@ function normalizeCharacterSystemData(systemData) {
     merged.mythic.characteristics[key] = Number.isFinite(value) ? Math.max(0, value) : 0;
   }
 
-  const touScore = Number(merged.characteristics?.tou ?? 0);
-  const touModifier = Number.isFinite(touScore) ? Math.max(0, Math.floor(touScore / 10)) : 0;
-  const mythicTou = Math.max(0, Number(merged.mythic.characteristics?.tou ?? 0));
-  const woundsMaximum = ((touModifier + mythicTou) * 2) + 40;
-  const fatigueThreshold = touModifier * 2;
+  const derived = computeCharacterDerivedValues(merged);
 
   merged.combat ??= {};
   const clampWhole = (value) => {
@@ -432,8 +658,8 @@ function normalizeCharacterSystemData(systemData) {
   // Core rules:
   // Wounds Max = ((TOU modifier + Mythic TOU) * 2) + 40
   // Fatigue coma threshold = TOU modifier * 2
-  merged.combat.wounds.max = clampWhole(woundsMaximum);
-  merged.combat.fatigue.max = clampWhole(fatigueThreshold);
+  merged.combat.wounds.max = clampWhole(derived.woundsMaximum);
+  merged.combat.fatigue.max = clampWhole(derived.fatigueThreshold);
 
   merged.combat.dr ??= {};
   merged.combat.dr.armor ??= {};
@@ -444,12 +670,49 @@ function normalizeCharacterSystemData(systemData) {
   const gravRaw = Number(merged.gravity ?? 1.0);
   merged.gravity = Number.isFinite(gravRaw) ? Math.max(0, Math.min(4, Math.round(gravRaw * 10) / 10)) : 1.0;
 
+  merged.equipment ??= {};
+  merged.equipment.credits = toNonNegativeWhole(merged.equipment.credits, 0);
+  merged.equipment.carriedWeight = toNonNegativeWhole(merged.equipment.carriedWeight, 0);
+  for (const key of ["primaryWeapon", "secondaryWeapon", "armorName", "utilityLoadout", "inventoryNotes"]) {
+    merged.equipment[key] = String(merged.equipment?.[key] ?? "");
+  }
+
+  merged.medical ??= {};
+  for (const key of ["status", "treatmentNotes", "recoveryNotes"]) {
+    merged.medical[key] = String(merged.medical?.[key] ?? "");
+  }
+
+  merged.advancements ??= {};
+  merged.advancements.xpEarned = toNonNegativeWhole(merged.advancements.xpEarned, 0);
+  merged.advancements.xpSpent = toNonNegativeWhole(merged.advancements.xpSpent, 0);
+  for (const key of ["unlockedFeatures", "spendLog"]) {
+    merged.advancements[key] = String(merged.advancements?.[key] ?? "");
+  }
+
+  merged.notes ??= {};
+  for (const key of ["missionLog", "personalNotes", "gmNotes"]) {
+    merged.notes[key] = String(merged.notes?.[key] ?? "");
+  }
+
+  merged.vehicles ??= {};
+  for (const key of ["currentVehicle", "role", "callsign", "notes"]) {
+    merged.vehicles[key] = String(merged.vehicles?.[key] ?? "");
+  }
+
+  merged.settings ??= {};
+  merged.settings.automation ??= {};
+  for (const key of ["enforceAbilityPrereqs", "showRollHints", "keepSidebarCollapsed", "preferTokenPreview"]) {
+    merged.settings.automation[key] = Boolean(merged.settings.automation?.[key]);
+  }
+
   merged.skills = normalizeSkillsData(merged.skills);
+  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ACTOR_SCHEMA_VERSION);
   return merged;
 }
 
 function getCanonicalAbilitySystemData() {
   return {
+    schemaVersion: MYTHIC_ABILITY_SCHEMA_VERSION,
     cost: 0,
     prerequisiteText: "",
     prerequisiteRules: [],
@@ -481,6 +744,7 @@ function normalizeAbilitySystemData(systemData) {
 
   const costRaw = Number(merged.cost ?? 0);
   merged.cost = Number.isFinite(costRaw) ? Math.max(0, Math.floor(costRaw)) : 0;
+  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ABILITY_SCHEMA_VERSION);
 
   merged.prerequisiteText = String(merged.prerequisiteText ?? "").trim();
   merged.shortDescription = String(merged.shortDescription ?? "").trim();
@@ -518,6 +782,70 @@ function normalizeAbilitySystemData(systemData) {
   merged.tags = tagArray
     .map((entry) => String(entry ?? "").trim().toLowerCase())
     .filter(Boolean);
+
+  return merged;
+}
+
+function getCanonicalEducationSystemData() {
+  return {
+    schemaVersion: MYTHIC_EDUCATION_SCHEMA_VERSION,
+    difficulty: "basic",
+    skills: [],
+    characteristic: "int",
+    costPlus5: 50,
+    costPlus10: 100,
+    restricted: false,
+    category: "general",
+    description: "",
+    tier: "plus5",
+    modifier: 0,
+    editMode: false
+  };
+}
+
+function normalizeEducationSystemData(systemData) {
+  const source = foundry.utils.deepClone(systemData ?? {});
+  const defaults = getCanonicalEducationSystemData();
+
+  const merged = foundry.utils.mergeObject(defaults, source, {
+    inplace: false,
+    insertKeys: true,
+    insertValues: true,
+    overwrite: true,
+    recursive: true
+  });
+
+  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_EDUCATION_SCHEMA_VERSION);
+
+  const difficulty = String(merged.difficulty ?? "basic").toLowerCase();
+  merged.difficulty = difficulty === "advanced" ? "advanced" : "basic";
+
+  const characteristic = String(merged.characteristic ?? "int").trim().toLowerCase();
+  merged.characteristic = characteristic || "int";
+
+  const tier = String(merged.tier ?? "plus5").toLowerCase();
+  merged.tier = tier === "plus10" ? "plus10" : "plus5";
+
+  const toWhole = (value, fallback = 0) => {
+    const numeric = Number(value ?? fallback);
+    return Number.isFinite(numeric) ? Math.floor(numeric) : fallback;
+  };
+
+  merged.costPlus5 = Math.max(0, toWhole(merged.costPlus5, 50));
+  merged.costPlus10 = Math.max(0, toWhole(merged.costPlus10, 100));
+  merged.modifier = toWhole(merged.modifier, 0);
+  merged.restricted = Boolean(merged.restricted);
+  merged.editMode = Boolean(merged.editMode);
+  merged.category = String(merged.category ?? "general").trim().toLowerCase() || "general";
+  merged.description = String(merged.description ?? "");
+
+  const skills = Array.isArray(merged.skills)
+    ? merged.skills
+    : String(merged.skills ?? "")
+      .split(",")
+      .map((entry) => String(entry ?? "").trim())
+      .filter(Boolean);
+  merged.skills = skills;
 
   return merged;
 }
@@ -577,24 +905,28 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   };
 
   _sheetScrollTop = 0;
+  _showTokenPortrait = false;
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
+    const derived = computeCharacterDerivedValues(normalizedSystem);
     const faction = this.actor.system?.header?.faction ?? "";
     const customLogo = this.actor.system?.header?.logoPath ?? "";
 
     context.cssClass = this.options.classes.join(" ");
     context.actor = this.actor;
     context.editable = this.isEditable;
-    context.mythicSidebarCollapsed = Boolean(this.actor.getFlag("Halo-Mythic-Foundry-Updated", "sidebarCollapsed"));
+    context.mythicSystem = normalizedSystem;
     context.mythicLogo = customLogo || this._getFactionLogoPath(faction);
     context.mythicFactionIndex = this._getFactionIndex(faction);
-    const characteristicModifiers = this._getCharacteristicModifiers(normalizedSystem?.characteristics);
+    const characteristicModifiers = derived.modifiers;
     context.mythicCharacteristicModifiers = characteristicModifiers;
     context.mythicBiography = this._getBiographyData(normalizedSystem);
-    context.mythicDerived = this._getMythicDerivedData(normalizedSystem);
-    context.mythicCombat = this._getCombatViewData(normalizedSystem, characteristicModifiers);
+    context.mythicDerived = this._getMythicDerivedData(normalizedSystem, derived);
+    context.mythicCombat = this._getCombatViewData(normalizedSystem, characteristicModifiers, derived);
+    context.mythicAdvancements = this._getAdvancementViewData(normalizedSystem);
+    context.mythicEquipment = this._getEquipmentViewData(normalizedSystem, derived);
     context.mythicGravityValue = String(normalizedSystem?.gravity ?? 1.0);
     context.mythicSkills = this._getSkillsViewData(normalizedSystem?.skills, normalizedSystem?.characteristics);
     context.mythicFactionOptions = [
@@ -632,77 +964,51 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return context;
   }
 
-  _getMythicDerivedData(systemData) {
-    const characteristics = systemData?.characteristics ?? {};
-    const mythic = systemData?.mythic?.characteristics ?? {};
-    const modifiers = this._getCharacteristicModifiers(characteristics);
-    const gravity = Number(systemData?.gravity ?? 1.0);
-    const isZeroG = gravity === 0;
-    const safeGravity = isZeroG ? 1.0 : gravity;
-
-    const mythicStr = Math.max(0, Number(mythic.str ?? 0));
-    const mythicTou = Math.max(0, Number(mythic.tou ?? 0));
-    const mythicAgi = Math.max(0, Number(mythic.agi ?? 0));
-
-    const movMod = Math.max(0, modifiers.agi + mythicAgi);
-
-    // Gravity scales physical distance values. Zero-G keeps base values here.
-    const gravDist = (val) => isZeroG ? val : (val / safeGravity);
-
-    const halfBase = movMod;
-    const fullBase = halfBase * 2;
-
-    const jumpDistanceBase = Math.max(0, modifiers.str / 4);
-    const leapDistanceBase = Math.max(0, Math.max(modifiers.str / 2, modifiers.agi / 2));
-
-    const movement = {
-      half: Math.floor(halfBase),
-      full: Math.floor(fullBase),
-      charge: Math.floor(halfBase * 3),
-      run: Math.floor(halfBase * 6),
-      jump: roundToOne(gravDist(jumpDistanceBase)),
-      leap: roundToOne(gravDist(leapDistanceBase)),
-      sprint: Math.floor(halfBase * 8),
-      climbNoTest: Math.floor(gravDist(halfBase)),
-      climbWithTest: Math.floor(gravDist(fullBase)),
-      swimSpeed: Math.max(0, Math.floor(modifiers.str)),
-      initiativeBonus: mythicAgi > 0 ? Math.max(1, Math.floor(mythicAgi / 2)) : 0
-    };
-
-    const perception = Number(characteristics.per ?? 0);
-    const perceptiveRange = {
-      standard:            perception * 2,
-      brightOrLowLight:    perception,
-      blindingOrDarkness:  Math.floor(perception / 2),
-      penalty20Max:        perception * 4,
-      penalty60Max:        perception * 6
-    };
-
-    const baseCarry = ((Number(characteristics.str ?? 0) + Number(characteristics.tou ?? 0)) / 2)
-      + (mythicStr * 10) + (mythicTou * 10);
-    const gravCarry = isZeroG ? baseCarry : roundToOne(baseCarry / safeGravity);
-
-    const carryingCapacity = {
-      carry: gravCarry,
-      lift:  roundToOne(gravCarry * 3),
-      push:  roundToOne(gravCarry * 5)
-    };
-
+  _getAdvancementViewData(systemData) {
+    const earned = toNonNegativeWhole(systemData?.advancements?.xpEarned, 0);
+    const spent = toNonNegativeWhole(systemData?.advancements?.xpSpent, 0);
     return {
-      mythicCharacteristics: { str: mythicStr, tou: mythicTou, agi: mythicAgi },
-      movement,
-      perceptiveRange,
-      carryingCapacity
+      earned,
+      spent,
+      available: Math.max(0, earned - spent)
     };
   }
 
-  _getCombatViewData(systemData, characteristicModifiers = {}) {
+  _getEquipmentViewData(systemData, derivedData = null) {
+    const derived = derivedData ?? computeCharacterDerivedValues(systemData);
+    const carriedWeight = toNonNegativeWhole(systemData?.equipment?.carriedWeight, 0);
+    const carryCapacity = Number(derived?.carryingCapacity?.carry ?? 0);
+    const loadPercent = carryCapacity > 0
+      ? Math.min(999, Math.round((carriedWeight / carryCapacity) * 100))
+      : 0;
+
+    return {
+      carriedWeight,
+      carryCapacity,
+      loadPercent,
+      remainingCarry: Math.max(0, Math.round((carryCapacity - carriedWeight) * 10) / 10)
+    };
+  }
+
+  _getMythicDerivedData(systemData, precomputed = null) {
+    const derived = precomputed ?? computeCharacterDerivedValues(systemData);
+
+    return {
+      mythicCharacteristics: foundry.utils.deepClone(derived.mythicCharacteristics),
+      movement: foundry.utils.deepClone(derived.movement),
+      perceptiveRange: foundry.utils.deepClone(derived.perceptiveRange),
+      carryingCapacity: foundry.utils.deepClone(derived.carryingCapacity)
+    };
+  }
+
+  _getCombatViewData(systemData, characteristicModifiers = {}, precomputed = null) {
+    const derived = precomputed ?? computeCharacterDerivedValues(systemData);
     const combat = systemData?.combat ?? {};
     const shields = combat?.shields ?? {};
     const armor = combat?.dr?.armor ?? {};
-    const mythicTou = Math.max(0, Number(systemData?.mythic?.characteristics?.tou ?? 0));
-    const touMod = Math.max(0, Number(characteristicModifiers?.tou ?? 0));
-    const touCombined = touMod + mythicTou;
+    const touMod = Math.max(0, Number(characteristicModifiers?.tou ?? derived.modifiers?.tou ?? 0));
+    const mythicTou = Math.max(0, Number(derived.mythicCharacteristics?.tou ?? 0));
+    const touCombined = Math.max(0, Number(derived.touCombined ?? (touMod + mythicTou)));
 
     const asWhole = (value) => {
       const numeric = Number(value ?? 0);
@@ -893,15 +1199,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _getCharacteristicModifiers(characteristics) {
-    const keys = ["str", "tou", "agi", "wfm", "wfr", "int", "per", "crg", "cha", "ldr"];
-    const mods = {};
-
-    for (const key of keys) {
-      const score = Number(characteristics?.[key] ?? 0);
-      mods[key] = Number.isFinite(score) ? Math.floor(score / 10) : 0;
-    }
-
-    return mods;
+    return computeCharacteristicModifiers(characteristics ?? {});
   }
 
   _getFactionIndex(faction) {
@@ -990,7 +1288,6 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           actionTypeLabel: actionLabel[String(sys.actionType ?? "passive")] ?? "Passive",
           prerequisiteText: String(sys.prerequisiteText ?? ""),
           shortDescription,
-          shortDescriptionDisplay: shortDescription || "N/A",
           repeatable: Boolean(sys.repeatable)
         };
       });
@@ -1001,6 +1298,27 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const scrollable = sourceRoot?.querySelector?.(".sheet-tab-scrollable");
     if (!scrollable) return;
     this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop ?? 0));
+  }
+
+  _refreshPortraitTokenControls(root) {
+    if (!root) return;
+
+    const preview = root.querySelector(".bio-portrait-preview");
+    const portraitToggleButton = root.querySelector(".portrait-toggle-btn");
+    const tokenToggleButton = root.querySelector(".token-toggle-btn");
+
+    const tokenSrc = String(this.actor.prototypeToken?.texture?.src ?? "");
+    const portraitSrc = String(this.actor.img ?? "");
+    const showToken = Boolean(this._showTokenPortrait);
+    const previewSrc = showToken ? (tokenSrc || portraitSrc) : portraitSrc;
+
+    if (preview) {
+      preview.src = previewSrc;
+      preview.alt = showToken ? "Token Preview" : "Character Portrait";
+    }
+
+    portraitToggleButton?.classList.toggle("is-active", !showToken);
+    tokenToggleButton?.classList.toggle("is-active", showToken);
   }
 
   _normalizeNameForMatch(value) {
@@ -1324,6 +1642,14 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       foundry.utils.setProperty(submitData, "system.skills.custom", mergedCustomSkills);
     }
 
+    const submittedHeaderGender = foundry.utils.getProperty(submitData, "system.header.gender");
+    const submittedBioGender = foundry.utils.getProperty(submitData, "system.biography.physical.gender");
+    const actorHeaderGender = this.actor.system?.header?.gender;
+    const actorBioGender = this.actor.system?.biography?.physical?.gender;
+    const syncedGender = String(submittedHeaderGender ?? submittedBioGender ?? actorHeaderGender ?? actorBioGender ?? "");
+    foundry.utils.setProperty(submitData, "system.header.gender", syncedGender);
+    foundry.utils.setProperty(submitData, "system.biography.physical.gender", syncedGender);
+
     return submitData;
   }
 
@@ -1331,6 +1657,19 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this._rememberSheetScrollPosition();
 
     const input = event.target;
+
+    if (input instanceof HTMLInputElement) {
+      if (input.name === "system.header.gender" || input.name === "system.biography.physical.gender") {
+        const peerName = input.name === "system.header.gender"
+          ? "system.biography.physical.gender"
+          : "system.header.gender";
+        const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+        const peerInput = root?.querySelector(`input[name="${peerName}"]`);
+        if (peerInput instanceof HTMLInputElement) {
+          peerInput.value = input.value;
+        }
+      }
+    }
 
     if (input instanceof HTMLInputElement) {
       if (input.name.startsWith("system.characteristics.") || input.name.startsWith("system.mythic.characteristics.")) {
@@ -1472,12 +1811,6 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
-    root.querySelectorAll(".sidebar-toggle").forEach((button) => {
-      button.addEventListener("click", (event) => {
-        void this._onToggleSidebar(event);
-      });
-    });
-
     root.querySelectorAll(".roll-characteristic").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onRollCharacteristic(event);
@@ -1594,6 +1927,27 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         void this._onAddCustomAbility(event);
       });
     });
+
+    const portraitToggleButton = root.querySelector(".portrait-toggle-btn");
+    if (portraitToggleButton) {
+      portraitToggleButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._showTokenPortrait = false;
+        this._refreshPortraitTokenControls(root);
+      });
+    }
+
+    const tokenToggleButton = root.querySelector(".token-toggle-btn");
+    if (tokenToggleButton) {
+      tokenToggleButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._showTokenPortrait = true;
+        this._refreshPortraitTokenControls(root);
+      });
+    }
+
+    this._showTokenPortrait = Boolean(this.actor.system?.settings?.automation?.preferTokenPreview);
+    this._refreshPortraitTokenControls(root);
   }
 
   _onClose(options) {
@@ -1627,15 +1981,6 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       current.push(this._newBiographyEntry(path));
     }
     await this.actor.update({ [`system.${path}`]: current });
-  }
-
-  async _onToggleSidebar(event) {
-    event.preventDefault();
-    const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
-    if (!root) return;
-    const collapsed = !root.classList.contains("sidebar-collapsed");
-    root.classList.toggle("sidebar-collapsed", collapsed);
-    await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "sidebarCollapsed", collapsed);
   }
 
   _openCompendiumPack(packKey, label) {
@@ -1953,6 +2298,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _onAddCustomAbility(event) {
     event.preventDefault();
     if (!this.isEditable) return;
+    const enforceAbilityPrereqs = this.actor.system?.settings?.automation?.enforceAbilityPrereqs !== false;
 
     const skillOptions = this._getAllSkillLabels();
     const skillOptionMarkup = skillOptions
@@ -2244,10 +2590,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       system: abilitySystem
     };
 
-    const prereqCheck = this._evaluateAbilityPrerequisites(pendingAbility);
-    if (!prereqCheck.ok) {
-      const forceAdd = await this._confirmAbilityPrerequisiteOverride(result.name, prereqCheck.reasons);
-      if (!forceAdd) return;
+    if (enforceAbilityPrereqs) {
+      const prereqCheck = this._evaluateAbilityPrerequisites(pendingAbility);
+      if (!prereqCheck.ok) {
+        const forceAdd = await this._confirmAbilityPrerequisiteOverride(result.name, prereqCheck.reasons);
+        if (!forceAdd) return;
+      }
     }
 
     const created = await this.actor.createEmbeddedDocuments("Item", [pendingAbility]);
@@ -2295,17 +2643,20 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (item.type === "ability") {
       const itemData = item.toObject();
       const existing = this.actor.items.find((i) => i.type === "ability" && i.name === itemData.name);
+      const enforceAbilityPrereqs = this.actor.system?.settings?.automation?.enforceAbilityPrereqs !== false;
       if (existing) {
         ui.notifications.warn(`${itemData.name} is already on this character.`);
         return false;
       }
 
-      const prereqCheck = this._evaluateAbilityPrerequisites(itemData);
-      if (!prereqCheck.ok) {
-        const details = prereqCheck.reasons.slice(0, 3).join("; ");
-        ui.notifications.warn(`Cannot add ${itemData.name}: prerequisites not met. ${details}`);
-        console.warn(`[mythic-system] Ability prerequisite check failed for ${itemData.name}:`, prereqCheck.reasons);
-        return false;
+      if (enforceAbilityPrereqs) {
+        const prereqCheck = this._evaluateAbilityPrerequisites(itemData);
+        if (!prereqCheck.ok) {
+          const details = prereqCheck.reasons.slice(0, 3).join("; ");
+          ui.notifications.warn(`Cannot add ${itemData.name}: prerequisites not met. ${details}`);
+          console.warn(`[mythic-system] Ability prerequisite check failed for ${itemData.name}:`, prereqCheck.reasons);
+          return false;
+        }
       }
 
       itemData.system = normalizeAbilitySystemData(itemData.system ?? {});
@@ -2484,44 +2835,82 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
-  async _onRollEducation(event) {
-    event.preventDefault();
-    const cell = event.currentTarget;
-    const label = String(cell?.dataset?.rollLabel ?? "Education");
-    const targetValue = Number(cell?.dataset?.rollTarget ?? 0);
+  _buildUniversalTestChatCard({
+    label,
+    targetValue,
+    rolled,
+    success,
+    successLabel = "Success",
+    failureLabel = "Failure",
+    successDegreeLabel = "DOS",
+    failureDegreeLabel = "DOF"
+  }) {
+    const safeLabel = foundry.utils.escapeHTML(String(label ?? "Test"));
+    const outcome = success ? successLabel : failureLabel;
+    const degreeLabel = success ? successDegreeLabel : failureDegreeLabel;
+    const outcomeClass = success ? "success" : "failure";
+    const diff = Math.abs(targetValue - rolled);
+    const degrees = (diff / 10).toFixed(1);
 
+    return `
+      <article class="mythic-chat-card ${outcomeClass}">
+        <header class="mythic-chat-header">
+          <span class="mythic-chat-title">${safeLabel} Test</span>
+          <span class="mythic-chat-outcome ${outcomeClass}">${foundry.utils.escapeHTML(outcome)}</span>
+        </header>
+        <div class="mythic-chat-inline-stats">
+          <span class="stat target"><strong>Target</strong> ${targetValue}</span>
+          <span class="stat roll ${outcomeClass}"><strong>Roll</strong> ${rolled}</span>
+          <span class="stat degree ${outcomeClass}"><strong>${foundry.utils.escapeHTML(degreeLabel)}</strong> ${degrees}</span>
+        </div>
+      </article>
+    `;
+  }
+
+  async _runUniversalTest({
+    label,
+    targetValue,
+    invalidTargetWarning,
+    successLabel = "Success",
+    failureLabel = "Failure",
+    successDegreeLabel = "DOS",
+    failureDegreeLabel = "DOF"
+  }) {
     if (!Number.isFinite(targetValue) || targetValue <= 0) {
-      ui.notifications.warn(`Set a valid target for ${label} before rolling.`);
+      ui.notifications.warn(invalidTargetWarning);
       return;
     }
 
     const roll = await (new Roll("1d100")).evaluate({ async: true });
     const rolled = Number(roll.total);
     const success = rolled <= targetValue;
-    const diff = Math.abs(targetValue - rolled);
-    const degrees = (diff / 10).toFixed(1);
-    const outcome = success ? "Success" : "Failure";
-    const degreeLabel = success ? "DOS" : "DOF";
-    const outcomeClass = success ? "success" : "failure";
-
-    const content = `
-        <article class="mythic-chat-card ${outcomeClass}">
-          <header class="mythic-chat-header">
-            <span class="mythic-chat-title">${label} Test</span>
-            <span class="mythic-chat-outcome ${outcomeClass}">${outcome}</span>
-          </header>
-          <div class="mythic-chat-inline-stats">
-            <span class="stat target"><strong>Target</strong> ${targetValue}</span>
-            <span class="stat roll ${outcomeClass}"><strong>Roll</strong> ${rolled}</span>
-            <span class="stat degree ${outcomeClass}"><strong>${degreeLabel}</strong> ${degrees}</span>
-          </div>
-        </article>
-      `;
+    const content = this._buildUniversalTestChatCard({
+      label,
+      targetValue,
+      rolled,
+      success,
+      successLabel,
+      failureLabel,
+      successDegreeLabel,
+      failureDegreeLabel
+    });
 
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
       content,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _onRollEducation(event) {
+    event.preventDefault();
+    const cell = event.currentTarget;
+    const label = String(cell?.dataset?.rollLabel ?? "Education");
+    const targetValue = Number(cell?.dataset?.rollTarget ?? 0);
+    await this._runUniversalTest({
+      label,
+      targetValue,
+      invalidTargetWarning: `Set a valid target for ${label} before rolling.`
     });
   }
 
@@ -2532,39 +2921,10 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const cell = event.currentTarget;
     const label = String(cell?.dataset?.rollLabel ?? "Skill");
     const targetValue = Number(cell?.dataset?.rollTarget ?? 0);
-
-    if (!Number.isFinite(targetValue) || targetValue <= 0) {
-      ui.notifications.warn(`Set a valid target for ${label} before rolling.`);
-      return;
-    }
-
-    const roll = await (new Roll("1d100")).evaluate({ async: true });
-    const rolled = Number(roll.total);
-    const success = rolled <= targetValue;
-    const diff = Math.abs(targetValue - rolled);
-    const degrees = (diff / 10).toFixed(1);
-    const outcome = success ? "Success" : "Failure";
-    const degreeLabel = success ? "DOS" : "DOF";
-    const outcomeClass = success ? "success" : "failure";
-
-    const content = `
-        <article class="mythic-chat-card ${outcomeClass}">
-          <header class="mythic-chat-header">
-            <span class="mythic-chat-title">${label} Test</span>
-            <span class="mythic-chat-outcome ${outcomeClass}">${outcome}</span>
-          </header>
-          <div class="mythic-chat-inline-stats">
-            <span class="stat target"><strong>Target</strong> ${targetValue}</span>
-            <span class="stat roll ${outcomeClass}"><strong>Roll</strong> ${rolled}</span>
-            <span class="stat degree ${outcomeClass}"><strong>${degreeLabel}</strong> ${degrees}</span>
-          </div>
-        </article>
-      `;
-
-    await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      content,
-      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    await this._runUniversalTest({
+      label,
+      targetValue,
+      invalidTargetWarning: `Set a valid target for ${label} before rolling.`
     });
   }
 
@@ -2575,39 +2935,10 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const key = button?.dataset?.characteristic;
     const label = button?.dataset?.label ?? key?.toUpperCase() ?? "TEST";
     const targetValue = Number(this.actor.system?.characteristics?.[key] ?? 0);
-
-    if (!Number.isFinite(targetValue) || targetValue <= 0) {
-      ui.notifications.warn(`Set a valid ${label} value before rolling a test.`);
-      return;
-    }
-
-    const roll = await (new Roll("1d100")).evaluate({ async: true });
-    const rolled = Number(roll.total);
-    const success = rolled <= targetValue;
-    const diff = Math.abs(targetValue - rolled);
-    const degrees = (diff / 10).toFixed(1);
-    const outcome = success ? "Success" : "Failure";
-    const degreeLabel = success ? "DOS" : "DOF";
-    const outcomeClass = success ? "success" : "failure";
-
-    const content = `
-        <article class="mythic-chat-card ${outcomeClass}">
-          <header class="mythic-chat-header">
-            <span class="mythic-chat-title">${label} Test</span>
-            <span class="mythic-chat-outcome ${outcomeClass}">${outcome}</span>
-          </header>
-          <div class="mythic-chat-inline-stats">
-            <span class="stat target"><strong>Target</strong> ${targetValue}</span>
-            <span class="stat roll ${outcomeClass}"><strong>Roll</strong> ${rolled}</span>
-            <span class="stat degree ${outcomeClass}"><strong>${degreeLabel}</strong> ${degrees}</span>
-          </div>
-        </article>
-      `;
-
-    await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      content,
-      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    await this._runUniversalTest({
+      label,
+      targetValue,
+      invalidTargetWarning: `Set a valid ${label} value before rolling a test.`
     });
   }
 }
@@ -2668,7 +2999,7 @@ class MythicEducationSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
     context.item = this.item;
     context.editable = this.isEditable;
 
-    const sys = this.item.system ?? {};
+    const sys = normalizeEducationSystemData(this.item.system ?? {});
     context.difficultyLabel = sys.difficulty === "advanced" ? "Advanced" : "Basic";
     context.skillsDisplay = Array.isArray(sys.skills) ? sys.skills.join(", ") : String(sys.skills ?? "");
     context.characteristicLabel = String(sys.characteristic ?? "int").toUpperCase();
@@ -2705,6 +3036,9 @@ class MythicEducationSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 
     const characteristic = String(foundry.utils.getProperty(submitData, "system.characteristic") ?? "int").trim().toLowerCase();
     foundry.utils.setProperty(submitData, "system.characteristic", characteristic || "int");
+
+    const normalizedSystem = normalizeEducationSystemData(foundry.utils.getProperty(submitData, "system") ?? {});
+    foundry.utils.setProperty(submitData, "system", normalizedSystem);
 
     return submitData;
   }
@@ -2805,6 +3139,15 @@ class MythicAbilitySheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 Hooks.once("init", async () => {
   console.log("[mythic-system] Initializing minimal system scaffold");
 
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_WORLD_MIGRATION_SETTING_KEY, {
+    name: "Halo Mythic World Migration Version",
+    hint: "Internal world migration marker used by the Halo Mythic system.",
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0
+  });
+
   await loadTemplates(MYTHIC_ACTOR_PARTIAL_TEMPLATES);
 
   ActorCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicActorSheet, {
@@ -2837,15 +3180,7 @@ Hooks.once("init", async () => {
 
 Hooks.once("ready", () => {
   console.log("[mythic-system] Ready");
-
-  for (const actor of game.actors ?? []) {
-    if (actor.type !== "character") continue;
-    const normalized = normalizeCharacterSystemData(actor.system);
-    const diff = foundry.utils.diffObject(actor.system ?? {}, normalized);
-    if (!foundry.utils.isEmpty(diff)) {
-      actor.update({ system: normalized }, { render: false, diff: false });
-    }
-  }
+  void maybeRunWorldMigration();
 
   // Seed compendium packs on first load (GM only)
   if (game.user?.isGM) {
@@ -2925,6 +3260,8 @@ const MYTHIC_ABILITY_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/
 
 Hooks.on("preCreateItem", (item, createData) => {
   if (item.type === "education") {
+    const normalized = normalizeEducationSystemData(createData.system ?? {});
+    foundry.utils.setProperty(createData, "system", normalized);
     // Only set the default icon if none has been explicitly chosen
     const currentImg = createData.img ?? item.img ?? "";
     if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
@@ -2944,7 +3281,8 @@ Hooks.on("preCreateItem", (item, createData) => {
 });
 
 Hooks.on("preUpdateItem", (item, changes) => {
-  if (item.type !== "ability" || changes.system === undefined) return;
+  if (changes.system === undefined) return;
+
   const nextSystem = foundry.utils.mergeObject(foundry.utils.deepClone(item.system ?? {}), changes.system ?? {}, {
     inplace: false,
     insertKeys: true,
@@ -2952,7 +3290,15 @@ Hooks.on("preUpdateItem", (item, changes) => {
     overwrite: true,
     recursive: true
   });
-  changes.system = normalizeAbilitySystemData(nextSystem);
+
+  if (item.type === "ability") {
+    changes.system = normalizeAbilitySystemData(nextSystem);
+    return;
+  }
+
+  if (item.type === "education") {
+    changes.system = normalizeEducationSystemData(nextSystem);
+  }
 });
 
 Hooks.on("preCreateActor", (actor, createData) => {

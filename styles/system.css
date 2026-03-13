@@ -48,6 +48,7 @@
   border-radius: 12px !important;
   box-shadow: 0 14px 26px rgba(0, 0, 0, 0.55) !important;
   min-width: 980px;
+  min-height: 680px;
   background: var(--mythic-faction-1);
   background-size: 100% 100%, 380px 380px;
   background-repeat: no-repeat, repeat;
@@ -279,9 +280,10 @@
    ============================================================ */
 .mythic-character-sheet {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: var(--mythic-sidebar-width) minmax(0, 1fr);
+  gap: 6px;
   height: 100%;
+  min-height: 640px;
   width: 100%;
   box-sizing: border-box;
   min-width: 940px;
@@ -290,9 +292,38 @@
   background: transparent;
   border-radius: 0;
   font-family: 'Saira Semi Condensed', sans-serif;
+  position: relative;
+  --mythic-right-rail-width: 9px;
+  --mythic-left-cut-width: 9px;
+  --mythic-sidebar-width: 58px;
 }
 
 /* Outer window now owns faction background completely (no inner duplicate layer). */
+
+.mythic-character-sheet::before,
+.mythic-character-sheet::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.mythic-character-sheet::before {
+  left: 0;
+  width: var(--mythic-left-cut-width);
+  border-right: 1px solid rgba(147, 184, 226, 0.42);
+  border-top-left-radius: 12px;
+  background: linear-gradient(90deg, rgba(18, 28, 42, 0.4), rgba(18, 28, 42, 0));
+}
+
+.mythic-character-sheet::after {
+  right: 0;
+  width: var(--mythic-right-rail-width);
+  border-left: 1px solid rgba(147, 184, 226, 0.42);
+  background: linear-gradient(270deg, rgba(18, 28, 42, 0.4), rgba(18, 28, 42, 0));
+}
 
 /* ============================================================
    Tab nav sidebar
@@ -300,87 +331,68 @@
 .mythic-character-sheet .sheet-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border: 1px solid var(--mythic-table-bg);
-  background: rgba(57, 76, 106, 0.85);
-}
-
-.mythic-character-sheet .sidebar-toggle {
-  height: 28px;
-  width: 100%;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0;
+  align-items: flex-start;
+  gap: 0;
+  border: none;
+  background: transparent;
+  height: 100%;
+  width: var(--mythic-sidebar-width);
+  min-width: var(--mythic-sidebar-width);
+  overflow: hidden;
+  padding-top: 36px;
+  position: relative;
+  z-index: 2;
 }
 
 .mythic-character-sheet .sheet-tabs {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  align-items: flex-start;
+  gap: 6px;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .mythic-character-sheet .sheet-tabs .item {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  gap: 0;
   align-items: center;
   justify-content: center;
-  height: 84px;
+  width: 44px;
+  min-height: 38px;
+  padding: 0;
   color: var(--mythic-text);
-  font-family: Orbitron, sans-serif;
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid rgba(74, 100, 140, 0.5);
+  border: 1px solid rgba(74, 100, 140, 0.8);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  background: rgba(33, 45, 64, 0.46);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transform: translateX(6px);
+  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease;
 }
 
 .mythic-character-sheet .sheet-tabs .item i {
-  font-size: 20px;
-}
-
-/* Collapsed sidebar mode: icon-only tabs to free horizontal space */
-.mythic-character-sheet.sidebar-collapsed {
-  grid-template-columns: 36px minmax(0, 1fr);
-}
-
-.mythic-character-sheet.sidebar-collapsed .sheet-nav {
-  min-width: 36px;
-  gap: 4px;
-}
-
-.mythic-character-sheet.sidebar-collapsed .sidebar-toggle {
-  height: 20px;
-  min-height: 20px;
-}
-
-.mythic-character-sheet.sidebar-collapsed .sidebar-toggle i {
-  font-size: 11px;
-}
-
-.mythic-character-sheet.sidebar-collapsed .sheet-tabs .item {
-  height: 46px;
-  padding: 0;
-  gap: 0;
-}
-
-.mythic-character-sheet.sidebar-collapsed .sheet-tabs .item i {
   font-size: 14px;
 }
 
-.mythic-character-sheet.sidebar-collapsed .sheet-tabs .item span {
+.mythic-character-sheet .sheet-tabs .item span {
   display: none;
 }
 
 .mythic-character-sheet .sheet-tabs .item.active {
-  background: var(--mythic-table-bg);
+  background: rgba(74, 100, 140, 0.78);
+  border-color: rgba(130, 175, 220, 0.9);
   color: var(--mythic-text);
+  transform: translateX(10px);
 }
 
 .mythic-character-sheet .sheet-tabs .item:hover {
-  background: var(--mythic-hover);
+  background: rgba(200, 0, 0, 0.74);
+  border-color: rgba(255, 255, 255, 0.9);
+  transform: translateX(11px);
   cursor: pointer;
 }
 
@@ -981,6 +993,94 @@
   height: 100%;
 }
 
+.mythic-character-sheet .mythic-phase4-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.mythic-character-sheet .mythic-phase4-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.mythic-character-sheet .mythic-phase4-grid.two-column {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mythic-character-sheet .mythic-phase4-card {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.18);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.04),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.mythic-character-sheet .mythic-phase4-card.full-width {
+  width: 100%;
+}
+
+.mythic-character-sheet .mythic-phase4-card h3 {
+  margin: 0;
+}
+
+.mythic-character-sheet .mythic-phase4-field-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.mythic-character-sheet .mythic-phase4-field-grid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mythic-character-sheet .mythic-phase4-stat {
+  display: grid;
+  grid-template-rows: 16px 1fr;
+  min-height: 46px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: var(--mythic-input-bg);
+}
+
+.mythic-character-sheet .mythic-phase4-stat.full {
+  grid-column: 1 / -1;
+}
+
+.mythic-character-sheet .mythic-phase4-stat > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  background: #000000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.mythic-character-sheet .mythic-phase4-stat > strong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-family: 'Saira Semi Condensed', sans-serif;
+}
+
+.mythic-character-sheet .mythic-phase4-card textarea {
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.mythic-character-sheet .mythic-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.mythic-character-sheet .mythic-toggle-row input[type="checkbox"] {
+  margin: 0;
+}
+
 /* ============================================================
    Combat resources (wounds, DR, shields, support, CR)
    ============================================================ */
@@ -1462,11 +1562,11 @@
   gap: 0;
 }
 
-/* 6-column grid: Name | Cost | Action | Prereq | Repeatable | Delete */
+/* 5-column grid: Name | Cost | Action | Description | Delete */
 .mythic-character-sheet .mythic-ability-col-headers,
 .mythic-character-sheet .mythic-ability-row {
   display: grid;
-  grid-template-columns: minmax(190px, 2.2fr) 66px 76px minmax(120px, 2fr) 74px 28px;
+  grid-template-columns: minmax(190px, 2.2fr) 66px 76px minmax(140px, 2.4fr) 28px;
   gap: 4px;
   align-items: center;
   padding: 3px 4px;
@@ -1551,8 +1651,7 @@
 }
 
 .mythic-character-sheet .ability-col-cost,
-.mythic-character-sheet .ability-col-action,
-.mythic-character-sheet .ability-col-repeatable {
+.mythic-character-sheet .ability-col-action {
   text-align: center;
   font-family: 'Saira Semi Condensed', sans-serif;
   font-size: 12px;
@@ -1561,9 +1660,10 @@
 .mythic-character-sheet .ability-col-description {
   font-family: 'Saira Semi Condensed', sans-serif;
   font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
 }
 
 .mythic-character-sheet .ability-col-delete {
@@ -1862,6 +1962,55 @@
   align-content: start;
 }
 
+.mythic-character-sheet .bio-portrait-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.mythic-character-sheet .portrait-toggle-btn {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: stretch;
+}
+
+.mythic-character-sheet .token-toggle-btn {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: stretch;
+}
+
+.mythic-character-sheet .portrait-upload-btn {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: stretch;
+}
+
+.mythic-character-sheet .token-upload-btn {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: stretch;
+}
+
+.mythic-character-sheet .portrait-upload-btn,
+.mythic-character-sheet .token-upload-btn,
+.mythic-character-sheet .portrait-toggle-btn,
+.mythic-character-sheet .token-toggle-btn {
+  min-width: 92px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.mythic-character-sheet .portrait-view-toggle.is-active {
+  background: var(--mythic-hover);
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
 .mythic-character-sheet .bio-portrait-preview {
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -1961,6 +2110,10 @@
     grid-template-columns: 1fr;
   }
 
+  .mythic-character-sheet .mythic-phase4-grid.two-column {
+    grid-template-columns: 1fr;
+  }
+
   .mythic-character-sheet .mythic-skills-col-headers,
   .mythic-character-sheet .mythic-skills-row {
     grid-template-columns: minmax(100px, 1.5fr) 64px 64px minmax(64px, 1fr) minmax(80px, 1fr) 52px 48px 24px;
@@ -1978,13 +2131,19 @@
 
   .mythic-character-sheet .sheet-tabs {
     flex-direction: row;
+    align-items: stretch;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
 
   .mythic-character-sheet .sheet-tabs .item {
     flex: 1;
-    height: 64px;
-    border-right: 1px solid rgba(74, 100, 140, 0.5);
-    border-bottom: 0;
+    min-width: 38px;
+    min-height: 44px;
+    border-right: 1px solid rgba(74, 100, 140, 0.7);
+    border-radius: 6px;
+    transform: none;
   }
 
   .mythic-character-sheet .characteristics-strip {

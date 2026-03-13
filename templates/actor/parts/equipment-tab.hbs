@@ -1,0 +1,31 @@
+<div class="tab equipment" data-group="primary" data-tab="equipment">
+  <section class="panel mythic-phase4-panel">
+    <h2>Equipment</h2>
+
+    <div class="mythic-phase4-grid two-column">
+      <div class="mythic-phase4-card">
+        <h3>Load Summary</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field"><span>Credits</span><input type="number" min="0" name="system.equipment.credits" value="{{mythicSystem.equipment.credits}}" /></div>
+          <div class="mythic-mini-field"><span>Carried Weight</span><input type="number" min="0" name="system.equipment.carriedWeight" value="{{mythicEquipment.carriedWeight}}" /></div>
+          <div class="mythic-phase4-stat"><span>Carry Capacity</span><strong>{{mythicEquipment.carryCapacity}}</strong></div>
+          <div class="mythic-phase4-stat"><span>Remaining</span><strong>{{mythicEquipment.remainingCarry}}</strong></div>
+          <div class="mythic-phase4-stat full"><span>Load Utilization</span><strong>{{mythicEquipment.loadPercent}}%</strong></div>
+        </div>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Ready Loadout</h3>
+        <div class="bio-row"><label>Primary Weapon</label><input type="text" name="system.equipment.primaryWeapon" value="{{mythicSystem.equipment.primaryWeapon}}" /></div>
+        <div class="bio-row"><label>Secondary Weapon</label><input type="text" name="system.equipment.secondaryWeapon" value="{{mythicSystem.equipment.secondaryWeapon}}" /></div>
+        <div class="bio-row"><label>Armor</label><input type="text" name="system.equipment.armorName" value="{{mythicSystem.equipment.armorName}}" /></div>
+        <div class="bio-row"><label>Utility Loadout</label><input type="text" name="system.equipment.utilityLoadout" value="{{mythicSystem.equipment.utilityLoadout}}" /></div>
+      </div>
+    </div>
+
+    <div class="mythic-phase4-card full-width">
+      <h3>Inventory Notes</h3>
+      <textarea name="system.equipment.inventoryNotes" rows="8">{{mythicSystem.equipment.inventoryNotes}}</textarea>
+    </div>
+  </section>
+</div>

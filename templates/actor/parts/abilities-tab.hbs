@@ -9,7 +9,6 @@
         <div>Cost</div>
         <div>Action</div>
         <div>Description</div>
-        <div>Repeatable</div>
         <div></div>
       </div>
 
@@ -27,8 +26,7 @@
           </div>
           <div class="ability-col-cost">{{ability.cost}}</div>
           <div class="ability-col-action">{{ability.actionTypeLabel}}</div>
-          <div class="ability-col-description" title="{{ability.shortDescriptionDisplay}}">{{ability.shortDescriptionDisplay}}</div>
-          <div class="ability-col-repeatable">{{#if ability.repeatable}}Yes{{else}}No{{/if}}</div>
+          <div class="ability-col-description" title="{{ability.shortDescription}}">{{ability.shortDescription}}</div>
           <div class="ability-col-delete">
             <button class="ability-remove-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Remove ability">
               <i class="fas fa-times"></i>

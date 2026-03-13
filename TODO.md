@@ -1,7 +1,32 @@
 # Halo Mythic Foundry TODO Roadmap
 
-Last updated: 2026-03-11
+Last updated: 2026-03-13
 Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
+
+## Current Status Snapshot (2026-03-13)
+
+Completed recently (Phases 2-4):
+
+- Added robust world migration governance with versioned one-time execution and GM-only guard
+- Added `htmlFields` declarations in `system.json` for actor/item rich text fields
+- Added centralized compute layer for characteristics and derived values
+- Unified characteristic/skill/education rolls through one universal resolver and shared chat-card builder
+- Expanded actor schema with equipment, medical, advancements, notes, vehicles, and per-actor settings
+- Added and wired new sheet tabs: Equipment, Medical, Advancements, Notes, Vehicles, Settings
+- Added actor-level settings behavior wiring:
+  - enforce ability prerequisites
+  - prefer token preview
+  - keep sidebar collapsed setting persistence
+- Completed major left-nav redesign to icon-based protruding tab rail with hover labels
+
+Current direction (next):
+
+- Move into Milestone 5 (Compendium-Driven Character Building)
+- First implementation target:
+  - Soldier Type compendium format definition
+  - drag-and-drop application flow with overwrite/merge/cancel prompt
+  - safe-apply preview/conflict handling scaffold
+- Keep Milestone 4 remaining P0 depth tasks as active backfill while Milestone 5 is underway
 
 ## How to use this file
 
@@ -20,15 +45,15 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P0 Add default values and data type safeguards for missing/null fields
 - [ ] P0 Define item data model(s): weapons, armor, gear, talents/abilities, traits, conditions
 - [ ] P0 Ensure all current sheet fields are persisted and no orphaned fields remain
-- [ ] P0 Add robust migration logic for schema/version changes
+- [x] P0 Add robust migration logic for schema/version changes
 - [ ] P0 Establish constants module for repeated keys (characteristics, skills, wound states, etc.)
-- [ ] P1 Create reusable utility functions for formulas, rounding, validation, and coercion
+- [x] P1 Create reusable utility functions for formulas, rounding, validation, and coercion
 - [ ] P1 Add localization pass for labels and system strings in lang files
 
 ## Milestone 2: Characteristics and Derived Values
 
 - [ ] P0 Lock down characteristic score flow (base, modifiers, temporary effects)
-- [ ] P0 Confirm modifier formula implementation everywhere: floor(score / 10)
+- [x] P0 Confirm modifier formula implementation everywhere: floor(score / 10)
 - [ ] P0 Implement calculated-only mode toggle for characteristic totals when ready
 - [ ] P1 Build derived stats pipeline:
   - movement
@@ -37,14 +62,14 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
   - shields / recharge
   - defense / resistances
   - support/resource pools
-- [ ] P1 Add one source-of-truth compute layer so sheet/chat/automation all use same results
+- [x] P1 Add one source-of-truth compute layer so sheet/chat/automation all use same results
 - [ ] P1 Add derived value explainers (hover tooltip or detail panel: formula + contributors)
 
 ## Milestone 3: Rolls and Automation Engine
 
-- [ ] P0 Implement universal test resolver with configurable success/failure outputs
+- [x] P0 Implement universal test resolver with configurable success/failure outputs
 - [ ] P0 Degrees of success/failure handling aligned with Mythic 7.0 CU1 wording
-- [ ] P0 Centralize roll card rendering templates for consistency
+- [x] P0 Centralize roll card rendering templates for consistency
 - [ ] P1 Add roll modifiers dialog (situational bonuses/penalties)
 - [ ] P1 Add quick-roll buttons for common checks from each relevant tab
 - [ ] P1 Add critical/fumble handling with configurable thresholds
@@ -54,14 +79,18 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 
 ## Milestone 4: Full Character Sheet Tabs and UX
 
-- [ ] P0 Complete left-nav tabs to match intended structure and ordering
+Implementation note:
+
+- Equipment/Medical/Advancements/Vehicles tabs are scaffolded and rendered; deeper rules workflows remain in the unchecked P0 items below.
+
+- [x] P0 Complete left-nav tabs to match intended structure and ordering
 - [ ] P0 Build out Core tab sections (skills, education, languages, abilities)
 - [ ] P0 Build Equipment tab (weapons, armor, inventory, encumbrance if used)
 - [ ] P0 Build Medical tab (wounds, treatment, statuses, recovery trackers)
 - [ ] P0 Build Advancements tab (XP/spend log, unlocked features)
-- [ ] P1 Build Journal/Notes tab with structured and freeform notes
+- [x] P1 Build Journal/Notes tab with structured and freeform notes
 - [ ] P1 Build Vehicles tab (if rules include pilot/vehicle interactions)
-- [ ] P1 Build Settings tab for per-actor toggles and automation preferences
+- [x] P1 Build Settings tab for per-actor toggles and automation preferences
 - [ ] P2 Add keyboard navigation and accessibility pass on all form controls
 - [ ] P2 Add contextual help tips and rule snippets where users commonly forget steps
 
@@ -136,6 +165,17 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P1 Add unit-like tests for formula helpers where practical
 - [ ] P1 Add test fixtures for representative character archetypes
 - [ ] P2 Add visual regression screenshots for key sheet states
+
+### Smoke Checklist Draft (run after each core change)
+
+- [ ] Create a new character actor and verify default fields are populated
+- [ ] Open/close actor sheet, switch all tabs, and confirm no scroll jump regressions
+- [ ] Edit header + biography linked fields (e.g., Gender) and confirm synchronization/persistence
+- [ ] Toggle portrait/token preview and upload each image type successfully
+- [ ] Add, edit, and delete a custom skill; verify data persists after reopen
+- [ ] Add, edit, and delete education and ability items from actor and compendium drag/drop
+- [ ] Roll characteristic, skill, and education tests; verify chat card content and target math
+- [ ] Reload world and confirm actor/item schema versions remain stable with no data loss
 
 ## Milestone 9: Performance and Polish
 

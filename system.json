@@ -28,12 +28,28 @@
   ],
   "documentTypes": {
     "Actor": {
-      "character": {}
+      "character": {
+        "htmlFields": [
+          "biography.physical.generalDescription",
+          "biography.physical.definingFeatures"
+        ]
+      }
     },
     "Item": {
       "gear": {},
-      "education": {},
-      "ability": {}
+      "education": {
+        "htmlFields": [
+          "description"
+        ]
+      },
+      "ability": {
+        "htmlFields": [
+          "prerequisiteText",
+          "shortDescription",
+          "benefit",
+          "notes"
+        ]
+      }
     }
   },
   "packs": [

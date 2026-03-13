@@ -1,6 +1,19 @@
-<div class="tab" data-group="primary" data-tab="setup">
-  <section class="panel">
-    <h2>Setup</h2>
-    <p>System setup options will go here in later steps.</p>
+<div class="tab setup" data-group="primary" data-tab="setup">
+  <section class="panel mythic-phase4-panel">
+    <h2>Settings</h2>
+
+    <div class="mythic-phase4-grid two-column">
+      <div class="mythic-phase4-card">
+        <h3>Automation</h3>
+        <label class="mythic-toggle-row"><input type="checkbox" name="system.settings.automation.enforceAbilityPrereqs" {{checked mythicSystem.settings.automation.enforceAbilityPrereqs}} /> Enforce ability prerequisite checks on add</label>
+        <label class="mythic-toggle-row"><input type="checkbox" name="system.settings.automation.showRollHints" {{checked mythicSystem.settings.automation.showRollHints}} /> Show roll guidance and helper copy</label>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Sheet Behavior</h3>
+        <label class="mythic-toggle-row"><input type="checkbox" name="system.settings.automation.keepSidebarCollapsed" {{checked mythicSystem.settings.automation.keepSidebarCollapsed}} /> Keep sidebar collapsed for this actor</label>
+        <label class="mythic-toggle-row"><input type="checkbox" name="system.settings.automation.preferTokenPreview" {{checked mythicSystem.settings.automation.preferTokenPreview}} /> Default biography portrait preview to token</label>
+      </div>
+    </div>
   </section>
 </div>

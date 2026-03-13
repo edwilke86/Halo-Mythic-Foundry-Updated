@@ -75,6 +75,68 @@ const MYTHIC_BASE_SKILL_DEFINITIONS = [
   }
 ];
 
+const MYTHIC_ACTOR_PARTIAL_TEMPLATES = [
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/header.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/skills-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs"
+];
+
+// All canonical educations from the Halo Mythic rulebook (p.106)
+const MYTHIC_EDUCATION_DEFINITIONS = [
+  // ── General Educations ────────────────────────────────────────────────────
+  { name: "Aeronautics",               difficulty: "advanced", skills: ["Stunting", "Pilot", "Evasion", "Technology"],                                          costPlus5: 100, costPlus10: 150 },
+  { name: "Agriculture",               difficulty: "basic",    skills: ["Technology", "Survival"],                                                              costPlus5:  50, costPlus10: 100 },
+  { name: "Architecture",              difficulty: "advanced", skills: ["Technology", "Security"],                                                              costPlus5:  75, costPlus10: 125 },
+  { name: "Armor Smithing",            difficulty: "basic",    skills: ["Technology"],                                                                          costPlus5: 100, costPlus10: 150 },
+  { name: "Astronautics",              difficulty: "advanced", skills: ["Pilot", "Technology", "Stunting", "Evasion"],                                          costPlus5: 100, costPlus10: 150 },
+  { name: "Astrophysics",              difficulty: "advanced", skills: ["Pilot", "Technology"],                                                                 costPlus5: 100, costPlus10: 150 },
+  { name: "Bartering",                 difficulty: "basic",    skills: ["Appeal", "Investigation", "Deception"],                                                costPlus5:  50, costPlus10: 100 },
+  { name: "Brewing",                   difficulty: "basic",    skills: ["Survival"],                                                                            costPlus5:  50, costPlus10: 100 },
+  { name: "Carpentry",                 difficulty: "basic",    skills: ["Technology"],                                                                          costPlus5:  50, costPlus10: 100 },
+  { name: "Computer Security",         difficulty: "advanced", skills: ["Security", "Cryptography"],                                                            costPlus5:  50, costPlus10: 100 },
+  { name: "Construction",              difficulty: "basic",    skills: ["Technology", "Demolition"],                                                            costPlus5: 100, costPlus10: 150 },
+  { name: "Culinary",                  difficulty: "basic",    skills: ["Survival"],                                                                            costPlus5:  50, costPlus10: 100 },
+  { name: "Demolitions Assembly",      difficulty: "basic",    skills: ["Demolition"],                                                                          costPlus5: 100, costPlus10: 150 },
+  { name: "Economics",                 difficulty: "advanced", skills: ["Appeal", "Command", "Deception", "Interrogation", "Intimidation", "Negotiation"],      costPlus5:  75, costPlus10: 125 },
+  { name: "Etiquette",                 difficulty: "basic",    skills: ["Appeal", "Deception"],                                                                 costPlus5:  50, costPlus10: 100 },
+  { name: "Faction Culture",           difficulty: "basic",    skills: ["Appeal", "Investigation"],                                                             costPlus5:  50, costPlus10: 100 },
+  { name: "Faction History",           difficulty: "basic",    skills: ["Appeal", "Command", "Investigation"],                                                  costPlus5:  50, costPlus10: 100 },
+  { name: "Faction Law",               difficulty: "advanced", skills: ["Command", "Investigation", "Deception", "Negotiation"],                                costPlus5: 100, costPlus10: 150 },
+  { name: "Faction Linguistics",       difficulty: "basic",    skills: ["Cryptography", "Technology"],                                                          costPlus5:  50, costPlus10: 100 },
+  { name: "Faction Literature",        difficulty: "basic",    skills: ["Appeal", "Command", "Investigation"],                                                  costPlus5:  50, costPlus10: 100 },
+  { name: "Faction Medical Science",   difficulty: "advanced", skills: ["Medication", "Survival", "Interrogation"],                                             costPlus5: 100, costPlus10: 150 },
+  { name: "Faction Military",          difficulty: "advanced", skills: ["Command", "Appeal", "Investigation", "Deception", "Interrogation", "Security"],        costPlus5: 100, costPlus10: 150 },
+  { name: "Faction Psychology",        difficulty: "advanced", skills: ["Appeal", "Command", "Deception", "Interrogation", "Intimidation", "Negotiation"],      costPlus5: 150, costPlus10: 200 },
+  { name: "Faction Religion",          difficulty: "basic",    skills: ["Appeal", "Command", "Deception", "Interrogation", "Intimidation", "Negotiation"],      costPlus5:  50, costPlus10: 100 },
+  { name: "Faction Vehicle Maintenance", difficulty: "basic",  skills: ["Technology"],                                                                          costPlus5: 100, costPlus10: 150 },
+  { name: "Faction Weaponry",          difficulty: "basic",    skills: ["Technology"],                                                                          costPlus5: 100, costPlus10: 150 },
+  { name: "Flood Biology",             difficulty: "advanced", skills: ["Medication"],                                                                          costPlus5: 200, costPlus10: 250, restricted: true },
+  { name: "Forerunner Artifacts",      difficulty: "advanced", skills: ["Technology"],                                                                          costPlus5: 250, costPlus10: 300, restricted: true },
+  { name: "Forerunner Linguistics",    difficulty: "advanced", skills: ["Technology", "Cryptography", "Investigation"],                                         costPlus5: 150, costPlus10: 200, restricted: true },
+  { name: "Forerunner Weaponry",       difficulty: "advanced", skills: ["Technology"],                                                                          costPlus5: 200, costPlus10: 250, restricted: true },
+  { name: "Ground Vehicle Dynamics",   difficulty: "basic",    skills: ["Pilot", "Technology", "Stunting", "Evasion"],                                          costPlus5: 100, costPlus10: 150 },
+  { name: "Hunting and Fishing",       difficulty: "basic",    skills: ["Investigation", "Deception", "Athletics", "Technology", "Security", "Survival"],       costPlus5:  50, costPlus10: 100 },
+  { name: "Locksmith",                 difficulty: "basic",    skills: ["Technology", "Security"],                                                              costPlus5:  50, costPlus10: 100 },
+  { name: "Martial Arts",              difficulty: "basic",    skills: ["Evasion", "Athletics"],                                                                costPlus5: 100, costPlus10: 150 },
+  { name: "Mathematics",               difficulty: "basic",    skills: ["Security", "Cryptography", "Gambling"],                                                costPlus5: 100, costPlus10: 150 },
+  { name: "Merchant",                  difficulty: "basic",    skills: ["Appeal", "Negotiation", "Deception"],                                                  costPlus5:  50, costPlus10: 100 },
+  { name: "Military Command",          difficulty: "advanced", skills: ["Command", "Appeal", "Interrogation", "Negotiation", "Deception"],                      costPlus5: 100, costPlus10: 150 },
+  { name: "Mount Training",            difficulty: "basic",    skills: ["Appeal", "Command", "Deception", "Intimidation", "Investigation", "Stunting"],         costPlus5:  50, costPlus10: 100 },
+  { name: "Musical Training (Chosen Instrument)", difficulty: "basic", skills: ["Appeal"],                                                                      costPlus5:  25, costPlus10:  50 },
+  { name: "Planetary Science",         difficulty: "advanced", skills: ["Survival", "Camouflage"],                                                              costPlus5: 100, costPlus10: 150 },
+  { name: "Slipspace Travel",          difficulty: "advanced", skills: ["Pilot (Space)", "Navigation", "Technology", "Stunting"],                               costPlus5: 250, costPlus10: 300 },
+  { name: "Tailor",                    difficulty: "basic",    skills: ["Survival", "Technology"],                                                              costPlus5:  50, costPlus10: 100 },
+  { name: "Tanning (Leather)",         difficulty: "basic",    skills: ["Technology"],                                                                          costPlus5:  50, costPlus10: 100 },
+  { name: "Weapon Smithing",           difficulty: "advanced", skills: ["Technology"],                                                                          costPlus5:  75, costPlus10: 125 },
+  // ── Street Smarts ─────────────────────────────────────────────────────────
+  { name: "Black Market",              difficulty: "advanced", skills: ["Investigation", "Appeal", "Negotiation"],                                               costPlus5: 100, costPlus10: 150, restricted: true, category: "street-smarts" },
+  { name: "Crime Organizations",       difficulty: "advanced", skills: ["All Social Skills"],                                                                   costPlus5: 100, costPlus10: 150, category: "street-smarts" },
+  { name: "Streetwise",                difficulty: "basic",    skills: ["Investigation", "Charisma"],                                                           costPlus5:  25, costPlus10:  50, category: "street-smarts" },
+  { name: "Subculture",                difficulty: "basic",    skills: ["All Social Skills"],                                                                   costPlus5:  50, costPlus10: 100, category: "street-smarts" },
+];
+
 function buildSkillRankDefaults(override = {}) {
   const options = Array.isArray(override.characteristicOptions)
     ? override.characteristicOptions
@@ -88,6 +150,7 @@ function buildSkillRankDefaults(override = {}) {
     characteristicOptions: options,
     selectedCharacteristic,
     tier: "untrained",
+    modifier: 0,
     notes: "",
     ...override
   };
@@ -114,6 +177,8 @@ function buildCanonicalSkillsSchema() {
         baseEntry.variants[variant.key] = {
           key: variant.key,
           label: variant.label,
+          category: skill.category,
+          group: skill.group,
           ...buildSkillRankDefaults({
             characteristicOptions: skill.characteristicOptions,
             selectedCharacteristic: skill.selectedCharacteristic
@@ -166,6 +231,29 @@ function getCanonicalCharacterSystemData() {
         agi: 0
       }
     },
+    combat: {
+      wounds: { current: 0, max: 0 },
+      fatigue: { current: 0, max: 0 },
+      luck: { current: 0, max: 0 },
+      supportPoints: { current: 0, max: 0 },
+      cr: 0,
+      shields: {
+        current: 0,
+        integrity: 0,
+        rechargeDelay: 0,
+        rechargeRate: 0
+      },
+      dr: {
+        armor: {
+          head: 0,
+          chest: 0,
+          lArm: 0,
+          rArm: 0,
+          lLeg: 0,
+          rLeg: 0
+        }
+      }
+    },
     gravity: 1.0,
     skills: buildCanonicalSkillsSchema(),
     biography: {
@@ -202,6 +290,7 @@ function normalizeSkillEntry(entry, fallback) {
   const selectedCharacteristic = options.includes(selected) ? selected : (options[0] ?? "int");
   const tier = String(entry?.tier ?? fallback.tier ?? "untrained");
 
+  const modRaw = Number(entry?.modifier ?? fallback.modifier ?? 0);
   return {
     key: String(entry?.key ?? fallback.key ?? "custom-skill"),
     label: String(entry?.label ?? fallback.label ?? "Custom Skill"),
@@ -210,6 +299,7 @@ function normalizeSkillEntry(entry, fallback) {
     characteristicOptions: options,
     selectedCharacteristic,
     tier: MYTHIC_SKILL_BONUS_BY_TIER[tier] !== undefined ? tier : "untrained",
+    modifier: Number.isFinite(modRaw) ? Math.round(modRaw) : 0,
     notes: String(entry?.notes ?? fallback.notes ?? "")
   };
 }
@@ -282,6 +372,47 @@ function normalizeCharacterSystemData(systemData) {
     merged.mythic.characteristics[key] = Number.isFinite(value) ? Math.max(0, value) : 0;
   }
 
+  const touScore = Number(merged.characteristics?.tou ?? 0);
+  const touModifier = Number.isFinite(touScore) ? Math.max(0, Math.floor(touScore / 10)) : 0;
+  const mythicTou = Math.max(0, Number(merged.mythic.characteristics?.tou ?? 0));
+  const woundsMaximum = ((touModifier + mythicTou) * 2) + 40;
+  const fatigueThreshold = touModifier * 2;
+
+  merged.combat ??= {};
+  const clampWhole = (value) => {
+    const numeric = Number(value ?? 0);
+    return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
+  };
+
+  for (const path of [
+    "wounds.current", "wounds.max",
+    "fatigue.current", "fatigue.max",
+    "luck.current", "luck.max",
+    "supportPoints.current", "supportPoints.max"
+  ]) {
+    const current = foundry.utils.getProperty(merged.combat, path);
+    foundry.utils.setProperty(merged.combat, path, clampWhole(current));
+  }
+
+  merged.combat.cr = clampWhole(merged.combat.cr);
+
+  merged.combat.shields ??= {};
+  for (const key of ["current", "integrity", "rechargeDelay", "rechargeRate"]) {
+    merged.combat.shields[key] = clampWhole(merged.combat.shields[key]);
+  }
+
+  // Core rules:
+  // Wounds Max = ((TOU modifier + Mythic TOU) * 2) + 40
+  // Fatigue coma threshold = TOU modifier * 2
+  merged.combat.wounds.max = clampWhole(woundsMaximum);
+  merged.combat.fatigue.max = clampWhole(fatigueThreshold);
+
+  merged.combat.dr ??= {};
+  merged.combat.dr.armor ??= {};
+  for (const key of ["head", "chest", "lArm", "rArm", "lLeg", "rLeg"]) {
+    merged.combat.dr.armor[key] = clampWhole(merged.combat.dr.armor[key]);
+  }
+
   const gravRaw = Number(merged.gravity ?? 1.0);
   merged.gravity = Number.isFinite(gravRaw) ? Math.max(0, Math.min(4, Math.round(gravRaw * 10) / 10)) : 1.0;
 
@@ -301,45 +432,68 @@ function getSkillTierBonus(tier, category) {
   return MYTHIC_SKILL_BONUS_BY_TIER[key] ?? 0;
 }
 
-const V1ActorSheet = foundry.appv1.sheets.ActorSheet;
-const V1ItemSheet = foundry.appv1.sheets.ItemSheet;
+function mapNumberedObjectToArray(value) {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== "object") return value;
+
+  return Object.entries(value)
+    .filter(([key]) => /^\d+$/.test(key))
+    .sort((left, right) => Number(left[0]) - Number(right[0]))
+    .map(([, entry]) => entry);
+}
+
+const { HandlebarsApplicationMixin } = foundry.applications.api;
+const { ActorSheetV2, ItemSheetV2 } = foundry.applications.sheets;
 const ActorCollection = foundry.documents.collections.Actors;
 const ItemCollection = foundry.documents.collections.Items;
 
-class MythicActorSheet extends V1ActorSheet {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
+class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
       classes: ["mythic-system", "sheet", "actor"],
-      template: "systems/Halo-Mythic-Foundry-Updated/templates/actor/actor-sheet.hbs",
-      width: 980,
-      height: 760,
-      submitOnChange: true,
-      submitOnClose: true,
-      closeOnSubmit: false,
-      tabs: [
-        {
-          navSelector: ".sheet-tabs",
-          contentSelector: ".sheet-content",
-          initial: "main"
-        }
-      ]
-    });
-  }
+      position: {
+        width: 980,
+        height: 760
+      },
+      window: {
+        resizable: true
+      },
+      form: {
+        submitOnChange: true,
+        closeOnSubmit: false
+      }
+    }, { inplace: false });
 
-  getData(options) {
-    const data = super.getData(options);
-    const normalizedSystem = normalizeCharacterSystemData(data.actor?.system);
-    const faction = data.actor?.system?.header?.faction ?? "";
-    const customLogo = data.actor?.system?.header?.logoPath ?? "";
-    data.mythicSidebarCollapsed = Boolean(this.actor.getFlag("Halo-Mythic-Foundry-Updated", "sidebarCollapsed"));
-    data.mythicLogo = customLogo || this._getFactionLogoPath(faction);
-    data.mythicFactionIndex = this._getFactionIndex(faction);
-    data.mythicCharacteristicModifiers = this._getCharacteristicModifiers(normalizedSystem?.characteristics);
-    data.mythicBiography = this._getBiographyData(normalizedSystem);
-    data.mythicDerived = this._getMythicDerivedData(normalizedSystem);
-    data.mythicGravityValue = String(normalizedSystem?.gravity ?? 1.0);
-    data.mythicSkills = this._getSkillsViewData(normalizedSystem?.skills);
-    data.mythicFactionOptions = [
+  static PARTS = {
+    sheet: {
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/actor/actor-sheet.hbs",
+      scrollable: [".sheet-tab-scrollable"]
+    }
+  };
+
+  tabGroups = {
+    primary: "main"
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
+    const faction = this.actor.system?.header?.faction ?? "";
+    const customLogo = this.actor.system?.header?.logoPath ?? "";
+
+    context.cssClass = this.options.classes.join(" ");
+    context.actor = this.actor;
+    context.editable = this.isEditable;
+    context.mythicSidebarCollapsed = Boolean(this.actor.getFlag("Halo-Mythic-Foundry-Updated", "sidebarCollapsed"));
+    context.mythicLogo = customLogo || this._getFactionLogoPath(faction);
+    context.mythicFactionIndex = this._getFactionIndex(faction);
+    const characteristicModifiers = this._getCharacteristicModifiers(normalizedSystem?.characteristics);
+    context.mythicCharacteristicModifiers = characteristicModifiers;
+    context.mythicBiography = this._getBiographyData(normalizedSystem);
+    context.mythicDerived = this._getMythicDerivedData(normalizedSystem);
+    context.mythicCombat = this._getCombatViewData(normalizedSystem, characteristicModifiers);
+    context.mythicGravityValue = String(normalizedSystem?.gravity ?? 1.0);
+    context.mythicSkills = this._getSkillsViewData(normalizedSystem?.skills, normalizedSystem?.characteristics);
+    context.mythicFactionOptions = [
       "United Nations Space Command",
       "Office of Naval Intelligence",
       "Insurrection / United Rebel Front",
@@ -347,17 +501,29 @@ class MythicActorSheet extends V1ActorSheet {
       "Banished",
       "Swords of Sangheilios",
       "Forerunner",
-      "Other"
+      "Other",
+      "Other (Setting Agnostic)"
     ];
-    data.mythicFactionSelectOptions = data.mythicFactionOptions.map((option) => ({
+    context.mythicFactionSelectOptions = context.mythicFactionOptions.map((option) => ({
       value: option,
       label: option
     }));
-    data.mythicDutyStationStatusOptions = [
+    context.mythicDutyStationStatusOptions = [
       { value: "Current", label: "Current" },
       { value: "Former", label: "Former" }
     ];
-    return data;
+    context.mythicSkillTierOptions = [
+      { value: "untrained", label: "--" },
+      { value: "trained", label: "Trained" },
+      { value: "plus10", label: "+10" },
+      { value: "plus20", label: "+20" }
+    ];
+    context.mythicEducations = this._getEducationsViewData(normalizedSystem);
+    context.mythicEducationTierOptions = [
+      { value: "plus5",  label: "+5"  },
+      { value: "plus10", label: "+10" }
+    ];
+    return context;
   }
 
   _getMythicDerivedData(systemData) {
@@ -424,20 +590,108 @@ class MythicActorSheet extends V1ActorSheet {
     };
   }
 
-  _getSkillsViewData(skillsData) {
+  _getCombatViewData(systemData, characteristicModifiers = {}) {
+    const combat = systemData?.combat ?? {};
+    const shields = combat?.shields ?? {};
+    const armor = combat?.dr?.armor ?? {};
+    const mythicTou = Math.max(0, Number(systemData?.mythic?.characteristics?.tou ?? 0));
+    const touMod = Math.max(0, Number(characteristicModifiers?.tou ?? 0));
+    const touCombined = touMod + mythicTou;
+
+    const asWhole = (value) => {
+      const numeric = Number(value ?? 0);
+      return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
+    };
+
+    const withArmor = (key) => {
+      const armorValue = asWhole(armor?.[key]);
+      const total = touCombined + armorValue;
+      return {
+        armor: armorValue,
+        total
+      };
+    };
+
+    return {
+      wounds: {
+        current: asWhole(combat?.wounds?.current),
+        max: asWhole(combat?.wounds?.max)
+      },
+      fatigue: {
+        current: asWhole(combat?.fatigue?.current),
+        max: asWhole(combat?.fatigue?.max),
+        comaThreshold: touMod * 2
+      },
+      luck: {
+        current: asWhole(combat?.luck?.current),
+        max: asWhole(combat?.luck?.max)
+      },
+      supportPoints: {
+        current: asWhole(combat?.supportPoints?.current),
+        max: asWhole(combat?.supportPoints?.max)
+      },
+      cr: asWhole(combat?.cr),
+      shields: {
+        current: asWhole(shields?.current),
+        integrity: asWhole(shields?.integrity),
+        rechargeDelay: asWhole(shields?.rechargeDelay),
+        rechargeRate: asWhole(shields?.rechargeRate)
+      },
+      dr: {
+        touModifier: touMod,
+        mythicTou,
+        touCombined,
+        head: withArmor("head"),
+        chest: withArmor("chest"),
+        lArm: withArmor("lArm"),
+        rArm: withArmor("rArm"),
+        lLeg: withArmor("lLeg"),
+        rLeg: withArmor("rLeg")
+      }
+    };
+  }
+
+  _getSkillsViewData(skillsData, characteristics) {
     const normalized = normalizeSkillsData(skillsData);
-    const toViewModel = (entry) => ({
-      ...entry,
-      testModifier: getSkillTierBonus(entry.tier, entry.category)
-    });
+    const chars = characteristics ?? {};
+
+    const SKILL_GROUP_LABELS = {
+      "social": "Social",
+      "movement": "Movement",
+      "fieldcraft": "Fieldcraft",
+      "science-fieldcraft": "Fieldcraft",
+      "custom": "Custom"
+    };
+
+    const toViewModel = (entry, categoryOverride, groupOverride) => {
+      const category = categoryOverride ?? entry.category;
+      const group = groupOverride ?? entry.group;
+      const tierBonus = getSkillTierBonus(entry.tier, category);
+      const charValue = Number(chars[entry.selectedCharacteristic] ?? 0);
+      const modifier = Number(entry.modifier ?? 0);
+      return {
+        ...entry,
+        category,
+        group,
+        testModifier: tierBonus,
+        rollTarget: Math.max(0, charValue + tierBonus + modifier),
+        categoryLabel: category === "advanced" ? "Advanced" : "Basic",
+        groupLabel: SKILL_GROUP_LABELS[group] ?? String(group),
+        characteristicDisplayOptions: entry.characteristicOptions.map(
+          key => ({ value: key, label: key.toUpperCase() })
+        )
+      };
+    };
 
     const baseList = [];
     for (const definition of MYTHIC_BASE_SKILL_DEFINITIONS) {
       const skill = normalized.base[definition.key];
-      const viewSkill = toViewModel(skill);
+      const viewSkill = toViewModel(skill, null, null);
 
       if (skill.variants) {
-        viewSkill.variantList = Object.values(skill.variants).map((variant) => toViewModel(variant));
+        viewSkill.variantList = Object.values(skill.variants).map(
+          (variant) => toViewModel(variant, skill.category, skill.group)
+        );
       } else {
         viewSkill.variantList = [];
       }
@@ -447,7 +701,7 @@ class MythicActorSheet extends V1ActorSheet {
 
     return {
       base: baseList,
-      custom: normalized.custom.map((entry) => toViewModel(entry))
+      custom: normalized.custom.map((entry) => toViewModel(entry, null, null))
     };
   }
 
@@ -528,7 +782,9 @@ class MythicActorSheet extends V1ActorSheet {
       "banished": 5,
       "office of naval intelligence": 6,
       "insurrection / united rebel front": 7,
-      "swords of sangheilios": 8
+      "swords of sangheilios": 8,
+      "other (setting agnostic)": 1,
+      "other": 1
     };
     return map[key] ?? 1;
   }
@@ -545,10 +801,38 @@ class MythicActorSheet extends V1ActorSheet {
       banished: `${base}/faction_Logo_Banished.png`,
       "swords of sangheilios": `${base}/faction_Logo_SOS.png`,
       forerunner: `${base}/faction_logo_Forerunner.png`,
+      "other (setting agnostic)": `${base}/100_dos_logo.png`,
       other: `${base}/mythic_logo.png`
     };
 
     return map[key] ?? fallback;
+  }
+
+  _getEducationsViewData(normalizedSystem) {
+    const chars = normalizedSystem?.characteristics ?? {};
+    return this.actor.items
+      .filter(i => i.type === "education")
+      .map(item => {
+        const sys = item.system ?? {};
+        const charKey = String(sys.characteristic ?? "int");
+        const charValue = Number(chars[charKey] ?? 0);
+        const tier = String(sys.tier ?? "plus5");
+        const tierBonus = tier === "plus10" ? 10 : 5;
+        const modifier = Number(sys.modifier ?? 0);
+        const rollTarget = Math.max(0, charValue + tierBonus + modifier);
+        return {
+          id: item.id,
+          name: item.name,
+          difficulty: String(sys.difficulty ?? "basic"),
+          difficultyLabel: sys.difficulty === "advanced" ? "Advanced" : "Basic",
+          skills: Array.isArray(sys.skills) ? sys.skills.join(", ") : String(sys.skills ?? ""),
+          characteristic: charKey,
+          tier,
+          modifier,
+          rollTarget,
+          restricted: Boolean(sys.restricted)
+        };
+      });
   }
 
   _applyHeaderAutoFit(root) {
@@ -611,10 +895,105 @@ class MythicActorSheet extends V1ActorSheet {
     return super.close(options);
   }
 
-  activateListeners(html) {
-    super.activateListeners(html);
+  _prepareSubmitData(event, form, formData, updateData = {}) {
+    const submitData = super._prepareSubmitData(event, form, formData, updateData);
+    const arrayPaths = [
+      "system.biography.physical.extraFields",
+      "system.biography.history.education",
+      "system.biography.history.dutyStations",
+      "system.biography.family",
+      "system.biography.generalEntries"
+    ];
 
-    const root = html[0];
+    for (const path of arrayPaths) {
+      const current = foundry.utils.getProperty(submitData, path);
+      const normalized = mapNumberedObjectToArray(current);
+      if (normalized !== current) {
+        foundry.utils.setProperty(submitData, path, normalized);
+      }
+    }
+
+    return submitData;
+  }
+
+  _onChangeForm(formConfig, event) {
+    const input = event.target;
+
+    if (input instanceof HTMLInputElement) {
+      if (input.name.startsWith("system.characteristics.") || input.name.startsWith("system.mythic.characteristics.")) {
+        const value = Number(input.value);
+        input.value = Number.isFinite(value) ? String(Math.max(0, value)) : "0";
+      }
+
+      if (input.name.startsWith("system.combat.")) {
+        const value = Number(input.value);
+        input.value = Number.isFinite(value) ? String(Math.max(0, Math.floor(value))) : "0";
+      }
+
+      if (input.name === "system.gravity") {
+        const value = Number(input.value);
+        if (Number.isFinite(value)) {
+          const clamped = Math.max(0, Math.min(4, Math.round(value * 10) / 10));
+          input.value = clamped.toFixed(1);
+        } else {
+          input.value = "1.0";
+        }
+      }
+    }
+
+    return super._onChangeForm(formConfig, event);
+  }
+
+  setPosition(position = {}) {
+    if (position.width !== undefined && position.width < 980) position.width = 980;
+    return super.setPosition(position);
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+
+    const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+    if (!root) return;
+
+    // Faction background on the outer window so it fills the rounded frame.
+    // Use root.dataset.faction — the correct computed value already rendered.
+    const factionIndex = Number(root.dataset?.faction ?? 1);
+    const factionVar = factionIndex > 1 ? `var(--mythic-faction-${factionIndex})` : `var(--mythic-faction-1)`;
+    if (this.element) this.element.style.background = factionVar;
+
+    // Belt-and-suspenders: force header chrome invisible via inline styles so
+    // Foundry's stylesheet cannot win the cascade regardless of specificity.
+    const windowHeader = this.element?.querySelector(".window-header");
+    if (windowHeader) {
+      windowHeader.style.background = "transparent";
+      windowHeader.style.border = "none";
+      windowHeader.style.boxShadow = "none";
+      windowHeader.style.justifyContent = "flex-end";
+
+      const controls = windowHeader.querySelector(".window-controls, .window-actions, .header-actions, .header-buttons");
+      if (controls) {
+        controls.style.position = "absolute";
+        controls.style.right = "6px";
+        controls.style.left = "auto";
+        controls.style.marginLeft = "0";
+        controls.style.display = "flex";
+        controls.style.alignItems = "center";
+        controls.style.gap = "6px";
+      }
+    }
+
+    const initialTab = this.tabGroups.primary ?? "main";
+    const tabs = new foundry.applications.ux.Tabs({
+      group: "primary",
+      navSelector: ".sheet-tabs",
+      contentSelector: ".sheet-content",
+      initial: initialTab,
+      callback: (_event, _tabs, activeTab) => {
+        this.tabGroups.primary = activeTab;
+      }
+    });
+    tabs.bind(root);
+
     const refreshHeaderFit = () => this._applyHeaderAutoFit(root);
     requestAnimationFrame(refreshHeaderFit);
 
@@ -625,8 +1004,9 @@ class MythicActorSheet extends V1ActorSheet {
     this._headerFitObserver = new ResizeObserver(() => refreshHeaderFit());
     this._headerFitObserver.observe(root);
 
-    html.find(".mythic-header-row input[type='text'], .mythic-header-row select").on("input change", () => {
-      refreshHeaderFit();
+    root.querySelectorAll(".mythic-header-row input[type='text'], .mythic-header-row select").forEach((field) => {
+      field.addEventListener("input", refreshHeaderFit);
+      field.addEventListener("change", refreshHeaderFit);
     });
 
     const applyCollapseState = () => {
@@ -655,82 +1035,286 @@ class MythicActorSheet extends V1ActorSheet {
       });
     });
 
-    html.find(".bio-add-entry").on("click", async (event) => {
-      event.preventDefault();
-      const path = String(event.currentTarget.dataset.path || "");
-      if (!path) return;
-      const current = foundry.utils.deepClone(foundry.utils.getProperty(this.actor.system, path) ?? []);
+    root.querySelectorAll(".bio-add-entry").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAddBiographyEntry(event);
+      });
+    });
+
+    root.querySelectorAll(".bio-remove-entry").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRemoveBiographyEntry(event);
+      });
+    });
+
+    root.querySelectorAll(".sidebar-toggle").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onToggleSidebar(event);
+      });
+    });
+
+    root.querySelectorAll(".roll-characteristic").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRollCharacteristic(event);
+      });
+    });
+
+    root.querySelectorAll(".roll-skill").forEach((cell) => {
+      cell.addEventListener("click", (event) => {
+        void this._onRollSkill(event);
+      });
+    });
+
+    // Education: roll click
+    root.querySelectorAll(".roll-education").forEach((cell) => {
+      cell.addEventListener("click", (event) => {
+        void this._onRollEducation(event);
+      });
+    });
+
+    // Education: remove button
+    root.querySelectorAll(".edu-remove-btn").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const itemId = String(event.currentTarget.dataset.itemId ?? "");
+        if (!itemId || !this.isEditable) return;
+        await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
+      });
+    });
+
+    // Education: tier/modifier field changes
+    // stopPropagation prevents the change from bubbling to the actor form
+    // (submitOnChange:true would otherwise trigger an extra actor re-render + scroll reset)
+    root.querySelectorAll(".edu-field-input[data-item-id]").forEach((input) => {
+      input.addEventListener("change", async (event) => {
+        event.stopPropagation();
+        const itemId = String(event.currentTarget.dataset.itemId ?? "");
+        const field  = String(event.currentTarget.dataset.field ?? "");
+        if (!itemId || !field || !this.isEditable) return;
+        const item = this.actor.items.get(itemId);
+        if (!item) return;
+        const raw   = event.currentTarget.value;
+        const value = (event.currentTarget.tagName === "SELECT") ? raw : Number(raw);
+        await item.update({ [`system.${field}`]: value });
+      });
+    });
+  }
+
+  _onClose(options) {
+    if (this._headerFitObserver) {
+      this._headerFitObserver.disconnect();
+      this._headerFitObserver = null;
+    }
+    super._onClose(options);
+  }
+
+  async _onAddBiographyEntry(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const path = String(button?.dataset?.path || "");
+    if (!path) return;
+    const current = foundry.utils.deepClone(foundry.utils.getProperty(this.actor.system, path) ?? []);
+    current.push(this._newBiographyEntry(path));
+    await this.actor.update({ [`system.${path}`]: current });
+  }
+
+  async _onRemoveBiographyEntry(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const path = String(button?.dataset?.path || "");
+    const index = Number(button?.dataset?.index);
+    if (!path || !Number.isInteger(index)) return;
+    const current = foundry.utils.deepClone(foundry.utils.getProperty(this.actor.system, path) ?? []);
+    if (!Array.isArray(current) || index < 0 || index >= current.length) return;
+    current.splice(index, 1);
+    if (!current.length) {
       current.push(this._newBiographyEntry(path));
-      await this.actor.update({ [`system.${path}`]: current });
-    });
+    }
+    await this.actor.update({ [`system.${path}`]: current });
+  }
 
-    html.find(".bio-remove-entry").on("click", async (event) => {
-      event.preventDefault();
-      const path = String(event.currentTarget.dataset.path || "");
-      const index = Number(event.currentTarget.dataset.index);
-      if (!path || !Number.isInteger(index)) return;
-      const current = foundry.utils.deepClone(foundry.utils.getProperty(this.actor.system, path) ?? []);
-      if (!Array.isArray(current) || index < 0 || index >= current.length) return;
-      current.splice(index, 1);
-      if (!current.length) {
-        current.push(this._newBiographyEntry(path));
-      }
-      await this.actor.update({ [`system.${path}`]: current });
-    });
+  async _onToggleSidebar(event) {
+    event.preventDefault();
+    const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+    if (!root) return;
+    const collapsed = !root.classList.contains("sidebar-collapsed");
+    root.classList.toggle("sidebar-collapsed", collapsed);
+    await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "sidebarCollapsed", collapsed);
+  }
 
-    html.find(".sidebar-toggle").on("click", async (event) => {
-      event.preventDefault();
-      const root = html[0];
-      const collapsed = !root.classList.contains("sidebar-collapsed");
-      root.classList.toggle("sidebar-collapsed", collapsed);
-      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "sidebarCollapsed", collapsed);
-    });
+  // ── Drop handling ──────────────────────────────────────────────────────────
 
-    html.find('input[name^="system.characteristics."]').on("change", (event) => {
-      const input = event.currentTarget;
-      const value = Number(input.value);
-      input.value = Number.isFinite(value) ? String(Math.max(0, value)) : "0";
-    });
+  async _onDropItem(event, data) {
+    if (!this.isEditable) return false;
+    const item = await fromUuid(data?.uuid ?? "");
+    if (!item) return false;
 
-    html.find('input[name^="system.mythic.characteristics."]').on("change", (event) => {
-      const input = event.currentTarget;
-      const value = Number(input.value);
-      input.value = Number.isFinite(value) ? String(Math.max(0, value)) : "0";
-    });
+    if (item.type === "education") {
+      const itemData = item.toObject();
 
-    html.find('input[name="system.gravity"]').on("change", (event) => {
-      const input = event.currentTarget;
-      const value = Number(input.value);
-      if (Number.isFinite(value)) {
-        const clamped = Math.max(0, Math.min(4, Math.round(value * 10) / 10));
-        input.value = String(clamped.toFixed(1));
-      } else {
-        input.value = "1.0";
-      }
-    });
-
-    html.find(".roll-characteristic").on("click", async (event) => {
-      event.preventDefault();
-
-      const key = event.currentTarget.dataset.characteristic;
-      const label = event.currentTarget.dataset.label ?? key?.toUpperCase() ?? "TEST";
-      const targetValue = Number(this.actor.system?.characteristics?.[key] ?? 0);
-
-      if (!Number.isFinite(targetValue) || targetValue <= 0) {
-        ui.notifications.warn(`Set a valid ${label} value before rolling a test.`);
-        return;
+      // Faction education: "Faction X" → prompt for faction → "UNSC X"
+      if (itemData.name.startsWith("Faction ")) {
+        const suffix = itemData.name.slice("Faction ".length);
+        const factionName = await this._promptFactionName();
+        if (!factionName) return false; // user cancelled
+        itemData.name = `${factionName} ${suffix}`;
       }
 
-      const roll = await (new Roll("1d100")).evaluate({ async: true });
-      const rolled = Number(roll.total);
-      const success = rolled <= targetValue;
-      const diff = Math.abs(targetValue - rolled);
-      const degrees = (diff / 10).toFixed(1);
-      const outcome = success ? "Success" : "Failure";
-      const degreeLabel = success ? "DOS" : "DOF";
-      const outcomeClass = success ? "success" : "failure";
+      // Musical Training: prompt for instrument name
+      if (itemData.name.startsWith("Musical Training")) {
+        const instrument = await this._promptInstrumentName();
+        if (!instrument) return false; // user cancelled
+        itemData.name = `Musical Training (${instrument})`;
+      }
 
-      const content = `
+      // Duplicate check against the final resolved name
+      const existing = this.actor.items.find(i => i.type === "education" && i.name === itemData.name);
+      if (existing) {
+        ui.notifications.warn(`${itemData.name} is already on this character.`);
+        return false;
+      }
+      itemData.system.tier     = String(itemData.system.tier ?? "plus5");
+      itemData.system.modifier = Number(itemData.system.modifier ?? 0);
+      return this.actor.createEmbeddedDocuments("Item", [itemData]);
+    }
+
+    if (typeof super._onDropItem === "function") {
+      return super._onDropItem(event, data);
+    }
+    return false;
+  }
+
+  _promptFactionName() {
+    const factions = [
+      { value: "UNSC",       label: "United Nations Space Command (UNSC)" },
+      { value: "ONI",        label: "Office of Naval Intelligence (ONI)" },
+      { value: "URF",        label: "Insurrection / United Rebel Front (URF)" },
+      { value: "Covenant",   label: "Covenant" },
+      { value: "Banished",   label: "Banished" },
+      { value: "SoS",        label: "Swords of Sangheilios (SoS)" },
+      { value: "Forerunner", label: "Forerunner" },
+      { value: "__other__",  label: "Other (type below)..." }
+    ];
+    const opts = factions.map(f => `<option value="${f.value}">${f.label}</option>`).join("");
+    return new Promise((resolve) => {
+      let dlg;
+      dlg = new Dialog({
+        title: "",
+        content: `
+          <form>
+            <div class="form-group">
+              <label>Faction</label>
+              <select id="mythic-faction-sel">${opts}</select>
+            </div>
+            <div class="form-group" id="mythic-other-group" style="display:none">
+              <label>Faction Name</label>
+              <input id="mythic-faction-other" type="text" placeholder="Enter faction name..." />
+            </div>
+          </form>`,
+        buttons: {
+          ok: {
+            icon: '<i class="fas fa-check"></i>',
+            label: "Confirm",
+            callback: (html) => {
+              const sel = html.find("#mythic-faction-sel").val();
+              if (sel === "__other__") {
+                const typed = html.find("#mythic-faction-other").val().trim();
+                resolve(typed || null);
+              } else {
+                resolve(sel);
+              }
+            }
+          },
+          cancel: {
+            icon: '<i class="fas fa-times"></i>',
+            label: "Cancel",
+            callback: () => resolve(null)
+          }
+        },
+        default: "ok",
+        render: (html) => {
+          // Force mythic styling on the outer window (classes option is unreliable in v13)
+          const $win = html.closest(".app, .application, .window-app");
+          $win.addClass("mythic-prompt");
+          html.find("#mythic-faction-sel").on("change", function () {
+            const isOther = this.value === "__other__";
+            html.find("#mythic-other-group").toggle(isOther);
+            if (isOther) html.find("#mythic-faction-other").trigger("focus");
+            dlg?.setPosition({ height: "auto" });
+          });
+        }
+      }, { classes: ["mythic-prompt"] });
+      dlg.render(true);
+    });
+  }
+
+  _promptInstrumentName() {
+    return new Promise((resolve) => {
+      new Dialog({
+        title: "",
+        content: `
+          <form>
+            <div class="form-group">
+              <label>Instrument</label>
+              <input id="mythic-instrument-input" type="text"
+                     placeholder="e.g. Guitar, Piano, War-Drums..." />
+            </div>
+          </form>`,
+        buttons: {
+          ok: {
+            icon: '<i class="fas fa-check"></i>',
+            label: "Confirm",
+            callback: (html) => {
+              const val = html.find("#mythic-instrument-input").val().trim();
+              resolve(val || null);
+            }
+          },
+          cancel: {
+            icon: '<i class="fas fa-times"></i>',
+            label: "Cancel",
+            callback: () => resolve(null)
+          }
+        },
+        default: "ok",
+        render: (html) => {
+          // Force mythic styling on the outer window
+          const $win = html.closest(".app, .application, .window-app");
+          $win.addClass("mythic-prompt");
+          html.find("#mythic-instrument-input").trigger("focus");
+          html.find("#mythic-instrument-input").on("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              html.closest(".dialog").find(".dialog-button.ok").trigger("click");
+            }
+          });
+        }
+      }, { classes: ["mythic-prompt"] }).render(true);
+    });
+  }
+
+  // ── Education roll ─────────────────────────────────────────────────────────
+
+  async _onRollEducation(event) {
+    event.preventDefault();
+    const cell = event.currentTarget;
+    const label = String(cell?.dataset?.rollLabel ?? "Education");
+    const targetValue = Number(cell?.dataset?.rollTarget ?? 0);
+
+    if (!Number.isFinite(targetValue) || targetValue <= 0) {
+      ui.notifications.warn(`Set a valid target for ${label} before rolling.`);
+      return;
+    }
+
+    const roll = await (new Roll("1d100")).evaluate({ async: true });
+    const rolled = Number(roll.total);
+    const success = rolled <= targetValue;
+    const diff = Math.abs(targetValue - rolled);
+    const degrees = (diff / 10).toFixed(1);
+    const outcome = success ? "Success" : "Failure";
+    const degreeLabel = success ? "DOS" : "DOF";
+    const outcomeClass = success ? "success" : "failure";
+
+    const content = `
         <article class="mythic-chat-card ${outcomeClass}">
           <header class="mythic-chat-header">
             <span class="mythic-chat-title">${label} Test</span>
@@ -744,39 +1328,201 @@ class MythicActorSheet extends V1ActorSheet {
         </article>
       `;
 
-      await ChatMessage.create({
-        speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-        content,
-        type: CONST.CHAT_MESSAGE_STYLES.OTHER
-      });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  // ── Skill roll ─────────────────────────────────────────────────────────────
+
+  async _onRollSkill(event) {
+    event.preventDefault();
+    const cell = event.currentTarget;
+    const label = String(cell?.dataset?.rollLabel ?? "Skill");
+    const targetValue = Number(cell?.dataset?.rollTarget ?? 0);
+
+    if (!Number.isFinite(targetValue) || targetValue <= 0) {
+      ui.notifications.warn(`Set a valid target for ${label} before rolling.`);
+      return;
+    }
+
+    const roll = await (new Roll("1d100")).evaluate({ async: true });
+    const rolled = Number(roll.total);
+    const success = rolled <= targetValue;
+    const diff = Math.abs(targetValue - rolled);
+    const degrees = (diff / 10).toFixed(1);
+    const outcome = success ? "Success" : "Failure";
+    const degreeLabel = success ? "DOS" : "DOF";
+    const outcomeClass = success ? "success" : "failure";
+
+    const content = `
+        <article class="mythic-chat-card ${outcomeClass}">
+          <header class="mythic-chat-header">
+            <span class="mythic-chat-title">${label} Test</span>
+            <span class="mythic-chat-outcome ${outcomeClass}">${outcome}</span>
+          </header>
+          <div class="mythic-chat-inline-stats">
+            <span class="stat target"><strong>Target</strong> ${targetValue}</span>
+            <span class="stat roll ${outcomeClass}"><strong>Roll</strong> ${rolled}</span>
+            <span class="stat degree ${outcomeClass}"><strong>${degreeLabel}</strong> ${degrees}</span>
+          </div>
+        </article>
+      `;
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _onRollCharacteristic(event) {
+    event.preventDefault();
+
+    const button = event.currentTarget;
+    const key = button?.dataset?.characteristic;
+    const label = button?.dataset?.label ?? key?.toUpperCase() ?? "TEST";
+    const targetValue = Number(this.actor.system?.characteristics?.[key] ?? 0);
+
+    if (!Number.isFinite(targetValue) || targetValue <= 0) {
+      ui.notifications.warn(`Set a valid ${label} value before rolling a test.`);
+      return;
+    }
+
+    const roll = await (new Roll("1d100")).evaluate({ async: true });
+    const rolled = Number(roll.total);
+    const success = rolled <= targetValue;
+    const diff = Math.abs(targetValue - rolled);
+    const degrees = (diff / 10).toFixed(1);
+    const outcome = success ? "Success" : "Failure";
+    const degreeLabel = success ? "DOS" : "DOF";
+    const outcomeClass = success ? "success" : "failure";
+
+    const content = `
+        <article class="mythic-chat-card ${outcomeClass}">
+          <header class="mythic-chat-header">
+            <span class="mythic-chat-title">${label} Test</span>
+            <span class="mythic-chat-outcome ${outcomeClass}">${outcome}</span>
+          </header>
+          <div class="mythic-chat-inline-stats">
+            <span class="stat target"><strong>Target</strong> ${targetValue}</span>
+            <span class="stat roll ${outcomeClass}"><strong>Roll</strong> ${rolled}</span>
+            <span class="stat degree ${outcomeClass}"><strong>${degreeLabel}</strong> ${degrees}</span>
+          </div>
+        </article>
+      `;
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
     });
   }
 }
 
-class MythicItemSheet extends V1ItemSheet {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
+class MythicItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
       classes: ["mythic-system", "sheet", "item"],
-      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/item-sheet.hbs",
-      width: 520,
-      height: 360
+      position: {
+        width: 520,
+        height: 360
+      },
+      window: {
+        resizable: true
+      }
+    }, { inplace: false });
+
+  static PARTS = {
+    sheet: {
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/item-sheet.hbs"
+    }
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    context.cssClass = this.options.classes.join(" ");
+    context.item = this.item;
+    context.editable = this.isEditable;
+    return context;
+  }
+}
+
+class MythicEducationSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+      classes: ["mythic-system", "sheet", "item", "education"],
+      position: {
+        width: 520,
+        height: 400
+      },
+      window: {
+        resizable: true
+      },
+      form: {
+        submitOnChange: true,
+        closeOnSubmit: false
+      }
+    }, { inplace: false });
+
+  static PARTS = {
+    sheet: {
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/education-sheet.hbs"
+    }
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    context.cssClass = this.options.classes.join(" ");
+    context.item = this.item;
+    context.editable = this.isEditable;
+
+    const sys = this.item.system ?? {};
+    context.difficultyLabel = sys.difficulty === "advanced" ? "Advanced" : "Basic";
+    context.skillsDisplay = Array.isArray(sys.skills) ? sys.skills.join(", ") : String(sys.skills ?? "");
+    context.characteristicLabel = String(sys.characteristic ?? "int").toUpperCase();
+    context.tierOptions = [
+      { value: "plus5",  label: "+5"  },
+      { value: "plus10", label: "+10" }
+    ];
+    return context;
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    if (!this.isEditable) return;
+    const imgEl = this.element?.querySelector(".edu-sheet-icon");
+    if (!imgEl) return;
+    imgEl.style.cursor = "pointer";
+    imgEl.addEventListener("click", () => {
+      const fp = new FilePicker({
+        type: "image",
+        current: this.item.img,
+        callback: (path) => this.item.update({ img: path })
+      });
+      fp.browse();
     });
   }
 }
 
-Hooks.once("init", () => {
+Hooks.once("init", async () => {
   console.log("[mythic-system] Initializing minimal system scaffold");
 
-  ActorCollection.unregisterSheet("core", V1ActorSheet);
+  await loadTemplates(MYTHIC_ACTOR_PARTIAL_TEMPLATES);
+
   ActorCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicActorSheet, {
     makeDefault: true,
     types: ["character"]
   });
 
-  ItemCollection.unregisterSheet("core", V1ItemSheet);
   ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicItemSheet, {
     makeDefault: true,
     types: ["gear"]
+  });
+
+  ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicEducationSheet, {
+    makeDefault: true,
+    types: ["education"]
   });
 
   CONFIG.Actor.trackableAttributes = {
@@ -797,6 +1543,53 @@ Hooks.once("ready", () => {
     if (!foundry.utils.isEmpty(diff)) {
       actor.update({ system: normalized }, { render: false, diff: false });
     }
+  }
+
+  // Seed the Educations compendium pack on first load (GM only)
+  if (game.user?.isGM) {
+    const pack = game.packs.get("Halo-Mythic-Foundry-Updated.educations");
+    if (pack) {
+      (async () => {
+        // getIndex() fetches the actual document count from disk — pack.size is
+        // unreliable before the index is loaded and always reads 0 on fresh load.
+        const index = await pack.getIndex();
+        if (index.size > 0) return;
+
+        const wasLocked = pack.locked;
+        if (wasLocked) await pack.configure({ locked: false });
+        const itemsToCreate = MYTHIC_EDUCATION_DEFINITIONS.map(def => ({
+          name: def.name,
+          type: "education",
+          img: MYTHIC_EDUCATION_DEFAULT_ICON,
+          system: {
+            difficulty:   def.difficulty ?? "basic",
+            skills:       Array.isArray(def.skills) ? def.skills : [],
+            characteristic: "int",
+            costPlus5:    def.costPlus5  ?? 50,
+            costPlus10:   def.costPlus10 ?? 100,
+            restricted:   def.restricted ?? false,
+            category:     def.category   ?? "general",
+            description:  "",
+            tier:         "plus5",
+            modifier:     0
+          }
+        }));
+        await Item.createDocuments(itemsToCreate, { pack: pack.collection });
+        if (wasLocked) await pack.configure({ locked: true });
+        console.log(`[mythic-system] Seeded ${itemsToCreate.length} educations into compendium.`);
+      })();
+    }
+  }
+});
+
+const MYTHIC_EDUCATION_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/education.png";
+
+Hooks.on("preCreateItem", (item, createData) => {
+  if (item.type !== "education") return;
+  // Only set the default icon if none has been explicitly chosen
+  const currentImg = createData.img ?? item.img ?? "";
+  if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
+    foundry.utils.setProperty(createData, "img", MYTHIC_EDUCATION_DEFAULT_ICON);
   }
 });
 

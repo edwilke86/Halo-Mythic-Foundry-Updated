@@ -1,0 +1,58 @@
+<div class="{{cssClass}} mythic-education-item-sheet">
+
+  <header class="edu-sheet-header">
+    <img class="edu-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
+    <div class="edu-sheet-header-text">
+      <h2 class="edu-sheet-title">
+        {{item.name}}
+        {{#if item.system.restricted}}
+          <span class="edu-restricted-badge" title="Restricted Education">✦ Restricted</span>
+        {{/if}}
+      </h2>
+      <div class="edu-sheet-meta">
+        <span class="edu-difficulty-badge edu-difficulty-{{item.system.difficulty}}">{{difficultyLabel}}</span>
+        <span class="edu-char-badge">Test Characteristic: <strong>{{characteristicLabel}}</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <section class="edu-sheet-body">
+
+    <div class="edu-info-block">
+      <div class="edu-info-row">
+        <label>Related Skills</label>
+        <span class="edu-skills-list">{{skillsDisplay}}</span>
+      </div>
+      <div class="edu-info-row">
+        <label>XP Cost</label>
+        <span>+5 Tier: <strong>{{item.system.costPlus5}}</strong> XP &nbsp;|&nbsp; +10 Tier: <strong>{{item.system.costPlus10}}</strong> XP</span>
+      </div>
+    </div>
+
+    {{#if editable}}
+    <hr class="edu-divider">
+    <div class="edu-edit-block">
+      <div class="edu-info-row">
+        <label for="edu-item-tier">Level Learned</label>
+        <select id="edu-item-tier" name="system.tier">
+          {{selectOptions tierOptions selected=item.system.tier}}
+        </select>
+      </div>
+      <div class="edu-info-row">
+        <label for="edu-item-modifier">Modifier</label>
+        <input id="edu-item-modifier" type="number" name="system.modifier" value="{{item.system.modifier}}" min="-200" max="200" />
+      </div>
+      <div class="edu-info-row edu-notes-row">
+        <label for="edu-item-desc">Notes</label>
+        <textarea id="edu-item-desc" name="system.description" rows="4">{{item.system.description}}</textarea>
+      </div>
+    </div>
+    {{else}}
+      {{#if item.system.description}}
+        <div class="edu-description-display">{{item.system.description}}</div>
+      {{/if}}
+    {{/if}}
+
+  </section>
+
+</div>

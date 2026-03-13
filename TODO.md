@@ -4,6 +4,7 @@ Last updated: 2026-03-11
 Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 
 ## How to use this file
+
 - Mark completed items with [x]
 - Add new ideas under Quick Capture at the bottom as they come up
 - Keep implementation notes under each task when useful
@@ -14,6 +15,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
   - P3 = polish / optional
 
 ## Milestone 1: Core System Foundation (Playable MVP)
+
 - [ ] P0 Finalize actor data model schema in system.json for all core character fields
 - [ ] P0 Add default values and data type safeguards for missing/null fields
 - [ ] P0 Define item data model(s): weapons, armor, gear, talents/abilities, traits, conditions
@@ -24,6 +26,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P1 Add localization pass for labels and system strings in lang files
 
 ## Milestone 2: Characteristics and Derived Values
+
 - [ ] P0 Lock down characteristic score flow (base, modifiers, temporary effects)
 - [ ] P0 Confirm modifier formula implementation everywhere: floor(score / 10)
 - [ ] P0 Implement calculated-only mode toggle for characteristic totals when ready
@@ -38,6 +41,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P1 Add derived value explainers (hover tooltip or detail panel: formula + contributors)
 
 ## Milestone 3: Rolls and Automation Engine
+
 - [ ] P0 Implement universal test resolver with configurable success/failure outputs
 - [ ] P0 Degrees of success/failure handling aligned with Mythic 7.0 CU1 wording
 - [ ] P0 Centralize roll card rendering templates for consistency
@@ -49,6 +53,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P2 Add optional GM secret roll mode controls
 
 ## Milestone 4: Full Character Sheet Tabs and UX
+
 - [ ] P0 Complete left-nav tabs to match intended structure and ordering
 - [ ] P0 Build out Core tab sections (skills, education, languages, abilities)
 - [ ] P0 Build Equipment tab (weapons, armor, inventory, encumbrance if used)
@@ -63,6 +68,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 ## Milestone 5: Compendium-Driven Character Building (Your Requested Features)
 
 ### Soldier Type drag-and-drop starter templates
+
 - [ ] P0 Create compendium pack for Soldier Types
 - [ ] P0 Define Soldier Type data format (starting characteristics, skills, talents, gear, notes)
 - [ ] P0 Implement drag-and-drop handler onto actor sheet
@@ -71,6 +77,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P1 Add undo support for last template application
 
 ### Drag-and-drop background packages (race/specialisation/lifestyle/environment/upbringing)
+
 - [ ] P0 Create separate compendium entries for:
   - race
   - specialisation
@@ -84,6 +91,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P1 Add source attribution panel (what came from which package)
 
 ### GUI character creation process
+
 - [ ] P0 Build step-by-step Character Creation wizard UI
 - [ ] P0 Wizard flow stages:
   - identity basics
@@ -98,6 +106,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P1 One-click export from wizard into final actor data
 
 ## Milestone 6: Macro and Chat Reference Tab (Your Requested Feature)
+
 - [ ] P0 Add new left sidebar tab: Reference (always bottom-most tab)
 - [ ] P0 Populate with user-facing list of roll references and field paths
 - [ ] P0 Include copy buttons for common snippets/macros
@@ -112,6 +121,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P2 Add GM/dev toggle to show advanced/internal keys
 
 ## Milestone 7: Items, Effects, and Data Interop
+
 - [ ] P0 Define item types and rendering templates with clean drag-and-drop behavior
 - [ ] P0 Add Active Effect support for buffs/debuffs to characteristics and derived stats
 - [ ] P1 Add import/export pipeline for actor templates and compendium content
@@ -119,6 +129,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P2 Add compatibility helpers for future module integrations
 
 ## Milestone 8: Testing, Validation, and Stability
+
 - [ ] P0 Add smoke test checklist for each major sheet action
 - [ ] P0 Regression checklist for resize, tab switching, drag-drop, and roll outputs
 - [ ] P0 Validate no data loss during actor updates and version migrations
@@ -127,6 +138,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P2 Add visual regression screenshots for key sheet states
 
 ## Milestone 9: Performance and Polish
+
 - [ ] P1 Reduce unnecessary rerenders and repeated DOM work in sheet listeners
 - [ ] P1 Debounce expensive resize/layout calculations where needed
 - [ ] P2 Add transitions/animations sparingly for clarity (not visual noise)
@@ -134,6 +146,7 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P3 Theme variants (optional) while preserving Roll20-inspired baseline
 
 ## Milestone 10: Release and Documentation
+
 - [ ] P0 Update README with install/use instructions and known limitations
 - [ ] P0 Add player quickstart guide for rolling and character setup
 - [ ] P1 Add GM setup guide for packs, templates, and creation workflow
@@ -141,22 +154,20 @@ Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 - [ ] P1 Prepare release checklist (manifest version bump, migration notes, test pass)
 
 ## Rules/Content Validation Against Mythic v7.0 CU1
+
 - [ ] P0 Audit all formulas and terms against v7.0 CU1 source text
 - [ ] P0 Verify naming consistency with current rulebook terminology
 - [ ] P1 Map each sheet section to relevant CU1 chapters/rules references
 - [ ] P1 Mark house-rule deviations explicitly so users can toggle/understand differences
 
 ## Backlog (Not Urgent Yet)
+
 - [ ] P2 NPC/Enemy optimized sheet variant
 - [ ] P2 Vehicle-specific actor sheet and interaction workflows
 - [ ] P2 Optional campaign-level progression dashboards
 - [ ] P3 Optional narrative/mission tracking helpers
 
-## Quick Capture (Add Ideas Here Anytime)
-- [ ] Idea: 
-- [ ] Idea: 
-- [ ] Idea: 
-
 ## Notes
+
 - This file is planning only. No implementation work is implied by checklist items.
 - Re-prioritize after each milestone demo so high-impact tasks stay at top.

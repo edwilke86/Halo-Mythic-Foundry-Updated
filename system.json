@@ -31,9 +31,24 @@
       "character": {}
     },
     "Item": {
-      "gear": {}
+      "gear": {},
+      "education": {}
     }
   },
+  "packs": [
+    {
+      "name": "educations",
+      "label": "Educations",
+      "path": "packs/educations",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    }
+  ],
   "grid": {
     "distance": 5,
     "units": "ft"

@@ -1,0 +1,63 @@
+<header class="mythic-sticky-header panel">
+  <div class="mythic-header-grid">
+    <section class="mythic-header-column left">
+      <div class="mythic-header-row">
+        <label>Character Name</label>
+        <input name="name" type="text" value="{{actor.name}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Faction</label>
+        <select name="system.header.faction">
+          {{selectOptions mythicFactionSelectOptions selected=actor.system.header.faction}}
+        </select>
+      </div>
+      <div class="mythic-header-row">
+        <label>Soldier Type</label>
+        <input name="system.header.soldierType" type="text" value="{{actor.system.header.soldierType}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Rank</label>
+        <input name="system.header.rank" type="text" value="{{actor.system.header.rank}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Size</label>
+        <input name="system.header.buildSize" type="text" value="{{actor.system.header.buildSize}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Specialisation</label>
+        <input name="system.header.specialisation" type="text" value="{{actor.system.header.specialisation}}" />
+      </div>
+    </section>
+
+    <section class="mythic-header-center">
+      <img src="{{mythicLogo}}" alt="Faction Logo" class="mythic-faction-logo" />
+    </section>
+
+    <section class="mythic-header-column right">
+      <div class="mythic-header-row">
+        <label>Player Name</label>
+        <input name="system.header.playerName" type="text" value="{{actor.system.header.playerName}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Race</label>
+        <input name="system.header.race" type="text" value="{{actor.system.header.race}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Upbringing</label>
+        <input name="system.header.upbringing" type="text" value="{{actor.system.header.upbringing}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Environment</label>
+        <input name="system.header.environment" type="text" value="{{actor.system.header.environment}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Lifestyle</label>
+        <input name="system.header.lifestyle" type="text" value="{{actor.system.header.lifestyle}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Gender</label>
+        <input name="system.header.gender" type="text" value="{{actor.system.header.gender}}" />
+      </div>
+    </section>
+  </div>
+</header>

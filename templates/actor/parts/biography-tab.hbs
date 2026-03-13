@@ -1,0 +1,145 @@
+<div class="tab biography" data-group="primary" data-tab="biography">
+  <section class="panel biography-tab">
+    <h2>Biography</h2>
+
+    <details class="bio-section" open>
+      <summary>Physical Description</summary>
+      <div class="bio-grid">
+        <div class="bio-portrait-panel">
+          <img src="{{actor.img}}" alt="Character Portrait" class="bio-portrait-preview" />
+          <div class="bio-row">
+            <label>Portrait</label>
+            <input type="text" name="img" value="{{actor.img}}" />
+            <button class="file-picker action-btn" type="button" data-type="image" data-target="img" title="Browse Files">
+              <i class="fas fa-file-import"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="bio-fields">
+          <div class="bio-row"><label>Height</label><input type="text" name="system.biography.physical.height" value="{{mythicBiography.physical.height}}" /></div>
+          <div class="bio-row"><label>Weight</label><input type="text" name="system.biography.physical.weight" value="{{mythicBiography.physical.weight}}" /></div>
+          <div class="bio-row"><label>Age</label><input type="text" name="system.biography.physical.age" value="{{mythicBiography.physical.age}}" /></div>
+          <div class="bio-row"><label>Gender</label><input type="text" name="system.biography.physical.gender" value="{{actor.system.header.gender}}" readonly /></div>
+          <div class="bio-row"><label>Hair</label><input type="text" name="system.biography.physical.hair" value="{{mythicBiography.physical.hair}}" /></div>
+          <div class="bio-row"><label>Skin</label><input type="text" name="system.biography.physical.skin" value="{{mythicBiography.physical.skin}}" /></div>
+          <div class="bio-row"><label>Eyes</label><input type="text" name="system.biography.physical.eyes" value="{{mythicBiography.physical.eyes}}" /></div>
+          <div class="bio-row"><label>Defining Features</label><input type="text" name="system.biography.physical.definingFeatures" value="{{mythicBiography.physical.definingFeatures}}" /></div>
+        </div>
+      </div>
+
+      <div class="bio-block">
+        <label>General Description</label>
+        <textarea name="system.biography.physical.generalDescription" rows="5">{{mythicBiography.physical.generalDescription}}</textarea>
+      </div>
+
+      <div class="bio-repeating-list">
+        {{#each mythicBiography.physical.extraFields as |entry index|}}
+          <div class="bio-repeating-item">
+            <div class="bio-row">
+              <label>Field Name</label>
+              <input type="text" name="system.biography.physical.extraFields.{{index}}.label" value="{{entry.label}}" placeholder="Custom field name" />
+            </div>
+            <div class="bio-block">
+              <label>Value</label>
+              <textarea name="system.biography.physical.extraFields.{{index}}.value" rows="3">{{entry.value}}</textarea>
+            </div>
+            <button class="bio-remove-entry action-btn" type="button" data-path="biography.physical.extraFields" data-index="{{index}}">Remove</button>
+          </div>
+        {{/each}}
+        <button class="bio-add-entry action-btn" type="button" data-path="biography.physical.extraFields">Add Physical Field</button>
+      </div>
+    </details>
+
+    <details class="bio-section" open>
+      <summary>History</summary>
+
+      <div class="bio-row">
+        <label>Birthdate</label>
+        <input type="text" name="system.biography.history.birthdate" value="{{mythicBiography.history.birthdate}}" placeholder="YYYY-MM-DD or narrative format" />
+      </div>
+      <div class="bio-row">
+        <label>Birthplace</label>
+        <input type="text" name="system.biography.history.birthplace" value="{{mythicBiography.history.birthplace}}" placeholder="Ex: New Mombasa, Earth" />
+      </div>
+
+      <h3>Education</h3>
+      <div class="bio-repeating-list">
+        {{#each mythicBiography.history.education as |entry index|}}
+          <div class="bio-repeating-item">
+            <div class="bio-row">
+              <label>Institution</label>
+              <input type="text" name="system.biography.history.education.{{index}}.institution" value="{{entry.institution}}" placeholder="Ex: Reach Military Academy" />
+            </div>
+            <div class="bio-block">
+              <label>Notes</label>
+              <textarea name="system.biography.history.education.{{index}}.notes" rows="2">{{entry.notes}}</textarea>
+            </div>
+            <button class="bio-remove-entry action-btn" type="button" data-path="biography.history.education" data-index="{{index}}">Remove</button>
+          </div>
+        {{/each}}
+        <button class="bio-add-entry action-btn" type="button" data-path="biography.history.education">Add Education Entry</button>
+      </div>
+
+      <h3>Residence / Service Posting History</h3>
+      <div class="bio-repeating-list">
+        {{#each mythicBiography.history.dutyStations as |entry index|}}
+          <div class="bio-repeating-item bio-posting-item">
+            <div class="bio-row">
+              <label>Location</label>
+              <input type="text" name="system.biography.history.dutyStations.{{index}}.location" value="{{entry.location}}" />
+            </div>
+            <div class="bio-row">
+              <label>Status</label>
+              <select name="system.biography.history.dutyStations.{{index}}.status">
+                {{selectOptions ../mythicDutyStationStatusOptions selected=entry.status}}
+              </select>
+            </div>
+            <button class="bio-remove-entry action-btn" type="button" data-path="biography.history.dutyStations" data-index="{{index}}">Remove</button>
+          </div>
+        {{/each}}
+        <button class="bio-add-entry action-btn" type="button" data-path="biography.history.dutyStations">Add Residence / Posting Entry</button>
+      </div>
+    </details>
+
+    <details class="bio-section" open>
+      <summary>Family</summary>
+      <div class="bio-repeating-list">
+        {{#each mythicBiography.family as |entry index|}}
+          <div class="bio-repeating-item bio-family-item">
+            <div class="bio-row">
+              <label>Name</label>
+              <input type="text" name="system.biography.family.{{index}}.name" value="{{entry.name}}" />
+            </div>
+            <div class="bio-row">
+              <label>Relationship</label>
+              <input type="text" name="system.biography.family.{{index}}.relationship" value="{{entry.relationship}}" />
+            </div>
+            <button class="bio-remove-entry action-btn" type="button" data-path="biography.family" data-index="{{index}}">Remove</button>
+          </div>
+        {{/each}}
+        <button class="bio-add-entry action-btn" type="button" data-path="biography.family">Add Family Entry</button>
+      </div>
+    </details>
+
+    <details class="bio-section" open>
+      <summary>General Biography</summary>
+      <div class="bio-repeating-list">
+        {{#each mythicBiography.generalEntries as |entry index|}}
+          <div class="bio-repeating-item">
+            <div class="bio-row">
+              <label>Field Name</label>
+              <input type="text" name="system.biography.generalEntries.{{index}}.label" value="{{entry.label}}" placeholder="Ex: General Biography" />
+            </div>
+            <div class="bio-block">
+              <label>Text</label>
+              <textarea name="system.biography.generalEntries.{{index}}.text" rows="6">{{entry.text}}</textarea>
+            </div>
+            <button class="bio-remove-entry action-btn" type="button" data-path="biography.generalEntries" data-index="{{index}}">Remove</button>
+          </div>
+        {{/each}}
+        <button class="bio-add-entry action-btn" type="button" data-path="biography.generalEntries">Add Biography Field</button>
+      </div>
+    </details>
+  </section>
+</div>

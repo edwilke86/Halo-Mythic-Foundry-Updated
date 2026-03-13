@@ -79,6 +79,7 @@ const MYTHIC_ACTOR_PARTIAL_TEMPLATES = [
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/header.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/skills-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/abilities-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs"
 ];
@@ -137,6 +138,25 @@ const MYTHIC_EDUCATION_DEFINITIONS = [
   { name: "Subculture",                difficulty: "basic",    skills: ["All Social Skills"],                                                                   costPlus5:  50, costPlus10: 100, category: "street-smarts" },
 ];
 
+const MYTHIC_ABILITY_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/abilities.json";
+let mythicAbilityDefinitionsCache = null;
+
+async function loadMythicAbilityDefinitions() {
+  if (Array.isArray(mythicAbilityDefinitionsCache)) return mythicAbilityDefinitionsCache;
+  try {
+    const response = await fetch(MYTHIC_ABILITY_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const defs = Array.isArray(json) ? json : [];
+    mythicAbilityDefinitionsCache = defs;
+    return defs;
+  } catch (error) {
+    console.error("[mythic-system] Failed to load ability definitions JSON.", error);
+    mythicAbilityDefinitionsCache = [];
+    return mythicAbilityDefinitionsCache;
+  }
+}
+
 function buildSkillRankDefaults(override = {}) {
   const options = Array.isArray(override.characteristicOptions)
     ? override.characteristicOptions
@@ -151,6 +171,8 @@ function buildSkillRankDefaults(override = {}) {
     selectedCharacteristic,
     tier: "untrained",
     modifier: 0,
+    xpPlus10: 0,
+    xpPlus20: 0,
     notes: "",
     ...override
   };
@@ -291,6 +313,8 @@ function normalizeSkillEntry(entry, fallback) {
   const tier = String(entry?.tier ?? fallback.tier ?? "untrained");
 
   const modRaw = Number(entry?.modifier ?? fallback.modifier ?? 0);
+  const xpPlus10Raw = Number(entry?.xpPlus10 ?? fallback.xpPlus10 ?? 0);
+  const xpPlus20Raw = Number(entry?.xpPlus20 ?? fallback.xpPlus20 ?? 0);
   return {
     key: String(entry?.key ?? fallback.key ?? "custom-skill"),
     label: String(entry?.label ?? fallback.label ?? "Custom Skill"),
@@ -300,6 +324,8 @@ function normalizeSkillEntry(entry, fallback) {
     selectedCharacteristic,
     tier: MYTHIC_SKILL_BONUS_BY_TIER[tier] !== undefined ? tier : "untrained",
     modifier: Number.isFinite(modRaw) ? Math.round(modRaw) : 0,
+    xpPlus10: Number.isFinite(xpPlus10Raw) ? Math.max(0, Math.round(xpPlus10Raw)) : 0,
+    xpPlus20: Number.isFinite(xpPlus20Raw) ? Math.max(0, Math.round(xpPlus20Raw)) : 0,
     notes: String(entry?.notes ?? fallback.notes ?? "")
   };
 }
@@ -340,6 +366,8 @@ function normalizeSkillsData(skills) {
         : ["int"],
       selectedCharacteristic: String(entry?.selectedCharacteristic ?? "int"),
       tier: String(entry?.tier ?? "untrained"),
+      xpPlus10: Number(entry?.xpPlus10 ?? 0),
+      xpPlus20: Number(entry?.xpPlus20 ?? 0),
       notes: String(entry?.notes ?? "")
     };
     return normalizeSkillEntry(entry, fallbackCustom);
@@ -420,6 +448,80 @@ function normalizeCharacterSystemData(systemData) {
   return merged;
 }
 
+function getCanonicalAbilitySystemData() {
+  return {
+    cost: 0,
+    prerequisiteText: "",
+    prerequisiteRules: [],
+    prerequisites: [],
+    shortDescription: "",
+    benefit: "",
+    category: "general",
+    actionType: "passive",
+    frequency: "",
+    repeatable: false,
+    editMode: false,
+    tags: [],
+    sourcePage: 97,
+    notes: ""
+  };
+}
+
+function normalizeAbilitySystemData(systemData) {
+  const source = foundry.utils.deepClone(systemData ?? {});
+  const defaults = getCanonicalAbilitySystemData();
+
+  const merged = foundry.utils.mergeObject(defaults, source, {
+    inplace: false,
+    insertKeys: true,
+    insertValues: true,
+    overwrite: true,
+    recursive: true
+  });
+
+  const costRaw = Number(merged.cost ?? 0);
+  merged.cost = Number.isFinite(costRaw) ? Math.max(0, Math.floor(costRaw)) : 0;
+
+  merged.prerequisiteText = String(merged.prerequisiteText ?? "").trim();
+  merged.shortDescription = String(merged.shortDescription ?? "").trim();
+  merged.benefit = String(merged.benefit ?? "").trim();
+  merged.category = String(merged.category ?? "general").trim().toLowerCase() || "general";
+  merged.frequency = String(merged.frequency ?? "").trim();
+  merged.notes = String(merged.notes ?? "");
+
+  const actionType = String(merged.actionType ?? "passive").toLowerCase();
+  const allowedActionTypes = new Set(["passive", "free", "reaction", "half", "full", "special"]);
+  merged.actionType = allowedActionTypes.has(actionType) ? actionType : "passive";
+
+  const pageRaw = Number(merged.sourcePage ?? 97);
+  merged.sourcePage = Number.isFinite(pageRaw) ? Math.max(1, Math.floor(pageRaw)) : 97;
+
+  merged.repeatable = Boolean(merged.repeatable);
+  merged.editMode = Boolean(merged.editMode);
+
+  const ruleArray = Array.isArray(merged.prerequisiteRules) ? merged.prerequisiteRules : [];
+  merged.prerequisiteRules = ruleArray
+    .map((rule) => ({
+      variable: String(rule?.variable ?? "").trim().toLowerCase(),
+      qualifier: String(rule?.qualifier ?? "").trim().toLowerCase(),
+      value: rule?.value,
+      values: Array.isArray(rule?.values) ? rule.values.map((v) => String(v ?? "").trim()).filter(Boolean) : []
+    }))
+    .filter((rule) => rule.variable && rule.qualifier);
+
+  const prereqArray = Array.isArray(merged.prerequisites) ? merged.prerequisites : [];
+  merged.prerequisites = prereqArray
+    .map((entry) => String(entry ?? "").trim())
+    .filter(Boolean);
+
+  const tagArray = Array.isArray(merged.tags) ? merged.tags : [];
+  merged.tags = tagArray
+    .map((entry) => String(entry ?? "").trim().toLowerCase())
+    .filter(Boolean);
+
+  return merged;
+}
+
 function roundToOne(value) {
   return Math.round(value * 10) / 10;
 }
@@ -474,6 +576,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     primary: "main"
   };
 
+  _sheetScrollTop = 0;
+
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
@@ -523,6 +627,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       { value: "plus5",  label: "+5"  },
       { value: "plus10", label: "+10" }
     ];
+    context.mythicAbilities = this._getAbilitiesViewData();
+    context.mythicHasBlurAbility = this.actor.items.some((i) => i.type === "ability" && String(i.name ?? "").toLowerCase() === "blur");
     return context;
   }
 
@@ -669,6 +775,10 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const tierBonus = getSkillTierBonus(entry.tier, category);
       const charValue = Number(chars[entry.selectedCharacteristic] ?? 0);
       const modifier = Number(entry.modifier ?? 0);
+      const groupLabel = String(group).startsWith("custom:")
+        ? String(group).slice("custom:".length) || "Custom"
+        : (SKILL_GROUP_LABELS[group] ?? String(group));
+
       return {
         ...entry,
         category,
@@ -676,7 +786,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         testModifier: tierBonus,
         rollTarget: Math.max(0, charValue + tierBonus + modifier),
         categoryLabel: category === "advanced" ? "Advanced" : "Basic",
-        groupLabel: SKILL_GROUP_LABELS[group] ?? String(group),
+        groupLabel,
         characteristicDisplayOptions: entry.characteristicOptions.map(
           key => ({ value: key, label: key.toUpperCase() })
         )
@@ -703,6 +813,27 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       base: baseList,
       custom: normalized.custom.map((entry) => toViewModel(entry, null, null))
     };
+  }
+
+  _getAllSkillLabels() {
+    const labels = [];
+    for (const skill of MYTHIC_BASE_SKILL_DEFINITIONS) {
+      if (Array.isArray(skill.variants) && skill.variants.length) {
+        for (const variant of skill.variants) {
+          labels.push(`${skill.label} (${variant.label})`);
+        }
+      } else {
+        labels.push(skill.label);
+      }
+    }
+
+    const custom = normalizeSkillsData(this.actor.system?.skills).custom;
+    for (const skill of custom) {
+      const label = String(skill?.label ?? "").trim();
+      if (label) labels.push(label);
+    }
+
+    return [...new Set(labels)].sort((a, b) => a.localeCompare(b));
   }
 
   _getBiographyData(systemData) {
@@ -835,6 +966,265 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
   }
 
+  _getAbilitiesViewData() {
+    const actionLabel = {
+      passive: "Passive",
+      free: "Free",
+      reaction: "Reaction",
+      half: "Half",
+      full: "Full",
+      special: "Special"
+    };
+
+    return this.actor.items
+      .filter((i) => i.type === "ability")
+      .sort((left, right) => String(left.name ?? "").localeCompare(String(right.name ?? "")))
+      .map((item) => {
+        const sys = normalizeAbilitySystemData(item.system ?? {});
+        const shortDescription = String(sys.shortDescription ?? "").trim();
+        return {
+          id: item.id,
+          name: item.name,
+          cost: Number(sys.cost ?? 0),
+          actionType: String(sys.actionType ?? "passive"),
+          actionTypeLabel: actionLabel[String(sys.actionType ?? "passive")] ?? "Passive",
+          prerequisiteText: String(sys.prerequisiteText ?? ""),
+          shortDescription,
+          shortDescriptionDisplay: shortDescription || "N/A",
+          repeatable: Boolean(sys.repeatable)
+        };
+      });
+  }
+
+  _rememberSheetScrollPosition(root = null) {
+    const sourceRoot = root ?? (this.element?.querySelector(".mythic-character-sheet") ?? this.element);
+    const scrollable = sourceRoot?.querySelector?.(".sheet-tab-scrollable");
+    if (!scrollable) return;
+    this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop ?? 0));
+  }
+
+  _normalizeNameForMatch(value) {
+    return String(value ?? "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  async _saveReusableWorldItem(itemData) {
+    try {
+      const type = String(itemData?.type ?? "").trim();
+      const name = String(itemData?.name ?? "").trim();
+      if (!type || !name) return;
+      const normalized = this._normalizeNameForMatch(name);
+      const existing = game.items?.find((i) => i.type === type && this._normalizeNameForMatch(i.name) === normalized);
+      if (existing) return;
+      await Item.create(itemData, { renderSheet: false });
+    } catch (error) {
+      console.warn("[mythic-system] Failed to save reusable world item.", error);
+    }
+  }
+
+  _abilityTierBonus(tier) {
+    const key = String(tier ?? "untrained").toLowerCase();
+    if (key === "plus20") return 20;
+    if (key === "plus10") return 10;
+    return 0;
+  }
+
+  _getAbilitySkillBonusByName(skills, requiredSkillNameRaw) {
+    const required = this._normalizeNameForMatch(requiredSkillNameRaw);
+    if (!required) return null;
+
+    // Pilot (TYPE) / AnyPilot variants: accept the highest pilot variant.
+    if (required.includes("pilot") && required.includes("type")) {
+      const pilot = skills?.base?.pilot;
+      if (!pilot?.variants) return 0;
+      return Object.values(pilot.variants).reduce((max, variant) => {
+        const bonus = this._abilityTierBonus(variant?.tier);
+        return Math.max(max, bonus);
+      }, 0);
+    }
+
+    for (const skillDef of MYTHIC_BASE_SKILL_DEFINITIONS) {
+      const base = skills?.base?.[skillDef.key];
+      if (!base) continue;
+
+      const baseLabel = this._normalizeNameForMatch(skillDef.label);
+      if (required === baseLabel || required === `${baseLabel} skill`) {
+        return this._abilityTierBonus(base.tier);
+      }
+
+      if (skillDef.variants && skillDef.variants.length) {
+        for (const variantDef of skillDef.variants) {
+          const variant = base?.variants?.[variantDef.key];
+          if (!variant) continue;
+          const variantLabel = this._normalizeNameForMatch(`${skillDef.label} (${variantDef.label})`);
+          const shortVariantLabel = this._normalizeNameForMatch(`${skillDef.label} ${variantDef.label}`);
+          if (required === variantLabel || required === shortVariantLabel) {
+            return this._abilityTierBonus(variant.tier);
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  _parseRequiredAbilityNames(prereqText) {
+    const text = String(prereqText ?? "");
+    const requiredNames = new Set();
+
+    // Explicit "X Ability" pattern.
+    for (const match of text.matchAll(/([A-Za-z][A-Za-z0-9'()\-/ ]+?)\s+Ability\b/gi)) {
+      const name = String(match[1] ?? "").trim();
+      if (name) requiredNames.add(name);
+    }
+
+    // Bare leading token pattern, e.g. "Disarm, Agility: 40".
+    for (const token of text.split(",")) {
+      const t = token.trim();
+      if (!t || t.includes(":")) continue;
+      if (/^or\b/i.test(t) || /^and\b/i.test(t)) continue;
+      if (/^(strength|toughness|agility|intellect|perception|courage|charisma|leadership|warfare\s+melee|warfare\s+range|luck)\b/i.test(t)) continue;
+      if (/\bskill\b/i.test(t)) continue;
+      requiredNames.add(t.replace(/\bability\b/i, "").trim());
+    }
+
+    return [...requiredNames].filter(Boolean);
+  }
+
+  _evaluateAbilityPrerequisites(abilityData) {
+    const prereqText = String(abilityData?.system?.prerequisiteText ?? "");
+    const structuredRules = normalizeAbilitySystemData(abilityData?.system ?? {}).prerequisiteRules;
+    if (!prereqText.trim() && !structuredRules.length) {
+      return { ok: true, reasons: [] };
+    }
+
+    const reasons = [];
+    const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
+    const chars = normalizedSystem?.characteristics ?? {};
+    const luckMax = Number(normalizedSystem?.combat?.luck?.max ?? 0);
+    const skills = normalizeSkillsData(normalizedSystem?.skills);
+    const ownedAbilities = new Set(
+      this.actor.items
+        .filter((i) => i.type === "ability")
+        .map((i) => this._normalizeNameForMatch(i.name))
+    );
+
+    const characteristicMap = {
+      strength: "str",
+      toughness: "tou",
+      agility: "agi",
+      intellect: "int",
+      perception: "per",
+      courage: "crg",
+      charisma: "cha",
+      leadership: "ldr",
+      "warfare melee": "wfm",
+      "warfare range": "wfr"
+    };
+
+    const compareNumeric = (actual, qualifier, expected) => {
+      if (!Number.isFinite(actual) || !Number.isFinite(expected)) return false;
+      if (qualifier === "minimum") return actual >= expected;
+      if (qualifier === "maximum") return actual <= expected;
+      return actual === expected;
+    };
+
+    for (const rule of structuredRules) {
+      const variable = String(rule.variable ?? "").toLowerCase();
+      const qualifier = String(rule.qualifier ?? "").toLowerCase();
+
+      if (variable in characteristicMap) {
+        const key = characteristicMap[variable];
+        const actual = Number(chars?.[key] ?? 0);
+        const expected = Number(rule.value ?? 0);
+        if (!compareNumeric(actual, qualifier, expected)) {
+          const label = variable.replace(/\b\w/g, (c) => c.toUpperCase());
+          const op = qualifier === "minimum" ? ">=" : qualifier === "maximum" ? "<=" : "=";
+          reasons.push(`${label} ${op} ${expected} required`);
+        }
+        continue;
+      }
+
+      if (variable === "luck_max") {
+        const expected = Number(rule.value ?? 0);
+        if (!compareNumeric(luckMax, qualifier, expected)) {
+          const op = qualifier === "minimum" ? ">=" : qualifier === "maximum" ? "<=" : "=";
+          reasons.push(`Luck (max) ${op} ${expected} required`);
+        }
+        continue;
+      }
+
+      if (variable === "skill_training") {
+        const skillName = String(rule.value ?? "");
+        const tierKey = String(rule.qualifier ?? "minimum").toLowerCase();
+        const tierReq = tierKey === "plus20" ? 20 : tierKey === "plus10" ? 10 : 0;
+        const actualBonus = this._getAbilitySkillBonusByName(skills, skillName);
+        if (actualBonus === null || actualBonus < tierReq) {
+          reasons.push(`${skillName} ${tierReq === 0 ? "trained" : `+${tierReq}`} required`);
+        }
+        continue;
+      }
+
+      if (variable === "existing_ability") {
+        const requiredAbilities = Array.isArray(rule.values) ? rule.values : [];
+        for (const requiredName of requiredAbilities) {
+          const normalizedName = this._normalizeNameForMatch(requiredName);
+          if (!normalizedName) continue;
+          if (!ownedAbilities.has(normalizedName)) {
+            reasons.push(`Requires ability: ${requiredName}`);
+          }
+        }
+      }
+    }
+
+    // Minimum characteristic requirements, e.g. "Strength: 50".
+    if (prereqText.trim()) {
+      for (const match of prereqText.matchAll(/(strength|toughness|agility|intellect|perception|courage|charisma|leadership|warfare\s+melee|warfare\s+range)\s*:\s*(\d+)/gi)) {
+        const label = String(match[1] ?? "").toLowerCase();
+        const required = Number(match[2] ?? 0);
+        const key = characteristicMap[label];
+        const actual = Number(chars?.[key] ?? 0);
+        if (Number.isFinite(required) && actual < required) {
+          reasons.push(`${label.replace(/\b\w/g, c => c.toUpperCase())} ${required}+ required`);
+        }
+      }
+
+      // Minimum luck based on MAX luck, e.g. "Luck: 1+" or "Luck: 0-1".
+      for (const match of prereqText.matchAll(/luck\s*:\s*(\d+)(?:\s*-\s*\d+|\s*\+)?/gi)) {
+        const requiredMin = Number(match[1] ?? 0);
+        if (Number.isFinite(requiredMin) && luckMax < requiredMin) {
+          reasons.push(`Luck (max) ${requiredMin}+ required`);
+        }
+      }
+
+      // Skill training requirements, e.g. "Pilot (Air): +10 Skill".
+      for (const match of prereqText.matchAll(/([A-Za-z][A-Za-z0-9()\-/ ]*?)\s*:\s*\+\s*(10|20)\s*Skill\b/gi)) {
+        const skillName = String(match[1] ?? "").trim();
+        const requiredBonus = Number(match[2] ?? 0);
+        const actualBonus = this._getAbilitySkillBonusByName(skills, skillName);
+        if (actualBonus === null || actualBonus < requiredBonus) {
+          reasons.push(`${skillName} +${requiredBonus} training required`);
+        }
+      }
+
+      // Ability dependencies, e.g. "Cynical Ability", "Disarm, Agility: 40".
+      for (const abilityName of this._parseRequiredAbilityNames(prereqText)) {
+        const normalizedName = this._normalizeNameForMatch(abilityName);
+        if (!normalizedName) continue;
+        if (!ownedAbilities.has(normalizedName)) {
+          reasons.push(`Requires ability: ${abilityName}`);
+        }
+      }
+    }
+
+    return {
+      ok: reasons.length === 0,
+      reasons
+    };
+  }
+
   _applyHeaderAutoFit(root) {
     if (!root) return;
 
@@ -898,6 +1288,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _prepareSubmitData(event, form, formData, updateData = {}) {
     const submitData = super._prepareSubmitData(event, form, formData, updateData);
     const arrayPaths = [
+      "system.skills.custom",
       "system.biography.physical.extraFields",
       "system.biography.history.education",
       "system.biography.history.dutyStations",
@@ -913,10 +1304,32 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
+    const submittedCustomSkills = foundry.utils.getProperty(submitData, "system.skills.custom");
+    if (Array.isArray(submittedCustomSkills)) {
+      const existingCustomSkills = Array.isArray(this.actor.system?.skills?.custom)
+        ? this.actor.system.skills.custom
+        : [];
+
+      const mergedCustomSkills = submittedCustomSkills.map((entry, index) => {
+        const existing = existingCustomSkills[index] ?? {};
+        return foundry.utils.mergeObject(foundry.utils.deepClone(existing), entry ?? {}, {
+          inplace: false,
+          insertKeys: true,
+          insertValues: true,
+          overwrite: true,
+          recursive: true
+        });
+      });
+
+      foundry.utils.setProperty(submitData, "system.skills.custom", mergedCustomSkills);
+    }
+
     return submitData;
   }
 
   _onChangeForm(formConfig, event) {
+    this._rememberSheetScrollPosition();
+
     const input = event.target;
 
     if (input instanceof HTMLInputElement) {
@@ -993,6 +1406,18 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     });
     tabs.bind(root);
+
+    const scrollable = root.querySelector(".sheet-tab-scrollable");
+    if (scrollable) {
+      const scrollTop = Math.max(0, Number(this._sheetScrollTop ?? 0));
+      requestAnimationFrame(() => {
+        scrollable.scrollTop = scrollTop;
+      });
+
+      scrollable.addEventListener("scroll", () => {
+        this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop ?? 0));
+      }, { passive: true });
+    }
 
     const refreshHeaderFit = () => this._applyHeaderAutoFit(root);
     requestAnimationFrame(refreshHeaderFit);
@@ -1098,6 +1523,77 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         await item.update({ [`system.${field}`]: value });
       });
     });
+
+    // Abilities: open row item sheet
+    root.querySelectorAll(".ability-open-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const itemId = String(event.currentTarget.dataset.itemId ?? "");
+        if (!itemId) return;
+        const item = this.actor.items.get(itemId);
+        if (!item?.sheet) return;
+        item.sheet.render(true);
+      });
+    });
+
+    // Abilities: remove button
+    root.querySelectorAll(".ability-remove-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const itemId = String(event.currentTarget.dataset.itemId ?? "");
+        if (!itemId || !this.isEditable) return;
+        await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
+      });
+    });
+
+    // Abilities: post details to chat
+    root.querySelectorAll(".ability-post-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onPostAbilityToChat(event);
+      });
+    });
+
+    // Skills: create custom skill
+    root.querySelectorAll(".skills-add-custom-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAddCustomSkill(event);
+      });
+    });
+
+    // Skills: remove custom skill
+    root.querySelectorAll(".skills-remove-btn[data-skill-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRemoveCustomSkill(event);
+      });
+    });
+
+    // Educations: open compendium and create custom item
+    root.querySelectorAll(".edu-open-compendium-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openCompendiumPack("Halo-Mythic-Foundry-Updated.educations", "Educations");
+      });
+    });
+
+    root.querySelectorAll(".edu-add-custom-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAddCustomEducation(event);
+      });
+    });
+
+    // Abilities: open compendium and create custom item
+    root.querySelectorAll(".ability-open-compendium-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openCompendiumPack("Halo-Mythic-Foundry-Updated.abilities", "Abilities");
+      });
+    });
+
+    root.querySelectorAll(".ability-add-custom-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAddCustomAbility(event);
+      });
+    });
   }
 
   _onClose(options) {
@@ -1142,6 +1638,624 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "sidebarCollapsed", collapsed);
   }
 
+  _openCompendiumPack(packKey, label) {
+    const pack = game.packs.get(packKey);
+    if (!pack) {
+      ui.notifications.warn(`${label} compendium not found.`);
+      return;
+    }
+    pack.render(true);
+  }
+
+  _applyMythicPromptClass(html) {
+    const $win = html.closest(".app, .application, .window-app");
+    $win.addClass("mythic-prompt");
+  }
+
+  async _onAddCustomSkill(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const characteristicOptions = [
+      { value: "str", label: "STR" },
+      { value: "tou", label: "TOU" },
+      { value: "agi", label: "AGI" },
+      { value: "wfm", label: "WFM" },
+      { value: "wfr", label: "WFR" },
+      { value: "int", label: "INT" },
+      { value: "per", label: "PER" },
+      { value: "crg", label: "CRG" },
+      { value: "cha", label: "CHA" },
+      { value: "ldr", label: "LDR" }
+    ];
+
+    const groupOptions = [
+      { value: "social", label: "Social" },
+      { value: "movement", label: "Movement" },
+      { value: "fieldcraft", label: "Fieldcraft" },
+      { value: "science-fieldcraft", label: "Science/Fieldcraft" },
+      { value: "__custom_type__", label: "Custom Type..." }
+    ];
+
+    const tierOptions = [
+      { value: "untrained", label: "--" },
+      { value: "trained", label: "Trained" },
+      { value: "plus10", label: "+10" },
+      { value: "plus20", label: "+20" }
+    ];
+
+    const charOpts = characteristicOptions.map((o) => `<option value="${o.value}">${o.label}</option>`).join("");
+    const groupOpts = groupOptions.map((o) => `<option value="${o.value}">${o.label}</option>`).join("");
+    const tierOpts = tierOptions.map((o) => `<option value="${o.value}">${o.label}</option>`).join("");
+
+    const result = await new Promise((resolve) => {
+      new Dialog({
+        title: "",
+        content: `
+          <form>
+            <div class="form-group"><label>Name</label><input id="mythic-custom-skill-name" type="text" placeholder="Custom Skill" /></div>
+            <div class="form-group"><label>Difficulty</label><select id="mythic-custom-skill-difficulty"><option value="basic">Basic</option><option value="advanced">Advanced</option></select></div>
+            <div class="form-group"><label>Type</label><select id="mythic-custom-skill-group">${groupOpts}</select></div>
+            <div class="form-group" id="mythic-custom-skill-group-custom-wrap" style="display:none"><label>Custom Type Name</label><input id="mythic-custom-skill-group-custom" type="text" placeholder="e.g. Psionics" /></div>
+            <div class="form-group"><label>Characteristic</label><select id="mythic-custom-skill-characteristic">${charOpts}</select></div>
+            <div class="form-group"><label>Training</label><select id="mythic-custom-skill-tier">${tierOpts}</select></div>
+            <div class="form-group"><label>Modifier</label><input id="mythic-custom-skill-modifier" type="number" value="0" /></div>
+            <div class="form-group"><label>XP Cost (+10)</label><input id="mythic-custom-skill-xp10" type="number" min="0" value="50" /></div>
+            <div class="form-group"><label>XP Cost (+20)</label><input id="mythic-custom-skill-xp20" type="number" min="0" value="100" /></div>
+          </form>
+        `,
+        buttons: {
+          ok: {
+            icon: '<i class="fas fa-check"></i>',
+            label: "Create",
+            callback: (html) => {
+              const name = String(html.find("#mythic-custom-skill-name").val() ?? "").trim();
+              const difficulty = String(html.find("#mythic-custom-skill-difficulty").val() ?? "basic");
+              const group = String(html.find("#mythic-custom-skill-group").val() ?? "__custom_type__");
+              const customGroup = String(html.find("#mythic-custom-skill-group-custom").val() ?? "").trim();
+              const characteristic = String(html.find("#mythic-custom-skill-characteristic").val() ?? "int");
+              const tier = String(html.find("#mythic-custom-skill-tier").val() ?? "untrained");
+              const modifier = Number(html.find("#mythic-custom-skill-modifier").val() ?? 0);
+              const xpPlus10 = Number(html.find("#mythic-custom-skill-xp10").val() ?? 0);
+              const xpPlus20 = Number(html.find("#mythic-custom-skill-xp20").val() ?? 0);
+              resolve({ name, difficulty, group, customGroup, characteristic, tier, modifier, xpPlus10, xpPlus20 });
+            }
+          },
+          cancel: { icon: '<i class="fas fa-times"></i>', label: "Cancel", callback: () => resolve(null) }
+        },
+        default: "ok",
+        render: (html) => {
+          this._applyMythicPromptClass(html);
+          const syncGroupField = () => {
+            const val = String(html.find("#mythic-custom-skill-group").val() ?? "");
+            html.find("#mythic-custom-skill-group-custom-wrap").toggle(val === "__custom_type__");
+          };
+          syncGroupField();
+          html.find("#mythic-custom-skill-group").on("change", syncGroupField);
+        }
+      }, { classes: ["mythic-prompt"] }).render(true);
+    });
+
+    if (!result) return;
+    if (!result.name) {
+      ui.notifications.warn("Custom skill name is required.");
+      return;
+    }
+
+    const current = foundry.utils.deepClone(mapNumberedObjectToArray(this.actor.system?.skills?.custom ?? [])) ?? [];
+    const existingKeys = new Set(current.map((s) => String(s?.key ?? "")).filter(Boolean));
+    const slug = this._normalizeNameForMatch(result.name).replace(/\s+/g, "-");
+    let key = slug || `custom-${current.length + 1}`;
+    let idx = 2;
+    while (existingKeys.has(key)) {
+      key = `${slug || "custom"}-${idx++}`;
+    }
+
+    if (result.group === "__custom_type__" && !result.customGroup) {
+      ui.notifications.warn("Provide a custom skill type name.");
+      return;
+    }
+
+    const customGroupName = result.group === "__custom_type__"
+      ? result.customGroup
+      : "Custom";
+    const groupValue = `custom:${customGroupName}`;
+
+    current.push({
+      key,
+      label: result.name,
+      category: result.difficulty === "advanced" ? "advanced" : "basic",
+      group: groupValue,
+      characteristicOptions: [result.characteristic],
+      selectedCharacteristic: result.characteristic,
+      tier: result.tier,
+      modifier: Number.isFinite(result.modifier) ? Math.round(result.modifier) : 0,
+      xpPlus10: Number.isFinite(result.xpPlus10) ? Math.max(0, Math.round(result.xpPlus10)) : 0,
+      xpPlus20: Number.isFinite(result.xpPlus20) ? Math.max(0, Math.round(result.xpPlus20)) : 0,
+      notes: ""
+    });
+
+    await this.actor.update({ "system.skills.custom": current });
+  }
+
+  async _onRemoveCustomSkill(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const index = Number(event.currentTarget?.dataset?.skillIndex ?? -1);
+    if (!Number.isInteger(index) || index < 0) return;
+
+    const current = foundry.utils.deepClone(mapNumberedObjectToArray(this.actor.system?.skills?.custom ?? [])) ?? [];
+    if (!Array.isArray(current) || index >= current.length) return;
+
+    current.splice(index, 1);
+    await this.actor.update({ "system.skills.custom": current });
+  }
+
+  async _onAddCustomEducation(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const skillOptions = this._getAllSkillLabels();
+    const skillSelectOptions = skillOptions.map((label) => `<option value="${foundry.utils.escapeHTML(label)}">${foundry.utils.escapeHTML(label)}</option>`).join("");
+
+    const result = await new Promise((resolve) => {
+      new Dialog({
+        title: "",
+        content: `
+          <form>
+            <div class="form-group"><label>Name</label><input id="mythic-custom-edu-name" type="text" placeholder="Custom Education" /></div>
+            <div class="form-group"><label>Difficulty</label><select id="mythic-custom-edu-difficulty"><option value="basic">Basic</option><option value="advanced">Advanced</option></select></div>
+            <div class="form-group">
+              <label>Related Skills</label>
+              <div id="mythic-custom-edu-skills-list" style="margin:0 0 6px 0;display:flex;flex-wrap:wrap;gap:4px"></div>
+              <select id="mythic-custom-edu-skill-select" style="width:100%"><option value="">Select skill...</option>${skillSelectOptions}</select>
+              <input id="mythic-custom-edu-skills-value" type="hidden" value="" />
+            </div>
+            <div class="form-group"><label>Tier</label><select id="mythic-custom-edu-tier"><option value="plus5">+5</option><option value="plus10">+10</option></select></div>
+            <div class="form-group"><label>XP Cost (+5)</label><input id="mythic-custom-edu-cost5" type="number" min="0" value="50" /></div>
+            <div class="form-group"><label>XP Cost (+10)</label><input id="mythic-custom-edu-cost10" type="number" min="0" value="100" /></div>
+            <div class="form-group"><label>Modifier</label><input id="mythic-custom-edu-modifier" type="number" value="0" /></div>
+          </form>
+        `,
+        buttons: {
+          ok: {
+            icon: '<i class="fas fa-check"></i>',
+            label: "Create",
+            callback: (html) => {
+              resolve({
+                name: String(html.find("#mythic-custom-edu-name").val() ?? "").trim(),
+                difficulty: String(html.find("#mythic-custom-edu-difficulty").val() ?? "basic"),
+                skillsText: String(html.find("#mythic-custom-edu-skills-value").val() ?? ""),
+                tier: String(html.find("#mythic-custom-edu-tier").val() ?? "plus5"),
+                costPlus5: Number(html.find("#mythic-custom-edu-cost5").val() ?? 50),
+                costPlus10: Number(html.find("#mythic-custom-edu-cost10").val() ?? 100),
+                modifier: Number(html.find("#mythic-custom-edu-modifier").val() ?? 0)
+              });
+            }
+          },
+          cancel: { icon: '<i class="fas fa-times"></i>', label: "Cancel", callback: () => resolve(null) }
+        },
+        default: "ok",
+        render: (html) => {
+          this._applyMythicPromptClass(html);
+          const selected = [];
+          const $list = html.find("#mythic-custom-edu-skills-list");
+          const $hidden = html.find("#mythic-custom-edu-skills-value");
+          const sync = () => {
+            $hidden.val(selected.join("|"));
+            $list.empty();
+            for (const skill of selected) {
+              const chip = $(`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--mythic-input-bg);border:1px solid var(--mythic-table-bg);border-radius:3px;padding:2px 6px;font-size:11px">${foundry.utils.escapeHTML(skill)} <button type=\"button\" data-skill=\"${foundry.utils.escapeHTML(skill)}\" style=\"border:0;background:transparent;color:#fff;cursor:pointer\">x</button></span>`);
+              chip.find("button").on("click", function () {
+                const value = String($(this).data("skill") ?? "");
+                const idx = selected.indexOf(value);
+                if (idx >= 0) selected.splice(idx, 1);
+                sync();
+              });
+              $list.append(chip);
+            }
+          };
+
+          html.find("#mythic-custom-edu-skill-select").on("change", () => {
+            const val = String(html.find("#mythic-custom-edu-skill-select").val() ?? "").trim();
+            if (!val) return;
+            if (!selected.includes(val)) selected.push(val);
+            html.find("#mythic-custom-edu-skill-select").val("");
+            sync();
+          });
+
+          sync();
+        }
+      }, { classes: ["mythic-prompt"] }).render(true);
+    });
+
+    if (!result) return;
+    if (!result.name) {
+      ui.notifications.warn("Custom education name is required.");
+      return;
+    }
+
+    const duplicate = this.actor.items.find((i) => i.type === "education" && i.name === result.name);
+    if (duplicate) {
+      ui.notifications.warn(`${result.name} is already on this character.`);
+      return;
+    }
+
+    const skills = result.skillsText
+      .split("|")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const created = await this.actor.createEmbeddedDocuments("Item", [{
+      name: result.name,
+      type: "education",
+      system: {
+        difficulty: result.difficulty === "advanced" ? "advanced" : "basic",
+        skills,
+        characteristic: "int",
+        costPlus5: Number.isFinite(result.costPlus5) ? Math.max(0, Math.round(result.costPlus5)) : 50,
+        costPlus10: Number.isFinite(result.costPlus10) ? Math.max(0, Math.round(result.costPlus10)) : 100,
+        restricted: false,
+        category: "general",
+        description: "",
+        tier: result.tier === "plus10" ? "plus10" : "plus5",
+        modifier: Number.isFinite(result.modifier) ? Math.round(result.modifier) : 0
+      }
+    }]);
+
+    await this._saveReusableWorldItem({
+      name: result.name,
+      type: "education",
+      system: {
+        difficulty: result.difficulty === "advanced" ? "advanced" : "basic",
+        skills,
+        characteristic: "int",
+        costPlus5: Number.isFinite(result.costPlus5) ? Math.max(0, Math.round(result.costPlus5)) : 50,
+        costPlus10: Number.isFinite(result.costPlus10) ? Math.max(0, Math.round(result.costPlus10)) : 100,
+        restricted: false,
+        category: "general",
+        description: "",
+        tier: result.tier === "plus10" ? "plus10" : "plus5",
+        modifier: Number.isFinite(result.modifier) ? Math.round(result.modifier) : 0
+      }
+    });
+
+    const item = created?.[0];
+    if (item?.sheet) item.sheet.render(true);
+  }
+
+  async _confirmAbilityPrerequisiteOverride(abilityName, reasons) {
+    const details = reasons.map((r) => `<li>${foundry.utils.escapeHTML(String(r))}</li>`).join("");
+    return new Promise((resolve) => {
+      new Dialog({
+        title: "",
+        content: `
+          <form>
+            <div class="form-group">
+              <label>Prerequisites Not Met</label>
+              <div>Cannot validate all prerequisites for <strong>${foundry.utils.escapeHTML(abilityName)}</strong>:</div>
+              <ul style="margin:6px 0 0 18px">${details}</ul>
+              <div style="margin-top:8px">Add this ability anyway?</div>
+            </div>
+          </form>
+        `,
+        buttons: {
+          yes: { icon: '<i class="fas fa-check"></i>', label: "Add Anyway", callback: () => resolve(true) },
+          no: { icon: '<i class="fas fa-times"></i>', label: "Cancel", callback: () => resolve(false) }
+        },
+        default: "no",
+        render: (html) => this._applyMythicPromptClass(html)
+      }, { classes: ["mythic-prompt"] }).render(true);
+    });
+  }
+
+  async _onAddCustomAbility(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const skillOptions = this._getAllSkillLabels();
+    const skillOptionMarkup = skillOptions
+      .map((label) => `<option value="${foundry.utils.escapeHTML(label)}">${foundry.utils.escapeHTML(label)}</option>`)
+      .join("");
+
+    const result = await new Promise((resolve) => {
+      let dlg;
+      dlg = new Dialog({
+        title: "",
+        content: `
+          <form>
+            <div class="form-group"><label>Name</label><input id="mythic-custom-ability-name" type="text" placeholder="Custom Ability" /></div>
+            <div class="form-group"><label>Cost</label><input id="mythic-custom-ability-cost" type="number" min="0" value="250" /></div>
+            <div class="form-group"><label>Action Type</label>
+              <select id="mythic-custom-ability-action">
+                <option value="passive">Passive</option>
+                <option value="free">Free</option>
+                <option value="reaction">Reaction</option>
+                <option value="half">Half</option>
+                <option value="full">Full</option>
+                <option value="special">Special</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Short Description</label><input id="mythic-custom-ability-short" type="text" placeholder="Brief summary" /></div>
+            <div class="form-group"><label>Benefit</label><textarea id="mythic-custom-ability-benefit" rows="5"></textarea></div>
+            <div class="form-group"><label>Frequency</label><input id="mythic-custom-ability-frequency" type="text" placeholder="e.g. once per turn" /></div>
+            <div class="form-group"><label>Category</label><input id="mythic-custom-ability-category" type="text" value="general" /></div>
+            <div class="form-group"><label><input id="mythic-custom-ability-repeatable" type="checkbox" /> Repeatable</label></div>
+
+            <hr>
+            <div class="form-group">
+              <label>Prerequisites</label>
+              <div id="mythic-custom-ability-rule-list" style="display:grid;gap:6px"></div>
+              <button type="button" id="mythic-custom-ability-add-rule" class="action-btn mythic-prereq-add-rule-btn" style="margin-top:6px"><i class="fas fa-plus"></i> Add Rule</button>
+            </div>
+          </form>
+        `,
+        buttons: {
+          ok: {
+            icon: '<i class="fas fa-check"></i>',
+            label: "Create",
+            callback: (html) => {
+              const rules = [];
+              html.find(".mythic-prereq-rule").each((_idx, el) => {
+                const $row = html.find(el);
+                const variable = String($row.find(".prereq-variable").val() ?? "").trim();
+                const qualifier = String($row.find(".prereq-qualifier").val() ?? "").trim();
+                if (!variable || !qualifier) return;
+
+                if (variable === "existing_ability") {
+                  const raw = String($row.find(".prereq-value-hidden").val() ?? "");
+                  const values = raw.split("|").map((v) => v.trim()).filter(Boolean);
+                  if (values.length) {
+                    rules.push({ variable, qualifier: "exists", values });
+                  }
+                  return;
+                }
+
+                if (variable === "skill_training") {
+                  const skill = String($row.find(".prereq-skill").val() ?? "").trim();
+                  const tier = String($row.find(".prereq-skill-tier").val() ?? "plus10").trim();
+                  if (skill) rules.push({ variable, qualifier: tier, value: skill });
+                  return;
+                }
+
+                const value = Number($row.find(".prereq-value-number").val() ?? 0);
+                if (Number.isFinite(value)) {
+                  rules.push({ variable, qualifier, value });
+                }
+              });
+
+              const pretty = {
+                strength: "Strength",
+                toughness: "Toughness",
+                agility: "Agility",
+                intellect: "Intellect",
+                perception: "Perception",
+                courage: "Courage",
+                charisma: "Charisma",
+                leadership: "Leadership",
+                "warfare melee": "Warfare Melee",
+                "warfare range": "Warfare Range",
+                luck_max: "Luck (max)",
+                skill_training: "Skill",
+                existing_ability: "Ability"
+              };
+
+              const parts = rules.map((rule) => {
+                if (rule.variable === "existing_ability") return `${pretty[rule.variable]}: ${rule.values.join(", ")}`;
+                if (rule.variable === "skill_training") {
+                  const tierLabel = rule.qualifier === "plus20" ? "+20 Skill" : rule.qualifier === "plus10" ? "+10 Skill" : "Trained";
+                  return `${rule.value}: ${tierLabel}`;
+                }
+                const op = rule.qualifier === "minimum" ? ">=" : rule.qualifier === "maximum" ? "<=" : "=";
+                return `${pretty[rule.variable] ?? rule.variable} ${op} ${rule.value}`;
+              });
+
+              resolve({
+                name: String(html.find("#mythic-custom-ability-name").val() ?? "").trim(),
+                cost: Number(html.find("#mythic-custom-ability-cost").val() ?? 0),
+                actionType: String(html.find("#mythic-custom-ability-action").val() ?? "passive"),
+                prerequisiteText: parts.join("; "),
+                prerequisiteRules: rules,
+                shortDescription: String(html.find("#mythic-custom-ability-short").val() ?? "").trim(),
+                benefit: String(html.find("#mythic-custom-ability-benefit").val() ?? "").trim(),
+                frequency: String(html.find("#mythic-custom-ability-frequency").val() ?? "").trim(),
+                category: String(html.find("#mythic-custom-ability-category").val() ?? "general").trim(),
+                repeatable: Boolean(html.find("#mythic-custom-ability-repeatable").is(":checked"))
+              });
+            }
+          },
+          cancel: { icon: '<i class="fas fa-times"></i>', label: "Cancel", callback: () => resolve(null) }
+        },
+        default: "ok",
+        render: (html) => {
+          this._applyMythicPromptClass(html);
+          const $list = html.find("#mythic-custom-ability-rule-list");
+
+          const variableOptions = [
+            ["strength", "Strength"],
+            ["toughness", "Toughness"],
+            ["agility", "Agility"],
+            ["intellect", "Intellect"],
+            ["perception", "Perception"],
+            ["courage", "Courage"],
+            ["charisma", "Charisma"],
+            ["leadership", "Leadership"],
+            ["warfare melee", "Warfare Melee"],
+            ["warfare range", "Warfare Range"],
+            ["luck_max", "Luck (max)"],
+            ["skill_training", "Skill Training"],
+            ["existing_ability", "Existing Ability"]
+          ];
+
+          const variableOptionMarkup = variableOptions.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+
+          const renderRule = () => {
+            const row = $(
+              `<div class="mythic-prereq-rule" style="display:grid;grid-template-columns:minmax(120px,1fr) minmax(90px,120px) minmax(180px,2fr) auto;gap:6px;align-items:start">
+                <select class="prereq-variable">${variableOptionMarkup}</select>
+                <select class="prereq-qualifier"></select>
+                <div class="prereq-value-wrap"></div>
+                <button type="button" class="action-btn prereq-remove"><i class="fas fa-times"></i></button>
+              </div>`
+            );
+
+            const syncValueUI = () => {
+              const variable = String(row.find(".prereq-variable").val() ?? "");
+              const $qualifier = row.find(".prereq-qualifier");
+              const $value = row.find(".prereq-value-wrap");
+              $qualifier.empty();
+              $value.empty();
+
+              if (variable === "existing_ability") {
+                $qualifier.append(`<option value="exists">Exists</option>`);
+                $value.append(`<input type="hidden" class="prereq-value-hidden" value="" />`);
+                $value.append(`<div class="prereq-ability-drop" style="min-height:30px;border:1px dashed rgba(255,255,255,.4);padding:4px;border-radius:4px">Drop prerequisite ability item(s) here</div>`);
+                const dropEl = $value.find(".prereq-ability-drop");
+                const syncDrop = () => {
+                  const raw = String($value.find(".prereq-value-hidden").val() ?? "");
+                  const values = raw.split("|").map((v) => v.trim()).filter(Boolean);
+                  if (!values.length) {
+                    dropEl.html("Drop prerequisite ability item(s) here");
+                    return;
+                  }
+                  dropEl.empty();
+                  for (const v of values) {
+                    const chip = $(`<span style="display:inline-flex;align-items:center;gap:4px;margin:2px;padding:2px 6px;background:var(--mythic-input-bg);border:1px solid var(--mythic-table-bg);border-radius:3px">${foundry.utils.escapeHTML(v)} <button type=\"button\" data-ability=\"${foundry.utils.escapeHTML(v)}\" style=\"border:0;background:transparent;color:#fff;cursor:pointer\">x</button></span>`);
+                    chip.find("button").on("click", function (ev) {
+                      ev.preventDefault();
+                      const name = String($(this).data("ability") ?? "");
+                      const current = String($value.find(".prereq-value-hidden").val() ?? "").split("|").map((x) => x.trim()).filter(Boolean);
+                      const idx = current.indexOf(name);
+                      if (idx >= 0) current.splice(idx, 1);
+                      $value.find(".prereq-value-hidden").val(current.join("|"));
+                      syncDrop();
+                    });
+                    dropEl.append(chip);
+                  }
+                };
+
+                dropEl.on("dragover", (ev) => {
+                  ev.preventDefault();
+                });
+
+                dropEl.on("drop", async (ev) => {
+                  ev.preventDefault();
+                  const raw = ev.originalEvent?.dataTransfer?.getData("text/plain");
+                  if (!raw) return;
+                  let parsed;
+                  try {
+                    parsed = JSON.parse(raw);
+                  } catch {
+                    return;
+                  }
+                  const uuid = parsed?.uuid;
+                  if (!uuid) return;
+                  const dropped = await fromUuid(uuid);
+                  if (!dropped || dropped.type !== "ability") {
+                    ui.notifications.warn("Drop an ability item for this prerequisite.");
+                    return;
+                  }
+                  const current = String($value.find(".prereq-value-hidden").val() ?? "").split("|").map((x) => x.trim()).filter(Boolean);
+                  if (!current.includes(dropped.name)) current.push(dropped.name);
+                  $value.find(".prereq-value-hidden").val(current.join("|"));
+                  syncDrop();
+                  // Auto-add a new blank row after first successful drop for quick chaining.
+                  if (!$list.find(".mythic-prereq-rule").last().is(row)) {
+                    return;
+                  }
+                  const extra = renderRule();
+                  $list.append(extra);
+                });
+
+                syncDrop();
+                return;
+              }
+
+              if (variable === "skill_training") {
+                $qualifier.append(`<option value="trained">Trained</option><option value="plus10" selected>+10</option><option value="plus20">+20</option>`);
+                $value.append(`<div style="display:grid;grid-template-columns:1fr 86px;gap:6px"><select class="prereq-skill"><option value="">Select skill...</option>${skillOptionMarkup}</select><select class="prereq-skill-tier"><option value="trained">Trained</option><option value="plus10" selected>+10</option><option value="plus20">+20</option></select></div>`);
+                $qualifier.on("change", () => {
+                  row.find(".prereq-skill-tier").val(String($qualifier.val() ?? "plus10"));
+                });
+                row.find(".prereq-skill-tier").on("change", () => {
+                  $qualifier.val(String(row.find(".prereq-skill-tier").val() ?? "plus10"));
+                });
+                return;
+              }
+
+              $qualifier.append(`<option value="minimum" selected>Minimum</option><option value="maximum">Maximum</option><option value="equals">Equals</option>`);
+              $value.append(`<input class="prereq-value-number" type="number" min="0" value="0" />`);
+            };
+
+            row.find(".prereq-variable").on("change", syncValueUI);
+            row.find(".prereq-remove").on("click", (ev) => {
+              ev.preventDefault();
+              row.remove();
+              if (!$list.find(".mythic-prereq-rule").length) {
+                $list.append(renderRule());
+              }
+              dlg?.setPosition({ height: "auto" });
+            });
+            syncValueUI();
+            return row;
+          };
+
+          html.find("#mythic-custom-ability-add-rule").on("click", (ev) => {
+            ev.preventDefault();
+            $list.append(renderRule());
+            dlg?.setPosition({ height: "auto" });
+          });
+
+          $list.append(renderRule());
+        }
+      }, { classes: ["mythic-prompt"] }).render(true);
+    });
+
+    if (!result) return;
+    if (!result.name) {
+      ui.notifications.warn("Custom ability name is required.");
+      return;
+    }
+
+    const duplicate = this.actor.items.find((i) => i.type === "ability" && i.name === result.name);
+    if (duplicate) {
+      ui.notifications.warn(`${result.name} is already on this character.`);
+      return;
+    }
+
+    const abilitySystem = normalizeAbilitySystemData({
+      cost: result.cost,
+      prerequisiteText: result.prerequisiteText,
+      prerequisiteRules: result.prerequisiteRules,
+      shortDescription: result.shortDescription,
+      benefit: result.benefit,
+      actionType: result.actionType,
+      frequency: result.frequency,
+      category: result.category,
+      repeatable: result.repeatable,
+      sourcePage: 97,
+      notes: ""
+    });
+
+    const pendingAbility = {
+      name: result.name,
+      type: "ability",
+      system: abilitySystem
+    };
+
+    const prereqCheck = this._evaluateAbilityPrerequisites(pendingAbility);
+    if (!prereqCheck.ok) {
+      const forceAdd = await this._confirmAbilityPrerequisiteOverride(result.name, prereqCheck.reasons);
+      if (!forceAdd) return;
+    }
+
+    const created = await this.actor.createEmbeddedDocuments("Item", [pendingAbility]);
+    await this._saveReusableWorldItem(pendingAbility);
+    const item = created?.[0];
+    if (item?.sheet) item.sheet.render(true);
+  }
+
   // ── Drop handling ──────────────────────────────────────────────────────────
 
   async _onDropItem(event, data) {
@@ -1175,6 +2289,26 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       itemData.system.tier     = String(itemData.system.tier ?? "plus5");
       itemData.system.modifier = Number(itemData.system.modifier ?? 0);
+      return this.actor.createEmbeddedDocuments("Item", [itemData]);
+    }
+
+    if (item.type === "ability") {
+      const itemData = item.toObject();
+      const existing = this.actor.items.find((i) => i.type === "ability" && i.name === itemData.name);
+      if (existing) {
+        ui.notifications.warn(`${itemData.name} is already on this character.`);
+        return false;
+      }
+
+      const prereqCheck = this._evaluateAbilityPrerequisites(itemData);
+      if (!prereqCheck.ok) {
+        const details = prereqCheck.reasons.slice(0, 3).join("; ");
+        ui.notifications.warn(`Cannot add ${itemData.name}: prerequisites not met. ${details}`);
+        console.warn(`[mythic-system] Ability prerequisite check failed for ${itemData.name}:`, prereqCheck.reasons);
+        return false;
+      }
+
+      itemData.system = normalizeAbilitySystemData(itemData.system ?? {});
       return this.actor.createEmbeddedDocuments("Item", [itemData]);
     }
 
@@ -1293,6 +2427,62 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   // ── Education roll ─────────────────────────────────────────────────────────
+
+  async _onPostAbilityToChat(event) {
+    event.preventDefault();
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    if (!itemId) return;
+
+    const item = this.actor.items.get(itemId);
+    if (!item || item.type !== "ability") return;
+
+    const sys = normalizeAbilitySystemData(item.system ?? {});
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const actionLabelMap = {
+      passive: "Passive",
+      free: "Free",
+      reaction: "Reaction",
+      half: "Half",
+      full: "Full",
+      special: "Special"
+    };
+    const actionLabel = actionLabelMap[String(sys.actionType ?? "passive")] ?? "Passive";
+
+    const prereq = esc(sys.prerequisiteText || "None");
+    const summary = esc(sys.shortDescription || "-");
+    const benefit = esc(sys.benefit || "-");
+    const frequency = esc(sys.frequency || "-");
+    const notes = esc(sys.notes || "-");
+    const repeatable = sys.repeatable ? "Yes" : "No";
+
+    const content = `
+      <article class="mythic-chat-card mythic-chat-ability">
+        <header class="mythic-chat-header">
+          <span class="mythic-chat-title">${esc(item.name)} Ability</span>
+          <span class="mythic-chat-outcome">${esc(actionLabel)}</span>
+        </header>
+        <div class="mythic-chat-inline-stats">
+          <span class="stat target"><strong>Cost</strong> ${Number(sys.cost ?? 0)} XP</span>
+          <span class="stat important"><strong>Source</strong> p.${Number(sys.sourcePage ?? 97)}</span>
+          <span class="stat"><strong>Category</strong> ${esc(sys.category || "general")}</span>
+          <span class="stat"><strong>Repeatable</strong> ${repeatable}</span>
+        </div>
+        <div class="mythic-chat-ability-body">
+          <div class="mythic-chat-ability-row"><strong>Prereq</strong><span>${prereq}</span></div>
+          <div class="mythic-chat-ability-row"><strong>Summary</strong><span>${summary}</span></div>
+          <div class="mythic-chat-ability-row"><strong>Benefit</strong><span>${benefit}</span></div>
+          <div class="mythic-chat-ability-row"><strong>Frequency</strong><span>${frequency}</span></div>
+          <div class="mythic-chat-ability-row"><strong>Notes</strong><span>${notes}</span></div>
+        </div>
+      </article>
+    `;
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
 
   async _onRollEducation(event) {
     event.preventDefault();
@@ -1445,6 +2635,7 @@ class MythicItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
     context.cssClass = this.options.classes.join(" ");
     context.item = this.item;
     context.editable = this.isEditable;
+    context.canEditFields = this.isEditable && Boolean(this.item.system?.editMode);
     return context;
   }
 }
@@ -1485,13 +2676,119 @@ class MythicEducationSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
       { value: "plus5",  label: "+5"  },
       { value: "plus10", label: "+10" }
     ];
+    context.difficultyOptions = [
+      { value: "basic", label: "Basic" },
+      { value: "advanced", label: "Advanced" }
+    ];
+    return context;
+  }
+
+  _prepareSubmitData(event, form, formData, updateData = {}) {
+    const submitData = super._prepareSubmitData(event, form, formData, updateData);
+    const rawSkills = foundry.utils.getProperty(submitData, "system.skills");
+
+    if (typeof rawSkills === "string") {
+      const parsed = rawSkills
+        .split(",")
+        .map((entry) => String(entry ?? "").trim())
+        .filter(Boolean);
+      foundry.utils.setProperty(submitData, "system.skills", parsed);
+    }
+
+    for (const path of ["system.costPlus5", "system.costPlus10"]) {
+      const value = Number(foundry.utils.getProperty(submitData, path));
+      foundry.utils.setProperty(submitData, path, Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0);
+    }
+
+    const difficulty = String(foundry.utils.getProperty(submitData, "system.difficulty") ?? "basic").toLowerCase();
+    foundry.utils.setProperty(submitData, "system.difficulty", difficulty === "advanced" ? "advanced" : "basic");
+
+    const characteristic = String(foundry.utils.getProperty(submitData, "system.characteristic") ?? "int").trim().toLowerCase();
+    foundry.utils.setProperty(submitData, "system.characteristic", characteristic || "int");
+
+    return submitData;
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    if (!this.isEditable) return;
+
+    const toggleBtn = this.element?.querySelector(".mythic-toggle-edit-btn");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const current = Boolean(this.item.system?.editMode);
+        await this.item.update({ "system.editMode": !current });
+      });
+    }
+
+    const imgEl = this.element?.querySelector(".edu-sheet-icon");
+    if (!imgEl) return;
+    imgEl.style.cursor = "pointer";
+    imgEl.addEventListener("click", () => {
+      const fp = new FilePicker({
+        type: "image",
+        current: this.item.img,
+        callback: (path) => this.item.update({ img: path })
+      });
+      fp.browse();
+    });
+  }
+}
+
+class MythicAbilitySheet extends HandlebarsApplicationMixin(ItemSheetV2) {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+      classes: ["mythic-system", "sheet", "item", "ability"],
+      position: {
+        width: 620,
+        height: 700
+      },
+      window: {
+        resizable: true
+      },
+      form: {
+        submitOnChange: true,
+        closeOnSubmit: false
+      }
+    }, { inplace: false });
+
+  static PARTS = {
+    sheet: {
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/ability-sheet.hbs"
+    }
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    context.cssClass = this.options.classes.join(" ");
+    context.item = this.item;
+    context.editable = this.isEditable;
+    context.canEditFields = this.isEditable && Boolean(this.item.system?.editMode);
+    context.actionTypeOptions = [
+      { value: "passive",  label: "Passive" },
+      { value: "free",     label: "Free Action" },
+      { value: "reaction", label: "Reaction" },
+      { value: "half",     label: "Half Action" },
+      { value: "full",     label: "Full Action" },
+      { value: "special",  label: "Special" }
+    ];
     return context;
   }
 
   async _onRender(context, options) {
     await super._onRender(context, options);
     if (!this.isEditable) return;
-    const imgEl = this.element?.querySelector(".edu-sheet-icon");
+
+    const toggleBtn = this.element?.querySelector(".mythic-toggle-edit-btn");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const current = Boolean(this.item.system?.editMode);
+        await this.item.update({ "system.editMode": !current });
+      });
+    }
+
+    const imgEl = this.element?.querySelector(".ability-sheet-icon");
     if (!imgEl) return;
     imgEl.style.cursor = "pointer";
     imgEl.addEventListener("click", () => {
@@ -1525,6 +2822,11 @@ Hooks.once("init", async () => {
     types: ["education"]
   });
 
+  ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicAbilitySheet, {
+    makeDefault: true,
+    types: ["ability"]
+  });
+
   CONFIG.Actor.trackableAttributes = {
     character: {
       bar: [],
@@ -1545,18 +2847,18 @@ Hooks.once("ready", () => {
     }
   }
 
-  // Seed the Educations compendium pack on first load (GM only)
+  // Seed compendium packs on first load (GM only)
   if (game.user?.isGM) {
-    const pack = game.packs.get("Halo-Mythic-Foundry-Updated.educations");
-    if (pack) {
+    const educationPack = game.packs.get("Halo-Mythic-Foundry-Updated.educations");
+    if (educationPack) {
       (async () => {
         // getIndex() fetches the actual document count from disk — pack.size is
         // unreliable before the index is loaded and always reads 0 on fresh load.
-        const index = await pack.getIndex();
+        const index = await educationPack.getIndex();
         if (index.size > 0) return;
 
-        const wasLocked = pack.locked;
-        if (wasLocked) await pack.configure({ locked: false });
+        const wasLocked = educationPack.locked;
+        if (wasLocked) await educationPack.configure({ locked: false });
         const itemsToCreate = MYTHIC_EDUCATION_DEFINITIONS.map(def => ({
           name: def.name,
           type: "education",
@@ -1574,23 +2876,83 @@ Hooks.once("ready", () => {
             modifier:     0
           }
         }));
-        await Item.createDocuments(itemsToCreate, { pack: pack.collection });
-        if (wasLocked) await pack.configure({ locked: true });
+        await Item.createDocuments(itemsToCreate, { pack: educationPack.collection });
+        if (wasLocked) await educationPack.configure({ locked: true });
         console.log(`[mythic-system] Seeded ${itemsToCreate.length} educations into compendium.`);
+      })();
+    }
+
+    const abilityPack = game.packs.get("Halo-Mythic-Foundry-Updated.abilities");
+    if (abilityPack) {
+      (async () => {
+        const index = await abilityPack.getIndex();
+        if (index.size > 0) return;
+
+        const defs = await loadMythicAbilityDefinitions();
+        if (!defs.length) return;
+
+        const wasLocked = abilityPack.locked;
+        if (wasLocked) await abilityPack.configure({ locked: false });
+        const itemsToCreate = defs.map((def) => ({
+          name: String(def.name ?? "Ability"),
+          type: "ability",
+          img: MYTHIC_ABILITY_DEFAULT_ICON,
+          system: normalizeAbilitySystemData({
+            cost: def.cost ?? 0,
+            prerequisiteText: def.prerequisiteText ?? "",
+            prerequisites: Array.isArray(def.prerequisites) ? def.prerequisites : [],
+            shortDescription: def.shortDescription ?? "",
+            benefit: def.benefit ?? "",
+            category: def.category ?? "general",
+            actionType: def.actionType ?? "passive",
+            frequency: def.frequency ?? "",
+            repeatable: def.repeatable ?? false,
+            tags: Array.isArray(def.tags) ? def.tags : [],
+            sourcePage: def.sourcePage ?? 97,
+            notes: def.notes ?? ""
+          })
+        }));
+        await Item.createDocuments(itemsToCreate, { pack: abilityPack.collection });
+        if (wasLocked) await abilityPack.configure({ locked: true });
+        console.log(`[mythic-system] Seeded ${itemsToCreate.length} abilities into compendium.`);
       })();
     }
   }
 });
 
 const MYTHIC_EDUCATION_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/education.png";
+const MYTHIC_ABILITY_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/ability.png";
 
 Hooks.on("preCreateItem", (item, createData) => {
-  if (item.type !== "education") return;
-  // Only set the default icon if none has been explicitly chosen
-  const currentImg = createData.img ?? item.img ?? "";
-  if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
-    foundry.utils.setProperty(createData, "img", MYTHIC_EDUCATION_DEFAULT_ICON);
+  if (item.type === "education") {
+    // Only set the default icon if none has been explicitly chosen
+    const currentImg = createData.img ?? item.img ?? "";
+    if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
+      foundry.utils.setProperty(createData, "img", MYTHIC_EDUCATION_DEFAULT_ICON);
+    }
+    return;
   }
+
+  if (item.type === "ability") {
+    const normalized = normalizeAbilitySystemData(createData.system ?? {});
+    foundry.utils.setProperty(createData, "system", normalized);
+    const currentImg = createData.img ?? item.img ?? "";
+    if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
+      foundry.utils.setProperty(createData, "img", MYTHIC_ABILITY_DEFAULT_ICON);
+    }
+  }
+});
+
+Hooks.on("preUpdateItem", (item, changes) => {
+  if (item.type !== "ability" || changes.system === undefined) return;
+  const nextSystem = foundry.utils.mergeObject(foundry.utils.deepClone(item.system ?? {}), changes.system ?? {}, {
+    inplace: false,
+    insertKeys: true,
+    insertValues: true,
+    overwrite: true,
+    recursive: true
+  });
+  changes.system = normalizeAbilitySystemData(nextSystem);
 });
 
 Hooks.on("preCreateActor", (actor, createData) => {

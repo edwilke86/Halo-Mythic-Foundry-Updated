@@ -92,10 +92,13 @@
           <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.half}}</div><div class="movement-label">Half</div></div>
           <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.full}}</div><div class="movement-label">Full</div></div>
           <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.charge}}</div><div class="movement-label">Charge</div></div>
+          {{#if mythicHasBlurAbility}}
+          <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.sprint}}</div><div class="movement-label">Sprint</div></div>
+          {{/if}}
           <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.run}}</div><div class="movement-label">Run</div></div>
           <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.jump}}</div><div class="movement-label">Jump</div></div>
           <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.leap}}</div><div class="movement-label">Leap</div></div>
-          <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.sprint}}</div><div class="movement-label">Sprint</div></div>
+
         </div>
         <details class="movement-reference" data-collapse-key="movement-reference">
           <summary>Movement Reference</summary>

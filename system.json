@@ -32,7 +32,8 @@
     },
     "Item": {
       "gear": {},
-      "education": {}
+      "education": {},
+      "ability": {}
     }
   },
   "packs": [
@@ -40,6 +41,18 @@
       "name": "educations",
       "label": "Educations",
       "path": "packs/educations",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "abilities",
+      "label": "Abilities",
+      "path": "packs/abilities",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
       "ownership": {

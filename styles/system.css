@@ -25,14 +25,14 @@
   /* Faction backgrounds = original color ramp + texture image.
      Human texture: UNSC, URF, ONI, Other, Other (Setting Agnostic)
      Alien texture: Covenant, Banished, Forerunner, SOS */
-  --mythic-faction-1:  linear-gradient(rgba(80, 80, 80, 0.78), rgba(47, 47, 47, 0.78)), var(--mythic-human-texture); /* default / other */
-  --mythic-faction-2:  linear-gradient(rgba(115, 129, 50, 0.78), rgba(75, 83, 32, 0.78)), var(--mythic-human-texture); /* UNSC */
-  --mythic-faction-3:  linear-gradient(rgba(143, 72, 157, 0.78), rgba(89, 53, 122, 0.78)), var(--mythic-alien-texture); /* Covenant */
-  --mythic-faction-4:  linear-gradient(rgba(196, 89, 17, 0.78), rgba(131, 60, 11, 0.78)), var(--mythic-alien-texture); /* Forerunner */
-  --mythic-faction-5:  linear-gradient(rgba(170, 63, 60, 0.78), rgba(119, 44, 42, 0.78)), var(--mythic-alien-texture); /* Banished */
-  --mythic-faction-6:  linear-gradient(rgba(38, 109, 170, 0.78), rgba(23, 70, 110, 0.78)), var(--mythic-human-texture); /* ONI */
-  --mythic-faction-7:  linear-gradient(rgba(156, 140, 96, 0.78), rgba(105, 93, 63, 0.78)), var(--mythic-human-texture); /* URF */
-  --mythic-faction-8:  linear-gradient(rgba(164, 36, 68, 0.78), rgba(102, 0, 26, 0.78)), var(--mythic-alien-texture); /* SOS */
+  --mythic-faction-1:  linear-gradient(rgba(80, 80, 80, 0.65), rgba(47, 47, 47, 0.65)), var(--mythic-human-texture); /* default / other */
+  --mythic-faction-2:  linear-gradient(rgba(115, 129, 50, 0.65), rgba(75, 83, 32, 0.65)), var(--mythic-human-texture); /* UNSC */
+  --mythic-faction-3:  linear-gradient(rgba(143, 72, 157, 0.65), rgba(89, 53, 122, 0.65)), var(--mythic-alien-texture); /* Covenant */
+  --mythic-faction-4:  linear-gradient(rgba(196, 89, 17, 0.65), rgba(131, 60, 11, 0.65)), var(--mythic-alien-texture); /* Forerunner */
+  --mythic-faction-5:  linear-gradient(rgba(170, 63, 60, 0.65), rgba(119, 44, 42, 0.65)), var(--mythic-alien-texture); /* Banished */
+  --mythic-faction-6:  linear-gradient(rgba(38, 109, 170, 0.65), rgba(23, 70, 110, 0.65)), var(--mythic-human-texture); /* ONI */
+  --mythic-faction-7:  linear-gradient(rgba(156, 140, 96, 0.65), rgba(105, 93, 63, 0.65)), var(--mythic-human-texture); /* URF */
+  --mythic-faction-8:  linear-gradient(rgba(164, 36, 68, 0.65), rgba(102, 0, 26, 0.65)), var(--mythic-alien-texture); /* SOS */
 }
 
 /* ============================================================
@@ -206,6 +206,72 @@
   background: transparent !important;
   width: 100%;
   height: 100%;
+}
+
+/* ============================================================
+   Item windows (ability/education)
+   Keep default header, remove outer "sheet-in-sheet" chrome.
+   ============================================================ */
+.mythic-system.item:not(.minimized),
+.mythic-system.sheet.item:not(.minimized) {
+  background:
+    linear-gradient(rgba(18, 22, 32, 0.96), rgba(12, 15, 22, 0.96)),
+    var(--mythic-human-texture) !important;
+  background-size: 100% 100%, 360px 360px !important;
+  background-repeat: no-repeat, repeat !important;
+  background-blend-mode: normal, soft-light !important;
+  border: none !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+
+.mythic-system.item .window-content,
+.mythic-system.sheet.item .window-content {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: rgba(0, 0, 0, 0.22) !important;
+}
+
+.mythic-system.item .window-content > .application,
+.mythic-system.sheet.item .window-content > .application,
+.mythic-system.item .window-content > .application[data-application-part="sheet"],
+.mythic-system.sheet.item .window-content > .application[data-application-part="sheet"],
+.mythic-system.item .window-content > form,
+.mythic-system.sheet.item .window-content > form,
+.mythic-system.item .window-content > .standard-form,
+.mythic-system.sheet.item .window-content > .standard-form,
+.mythic-system.item .window-content .standard-form,
+.mythic-system.sheet.item .window-content .standard-form,
+.mythic-system.item .window-content .sheet-body,
+.mythic-system.sheet.item .window-content .sheet-body {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Match character-sheet minimized behavior so content fully collapses. */
+.mythic-system.item.minimized,
+.mythic-system.sheet.item.minimized {
+  min-width: 0 !important;
+  max-width: none !important;
+  width: fit-content !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.mythic-system.item.minimized .window-content,
+.mythic-system.sheet.item.minimized .window-content {
+  display: none !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 /* ============================================================
@@ -1111,11 +1177,11 @@
   gap: 0;
 }
 
-/* 7-column grid: Name | Difficulty | Type | Characteristic | Training | Modifiers | Roll */
+/* 8-column grid: Name | Difficulty | Type | Characteristic | Training | Modifiers | Roll | Delete */
 .mythic-character-sheet .mythic-skills-col-headers,
 .mythic-character-sheet .mythic-skills-row {
   display: grid;
-  grid-template-columns: minmax(140px, 2fr) 80px 82px minmax(82px, 1fr) minmax(92px, 1fr) 64px 56px;
+  grid-template-columns: minmax(140px, 2fr) 80px 82px minmax(82px, 1fr) minmax(92px, 1fr) 64px 56px 28px;
   gap: 4px;
   align-items: center;
   padding: 3px 4px;
@@ -1169,6 +1235,14 @@
   letter-spacing: 0.02em;
 }
 
+.mythic-character-sheet .skills-custom-tag {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #9ec8ff;
+  margin-left: 6px;
+}
+
 .mythic-character-sheet .skills-col-difficulty,
 .mythic-character-sheet .skills-col-type {
   text-align: center;
@@ -1200,6 +1274,7 @@
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 3px;
   padding: 3px 2px;
+}
 
 .mythic-character-sheet .skills-col-roll.roll-skill {
   cursor: pointer;
@@ -1209,6 +1284,17 @@
   background: var(--mythic-hover);
   border-color: rgba(255, 255, 255, 0.7);
 }
+
+.mythic-character-sheet .skills-col-delete {
+  display: flex;
+  justify-content: center;
+}
+
+.mythic-character-sheet .skills-remove-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
 }
 
 /* ============================================================
@@ -1367,6 +1453,154 @@
   font-style: italic;
 }
 
+/* ============================================================
+   Abilities tab
+   ============================================================ */
+.mythic-character-sheet .mythic-abilities-table {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+/* 6-column grid: Name | Cost | Action | Prereq | Repeatable | Delete */
+.mythic-character-sheet .mythic-ability-col-headers,
+.mythic-character-sheet .mythic-ability-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 2.2fr) 66px 76px minmax(120px, 2fr) 74px 28px;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 4px;
+}
+
+.mythic-character-sheet .mythic-ability-col-headers {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 4px 4px 0 0;
+  padding: 5px 4px;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+.mythic-character-sheet .mythic-ability-col-headers > div {
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mythic-text);
+}
+
+.mythic-character-sheet .mythic-ability-row {
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mythic-character-sheet .mythic-ability-row:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+.mythic-character-sheet .mythic-ability-row:nth-child(even) {
+  background: rgba(57, 76, 106, 0.28);
+}
+
+.mythic-character-sheet .mythic-ability-row:nth-child(odd) {
+  background: rgba(40, 54, 78, 0.45);
+}
+
+.mythic-character-sheet .mythic-ability-row:hover {
+  background: rgba(74, 100, 140, 0.55);
+}
+
+.mythic-character-sheet .ability-col-name {
+  min-width: 0;
+}
+
+.mythic-character-sheet .ability-name-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mythic-character-sheet .ability-open-btn {
+  flex: 1;
+  width: auto;
+  text-align: left;
+  font-family: Orbitron, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding: 2px 4px;
+}
+
+.mythic-character-sheet .ability-post-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+}
+
+.mythic-character-sheet .ability-col-summary {
+  margin-top: 2px;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mythic-character-sheet .ability-col-cost,
+.mythic-character-sheet .ability-col-action,
+.mythic-character-sheet .ability-col-repeatable {
+  text-align: center;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 12px;
+}
+
+.mythic-character-sheet .ability-col-description {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mythic-character-sheet .ability-col-delete {
+  display: flex;
+  justify-content: center;
+}
+
+.mythic-character-sheet .ability-remove-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+}
+
+.mythic-character-sheet .ability-empty-hint {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: 12px 6px;
+  font-style: italic;
+}
+
+.mythic-character-sheet .section-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.mythic-character-sheet .section-actions-row .action-btn {
+  min-width: 32px;
+  height: 26px;
+  padding: 2px 8px;
+}
+
 /* Education item sheet */
 .mythic-education-item-sheet .edu-sheet-header {
   padding: 8px 12px 4px;
@@ -1475,6 +1709,122 @@
   flex: 1;
   min-height: 72px;
   resize: vertical;
+}
+
+/* Ability item sheet */
+.mythic-ability-item-sheet .ability-sheet-header {
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mythic-ability-item-sheet .ability-sheet-icon {
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  object-fit: contain;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  transition: border-color 0.15s;
+}
+
+.mythic-ability-item-sheet .ability-sheet-icon:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.mythic-ability-item-sheet .ability-sheet-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.mythic-ability-item-sheet .ability-sheet-title {
+  font-family: Orbitron, sans-serif;
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+
+.mythic-ability-item-sheet .ability-sheet-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 12px;
+}
+
+.mythic-ability-item-sheet .ability-cost-badge,
+.mythic-ability-item-sheet .ability-action-badge,
+.mythic-ability-item-sheet .ability-page-badge {
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(57, 76, 106, 0.65);
+  border: 1px solid rgba(100, 140, 200, 0.45);
+}
+
+.mythic-ability-item-sheet .ability-sheet-body {
+  padding: 0 12px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.mythic-ability-item-sheet .ability-info-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.mythic-ability-item-sheet .ability-info-row label {
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.mythic-ability-item-sheet .ability-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mythic-ability-item-sheet .ability-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mythic-ability-item-sheet .ability-col {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+
+.mythic-ability-item-sheet .ability-col label {
+  margin-bottom: 4px;
+}
+
+.mythic-ability-item-sheet .ability-info-row input[type="checkbox"] {
+  justify-self: start;
+  transform: scale(1.1);
+}
+
+.mythic-ability-item-sheet .ability-notes-row {
+  align-items: start;
+}
+
+.mythic-ability-item-sheet .ability-notes-row textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+@media (max-width: 740px) {
+  .mythic-ability-item-sheet .ability-grid-2,
+  .mythic-ability-item-sheet .ability-grid-3 {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ============================================================
@@ -1613,7 +1963,7 @@
 
   .mythic-character-sheet .mythic-skills-col-headers,
   .mythic-character-sheet .mythic-skills-row {
-    grid-template-columns: minmax(100px, 1.5fr) 64px 64px minmax(64px, 1fr) minmax(80px, 1fr) 52px 48px;
+    grid-template-columns: minmax(100px, 1.5fr) 64px 64px minmax(64px, 1fr) minmax(80px, 1fr) 52px 48px 24px;
     gap: 2px;
   }
 
@@ -1725,6 +2075,33 @@
   color: var(--mythic-text);
 }
 
+.chat-message .mythic-chat-ability-body {
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px 8px;
+  font-size: 12px;
+}
+
+.chat-message .mythic-chat-ability-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+
+.chat-message .mythic-chat-ability-row strong {
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.chat-message .mythic-chat-ability-row span {
+  color: var(--mythic-text);
+  white-space: pre-wrap;
+}
+
 /* Inline roll result pip — matches Roll20 .inlinerollresult */
 .chat-message .mythic-inline-result {
   display: inline-block;
@@ -1823,7 +2200,9 @@
 }
 
 .mythic-prompt select,
-.mythic-prompt input[type="text"] {
+.mythic-prompt input[type="text"],
+.mythic-prompt input[type="number"],
+.mythic-prompt textarea {
   background: var(--mythic-input-bg) !important;
   color: var(--mythic-text) !important;
   border: 1px solid var(--mythic-table-bg) !important;
@@ -1836,10 +2215,42 @@
   box-sizing: border-box;
 }
 
+.mythic-prompt textarea {
+  min-height: 84px !important;
+  resize: vertical;
+}
+
 .mythic-prompt select:focus,
-.mythic-prompt input[type="text"]:focus {
+.mythic-prompt input[type="text"]:focus,
+.mythic-prompt input[type="number"]:focus,
+.mythic-prompt textarea:focus {
   outline: none !important;
   border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.mythic-prompt .action-btn {
+  background: var(--mythic-input-bg) !important;
+  color: var(--mythic-text) !important;
+  border: 1px solid var(--mythic-table-bg) !important;
+  border-radius: 4px !important;
+  min-height: 38px;
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+.mythic-prompt .action-btn:hover {
+  background: var(--mythic-hover) !important;
+  border-color: var(--mythic-hover) !important;
+}
+
+.mythic-prompt .mythic-prereq-add-rule-btn {
+  font-size: 0.75rem !important;
+  letter-spacing: 0.1em !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  background: var(--mythic-table-bg) !important;
 }
 
 /* Option colours inside select (browser-native as much as possible) */

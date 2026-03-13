@@ -1,0 +1,53 @@
+<div class="tab abilities" data-group="primary" data-tab="abilities">
+  <section class="panel mythic-abilities-section">
+    <h2>Abilities</h2>
+
+    {{#if mythicAbilities.length}}
+    <div class="mythic-abilities-table">
+      <div class="mythic-ability-col-headers">
+        <div>Name</div>
+        <div>Cost</div>
+        <div>Action</div>
+        <div>Description</div>
+        <div>Repeatable</div>
+        <div></div>
+      </div>
+
+      {{#each mythicAbilities as |ability|}}
+        <div class="mythic-ability-row">
+          <div class="ability-col-name">
+            <div class="ability-name-actions">
+              <button class="ability-open-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Open ability sheet">
+                {{ability.name}}
+              </button>
+              <button class="ability-post-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Post ability to chat">
+                <i class="fas fa-comment-alt"></i>
+              </button>
+            </div>
+          </div>
+          <div class="ability-col-cost">{{ability.cost}}</div>
+          <div class="ability-col-action">{{ability.actionTypeLabel}}</div>
+          <div class="ability-col-description" title="{{ability.shortDescriptionDisplay}}">{{ability.shortDescriptionDisplay}}</div>
+          <div class="ability-col-repeatable">{{#if ability.repeatable}}Yes{{else}}No{{/if}}</div>
+          <div class="ability-col-delete">
+            <button class="ability-remove-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Remove ability">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      {{/each}}
+    </div>
+    {{else}}
+      <p class="ability-empty-hint">No abilities yet — drag an item from the <em>Abilities</em> compendium to add one.</p>
+    {{/if}}
+
+    <div class="section-actions-row">
+      <button class="ability-open-compendium-btn action-btn" type="button" title="Open Abilities compendium">
+        <i class="fas fa-book"></i> +
+      </button>
+      <button class="ability-add-custom-btn action-btn" type="button" title="Create custom ability">
+        <i class="fas fa-plus"></i> Custom
+      </button>
+    </div>
+  </section>
+</div>

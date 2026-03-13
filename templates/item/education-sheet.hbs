@@ -10,6 +10,9 @@
         {{/if}}
       </h2>
       <div class="edu-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
         <span class="edu-difficulty-badge edu-difficulty-{{item.system.difficulty}}">{{difficultyLabel}}</span>
         <span class="edu-char-badge">Test Characteristic: <strong>{{characteristicLabel}}</strong></span>
       </div>
@@ -20,16 +23,38 @@
 
     <div class="edu-info-block">
       <div class="edu-info-row">
-        <label>Related Skills</label>
-        <span class="edu-skills-list">{{skillsDisplay}}</span>
+        <label for="edu-item-name">Name</label>
+        <input id="edu-item-name" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
       </div>
       <div class="edu-info-row">
-        <label>XP Cost</label>
-        <span>+5 Tier: <strong>{{item.system.costPlus5}}</strong> XP &nbsp;|&nbsp; +10 Tier: <strong>{{item.system.costPlus10}}</strong> XP</span>
+        <label for="edu-item-skills">Related Skills</label>
+        <input id="edu-item-skills" type="text" name="system.skills" value="{{skillsDisplay}}" placeholder="Comma-separated skills" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="edu-info-row">
+        <label for="edu-item-cost-plus5">XP Cost +5 Tier</label>
+        <input id="edu-item-cost-plus5" type="number" min="0" step="1" name="system.costPlus5" value="{{item.system.costPlus5}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="edu-info-row">
+        <label for="edu-item-cost-plus10">XP Cost +10 Tier</label>
+        <input id="edu-item-cost-plus10" type="number" min="0" step="1" name="system.costPlus10" value="{{item.system.costPlus10}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="edu-info-row">
+        <label for="edu-item-characteristic">Test Characteristic</label>
+        <input id="edu-item-characteristic" type="text" name="system.characteristic" value="{{item.system.characteristic}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="edu-info-row">
+        <label for="edu-item-difficulty">Difficulty</label>
+        <select id="edu-item-difficulty" name="system.difficulty" {{#unless canEditFields}}disabled{{/unless}}>
+          {{selectOptions difficultyOptions selected=item.system.difficulty}}
+        </select>
+      </div>
+      <div class="edu-info-row">
+        <label for="edu-item-restricted">Restricted</label>
+        <input id="edu-item-restricted" type="checkbox" name="system.restricted" {{checked item.system.restricted}} {{#unless canEditFields}}disabled{{/unless}} />
       </div>
     </div>
 
-    {{#if editable}}
+    {{#if canEditFields}}
     <hr class="edu-divider">
     <div class="edu-edit-block">
       <div class="edu-info-row">

@@ -1,0 +1,78 @@
+<div class="{{cssClass}} mythic-ability-item-sheet">
+
+  <header class="ability-sheet-header">
+    <img class="ability-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
+    <div class="ability-sheet-header-text">
+      <h2 class="ability-sheet-title">{{item.name}}</h2>
+      <div class="ability-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
+        <span class="ability-cost-badge">Cost: <strong>{{item.system.cost}}</strong> XP</span>
+        <span class="ability-action-badge">Action: <strong>{{item.system.actionType}}</strong></span>
+        <span class="ability-page-badge">p.{{item.system.sourcePage}}</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="ability-sheet-body">
+    <div class="ability-info-row">
+      <label for="ability-name">Name</label>
+      <input id="ability-name" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row">
+      <label for="ability-prerequisite-text">Prerequisites</label>
+      <input id="ability-prerequisite-text" type="text" name="system.prerequisiteText" value="{{item.system.prerequisiteText}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row">
+      <label for="ability-short-description">Short Description</label>
+      <input id="ability-short-description" type="text" name="system.shortDescription" value="{{item.system.shortDescription}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="ability-cost">Cost</label>
+        <input id="ability-cost" type="number" name="system.cost" value="{{item.system.cost}}" min="0" step="1" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="ability-action-type">Action Type</label>
+        <select id="ability-action-type" name="system.actionType" {{#unless canEditFields}}disabled{{/unless}}>
+          {{selectOptions actionTypeOptions selected=item.system.actionType}}
+        </select>
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="ability-source-page">Source Page</label>
+        <input id="ability-source-page" type="number" name="system.sourcePage" value="{{item.system.sourcePage}}" min="1" step="1" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-2">
+      <div class="ability-info-row ability-col">
+        <label for="ability-category">Category</label>
+        <input id="ability-category" type="text" name="system.category" value="{{item.system.category}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="ability-frequency">Frequency</label>
+        <input id="ability-frequency" type="text" name="system.frequency" value="{{item.system.frequency}}" placeholder="e.g. once per turn" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-info-row">
+      <label for="ability-repeatable">Repeatable</label>
+      <input id="ability-repeatable" type="checkbox" name="system.repeatable" {{checked item.system.repeatable}} {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="ability-benefit">Benefit</label>
+      <textarea id="ability-benefit" name="system.benefit" rows="5" {{#unless canEditFields}}disabled{{/unless}}>{{item.system.benefit}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="ability-notes">Notes</label>
+      <textarea id="ability-notes" name="system.notes" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{item.system.notes}}</textarea>
+    </div>
+  </section>
+
+</div>

@@ -226,24 +226,82 @@
             <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.supportPoints.max" value="{{mythicCombat.supportPoints.max}}" /></div>
           </div>
         </div>
-
-        <div class="mythic-right-block">
-          <div class="mythic-resource-label">Ready Weapons</div>
-          {{#if mythicEquipment.equippedWeaponItems.length}}
-            <div class="mythic-ready-weapon-list">
-              {{#each mythicEquipment.equippedWeaponItems as |item|}}
-              <div class="mythic-ready-weapon-row">
-                <span class="mythic-ready-weapon-name">{{item.name}}</span>
-                <span class="mythic-ready-weapon-state">{{#if item.isWielded}}Wielded{{else}}Ready{{/if}}</span>
-                <button type="button" class="action-btn gear-wield-btn" data-item-id="{{item.id}}">Wield this weapon</button>
-              </div>
-              {{/each}}
-            </div>
-          {{else}}
-            <p class="mythic-ready-weapon-empty">No equipped weapons yet. Mark weapons as Equipped in Inventory.</p>
-          {{/if}}
-        </div>
       </div>
     </div>
+
+    <div class="mythic-ready-weapons-section">
+      <h3>Readied Weapons</h3>
+      {{#if mythicEquipment.readyWeaponCards.length}}
+        <div class="mythic-ready-weapon-grid">
+          {{#each mythicEquipment.readyWeaponCards as |weapon|}}
+          <article class="mythic-ready-weapon-card">
+            <header class="mythic-ready-weapon-card-header">
+              <div>
+                <div class="mythic-ready-weapon-name">{{weapon.name}}</div>
+                <div class="mythic-ready-weapon-meta">{{weapon.weaponClass}}</div>
+              </div>
+              <div class="mythic-ready-weapon-header-actions">
+                <span class="mythic-ready-weapon-state">{{#if weapon.isWielded}}Wielded{{else}}Ready{{/if}}</span>
+                <button type="button" class="action-btn gear-wield-btn" data-item-id="{{weapon.id}}">Wield this weapon</button>
+              </div>
+            </header>
+
+            <div class="mythic-ready-weapon-attacks">
+              {{#each weapon.attackModes as |mode|}}
+              <button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-mode="{{mode.value}}">{{mode.label}}</button>
+              {{/each}}
+            </div>
+
+            {{#if weapon.isMelee}}
+              <div class="mythic-ready-weapon-row-inline">
+                <span><strong>Reach:</strong> {{weapon.reach}} m</span>
+                <span><strong>Damage:</strong> +{{weapon.damageD10}}d10 +{{weapon.damageD5}}d5 +{{weapon.damageBase}} (P {{weapon.damagePierce}})</span>
+              </div>
+            {{else}}
+              <div class="mythic-ready-weapon-row-inline">
+                <label>Ammo ({{weapon.ammoLabel}})
+                  <input type="number" min="0" max="{{weapon.magazineMax}}" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="magazineCurrent" value="{{weapon.magazineCurrent}}" />
+                </label>
+                <button type="button" class="action-btn weapon-reload-btn" data-item-id="{{weapon.id}}">Reload</button>
+                <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>
+              </div>
+            {{/if}}
+
+            <div class="mythic-ready-weapon-controls">
+              <label>Scope
+                <select class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="scopeMode">
+                  {{selectOptions weapon.scopeOptions selected=weapon.scopeMode}}
+                </select>
+              </label>
+              <label>To Hit Mod
+                <input type="number" step="1" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="toHitModifier" value="{{weapon.toHitModifier}}" />
+              </label>
+              <label>Damage Mod
+                <input type="number" step="1" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="damageModifier" value="{{weapon.damageModifier}}" />
+              </label>
+            </div>
+
+            <div class="mythic-ready-weapon-row-inline">
+              <span><strong>Reload:</strong> {{weapon.rangeReload}}</span>
+              <span><strong>Magazine:</strong> {{weapon.magazineMax}}</span>
+            </div>
+          </article>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="mythic-ready-weapon-empty">No readied weapons yet. Set weapon items to Ready in Inventory.</p>
+      {{/if}}
+    </div>
+
+    <details class="mythic-hand-to-hand-section">
+      <summary>Hand-to-Hand Combat</summary>
+      <div class="mythic-hth-actions">
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Unarmed Strike">Unarmed Strike</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Grapple">Grapple</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Disarm">Disarm</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Tackle">Tackle</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Shove">Shove</button>
+      </div>
+    </details>
   </section>
 </div>

@@ -744,6 +744,7 @@ function getCanonicalCharacterSystemData() {
       armorName: "",
       utilityLoadout: "",
       carriedIds: [],
+      weaponState: {},
       equipped: {
         weaponIds: [],
         armorId: "",
@@ -960,6 +961,28 @@ function normalizeCharacterSystemData(systemData) {
   };
 
   merged.equipment.carriedIds = normalizeIdArray(merged.equipment?.carriedIds);
+
+  const rawWeaponState = (merged.equipment?.weaponState && typeof merged.equipment.weaponState === "object")
+    ? merged.equipment.weaponState
+    : {};
+  const normalizedWeaponState = {};
+  for (const [rawId, rawState] of Object.entries(rawWeaponState)) {
+    const itemId = String(rawId ?? "").trim();
+    if (!itemId) continue;
+    const state = (rawState && typeof rawState === "object") ? rawState : {};
+    const toModifier = (value) => {
+      const numeric = Number(value ?? 0);
+      return Number.isFinite(numeric) ? Math.round(numeric) : 0;
+    };
+    normalizedWeaponState[itemId] = {
+      magazineCurrent: toNonNegativeWhole(state.magazineCurrent, 0),
+      scopeMode: String(state.scopeMode ?? "none").trim().toLowerCase() || "none",
+      toHitModifier: toModifier(state.toHitModifier),
+      damageModifier: toModifier(state.damageModifier)
+    };
+  }
+  merged.equipment.weaponState = normalizedWeaponState;
+
   merged.equipment.equipped ??= {};
 
   const legacyPrimary = String(merged.equipment?.equipped?.primaryWeaponId ?? "").trim();
@@ -2883,6 +2906,16 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           img: item.img,
           itemClass: gear.itemClass,
           weaponClass: gear.weaponClass,
+          ammoName: String(gear.ammoName ?? ""),
+          fireModes: Array.isArray(gear.fireModes) ? gear.fireModes : [],
+          rangeClose: toNonNegativeWhole(gear.range?.close, 0),
+          rangeMax: toNonNegativeWhole(gear.range?.max, 0),
+          rangeReload: toNonNegativeWhole(gear.range?.reload, 0),
+          rangeMagazine: toNonNegativeWhole(gear.range?.magazine, 0),
+          damageBase: toNonNegativeWhole(gear.damage?.baseDamage, 0),
+          damageD5: toNonNegativeWhole(gear.damage?.baseRollD5, 0),
+          damageD10: toNonNegativeWhole(gear.damage?.baseRollD10, 0),
+          damagePierce: Number(gear.damage?.pierce ?? 0),
           source: gear.source,
           weightKg: Number(gear.weightKg ?? 0)
         };
@@ -2931,6 +2964,48 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const equippedWeaponItems = weaponItems.filter((entry) => entry.isEquipped);
     const equippedArmor = findById(equippedArmorId);
     const wieldedWeapon = findById(wieldedWeaponId);
+    const rawWeaponState = (systemData?.equipment?.weaponState && typeof systemData.equipment.weaponState === "object")
+      ? systemData.equipment.weaponState
+      : {};
+    const scopeOptions = {
+      none: "No Scope",
+      x2: "2x Scope",
+      x4: "4x Scope",
+      smart: "Smart-Link"
+    };
+
+    const readyWeaponCards = equippedWeaponItems.map((item) => {
+      const state = (rawWeaponState[item.id] && typeof rawWeaponState[item.id] === "object")
+        ? rawWeaponState[item.id]
+        : {};
+      const isMelee = item.weaponClass === "melee";
+      const magazineMax = isMelee ? 0 : toNonNegativeWhole(item.rangeMagazine, 0);
+      const fallbackMag = magazineMax > 0 ? magazineMax : 0;
+      const magazineCurrent = isMelee
+        ? 0
+        : toNonNegativeWhole(state.magazineCurrent, fallbackMag);
+      const fireModes = Array.isArray(item.fireModes) && item.fireModes.length
+        ? item.fireModes
+        : ["Attack"];
+      const attackModes = fireModes.map((mode, index) => ({
+        value: String(mode ?? "attack").trim().toLowerCase() || `attack-${index + 1}`,
+        label: String(mode ?? "Attack").trim() || "Attack"
+      }));
+
+      return {
+        ...item,
+        isMelee,
+        reach: Math.max(1, toNonNegativeWhole(item.rangeClose, 1)),
+        magazineMax,
+        magazineCurrent,
+        attackModes,
+        scopeMode: String(state.scopeMode ?? "none").trim().toLowerCase() || "none",
+        toHitModifier: Number.isFinite(Number(state.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0,
+        damageModifier: Number.isFinite(Number(state.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0,
+        scopeOptions,
+        ammoLabel: String(item.ammoName ?? "").trim() || "Ammo"
+      };
+    });
 
     const equipped = {
       weaponIds: equippedWeaponIds,
@@ -2950,6 +3025,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       otherItems,
       equipped,
       equippedWeaponItems,
+      readyWeaponCards,
       equippedArmor,
       wieldedWeapon,
       readyWeaponCount: equippedWeaponItems.length
@@ -3977,6 +4053,30 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".gear-wield-btn[data-item-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onSetWieldedWeapon(event);
+      });
+    });
+
+    root.querySelectorAll(".weapon-reload-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onReloadWeapon(event);
+      });
+    });
+
+    root.querySelectorAll(".weapon-attack-btn[data-item-id][data-mode]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onWeaponAttack(event);
+      });
+    });
+
+    root.querySelectorAll(".weapon-state-input[data-item-id][data-field]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onWeaponStateInputChange(event);
+      });
+    });
+
+    root.querySelectorAll(".hth-attack-btn[data-attack]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onPostHandToHandAttack(event);
       });
     });
 
@@ -5723,7 +5823,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.equipment.carriedIds": nextCarried,
       "system.equipment.equipped.weaponIds": nextWeaponIds,
       "system.equipment.equipped.armorId": nextArmorId,
-      "system.equipment.equipped.wieldedWeaponId": nextWielded
+      "system.equipment.equipped.wieldedWeaponId": nextWielded,
+      [`system.equipment.weaponState.-=${itemId}`]: null
     };
 
     await this.actor.update(updateData);
@@ -5815,6 +5916,103 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
       content: `<p><strong>${esc(this.actor.name)}</strong> is now wielding <strong>${esc(item.name)}</strong>. Timing automation pending.</p>`,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _onWeaponStateInputChange(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    const field = String(event.currentTarget?.dataset?.field ?? "").trim();
+    if (!itemId || !field) return;
+
+    let value;
+    if (field === "scopeMode") {
+      value = String(event.currentTarget?.value ?? "none").trim().toLowerCase() || "none";
+    } else {
+      const numeric = Number(event.currentTarget?.value ?? 0);
+      value = Number.isFinite(numeric)
+        ? (field === "magazineCurrent" ? Math.max(0, Math.floor(numeric)) : Math.round(numeric))
+        : 0;
+    }
+
+    if (field === "magazineCurrent") {
+      const item = this.actor.items.get(itemId);
+      if (item?.type === "gear") {
+        const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+        const maxMagazine = toNonNegativeWhole(gear.range?.magazine, 0);
+        value = Math.max(0, Math.min(maxMagazine, Number(value ?? 0)));
+      }
+    }
+
+    await this.actor.update({
+      [`system.equipment.weaponState.${itemId}.${field}`]: value
+    });
+  }
+
+  async _onReloadWeapon(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    if (!itemId) return;
+
+    const item = this.actor.items.get(itemId);
+    if (!item || item.type !== "gear") return;
+
+    const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const isMelee = gear.weaponClass === "melee";
+    if (isMelee) return;
+
+    const maxMagazine = toNonNegativeWhole(gear.range?.magazine, 0);
+    await this.actor.update({
+      [`system.equipment.weaponState.${itemId}.magazineCurrent`]: maxMagazine
+    });
+
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content: `<p><strong>${esc(this.actor.name)}</strong> reloads <strong>${esc(item.name)}</strong> to ${maxMagazine}.</p>`,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _onWeaponAttack(event) {
+    event.preventDefault();
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    const mode = String(event.currentTarget?.dataset?.mode ?? "attack").trim();
+    if (!itemId) return;
+
+    const item = this.actor.items.get(itemId);
+    if (!item || item.type !== "gear") return;
+
+    const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const state = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
+    const toHitModifier = Number.isFinite(Number(state?.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
+    const damageModifier = Number.isFinite(Number(state?.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0;
+    const isMelee = gear.weaponClass === "melee";
+    const ammoCurrent = toNonNegativeWhole(state?.magazineCurrent, toNonNegativeWhole(gear.range?.magazine, 0));
+    const ammoText = isMelee ? "n/a" : `${ammoCurrent}/${toNonNegativeWhole(gear.range?.magazine, 0)}`;
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content: `<p><strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(item.name)}</strong> (${esc(mode)}). To-Hit Mod: ${toHitModifier >= 0 ? `+${toHitModifier}` : toHitModifier}, Damage Mod: ${damageModifier >= 0 ? `+${damageModifier}` : damageModifier}, Ammo: ${esc(ammoText)}.</p>`,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _onPostHandToHandAttack(event) {
+    event.preventDefault();
+
+    const attack = String(event.currentTarget?.dataset?.attack ?? "Unarmed Strike").trim() || "Unarmed Strike";
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content: `<p><strong>${esc(this.actor.name)}</strong> uses <strong>${esc(attack)}</strong> (hand-to-hand).</p>`,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
     });
   }

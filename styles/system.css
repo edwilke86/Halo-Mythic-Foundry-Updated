@@ -1061,6 +1061,9 @@
 .mythic-equipment-toggle input[type="checkbox"] {
   margin: 0;
 }
+.mythic-equipment-row .action-btn {
+  white-space: nowrap;
+}
 .mythic-inventory-load-grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -1093,6 +1096,109 @@
 .mythic-ready-weapon-empty {
   margin: 0;
   opacity: 0.8;
+}
+
+.mythic-character-sheet .mythic-ready-weapons-section {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.mythic-character-sheet .mythic-ready-weapons-section h3 {
+  margin: 0;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-card {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(7, 14, 26, 0.45);
+}
+
+.mythic-character-sheet .mythic-ready-weapon-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-meta {
+  font-size: 11px;
+  text-transform: capitalize;
+  opacity: 0.8;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-attacks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-row-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-row-inline label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-row-inline input[type="number"] {
+  width: 68px;
+  margin: 0;
+  text-align: center;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-controls label {
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.mythic-character-sheet .mythic-hand-to-hand-section {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 6px;
+}
+
+.mythic-character-sheet .mythic-hand-to-hand-section > summary {
+  cursor: pointer;
+  font-family: Orbitron, sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.mythic-character-sheet .mythic-hth-actions {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .mythic-character-sheet .mythic-phase4-grid {
@@ -2379,6 +2485,18 @@
 
   .mythic-character-sheet .mythic-phase4-grid.two-column {
     grid-template-columns: 1fr;
+  }
+
+  .mythic-character-sheet .mythic-ready-weapon-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-sheet .mythic-ready-weapon-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-equipment-row {
+    grid-template-columns: 28px minmax(90px, 1fr) minmax(64px, 0.6fr) auto auto;
   }
 
   .mythic-character-sheet .mythic-skills-col-headers,

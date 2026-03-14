@@ -1,0 +1,60 @@
+<div class="{{cssClass}} mythic-ability-item-sheet mythic-trait-item-sheet">
+
+  <header class="ability-sheet-header">
+    <img class="ability-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
+    <div class="ability-sheet-header-text">
+      <h2 class="ability-sheet-title">{{item.name}}</h2>
+      <div class="ability-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
+        <span class="ability-action-badge">Category: <strong>{{item.system.category}}</strong></span>
+        <span class="ability-action-badge">Access: <strong>{{grantOnlyLabel}}</strong></span>
+        <span class="ability-page-badge">p.{{item.system.sourcePage}}</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="ability-sheet-body">
+    <div class="ability-info-row">
+      <label for="trait-name">Name</label>
+      <input id="trait-name" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row">
+      <label for="trait-short-description">Short Description</label>
+      <input id="trait-short-description" type="text" name="system.shortDescription" value="{{item.system.shortDescription}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="trait-category">Category</label>
+        <input id="trait-category" type="text" name="system.category" value="{{item.system.category}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="trait-source-page">Source Page</label>
+        <input id="trait-source-page" type="number" name="system.sourcePage" value="{{item.system.sourcePage}}" min="1" step="1" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="trait-grant-only">Granted Only</label>
+        <input id="trait-grant-only" type="checkbox" name="system.grantOnly" {{checked item.system.grantOnly}} {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-info-row">
+      <label for="trait-tags">Tags</label>
+      <input id="trait-tags" type="text" name="mythic.traitTags" value="{{traitTags}}" placeholder="comma-separated tags" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="trait-benefit">Benefit</label>
+      <textarea id="trait-benefit" name="system.benefit" rows="5" {{#unless canEditFields}}disabled{{/unless}}>{{item.system.benefit}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="trait-notes">Notes</label>
+      <textarea id="trait-notes" name="system.notes" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{item.system.notes}}</textarea>
+    </div>
+  </section>
+
+</div>

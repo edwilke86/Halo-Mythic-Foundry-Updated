@@ -1,3 +1,7 @@
 packs/**/LOCK
 packs/**/LOG
 packs/**/LOG.old
+
+# Raw rule-reference source documents for local research only.
+# Tracked spreadsheet exports should live under data/reference/ instead.
+rule references/

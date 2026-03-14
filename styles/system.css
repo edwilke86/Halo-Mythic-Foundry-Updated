@@ -1081,6 +1081,81 @@
   margin: 0;
 }
 
+.mythic-character-sheet .mythic-training-grid {
+  align-items: start;
+}
+
+.mythic-character-sheet .mythic-training-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mythic-character-sheet .mythic-training-option input[type="checkbox"] {
+  margin: 3px 0 0;
+}
+
+.mythic-character-sheet .mythic-training-option-body {
+  display: grid;
+  gap: 3px;
+}
+
+.mythic-character-sheet .mythic-training-option-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mythic-character-sheet .mythic-training-option-detail {
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.mythic-character-sheet .mythic-training-tag {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mythic-character-sheet .mythic-training-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.mythic-character-sheet .mythic-training-stack > span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.mythic-character-sheet .mythic-training-summary {
+  display: grid;
+  gap: 4px;
+}
+
+.mythic-character-sheet .mythic-training-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mythic-character-sheet .mythic-training-summary-row strong {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 16px;
+}
+
 /* ============================================================
    Combat resources (wounds, DR, shields, support, CR)
    ============================================================ */
@@ -1699,6 +1774,101 @@
   min-width: 32px;
   height: 26px;
   padding: 2px 8px;
+}
+
+/* Traits table in Abilities tab */
+.mythic-character-sheet .mythic-traits-table {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.mythic-character-sheet .mythic-trait-col-headers,
+.mythic-character-sheet .mythic-trait-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 2fr) 100px 90px minmax(140px, 2.4fr) 28px;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 4px;
+}
+
+.mythic-character-sheet .mythic-trait-col-headers {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 4px 4px 0 0;
+  padding: 5px 4px;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+.mythic-character-sheet .mythic-trait-col-headers > div {
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mythic-text);
+}
+
+.mythic-character-sheet .mythic-trait-row {
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mythic-character-sheet .mythic-trait-row:nth-child(even) {
+  background: rgba(57, 76, 106, 0.28);
+}
+
+.mythic-character-sheet .mythic-trait-row:nth-child(odd) {
+  background: rgba(40, 54, 78, 0.45);
+}
+
+.mythic-character-sheet .mythic-trait-row:hover {
+  background: rgba(74, 100, 140, 0.55);
+}
+
+/* Shared item sheet form controls */
+.mythic-system.sheet.item input[type="text"],
+.mythic-system.sheet.item input[type="number"],
+.mythic-system.sheet.item select,
+.mythic-system.sheet.item textarea {
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text) !important;
+  caret-color: var(--mythic-text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: 'Saira Semi Condensed', sans-serif;
+}
+
+.mythic-system.sheet.item textarea {
+  font-family: 'Roboto Mono', monospace;
+}
+
+.mythic-system.sheet.item select option {
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+}
+
+.mythic-system.sheet.item input::placeholder,
+.mythic-system.sheet.item textarea::placeholder {
+  color: rgba(230, 238, 255, 0.7) !important;
+}
+
+.mythic-system.sheet.item input:focus,
+.mythic-system.sheet.item select:focus,
+.mythic-system.sheet.item textarea:focus {
+  color: var(--mythic-text) !important;
+  border-color: rgba(138, 169, 255, 0.7);
+  box-shadow: 0 0 0 1px rgba(138, 169, 255, 0.25);
+}
+
+.mythic-system.sheet.item input:disabled,
+.mythic-system.sheet.item select:disabled,
+.mythic-system.sheet.item textarea:disabled {
+  color: rgba(230, 238, 255, 0.72) !important;
+  -webkit-text-fill-color: rgba(230, 238, 255, 0.72);
+  opacity: 1;
 }
 
 /* Education item sheet */

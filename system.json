@@ -37,6 +37,19 @@
     },
     "Item": {
       "gear": {},
+      "soldierType": {
+        "htmlFields": [
+          "description",
+          "notes"
+        ]
+      },
+      "trait": {
+        "htmlFields": [
+          "shortDescription",
+          "benefit",
+          "notes"
+        ]
+      },
       "education": {
         "htmlFields": [
           "description"

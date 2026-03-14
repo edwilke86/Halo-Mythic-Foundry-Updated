@@ -16,4 +16,81 @@
       </div>
     </div>
   </section>
+
+  <section class="panel mythic-phase4-panel">
+    <h2>Training &amp; Proficiencies</h2>
+
+    <div class="mythic-phase4-grid two-column mythic-training-grid">
+      <div class="mythic-phase4-card">
+        <h3>Weapon Training</h3>
+        {{#each mythicTraining.weaponCategories as |option|}}
+        <label class="mythic-training-option">
+          <input type="checkbox" name="system.training.weapon.{{option.key}}" {{checked option.checked}} />
+          <span class="mythic-training-option-body">
+            <span class="mythic-training-option-head">
+              <strong>{{option.label}}</strong>
+              <span class="mythic-training-tag">{{option.xpCost}} XP</span>
+            </span>
+            <span class="mythic-training-option-detail">{{option.weaponTypesText}}</span>
+          </span>
+        </label>
+        {{/each}}
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Faction Training</h3>
+        {{#each mythicTraining.factionCategories as |option|}}
+        <label class="mythic-training-option">
+          <input type="checkbox" name="system.training.faction.{{option.key}}" {{checked option.checked}} />
+          <span class="mythic-training-option-body">
+            <span class="mythic-training-option-head">
+              <strong>{{option.label}}</strong>
+              <span class="mythic-training-tag">{{option.xpCost}} XP</span>
+            </span>
+            <span class="mythic-training-option-detail">{{option.coverage}}{{#if option.note}} {{option.note}}{{/if}}</span>
+          </span>
+        </label>
+        {{/each}}
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Vehicle Proficiencies</h3>
+        <label class="mythic-training-stack">
+          <span>One entry per line</span>
+          <textarea name="mythic.trainingVehicleText" rows="6" placeholder="Pelican&#10;Warthog&#10;Banshee">{{mythicTraining.vehicleText}}</textarea>
+        </label>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Technology Proficiencies</h3>
+        <label class="mythic-training-stack">
+          <span>One entry per line</span>
+          <textarea name="mythic.trainingTechnologyText" rows="6" placeholder="Human Systems&#10;Covenant Systems&#10;Forerunner Relics">{{mythicTraining.technologyText}}</textarea>
+        </label>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Other Training</h3>
+        <label class="mythic-training-stack">
+          <span>Use for anything that is not weapon, faction, vehicle, or technology training.</span>
+          <textarea name="mythic.trainingCustomText" rows="5" placeholder="Breaching Charges&#10;Shield Handling">{{mythicTraining.customText}}</textarea>
+        </label>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Summary &amp; Notes</h3>
+        <div class="mythic-training-summary">
+          <div class="mythic-training-summary-row"><span>Weapon Categories</span><strong>{{mythicTraining.summary.weaponCount}}</strong></div>
+          <div class="mythic-training-summary-row"><span>Faction Trainings</span><strong>{{mythicTraining.summary.factionCount}}</strong></div>
+          <div class="mythic-training-summary-row"><span>Vehicle Entries</span><strong>{{mythicTraining.summary.vehicleCount}}</strong></div>
+          <div class="mythic-training-summary-row"><span>Technology Entries</span><strong>{{mythicTraining.summary.technologyCount}}</strong></div>
+          <div class="mythic-training-summary-row"><span>Other Entries</span><strong>{{mythicTraining.summary.customCount}}</strong></div>
+        </div>
+        <label class="mythic-training-stack">
+          <span>Training Notes</span>
+          <textarea name="system.training.notes" rows="5" placeholder="Acquisition notes, GM restrictions, or reminders.">{{mythicTraining.notes}}</textarea>
+        </label>
+      </div>
+    </div>
+  </section>
 </div>

@@ -1,0 +1,1043 @@
+Equipment,faction,Type,Source,Damage,Pierce,Description,Mod Type,Weight,cR,[U]
+Default,UNSC,Weapon mod,Mythic,,,,,0,0,FALSE
+,,,,,,,,,,
+,,,,,,Helmet and Face Equipment,,,,
+Balaclava,UNSC,Equipment,Mythic,,,Face mask for warmth and face protection from harsh winds. Helps mask identity if needed.,,0.1,2,TRUE
+Binoculars,UNSC,Equipment,Mythic,,,"An electronic Binocular with Smartlink compatibility. Has 6 zoom functions, 2x/4x/6x/10x/20x. Increases Perceptive Range while used but cannot be used for Aim Actions.",,1.1,4,TRUE
+Holographic Civilian Eyepiece,UNSC,Equipment,Mythic,,,"Allows use of HUD, maps, ally-only IFF tag tracking, Smartlink, B-Net (Internet), and Television to be displayed over one eye.",,0.2,15,TRUE
+Infrared Goggles,UNSC,Equipment,Mythic,,,"These Goggles give the Character the ability to see in Infrared, allowing them to see heat signatures and infrared devices such as lasers. Infrared Goggles give Character a +15 Bonus to opposing Camouflage Tests. Infrared Goggles halve all Penalties from Darkness.",,0.3,20,TRUE
+IR Lamp and Laser,UNSC,Equipment,Mythic,,,The IR Lamp and Laser is an Eyepiece that creates an IR-trackable laser that points towards where the Character’s eye is looking.,,0.1,2,TRUE
+Night Vision Device,UNSC,Equipment,Mythic,,,Gives the User the Night Vision Special Rule.,,0.7,12,TRUE
+Oxygen Recycler,UNSC,Equipment,Mythic,,,"Gives the Character 30 minutes of Oxygen. Recharges itself when in an atmosphere with Oxygen in it. When attached to a Rebreather, increases Oxygen to 30 hours. Can be attached to the S90 Gas Mask as well.",,0.1,30,TRUE
+Polarized Tactical Goggles,UNSC,Equipment,Mythic,,,"Halves all bright light based Penalties. Capable of displaying an overhead HUD for IFF Tags, Radar, and Smartlink.",,0.3,25,TRUE
+Rebreather,UNSC,Equipment,Mythic,,,"Gives the Character 6 hours of Oxygen, recharges itself when in breathable atmosphere.",,0.4,10,TRUE
+S90 Gas Mask,UNSC,Equipment,Mythic,,,"Allows the User to breathe in toxic environments and filter out Flood Spores. Comes with 5 disposable filters, each able to last 24 hours. S90 Filters cost 5 cR, each. Comes with an adapter to fit to Respirator Packs, Rebreathers, and Oxygen Recyclers.",,1,25,TRUE
+Sun Goggles,UNSC,Equipment,Mythic,,,Pair of wearable goggles that halve any Penalties from bright lights.,,0.2,4,TRUE
+Holographic Tactical Eyepiece,UNSC,Equipment,Mythic,,,"Allows use of HUD, maps, IFF tag tracking, Smartlink, B-Net (Internet), and Radar to be displayed over one eye.",,0.2,12,FALSE
+Long-Range Scanner System,UNSC,Equipment,Mythic,,,"A long-range scanning system is added on top of a helmet. This reduces Long Range Penalties by 20 to a minimum of 1. When used in combination with UNSC satellites that can be launched by UNSC ships using 1 Support Point, the Character no longer takes Long Range Penalties and halves all Extreme Range Penalties.",,2.8,100,FALSE
+,,,,,,Carrying Devices,,,,
+Hard Case,UNSC,Equipment,Mythic,,,A briefcase-like armored carrying device. Capable of carrying up to 14 Units. The Hard Case has 50 Breakpoints and an Armor Rating of 12 that does not stack with the Armor on the Character if struck.,,4,9,TRUE
+Hard Case Pouch,UNSC,Equipment,Mythic,,,Armored ammunition pouch. Carries 3 Units. Has an Armor Rating of 12 that does not stack with the Armor on the Character if struck. Must be mounted to a Utility Webbing and Magnetic Webbing.,,1,13,TRUE
+M/LBE Hard Case,UNSC,Equipment,Mythic,,,Blast-Proof backpack. 16 Armor. Carries 12 Units.,,2,30,TRUE
+Medical Rucksack,UNSC,Equipment,Mythic,,,"A Medical extension to the M/LBE Hard Case. Can hold up to two Medical Kits, 10 Biofoam Canisters, and 10 sets of medication of the Player’s choice.",,1,10,TRUE
+Pouch,UNSC,Equipment,Mythic,,,Ammunition pouch. Carries 3 Units. Must be mounted to a Utility Webbing and Magnetic Webbing.,,1,2,TRUE
+Softcase,UNSC,Equipment,Mythic,,,Soft bagged Carrying Device similar to a duffel bag. Carries 13 Units.,,1,2,TRUE
+Tactical Hard Case,UNSC,Equipment,Mythic,,,A pouch-like armored carrying device. The Tactical Hard Case has an Armor Rating of 11. Capable of carrying up to 6 Units. Must be mounted to a Utility Webbing or Magnetic Webbing.,,1,10,TRUE
+Tactical Softcase,UNSC,Equipment,Mythic,,,Soft bagged carrying pouch. Carries 7 Units. Must be mounted to a Utility Webbing and Magnetic Webbing.,,0,3,TRUE
+Backpanel Pack,UNSC,Equipment,Mythic,,,A military backpack. Designed for others to quickly access behind the User. Carries 8 Units.,,0,3,TRUE
+Small/Assault Pack,UNSC,Equipment,Mythic,,,A small personal military backpack. Halves all weight of the items inside when the Pack is properly worn on the Character’s back. Carries 10 Units.,,0,3,TRUE
+Medium Patrol Pack,UNSC,Equipment,Mythic,,,A medium personal military backpack.  Halves all weight of the items inside when the Pack is properly worn on the Character’s back. Carries 14 Units.,,0,5,TRUE
+Large/Heavy Pack,UNSC,Equipment,Mythic,,,A standard large military backpack. Halves all weight of the items inside when the Pack is properly worn on the Character’s back. Carries 20 Units.,,1,7,TRUE
+Tactical Deployment Pack,UNSC,Equipment,Mythic,,,A large tactical military backpack for travel and extended missions. Halves all weight of the items inside when the Pack is properly worn on the Character’s back. -5 Agility when worn. Designed to be quickly released off of the back in case of Combat. Carries 26 Units.,,0.8,9,TRUE
+Extended Deployment Pack,UNSC,Equipment,Mythic,,,A large tactical military backpack for extended travel and long-term deployment. Halves all weight of the items inside when the Pack is properly worn on the Character’s back. Designed to be quickly released off of the back in case of Combat. -10 Agility when worn. Carries 32 Units.,,1,13,TRUE
+,,,,,,Computing and Communications,,,,
+Chatter,UNSC,Equipment,Mythic,,,Small wrist-mounted COM Pad. Firewall (40),,0.1,35,TRUE
+COM Pad,UNSC,Equipment,Mythic,,,"A futuristic cellphone. COM Pads can record video and audio, play games, communicate via video and audio, store information, work as a calendar, clock, distance measuring device, connect to networks, and share data. This comes standard to Civilians and Police. Firewall (50)",,0.1,35,TRUE
+Data Pad,UNSC,Equipment,Mythic,,,"Small, Hand-held computing device used by Civilians and Military in the UEG. This device has a touch screen and is capable of recording, sharing, and receiving audio, text, video, and imagery. Is able to transmit data over wireless and wired networks. Data Pads can be password protected and secured with biometrics. They’re also Smartlink capable and can display HUD information of friendly IFF Tags. Data Pads have access to many apps and has a massive storage capacity. Firewall (60)",,0.6,25,TRUE
+Military Hard Case Computer,UNSC,Equipment,Mythic,,,"A portable Military Hard Case Computer. Heavy and bulky, while similar to the Data Pad and TACPAD. The Military Hard Case Computer has 16 Armor and 100 Break Points, alongside stronger processing power and powerful networking capabilities. This Computer is able to create its own data network, allowing it to connect to, send, and receive information to any other connected device within 1 Kilometer. Strong enough to run Dumb AI. Firewall (80)",,2.7,70,TRUE
+TACPAD,UNSC,Equipment,Mythic,,,Similar to a Data Pad but is considered to have 11 Armor and 50 Break Points. Firewall (60),,1.2,45,TRUE
+UGPS,UNSC,Equipment,Mythic,,,A Universal Global Positioning System used to find the current location on any Planet already visited to by the UNSC. The UGPS also contains a Rapid Mapping System (RMS) that uses advanced echolocation and laser mapping to create new GPS maps for unexplored locations.,,0.4,20,TRUE
+Covenant-UNSC Translation System,UNSC,Equipment,Mythic,,,"Covenant-UNSC Translation System (CUTS) is a simple laptop computer that translates text, speech, and radiowaves to and from Covenant languages. Armor of 16 and 50 Break Points.",,3.1,46,FALSE
+Emergency Locator Beacon,UNSC,Equipment,Mythic,,,"Automated four-legged signal device for emergency EVAC. An emergency beacon unit used for creating distress signals. Able to send a signal up to 15,000 Kilometers.",,4.1,30,FALSE
+LP-Comm,UNSC,Equipment,Mythic,,,"Emergency Communicator that fits in the ear. Useful for when helmets and other tech no longer work. Small, untraceable communication ranged at 5 Kilometers.",,0.1,12,FALSE
+NAV Marker Transmitter,UNSC,Equipment,Mythic,,,Small Tracking device and location transmitter for non-emergency situations. Able to communicate to UNSC devices up to 2 kilometers.,,0.2,18,FALSE
+Panic Button,UNSC,Equipment,Mythic,,,"An emergency beacon unit the size of a quarter. Used for creating distress signals. Able to send a signal up to 1,500 kilometers.",,0.1,15,FALSE
+Radio Backpack,UNSC,Equipment,Mythic,,,"An armored backpack-carried Radio that can transmit any kind of data up to 5,000 KM in clear conditions. The Radio Backpack also has powerful encryption, giving any Hacking attempts a  -30 Penalty. The Radio Backpack is Armored, giving the Radio 15 Armor for protection and keeps it immune to EMP. Firewall (80)",,4.5,25,FALSE
+Remote Detonator,UNSC,Equipment,Mythic,,,"A small hand-held device that can be synced up to Demolition and Satchel Charge explosives. Has a range of 400 Meters. At the press of a button or an input of a 6 digit chosen pen number, the chosen synced explosives will detonate. Can also be set to timed detonation.",,0.1,27,FALSE
+WAYPOINT Comm,UNSC,Equipment,Mythic,,,"Handheld television, B-Net (Internet), and News unit for UNSC soldiers. Firewall (40)",,0.8,20,FALSE
+,,,,,,Sensors,,,,
+Fiber Optic Probe,UNSC,Equipment,Mythic,,,"A small camera on the end of a 4-meter electronic wire. The wire is controllable, moving similar to a snake. Smartlink capable.",,0.4,44,TRUE
+Roadware,UNSC,Equipment,Mythic,,,Advanced GPS-reading hardware that assists Pilots at by giving a +20 Bonus to driving Tests and Stunting Tests on planets that have a surveillance grid or a scanned UGPS map.,,0.2,10,TRUE
+ARGUS Detection System,UNSC,Equipment,Mythic,,,An always-active device for detecting explosives within 5 Meters of the unit. Will list what kind of explosive is detected but cannot show direction of device.,,1.9,32,FALSE
+CBRN Unit,UNSC,Equipment,Mythic,,,"This unit detects and gives information on chemical and radioactive materials, or any other airborne or grounded contaminant.",,0.7,15,FALSE
+Doppler Radar,UNSC,Equipment,Mythic,,,"Uses advanced multi-directional Microphones to process and report surroundings of up to 200 Meters. The Doppler Radar will detect the speed and distance of any objects, vehicles, or Characters within the 200 Meter radius and can send the information to any tethered electronics. Must be stationary for 3 Full Actions before it works properly. If used while moving, the Doppler Radar will incorrectly report locations by scattering them 2D5 Meters.",,3.5,75,FALSE
+Interrogator Translator,UNSC,Equipment,Mythic,,,UNSC/ONI translation laptop for any human and Covenant languages.,,1.6,25,FALSE
+Microtail,UNSC,Equipment,Mythic,,,"Miniature UNSC tracking device that uses M-Waves. Small as a tack and flat as a coin, and able to communicate with UNSC devices up to 1 Kilometer.",,0.1,40,FALSE
+Spotter Assist Targeting System,UNSC,Equipment,Mythic,,,"A hand-held scoped spotting system that has multiple zoom variants. X10, x15, x20, x25, x30, and x40 scopes that allow a Spotter to assist a sniper in extreme-ranged combat.",,1,30,FALSE
+Stationary Motion Tracker,UNSC,Equipment,Mythic,,,"Scans movement of the environment up to 50 meters and sends it to tethered UNSC devices. Must be stationary for 2 Full Actions to calibrate and work. If moved, the Stationary Motion Tracker must be re-calibrated for 1 Full Action.",,1.4,24,FALSE
+UNSC-MPD Scanner,UNSC,Equipment,Mythic,,,Tracking device that can be tethered to Microtails to increase the range of the device to 5 Kilometers. Only the UNSC-MPD Scanner gains the increased range of the Microtail.,,0.3,40,TRUE
+,,,,,,General,,,,
+Camping Stool,UNSC,Equipment,Mythic,,,A stool for sitting that has a setting that allows the stool to fit any size.,,1,2,TRUE
+Cigarette Carton,UNSC,Equipment,Mythic,,,"A tobacco product much like current-day cigarettes, but no longer risk dangerous health hazards when used. Each Pack has 200 Cigarettes.",,0.2,1,TRUE
+Climbing Kit,UNSC,Equipment,Mythic,,,"A climbing harness kit that offers the Character a +50 Bonus to climbing tests. Contains a Harness, rappelling kit, and other various climbing hooks and tools.",,4.8,12,TRUE
+Duct Tape,UNSC,Equipment,Mythic,,,Simple tool that has been in use for over 500 years. A strong water-proof tape.,,0.1,1,TRUE
+Earplugs,UNSC,Equipment,Mythic,,,A set of Military-Grade earplugs that allow Characters to ignore the hearing-based Penalties given by Flashbangs or other loud noises. Gives a -40 Penalty to Hearing-based Investigation and Perception Tests.,,0.1,1,TRUE
+Fire Extinguisher,UNSC,Equipment,Mythic,,,Puts out any fire using cartridge-activated dry chemicals. Has 10 uses.,,3.2,3,TRUE
+Flashlight,UNSC,Equipment,Mythic,,,"Lowers any Darkness Penalties by 30, while also lowering Low-Light Penalties by 15.",,0.1,5,TRUE
+Ghillie Cloak,UNSC,Equipment,Mythic,,,"The Ghillie Cloak offers a +20 Bonus to Camouflage when used in matching surroundings. The Ghillie Cloak does not offer Camouflage to any large weapon, like Launchers, Machine Guns, and Sniper Rifles. The Ghillie Cloak covers the body from head to toe. It takes 7 Full Actions to remove or equip the Ghillie Cloak. The Ghillie Cloak overrides any worn Camouflage underneath it.",,2,16,TRUE
+Metal Detector,UNSC,Equipment,Mythic,,,"A metal detection unit that is a small metallic plate on an adjustable pole. The Metal Detector has a screen at the top of the pole that displays the types of metal found underneath, within 3 Meters underground, and how far underground the object is.",,2.1,20,TRUE
+Military Grade Handcuffs,UNSC,Equipment,Mythic,,,"Used to bind an individual’s hands or ankles. To escape, a character must roll a -40 Security Test or a -60 Strength Test. The Handcuffs have an Armor Rating of 10 and 200 Break Points.",,1.4,12,TRUE
+Military Shovel,UNSC,Equipment,Mythic,,,"A Standard issue sharpened shovel for entrenchment and other uses. Folds down to the size of the shovel’s head. Rust-proof, reinforced Titanium-A for a near unbreakable shovel. For use as a melee weapon, look under Human melee weaponry.",,1.3,15,TRUE
+MRE,UNSC,Equipment,Mythic,,,"“Meals, Ready to Eat.” Military prepackaged foods that do not go bad as long as they stay packaged. One meal is enough to fill a Normal Sized Character. Comes with 5 meals.",,0.2,1,TRUE
+Multi-Tool Kit,UNSC,Equipment,Mythic,,,A briefcase-sized kit with 280 sets of tools for repair and building.,,6.3,12,TRUE
+Musical Instrument,UNSC,Equipment,Mythic,,,"A musical instrument that can be kept with a Character, even during travel. Weight depends on the weight of the chosen instrument in real life.",,0,10,TRUE
+Police Equipment Package,UNSC,Equipment,Mythic,,,"This package includes two pairs of Military Grade Handcuffs, Pepper Spray, the Police Baton, and the Taser Gun.",,0,80,TRUE
+Tactical Flashlight,UNSC,Equipment,Mythic,,,"Lowers any Darkness Penalties by 40, while also lowering Low-Light Penalties by 10. When in Darkness, Opponents who are being shined in the face gain a -20 Penalty To Hit and a -30 Penalty to Visual Perception Tests. When in Low-Light, Opponents gain a -10 Penalty To Hit and a -15 Penalty to Visual Perception Tests.",,0.2,10,TRUE
+Weapon Cleaning Kit,UNSC,Equipment,Mythic,,,A kit that can be used to clean weapons and remove any adverse Penalties gained from the weapon being dirty. Comes with 20 uses.,,1,5,TRUE
+Armored Flamethrower Tank,UNSC,Equipment,Mythic,,,Armored Tank for the UNSC Flamethrower weapons. 20 armor on the tank and adds 5.2kg.,,5.2,35,FALSE
+Armored Cryosprayer Tank,UNSC,Equipment,Mythic,,,Armored Tank for UNSC Cryosprayer Tanks. Gives the tank 20 armor on the and adds 5.2kg.,,5.2,35,FALSE
+MK71 Emergency Food Preparation Station,UNSC,Equipment,Mythic,,,"A food cart that stores 45 liters of food and water that is automatically cooked and prepared when dispensed. Supports higher-quality food than the MREs. MK71 Food Kits refill the Station and cost 15 cR, each. The MK71 Food Kit stores 45 meals.",,55.3,66,FALSE
+Mobile AI Docking Station,UNSC,Equipment,Mythic,,,A Mobile Docking Station for Dumb and Smart AI. The Mobile AI Docking Station needs a source of power to run Smart AI.,,5.3,80,FALSE
+Mobile Cover Device,UNSC,Equipment,Mythic,,,"A drivable Cover Shield that even Giant size Characters can take cover behind. They are considered to have Armor of 60, a speed of 15 Meters Per Turn, and a Maneuverability of 5.",,700,50,FALSE
+Nanotube Rope,UNSC,Equipment,Mythic,,,"A metallic-like rope that can withstand up to 6,750 KG of weight without breaking. 3 cR per 5 Meters of Rope. Each Meter of Rope weighs 0.1 KG.",,0.5,3,TRUE
+ONI Bubble Shield,UNSC,Equipment,Mythic,,,"A small device that forms a circular protective barrier in a 3 Meter Radius. The Bubble Shield is able to stop all incoming Damage but has a total Shield Integrity of 600. Once the Shield Integrity is brought to 0, the Bubble Shield must recharge. The Bubble Shield lasts for 6 Rounds, before shutting down for recharge. Takes 12 Rounds to Recharge.",,20,225,FALSE
+PG000E Portable Electricity Generator,UNSC,Equipment,Mythic,,,"A water-fed portable generator that is capable of powering UNSC equipment, even structures like Food Preparation Stations and Mobile AI Docking Station. One liter of water will last 12 hours.",,24.1,79,FALSE
+UN-14 Mine Detector,UNSC,Equipment,Mythic,,,"Mine Detector that is able to detect working explosives 5 meters away. Tells the direction, distance, and depth of the explosive. Must be actively used by the Character.",,1.5,50,FALSE
+Vacuum Adhesive Sealant,UNSC,Equipment,Mythic,,,"A strong, sticky substance used to patch rips and tears in Vacuum-sealed suits and equipment. Contains 5 uses per tube and takes 1 Half Action to dry once being applied.",,0.2,20,TRUE
+Battery Cell Station,UNSC,Equipment,Mythic,,,"The Battery Cell Station can be used to recharge used and emptied UNSC Battery Cells.
+
+Each Battery Cell Station can recharge 50 UNSC Battery Cells before it is emptied. If a Battery Cell Station takes 50 points of Damage, it explodes as if it were a TR-9 Antipersonnel Mine.",,15.4,45,
+,,,,,,Survival,,,,
+Animal Snare,UNSC,Equipment,Mythic,,,A snare kit to entrap small animals.,,0.4,5,TRUE
+Area Heater,UNSC,Equipment,Mythic,,,A small heater that can heat an area large enough to fill a large dome tent. Can run for 15 hours on one liter of water.,,2.1,30,TRUE
+Blowtorch,UNSC,Equipment,Mythic,,,"A blowtorch that can be used in any atmosphere and underwater. This blowtorch is plasma-based and will sear through any metal, given enough time. For every 2 points of Armor or Cover Points something gives, it takes 1 Half Action to cut through a small portion of it. The Blowtorch deals 1D10 +10 Damage, with a 35 Pierce.",,1.4,20,TRUE
+Cable Cutters,UNSC,Equipment,Mythic,,,"Common pair of large-scale cable cutters. Able to cut large chain links and other pieces of metal. More than strong enough to cut off a finger of any race. On Helpless or Stunned Characters that cannot fight back, Melee Attacks with Wire Cutters deal 2D10 +9 Damage, with 15 Pierce. If not against a Helpless or Stunned Character, Melee Attacks with this weapon gain a -30 To Hit.",,2.2,15,TRUE
+Camouflage Netting,UNSC,Equipment,Mythic,,,"A fireproof netting that can be purchased in any Camouflage Environment, that gives +30 to Camouflage Tests. Camouflage Netting is a large 5 by 5 Meter netting that can be draped or set up over objects.",,3.1,8,TRUE
+Chemical Light Sticks,UNSC,Equipment,Mythic,,,"A Chemical Light Stick is a bendable tube, that when bent, begins to glow. Gives a +10 in any Dark or Pitch-Black scenarios.  Lasts for 8 hours. 10 comes in a single pack.",,0.3,2,TRUE
+Duffle Bag,UNSC,Equipment,Mythic,,,"Soft bagged Carrying Device like a briefcase or backpack. Carries 25 Magazines or Grenades, or the size equivalent.",,0.9,5,TRUE
+Field Rations,UNSC,Equipment,Mythic,,,Packages of canned and sealed food that have up to 6 years shelf life. One package has enough food to nourish and last a Character 5 days of 3 full meals.,,10,2,TRUE
+Fishing Equipment Kit,UNSC,Equipment,Mythic,,,"A fishing kit that contains a folding fishing rod that can withstand up to 100 KG of tension, ten hooks and bobbers, a spool of 1550 meters of fishing line that can withstand up to 60 kg of tension, 50 pieces of bait, and a fishing net that can hold up to 60 kg of weight.",,4.5,15,TRUE
+Flare Gun,UNSC,Equipment,Mythic,,,"A small firearm that fires a 40mm Parachute Flare up to 150 meters. It deals 1D10 damage, with Flame(1D5) on impact.",,0.3,15,TRUE
+Flint and Steel,UNSC,Equipment,Mythic,,,"A string with two ends, one with flint, and the other steel. When hit against each other, it creates sparks that can start fires. 100 uses per each Flint and Steel set. Can take up to 4 Rounds to start a fire.",,0.1,2,TRUE
+Floatation Vest,UNSC,Equipment,Mythic,,,An adjustable floatation vest that allows up to 210 KG float in water.,,1.2,5,TRUE
+Fuel Canister,UNSC,Equipment,Mythic,,,A 5-liter fuel can for water or any other fuel.,,2,5,TRUE
+Geiger Counter,UNSC,Equipment,Mythic,,,A radiation detector that can track radioactive material from up to 10 meters away.,,0.3,10,TRUE
+Grappling Hook,UNSC,Equipment,Mythic,,,A metal rod with hooks on them that allow for easier climbing when attached to a rope. +10 to Climbing Tests.,,0.9,5,TRUE
+Group Dome Tent,UNSC,Equipment,Mythic,,,"A weather-proof tent for five people to fit in. When staked down, the tent can resist up to 80 KP/H winds.",,6,18,TRUE
+Heavy Duty Bolt Cutters,UNSC,Equipment,Mythic,,,"Powerful bolt cutters, 1.3 meters long. Strong enough to cut through even Covenant metals and locks and can even lop off the fingers of any known Race. On Helpless or Stunned Characters that cannot fight back, Melee Attacks with Bolt Cutters deal 2D10 +14 Damage, with 18 Pierce. If not against a Helpless or Stunned Character, Melee Attacks with this weapon gain a -30 To Hit.",,7.6,20,TRUE
+Hy-Crank Generator,UNSC,Equipment,Mythic,,,"Generator that can function by either hydrogen or hand-cranking. Hand Cranking can power lights and other lightweight pieces of electrical equipment, while the Hydrogen generator is able to power most any equipment. Hydrogen generator is able to run for 8 hours per 1 liter of water.",,16,100,TRUE
+Large Dome Tent,UNSC,Equipment,Mythic,,,"A weather-proof tent for ten people to fit in. When staked down, the tent can resist up to 80 KP/H winds.",,16.9,28,TRUE
+Lighter,UNSC,Equipment,Mythic,,,A lighter with a flip-off top that is able to produce flame. Has enough fuel for 100 uses.,,0.1,3,TRUE
+Magnetic Compass,UNSC,Equipment,Mythic,,,A standard magnetic compass that is not affected by EMP or any other sort of digital or electrical attack.,,0.1,1,TRUE
+Mess Kit,UNSC,Equipment,Mythic,,,"Silverware set: Spoons, knives, forks, plates, and other pieces of silverware for eating.",,0.2,5,TRUE
+Polypropylene Rope,UNSC,Equipment,Mythic,,,"A Polypropylene rope that can hold up to 1,2000 KG. Comes in a bundle of 220 meters.",,8.9,10,TRUE
+Portable Food Stove,UNSC,Equipment,Mythic,,,A small stove that can prepare food. Can run for 20 hours on one liter of water.,,1.4,25,TRUE
+Rain Poncho,UNSC,Equipment,Mythic,,,Protects the user from rain. Comes in a small pack of 10.,,5,5,TRUE
+Sandbag,UNSC,Equipment,Mythic,,,"Stackable sandbag used to hold back water and even ammunition. Sandbags are .5 Meters long, .3 Meters wide, and .2 Meters tall.",,12,1,TRUE
+Signal Flare Bright,UNSC,Equipment,Mythic,,,A bright flare that is activated by snapping the top off. Flame (1D5). Can be seen from 2 KM away and lasts up to 1 hour.,,0.2,5,TRUE
+Signal Flare Smoke,UNSC,Equipment,Mythic,,,A smoke-based signal Flare that is activated by snapping the top off. Can be seen from 6 KM away and lasts up to 10 Rounds.,,0.1,5,TRUE
+Signal Mirror,UNSC,Equipment,Mythic,,,A small mirror for reflecting light like a small warning beacon.,,0.1,1,TRUE
+Singles Tent,UNSC,Equipment,Mythic,,,"A weather-proof tent for a single person to fit in. When staked down, the tent can resist up to 120 KP/H winds.",,1.8,8,TRUE
+Sleep Cot,UNSC,Equipment,Mythic,,,"A cot bed for two Normal sized Characters, can hold up to 320 KG before tearing.",,5.4,5,TRUE
+Sleeping Bag,UNSC,Equipment,Mythic,,,A weather-proof sleeping bag that fits a user of up to a Large Character. Paying an extra 3 cR will let Characters up to Giant use the Sleeping Bag.,,0.9,3,TRUE
+SOS Knife Kit,UNSC,Equipment,Mythic,,,"A special multi-tool knife that contains the following tools: Screwdriver, corkscrew, small blade, sharpening stone, toothpick, tweezers, wood saw, large blade, metal saw, scissor.",,0.2,15,TRUE
+Stove Canteen,UNSC,Equipment,Mythic,,,A pot-like canteen for cooking and storing food. Contains a lock top and a 3-liter capacity.,,0.3,2,TRUE
+Survival Blanket,UNSC,Equipment,Mythic,,,"A weather-proof blanket that uses a thermal lining to keep the user in a more comfortable temperature, closer to their body-heat.",,1.6,5,TRUE
+Toolbox,UNSC,Equipment,Mythic,,,A metal toolbox that can hold several tools and other items. Has an Armor of 13.,,1.6,4,TRUE
+Traxus Emergency Lamp,UNSC,Equipment,Mythic,,,A bright lamp that can run for 200 hours on one liter of water.,,0.3,20,TRUE
+Water Canteen,UNSC,Equipment,Mythic,,,A leak-proof survival canteen with a lock top and 2-liter capacity.,,0.2,2,TRUE
+Water Purification System,UNSC,Equipment,Mythic,,,"A portable multi-tank water purification system. It can process 1 liter of water every two hours. Must be cleaned after each use, else the water will not be purified.",,2.1,20,TRUE
+Waterproof Fire Starter,UNSC,Equipment,Mythic,,,"Small dark-green cubes that when cracked open, begin to spark and get hot. After 12 Seconds (2 Rounds), it begins to burn. Works in wind and in rain. Comes with 8 cubes.",,0.1,10,TRUE
+Whistle,UNSC,Equipment,Mythic,,,A small whistle.,,0.1,1,TRUE
+Windproof Storm Match,UNSC,Equipment,Mythic,,,"Strong matches that can be used in even the heaviest of downpours. Allows for the lighting of fire even in rain and harsh wind. The set comes with 25 Matches. Each last for 18 Seconds (3 Rounds), when being used in harsh weather.",,0.1,10,TRUE
+,,,,,,Electronic Warfare,,,,
+Armor Restraint,UNSC,Equipment,Mythic,,,"An Electro-magnetic Immobilization Device that, when attached to any Powered or Semi-Powered Armor, will completely restrain it. When used against Powered Armor, the Character cannot move or take any Actions except for Speech Actions. When used against Semi-Powered Armor, the Armor can no longer perform its functions or hold its own weight, but the Character can still move and take Actions as normal. If the Armor has Energy Shields, the Energy Shields will shut down at the beginning of the next Round. The Armor also cannot perform any of its Actions or Abilities or use its attached Equipment or Permutations.",,0.2,500,FALSE
+Dumb AI,UNSC,Equipment,Mythic,,,"STR 35 | TOU 35 | AGI 35 |
+WFR 40 | WFM 25 | 
+INT 65 | PER 50 | 
+CRG 35 | CHA 50 | LDR 45 | 
+
+Dumb AI cannot gain Experience or use Luck.
+The Characteristics of a Dumb AI cannot be upgraded.
+The Dumb AI gains all Soldier Type Traits as the Smart AI.
+A Dumb AI still has personality.",,0.1,750,TRUE
+Electronic Countermeasure Device,UNSC,Equipment,Mythic,,,"Tricks enemy electronic radars, sonars, motion trackers, and sensors within a 15 Meter Radius. Denies targeting information or alters them to appear in different locations or moving at incorrect speeds for each Round that it is active. The Electronic Countermeasure Device has enough power to last for 40 Rounds before needing recharged.",,3.1,245,FALSE
+ONI-S-Energy Disruptor Utility,UNSC,Equipment,Mythic,,,"Shuts down all electronic equipment in 10-meter area. Also known as the ONI Special Educator, this experimental technology works slightly like a grenade in use, but shuts down electronics similarly to an EMP.",,1.1,70,FALSE
+Radar Jammer,UNSC,Equipment,Mythic,,,Tricks radars into showing twice as many enemy units as there actually are.,,1.7,42,FALSE
+Spoofer,UNSC,Equipment,Mythic,,,"Forces doors open through means of sending constantly changing electrical pulses through the door. Takes (X) Turns, where it begins at 1D10 and gains +1D10 per level of Difficulty the GM gives the door.",,0.9,41,FALSE
+Target Designator,UNSC,Equipment,Mythic,,,Removes scatter when calling in Ordnance.,,2.1,11,FALSE
+UNSC ARGUS Drone,UNSC,Equipment,Mythic,,,The ARGUS Drone is a 1 Meter wide disc-shaped drone. The ARGUS Drone is equipped with an ARGUS Detection System. ARGUS Drones can move up to 20 Meters per Turn and are equipped with one Lancet Micro Missile with an autoloader. This Drone’s function is to detect and destroy explosives on motorways and in buildings. The ARGUS Drone can be tethered to any UNSC computing system.,,3.4,450,FALSE
+Trace Evidence Bot,UNSC,Equipment,Mythic,,,"small arachnid-like robots that analyze crime scenes for homicide investigators. These machines crawl around inspecting traces of physical evidence such as fibers, skin particles, print tracks, and specks of DNA to produce a 3D map of the evidence. The spiders Though thorough are quite slow, sometimes taking a full week to process a large crime scene. The spider can be recharged at any charging station and takes six hours before it returns to a usable state. Comes with a carrying case.",,12,125,FALSE
+UNSC Surveillance Drone,UNSC,Equipment,Mythic,,,"The UNSC Surveillance Drone is a remote-operated drone that can be magnetically fastened to the Character’s back and can dock onto UNSC backpacks and Load-Bearing Packs. The Surveillance Drone has 55 Hull Integrity and 17 Armor. This Drone has scanning protocols that allow it to scan for individuals out as far as 1 kilometer away and is able to combat Camouflaged Characters up to 300 meters away with a 60 Perception. As the Surveillance Drone flies around, it is able to create simplistic maps of the surroundings it has seen, up to 1 kilometer in radius. This process takes 5 minutes to perform. While doing this, the Drone can store friendly and enemy IFF Tags and their last known locations on the map. If destroyed, the Drone can be replaced for 40 cR. It flies up to 100 meters per Turn.",,18,235,FALSE
+MQ-96 Support Drone,UNSC,Equipment,Mythic,,,"A flying UNSC Support Drone that uses a Target Designator and multiple high-powered camera systems to track points of interest on the battlefield. As a Half Action, the Drone can scan a Vehicle or Character to target them and send their location to allies. The Support Drone can scan Targets up to 1,000 Meters away. The Support Drone can travel up to 300 meters per Turn.
+
+The Drone has a Perception of 60 for Spotting, a Warfare Range of 40 for Attacking with its 100 round belt-fed M20 SMG, and an Agility of 60 for making Evasion Tests.
+
+The Support Drone automatically succeeds Indirect Fire support Tests, allowing allied Characters who have VISR or Smartlink Scopes to make Indirect Fire Tests at a -30 Penalty To Hit.
+
+The Drone will follow the Character and can be controlled to stay in one location. The Seeker Drone can also be remotely controlled by a Data Pad or any other UNSC computer program with tethering up to 2 kilometers. The Drone can broadcast its video to any UNSC computer or tetherable equipment like Eyepieces and VISR. If destroyed, the Drone can be replaced for 80 cR.",,19.4,550,FALSE
+Suppressive Fire Drone,UNSC,Equipment,Mythic,,,"A flying UNSC Drone that uses a Target Designator and multiple high-powered camera systems to track points of interest on the battlefield and attempt to stop their movement or are used to call in Support, such as Airstrikes and artillery. As a Half Action, the Drone can scan a Vehicle or Character or target them and send their location to allies. The Suppressive Fire Drone can scan Targets up to 750 meters away. The Support Drone can travel up to 100 meters per Turn.
+
+The Drone has a Perception of 70 for scanning Camouflaged Characters and a Warfare Melee of 50 for making Attacks using a built-in M231 General Purpose Machine Gun. Has an Agility of 40 for making Evasion Tests.
+
+The Suppressive Fire Drone automatically succeeds Indirect Fire support Tests, allowing allied Characters who have VISR or Smartlink Scopes to make Indirect Fire Tests at a -30 Penalty To Hit.
+
+The Drone will follow the Character and can be controlled to stay in one location. The Seeker Drone can also be remotely controlled by a Data Pad or any other UNSC computer program with tethering up to 2 kilometers. The Drone can broadcast its video to any UNSC computer or tetherable equipment like Eyepieces and VISR. If destroyed, the Drone can be replaced for 250 cR.",,104.9,910,FALSE
+UNSC Seeker Drone,UNSC,Equipment,Mythic,,,"The Seeker Drone is a flying Drone that attaches to the back of UNSC Armor, which can be stored between a backpack and the armor, as it folds outward into the size of a standard UNSC helmet. The Seeker Drone has 55 Hull Integrity and 17 Armor. The Seeker Drone is armed with an M7 Caseless SMG but is modified to use a 100 Round Belt. The Seeker Drone has a 40 Warfare Range and 40 Perception for making attacks against enemy IFF Tags. For Evasion, the Drone has a 60 Agility with no Penalties taken for any sort of missing skills. Can move up to 100 Meters per Turn.
+
+The UNSC Seeker Drone will automatically follow the Character and can be controlled to stay in one location. The Seeker Drone can also be remotely controlled by a Data Pad or TACPAD or any other UNSC computer program with tethering. The Seeker Drone has a camera which can broadcast its video to any UNSC computer or tetherable equipment like Eyepieces and VISR. If destroyed, the Drone can be replaced with 40 cR.",,10,400,FALSE
+Personal Restoration Drone,UNSC,Equipment,Mythic,,,"The Personal Restoration Drone is a complement Drone that is able to fly around and act as a repair unit. The Repair Drone has 85 Hull Integrity and 20 Armor. It has an Intellect and Perception characteristic of 40. It is able to fly up to 25 meters per Turn. It is able to take simple orders for patrolling vehicles and locations or to follow Targets. They can also be controlled remotely from up to 1 kilometer away.
+
+As a Full Action, Personal Restoration Drones are able to make Repair Technology Skill Tests with a +10 Bonus. It will take 1 Full Action for every 10 minutes it would take for a Character to perform the Repair. Restoration Drones can’t build, deconstruct, or replace parts. It can only repair what is currently there. Each Restoration Drone can repair up to 180 Breakpoints before needing refueled with the Nano-material needed. It costs 4 cR for every 10 Breakpoints it can repair to be refueled.",,80,910,FALSE
+,,,,,,Aerial Gear,,,,
+Falcon Wing Aerial Descent Unit,UNSC,Equipment,Mythic,,,"Standard issue military parachute for the UNSC. Commonly considered to be the safest kind of chute, the Falcon Wing consists of a light pack with a black chute inside, and two straps the wearer can use to maneuver to their target at a +20 Bonus. The Falcon Wing has a carrying capacity of 480 kg, including its own weight, and is ideal for atmospheric operations. The chute has integrity of 40, reducing this to 20 only halves falling damage. At 0, the Falcon Wing is destroyed, and the wearer takes falling damage as normal. Striking the chute counts as a Called Shot.",,14,12,TRUE
+M-Spec Reentry Pack,UNSC,Equipment,Mythic,,,"The Reentry Pack is a device similar to a Parafoil/Airfoil Carapace issued as a standard safety feature in many orbital craft, like the YSS-Sabre. The pack uses a variety of foils, heat-sinks and chutes to safely bring a pilot from orbit to the ground. The Reentry pack can decelerate a large amount of weight, up to 750kg, not counting its own weight, enough to deliver even a SPARTAN in armor to the ground safely. The M-Spec, being an emergency device, is not intended to drop soldiers with their equipment, but does have a special holster to hold a Sidearm securely without losing it in the drop. The Reentry Pack can only be used with Vacuum sealed gear, such as MJOLNIR.",,25,25,FALSE
+Parafoil,UNSC,Equipment,Mythic,,,"The Parafoil is a special aerial-insertion tool for Airborne Infantry, an alternative to the SOEIV. Parafoils use a collapsible “foil”, like a glider, made of resilient metals to allow it to carry heavy loads safely to the ground. The Parafoil can be used to insert from Low Orbit or Atmosphere. The Parafoil has a carrying capacity of 730 kg, including its own weight. Deployment of a Parafoil reduces all falling damage a character takes to zero so long as it is opened at or above 60 meters from the ground. The Parafoil has an integrity of 10, though reducing this to 0 only compromises it, causing it to half whatever falling damage is rolled against the wearer. At double its Integrity, the Parafoil is destroyed, and the wearer takes falling damage as normal. Striking the foil counts as a Called Shot.",,20,45,FALSE
+,,,,,,Medical,,,,
+Artificial Robotic Limb,UNSC,Equipment,Mythic,,,"Bionic limb replacement. If this limb takes 50 damage, it is destroyed. Has a natural Armor Rating of 5, which stacks with the armor that is being worn. It has no Toughness Modifier and cannot gain any benefits from Mythic Characteristics. For every 10 points of damage the arm takes, Actions with the arm are at a -5. If destroyed, the limb is useless or gone, depending on the severity of the damage taken. Post-2556, Artificial Robotic Limbs can be upgraded or received with a skin-mimicking layering. It mimics natural muscle and skin dynamics, while still being easily discerned as an artificial limb. Installation for the arm takes surgery to make sure the neural implantation system takes hold. If a Character does not have the standard Military neural implants, they must have one installed, at an extra cost of 100 cR.",,2,60,TRUE
+Biomedical Foam Canister (Biofoam),UNSC,Equipment,Mythic,,,"Used as a Full Action, Biofoam is an expanding antiseptic foam that removes 3D5 Fatigue and heals 4D10 Wounds. Using Biofoam removes the Character’s ability to naturally heal any Wounds or recover Fatigue until they receive an Extended Medical Test. Each time a Biofoam Canister is used, any Biofoam used after will heal one less dice roll for both Fatigue and Wounds, to a minimum of 0.",,0.7,10,TRUE
+Combat Stimulant,UNSC,Equipment,Mythic,,,"A “Stim-Pack” cocktail of multiple drugs that allow a Character to go a day without sleep and gain no Fatigue from sleep-related issues. The Stim-Pack can be used three times, allowing a Character to not need sleep for 4 total days straight, until debilitating effects kick in. Comes with 4 uses. When on a Stim-Pack, Characters take -10 to Intellect and Charisma Tests. When on Stim-Packs for a second day in a row, the Character also gains a -10 Penalty to Leadership Tests. On the third day, the Character is at -20 to Intellect, Charisma, and Leadership Tests. The Character also has difficulty discerning what needs to be done, causing them to become focus-locked on a specific and pointless goal. The Character will still attempt to protect themselves and others but are not suicidal to complete whatever strange goal they might set out to do. On the fourth day, the Character is at a -30 Penalty to Intellect and Charisma Tests, and a -40 to Leadership Tests. They are still focus-locked on their obsession from the third day. If the Character takes another dose on the fourth, they take 10D10 Fatigue that cannot be reduced by Toughness. Once 20 hours have passed and the Character has not taken more of the Stim-Pack, they take (X)D10 Fatigue. (X) is +3 for each Stim-Pack used without rest, and then subtracted by their Toughness Modifier, to a minimum of 5 Fatigue.",,1.5,40,TRUE
+Dermacortic Steroids,UNSC,Equipment,Mythic,,,"Standard steroid drug that doubles the Natural Healing of wounds per one day, including bonuses given by medics and Medical Tests. Dangerous when used with other medication. If used with other Medication, wounds are still removed, but the character gains 3D10 - Toughness Modifier levels of Fatigue. Effects last one day per use. Each bottle of Dermacortic has 10 uses.",,0.5,20,TRUE
+HAZMAT Suit,UNSC,Equipment,Mythic,,,"A HAZMAT Suit is used to reduce the amount of harmful chemicals and radiation that reach the user. HAZMAT Suits are an enclosed suit that reduces the effects of Acid Special Rule by half, as well as reduce the effects from Radiation Levels by 3 levels.",,3.2,25,TRUE
+Limb Splint,UNSC,Equipment,Mythic,,,Reduces any movement or attack penalties from a broken limb by half.,,2.3,10,TRUE
+Medical Kit,UNSC,Equipment,Mythic,,,"A kit that offers all needed tools to perform medical actions on the battlefield. Comes with syringes, scalpels, gauze, tapes, gloves, bandages, scissors, and more. ",,1.7,10,TRUE
+Medical Scanner,UNSC,Equipment,Mythic,,,"Scans bodies to allow a Medic to see the character’s Wounds, Fatigue, and any Special Damage. Gives the User a +10 Bonus to Medical Tests tending to scanned patients.",,1.1,30,TRUE
+Medigel,UNSC,Equipment,Mythic,,,"A specialized rubbing-gel that heals minor injuries. Takes a full action to apply and does not come into effect until the beginning of the character’s next turn. Heals 1 wound. Medigel also increases the character’s natural healing by 1 for the next day, to a maximum of 3, only if the character is already injured. Medigel no longer heals wounds after a character has used it 10 times in a day. Any further use will instead inflict 1D5 fatigue.",,0.1,5,TRUE
+Morphine,UNSC,Equipment,Mythic,,,"Removes penalties from Special Damage for 1D5+Toughness Modifier in hours. Used as a Half Action. While on Morphine, the Character gains a -20 Penalty To Hit and Perception Tests. Each dose given to the Character while still under the effects of Morphine will give the Character 2 degrees of Fatigue. Each purchase comes with 5 uses.",,0.1,5,TRUE
+Neuroglasgomycin,UNSC,Equipment,Mythic,,,"Neuroglasgomycin, otherwise known as the Counter-Glasgow Treatment, treats brain damage and counters the effects of being in a coma. Every dose given to a Character in a Coma will have their Coma reduced by the Character’s Toughness Modifier + 1D5 in hours. A Character that takes more than 3 Doses in one day will have to make a Toughness Characteristic Test or gain 2D5 levels of Fatigue, instead. Comes with 15 uses.",,0.7,10,TRUE
+Ocular Implant,UNSC,Equipment,Mythic,,,"Replaces the eye with a bionic neutrally connected system. Can be used with Smartlink devices. Destroyed if it takes 50 or more Damage, does not offer natural Armor or Toughness if struck.",,0.2,40,TRUE
+Polypseudomorphine,UNSC,Equipment,Mythic,,,Removes all of the Character’s Fatigue but makes the user unconscious for 1D10-Toughness Modifier in Hours. Comes with 10 uses.,,0.1,4,TRUE
+Potassium Iodide Tablets,UNSC,Equipment,Mythic,,,"After an hour of being taken, the Potassium Iodide pill reduces the effects from Radiation Levels by 1 level. The effect lasts for 15 hours. Comes with 25 uses.",,0.1,20,TRUE
+Respirator Pack,UNSC,Equipment,Mythic,,,"Standard-issue emergency gear for UNSC naval personnel. This unit contains breathable oxygen for situations when the atmosphere is no longer breathable, such as contamination, hull breach or deliberate venting of atmosphere. Contains 2 hours of Oxygen. While this gear is not a full pressure suit, and thus will not protect against direct exposure to vacuum, it does contain a reservoir of oxygen that lasts an average of four hours and can replenish itself in contact with breathable oxygen. A respirator pack supply air directly to a wearer or features an adaptor to feed air to rebreather-equipped armor, even ODST BDUs or MJOLNIR armor.",,4.5,30,TRUE
+Self-Adhering Antiseptic Battle Dressings,UNSC,Equipment,Mythic,,,"A special antiseptic bandage wrap that will adhere to flesh and hold wounds shut. Reduces the Medic’s Extended Actions for recovering wounds by 1D5 hours, to a minimum of 25 minutes if at 0 or lower. Can also be used to reduce Wound Aid time by 5D5 Minutes, to a minimum of 1 minute. Each purchase comes with 5 uses, and only one can be used on a Character per day.",,0.7,5,TRUE
+Sterile Field Generator,UNSC,Equipment,Mythic,,,Creates a sterile field in a radius of 2 meters. Stops possible infections and radiation. Gives +5 to medical rolls within the field. Only works if immobile. ,,1,40,TRUE
+Thermal Blanket,UNSC,Equipment,Mythic,,,"Allows characters to stay warm in harsh colds. Treats Extreme Heat as up to 20 degrees cooler, and Extreme Cold as up to 20 degrees warmer, as close to the users’ body temperature as possible.",,0.2,3,TRUE
+Trauma Kit,UNSC,Equipment,Mythic,,,"As a Full Action, reduces a Character’s Bleedout to 2 Wounds per Turn.",,0.4,15,TRUE
+Bone-Knitting Polymer,UNSC,Equipment,Mythic,,,"Seals broken bones over the course of 24 hours. Able to be used to heal brokens. Extended Medical Tests will reduce this by 4 hours per Degrees of Success, to a minimum of 1 hour.",,0.3,14,FALSE
+CBRN Suit,UNSC,Equipment,Mythic,,,"CBRN Suits are hefty and useful tools against radiation, heat, and other dangerous effects. CBRN Suits ignores the Acid Special Rule and reduces the effects from Radiation Levels by 5 levels.",,3.7,75,FALSE
+Flash Clone Replacement,UNSC,Equipment,Mythic,,,"A user can get flash-clone replacements of limbs and organs. It takes 1 day for an organ and 30 days for a limb, due to building a structural and working bone and muscle layer. The Character must undergo surgery to have the limb properly attached, and a two-week healing process so the limb is not damaged. If the healing process is ignored, the arm will be at a constant -20 for any Actions, until repaired via second surgery. A Flash-cloned replacement takes a DNA sample to be cloned and runs no risk of transplant rejection. ",,0,Free,FALSE
+Long-Term Smoother,UNSC,Equipment,Mythic,,,A single-use Smoother Drug that lasts 10 days. This can only be injected at a medical facility.,,0.1,10,FALSE
+Radiation Suit,UNSC,Equipment,Mythic,,,"Offers the user complete immunity to Radiation, regardless of Radiation Levels the Character is in.",,4.1,100,FALSE
+Regenerative Gel Treatment Canister,UNSC,Equipment,Mythic,,,"A canister of medicinal regenerative material. It has one use per canister that will give healing effects for 7 Rounds after use, each Round healing 1D5+3 Wounds. If used more than twice between the Character having an Extended Medical Test, it will give as many Fatigue as Wounds healed. Using Regenerative Gel removes the Character’s ability to naturally heal any Wounds until they receive an Extended Medical Test.",,1.1,35,FALSE
+Rumbledrug,UNSC,Equipment,Mythic,,,"An Insurrectionist-created Super Soldier serum that has deadly side-effects. After ingested, the Character ignores all forms of Fatigue, Shock, Fear, Special Damage Effects, and Unconsciousness. The Character gains +4 Mythic Strength, +3 Mythic Agility, and +6 Mythic Toughness. The Character then rolls 2D10 + Toughness Modifier (not including Mythic Toughness) to find out how many hours the drug will be active in their system. When the time is up, the Character takes 2D10 permanent Toughness Damage, 3D10 permanent Agility Damage, 2D10 permanent Strength Damage, and 1D10 permanent Intellect Damage. The Character also permanently reduces their total Wounds by 6D10. If their total Wounds are reduced to 0 or lower, the Character dies. The Character may choose to burn 3 Luck Points to ignore the Characteristic and Wound reduction.",,1.1,200,FALSE
+Smoother Drug Kit,UNSC,Equipment,Mythic,,,A specialized Smoother drug that calms the effects of Adrenaline Rush and Berserk within 1 Round. The Smoother Drug is able to halt all effects of Adrenaline Rush and Berserk for one day. Comes with 30 uses.,,0.5,30,FALSE
+,,,,,,CHEMICAL AND RADIOLOGICAL WEAPONS,,,,
+Narcozine Gas,UNSC,Equipment,Mythic,,,"A gaseous chemical agent that spreads rapidly. When inhaled, the Character will suffer the Paralyzed Special Damage Effect. The Paralyzed Effect begins at (2) and is increased by 1 for every Half Action the Character is inside the Narcozine Gas. Narcozine Gas will last in an area for 10 Rounds and fill an area up to a 10 Meter radius, reduced by half with strong winds in an open area. The Narcozine Counteragent costs half the listed price and takes 1 Full Action to apply and takes 1 minute to remove all of the Character’s adverse effects from the gas. ",,1.4,211,FALSE
+VX-7 Nerve Gas,UNSC,Equipment,Mythic,,,"A gaseous chemical agent that spreads rapidly. When VX-7 comes in contact with skin, the Character gains -10 Penalty to all Tests made for (X) Rounds. When breathed, the Character gains Winded (X). When in contact with eyes, the Character gains Vision Loss (X). (X) is 2 for every Half Action inside the VX-7 Gas. If within VX-7 for more than 6 Half Actions, the Character must make a Toughness Test at the beginning of each Round. If failed, the Character dies. VX-7 will last in an area for 30 Rounds and fill an area up to a 15 Meter radius, reduced by half with strong winds in an open area. The VX-7 Counteragent costs 1/5th of the listed price and takes 1 Full Action to apply and takes 1 Minute to remove all adverse effects from the gas.",,3.1,300,FALSE
+,,,Mythic,,,,,,,FALSE
+,,,Mythic,,,,,,,FALSE
+B-Net Support Interface,Covenant,Equipment,Mythic,,,Can be mounted to almost any surface such as helmets and weapons. Lowers scatter when calling in Ordnance by half.,,0.3,42,FALSE
+Communications Transmitter,Covenant,Equipment,Mythic,,,Emergency communicator that fits over the ear or a Character. Can be used to communicate with all Covenant communication relays and stations.,,0.4,5,FALSE
+Heads Up Display Contact,Covenant,Equipment,Mythic,,,"This microcomputing unit fits in a small lens is inserted over the Character’s eyes. It displays Radar, IFF Tags, and other information that can be sent from a wireless data network. The weight of these is so minute, it would take hundreds of sets to even be 0.1kg. Can be fitted to any Soldier Type except for Mgalekgolo and Prometheans.",,0,45,FALSE
+Holographic Eyepiece,Covenant,Equipment,Mythic,,,Allows the Character access to the Covenant equivalent of VISR. Comes with all the benefits of VISR but no communication to UNSC Equipment.,,0.4,100,FALSE
+Night Vision Device,Covenant,Equipment,Mythic,,,Gives the Character Night Vision Special Rule when worn.,,0.6,12,TRUE
+Rebreathing Safety Mask,Covenant,Equipment,Mythic,,,Allows the Character to breathe while in toxic locations. Able to filter and keep the Character safe for 48 hours before needing recharged. The device is able to recharge in one hour while in a breathable atmosphere. Covers only the mouth and has a special hose attachment that hooks into a Sangheili’s mouth.,,1.6,15,TRUE
+Tactical Headpiece,Covenant,Equipment,Mythic,,,The Covenant equivalent of the UNSC VISR that replaces the Character’s helmet. It offers 16 Armor.,,2,34,FALSE
+Targeting Headgear,Covenant,Equipment,Mythic,,,A specialized headpiece that is polarized and has a 3x and 5x Zoom function and can connect to Smartlink scopes. Only takes half Penalties in bright Lights.,,1,30,FALSE
+,,,,,,CARRYING DEVICES,,,,
+Ammunition Pouch,Covenant,Equipment,Mythic,,,"An ammunition pouch that can carry 1 Plasma Battery or 6 Magazine, Grenades, and Clips.",,0.3,2,TRUE
+Personal Pouch,Covenant,Equipment,Mythic,,,A common bag for carrying personal equipment. Carries 12 Units.,,0.5,3,TRUE
+Equipment Carrier,Covenant,Equipment,Mythic,,,Soft skinned Carrying Device similar to a loadbearing backpack. Halves all weight of the items inside when the Pack is properly worn on the Character’s back. Carries 18 Units.,,1,15,TRUE
+Equipment Pouch,Covenant,Equipment,Mythic,,,"A partially armored carrying case with an Armor Rating of 8. Able to carry 5 Magazines, Grenades, and Clips. Once the Hardened Equipment Pouch takes 15 Damage, it no longer offers an Armor Rating. This does not stack with the Character’s Armor.",,1,4,TRUE
+Gravitational Holster,Covenant,Equipment,Mythic,,,"A small, localized gravitational field that can be used to hold a weapon to the Character’s Armor in a desired location. Will move the weapon to the Character’s Hand when attempting to reach for it, giving the Character the effects of the Quickdraw Ability when used.",,1.1,35,FALSE
+Gravity Carrier Rig,Covenant,Equipment,Mythic,,,"Armor mountable gravity weapons carrier. Can hold 2 weapons or 10 magazines, grenades, and clips. Allies can take weapons or items from the carrier as if they had the quickdraw ability.",,3,23,FALSE
+Hardened Equipment Pouch,Covenant,Equipment,Mythic,,,"An armored carrying device with an Armor Rating of 15. Able to carry 5 Magazines, Grenades, and Clips. Once the Hardened Equipment Pouch takes 15 Damage, it no longer offers an Armor Rating. This does not stack with the Character’s Armor.",,1.3,15,FALSE
+Standard Holster,Covenant,Equipment,Mythic,,,A strong leather-like bond that holds the weapon to the Character.,,0.4,4,FALSE
+Thigh Rig,Covenant,Equipment,Mythic,,,"An armored carrying device that connects to the Armor on a Character’s Thigh. The Rig has 13 Armor but does not stack with the Character’s Armor. Able to carry 3 Magazines, Grenades, and Clips, or sidearm.",,1.1,15,TRUE
+Antigravity Grappler,Covenant,Equipment,Mythic,,,"A gravity-powered set of pincer arms that can carry its own weight and up to 1,500 Kilograms. A Character must be focused to using the Tool and it can only work with both hands. When used against a Character, the Antigravity Grappler adds +60 Strength to any Opposed Strength Tests. Gives a +30 Bonus to Grappling Tests against a single Target. If the User has their Arms targeted or is forced to let go of the Antigravity Grappler, it will instantly turn off and drop anything it was holding.",,103,200,FALSE
+Weapon Holder,Covenant,Equipment,Mythic,,,A stationary weapon holster device that sits on the ground or affixes to a wall. Allows a Character to store a single Weapon or Equipment in a small antigravity field. Can hold up to 40 kg. Commonly used by Covenant forces as a way to show and brag of their prized weapons out of combat.,,2.9,20,FALSE
+,,,,,,COMPUTING AND COMMUNICATIONS,,,,
+Covenant-Comm,Covenant,Equipment,Mythic,,,"Emergency Communicator that fits in the ear. Useful for when helmets and other tech no longer work. Small, untraceable communication ranged at 10 Kilometers.",,0.1,15,TRUE
+Emergency Beacon,Covenant,Equipment,Mythic,,,"A small handheld device with the ability to request emergency support. The Emergency Beacon transmits an Emergency Code to all units within 1 Kilometer of the User. If tethered and nearby a Transmitter Frequency Admitter Array, the Beacon will be able to transmit the distress signal to nearby Ships and Stations.",,0.1,15,FALSE
+Long Range Communication Suite,Covenant,Equipment,Mythic,,,This small package can magnetically attach to most covenant armor and contains a transmitter array with a communications range of 25km. Able to transmit to smart link devices up to 1km away.,,2,25,FALSE
+Malakost Tracker,Covenant,Equipment,Mythic,,,"A marble-sized ball attached to a microfiber sling. The sling allows the marker to be flung up to 120m away as if it were thrown. Once thrown, the marker can gravimetrically attach to objects and vehicles and may be tracked with communications equipment up to a range of 12km.",,0.1,53,FALSE
+Multi Spectrum Scanning Array,Covenant,Equipment,Mythic,,,Once deployed this 5m tall sensor tower is able to detect air vehicles of size huge or larger within 10km of the tower. Once it has detected a target the scanner can relay the information to nearby networked devices such as visors and holographic tables.,,24.5,80,FALSE
+Portable Computer,Covenant,Equipment,Mythic,,,"A small handheld computer used by the Covenant. The Portable Computer is able to record video, text, and audio from itself or any tethered Smartlink scopes, Probes, and other devices that have a Smartlink system or camera. The device is able to store 400 hours of video.
+ 
+The Portable Computer also is able to send and receive files, do real-time communication with local Covenant outposts and units within 3 Kilometers of the User, and anything else a GM would see an advanced, but small portable computer to be able to do. Firewall (50)",,0.5,70,TRUE
+Race Infinitely Variable Translator,Covenant,Equipment,Mythic,,,"A tablet-like computer that translates text, speak, and radio waves to and from Covenant Languages.",,2.5,70,TRUE
+Eye Spy Probe,Covenant,Equipment,Mythic,,,"A small flying probe that scans and records video, sound, and energy signals. The Spy Probe flies up to 30 Meters per Turn and can store up to 100 hours of material before needing to transmit saved data to a larger device. The probe can project a holographic image of footage they capture. Firewall (70)",,6.7,150,TRUE
+Sweeper,Covenant,Equipment,Mythic,,,A small device capable of magnetically mounting to most covenant armor. Once the sweeper is connected to a Smartlink capable device it can detect explosives within 10m of the device. If the connected Smartlink device is turned off the sweeper will automatically shut down.,,1.4,37,FALSE
+Transmitter Frequency Admitter Array,Covenant,Equipment,Mythic,,,A 3-Meter-tall station that extends the range of Communication devices to reach Ships within the Solar System the User is in. Connects to all Covenant devices and can transmit the signal within 5 Rounds of being sent. Firewall (60),,33,100,FALSE
+A’uo’i-Pattern Sensor Emplacement,Covenant,Equipment,Mythic,,,"This Sensor Emplacement tool is a 1.5 Meter tall sensor turret system. This Sensor will create a Killzone with a range of 300 Meters. If a Character or Vehicle with a non-Friendly IFF tag enters the Killzone, the Sensor Emplacement will sound an alarm and will allow any Covenant Automated Turrets within 10 Meters of the Sensor Emplacement to join the Killzone and fire a Half Action of Attacks against the Targeted Character.",,54,133,FALSE
+,,,,,,OTHER,,,,
+Armor Mounted Anti-Ablation unit,Covenant,Equipment,Mythic,,,"A magnetically mounted Shield Modulator that mitigates incoming explosives. While active, weapons with Blast and Kill do not apply Pierce to the Energy Shields. Once this has activated, it must Recharge for 7 Turns. This can only be taken by Characters with a Rank of W-5 or higher.",,3.1,85,FALSE
+Armor Mounted Shield Generator,Covenant,Equipment,Mythic,,,"A Shield Generator that attaches to Armor to give them a weak Energy Shield. This does not stack with other Energy Shields or Active Camouflage. Has a Shield Integrity of 50, a Delay of 5, and a Recharge Rate of 25. Shield Integrity is reduced to 30 when used on Characters of Hulking or larger. This can only be taken by Characters with a Rank of W-3 or higher.",,5.3,140,FALSE
+Basic Universal Survival Tool,Covenant,Equipment,Mythic,,,"A small multitool equipped for entrenchment and survival situations. The multitool comes with a Shovel, Saw, Hypergolic lighter and Flashlight.",,1.2,8,TRUE
+Camping Stool,Covenant,Equipment,Mythic,,,A small anti-gravity adjusted stool for sitting on. The stool’s height can be set by using a small anti-gravity tool built in that hovers the seat above the ground.,,1.9,4,TRUE
+Gravity Belt,Covenant,Equipment,Mythic,,,"When worn, Gravity Belts remove Penalties gained from high Gravity.",,1.9,46,TRUE
+Laser-Cutter,Covenant,Equipment,Mythic,,,"A high-power laser which can cut through almost anything, commonly found on Kiy-Yar vessels. Can be used for 100 consecutive Rounds. Ranged weapons attacks made with the Laser-Cutter have a Maximum and Close Range of 10 meters at Sustained (2), 2D10 +14 Damage, with 40 Pierce. If not against a Helpless or Stunned Character, Attacks with this weapon gain a -15 To Hit. [UD] [TH] Cauterize Special Rule.",,10,60,TRUE
+Methane Recharge Station,Covenant,Equipment,Mythic,,,"A station that cycles methane out of the atmosphere for the use of recharging Methane Tanks for Unggoy Characters. A Methane Recharge Station is able to fill a Methane Tank within 20 seconds (5 Rounds). 
+
+Methane Recharge Stations can fill 4 Tanks at once and has 20 uses before it empties. The Methane Recharge Station recovers 1 Use per hour, if it is in an atmosphere with methane that can be siphoned.",,13,30,TRUE
+Methane Tank,Covenant,Equipment,Mythic,,,"A tank for feeding Methane gas into the Oxygen that an Unggoy Character breathes. The Tank holds 120 hours of breathable Methane. Able to be recharged by the Methane Recharge Station. An Unggoy can use their Methane Tank as a jump-pack. They’re able to multiply their Jump and Leap from 2x to 5x. Using this depletes the Methane by (X) hours, where (X) is the multiplier chosen, multiplied by 2. The Methane may be put into a recharge mode that filters methane from the atmosphere. While doing this, the Unggoy must be inactive and will recharge 1 hour of Methane every 10 minutes.",,9,10,TRUE
+Plasma Recharge Station,Covenant,Equipment,Mythic,,,"A Plasma Recharge Station is a Plasma Battery recharging unit to recharged used batteries. 
+
+Each Plasma Recharge Station can recharge 100 Plasma batteries before it is emptied. If a Plasma Recharge Station takes 20 points of Damage, it explodes as if it were a Covenant Charge explosive.",,15.4,30,TRUE
+Repair Multi Tool,Covenant,Equipment,Mythic,,,This tool is roughly the size of a large wrench. It contains a laser cutter capable of cutting through thin sheets of nanolaminate. A scanner capable of diagnosing electrical faults within covenant vessels. And tools for the field repair of weapons and vehicles.,,3.2,28,TRUE
+Rope,Covenant,Equipment,Mythic,,,"A metallic-like rope that can withstand up to 4,500 KG of weight without breaking. 3 cR per 10 Meter of Rope. Each Meter of Rope weighs 0.05 KG.",,0.05,3,TRUE
+Species MRE,Covenant,Equipment,Mythic,,,"“Meals, Ready to Eat.” Species-specific prepackaged foods that do not go bad as long as they stay packaged. One meal is enough to fill a Normal Sized Character. Comes with 5 meals.",,0.2,1,TRUE
+,,,,,,DEPLOYABLE EQUIPMENT,,,,
+Active Camo Cloaking System,Covenant,Equipment,Mythic,,,"A large older variant of the Active Cloaking systems used by the Covenant. This Unit provides a +40 Bonus to Camouflage that lasts for 5 Rounds. The Active Camo Cloaking System has a 1 Round Recharge for every Turn used to a maximum of 5 Rounds. Used with Armors that do not currently have a cloaking system. The Active Camo Cloaking System does not mask or hide weapon effects and sounds.
+ 
+When used with Characters of Size Category Huge or larger, this System’s +40 Bonus is reduced by 5 for each Size Category higher. This means that a Huge Character only gains a +35 Bonus, while a Hulking Character only gains a +30 Bonus.",,2.6,200,FALSE
+Bubble Shield,Covenant,Equipment,Mythic,,,"A 3 foot tall device that forms a circular protective barrier in a 3 Meter Radius. The barrier has a Shield Integrity of 1,500. The Bubble Shield lasts for 6 Rounds, before shorting out and exploding. Explosion caused by the Bubble Shield’s detonation is 2D10+10 Damage, Blast (1).",,20,35,FALSE
+Deployable Cover,Covenant,Equipment,Mythic,,,"Deployable Energy Shield, 3 Meters tall and 2 Meters wide. The Shield has a Shield Rating of 200, a Shield Delay of 5, and a Shield Recharge of 50. The Deployable Cover can be deactivated and activated in a Half Action.",,5.1,110,FALSE
+Flare,Covenant,Equipment,Mythic,,,"A blinding light is active for 3 Rounds. Characters within 10 Meters take a -60 Visual Perception Penalty and a -50 Warfare Range and Warfare Melee Penalty. After 3 Rounds, the Flare explodes, dealing the damage equivalent to the M9 Grenade in the Human Armory.",,3.1,40,FALSE
+Holo-Drone,Covenant,Equipment,Mythic,,,"A small sphere drone half a Meter wide that travels 30 Meters per Turn. The Holo-Drone has 20 Breakpoints. The Holo-Drone projects images of the user, which can also project and simulate a weapon. The Holo-Drone perfectly copies the Character being used in a 3D, holographic image. When the image is struck in any way, it causes static and ripples to form across it.
+ 
+When the Holo-Drone detects the user firing their weapon, it creates an electro-magnetic hard-light replica of the ammo, which can damage Energy Shields for 1 point of damage.",,4.4,350,FALSE
+Invincibility Generator,Covenant,Equipment,Mythic,,,When activated the generator creates a nearly solid electromagnetic layer which instantly stops or reverses the trajectory of almost anything that meets it. Turns the user immune to any weapon that deals less than 200 damage for one round. The emitter is destroyed after use. While the emitter is active the user glows a bright blue and loses the benefit of active camo.,,2.4,140,TRUE
+Kindler GPS,Covenant,Equipment,Mythic,,,Kindler Global Positioning System (KGPS) is used to find the current location on any supported planet. The Kindler UGPS displays maps as a hologram that is projected above a handheld device.,,0.4,20,TRUE
+Kindler Unit,Covenant,Equipment,Mythic,,,"The Kindler Unit uses laser scanning  systems to create maps for the KGPS. This handheld device can float on its own and move down straightforward paths, scanning its surroundings. It will eventually attempt to return to the user once scanning is complete. Sends improved mapping functions to the Kindler GPS.",,0.4,50,FALSE
+Pirate Gravity lift,Covenant,Equipment,Mythic,,,"A 7-Meter-long Tri Legged gravity lift with a pinch fusion reactor in its center. Capable of moving men and material multiple kilometers into the air. The direction of the lift can be altered using a Battlenet interface, The legs can be folded up to allow for easier transport.",,286,260,FALSE
+Portable Gravity Lift,Covenant,Equipment,Mythic,,,"A half a meter long Deployable Gravity lift used to assist in climbing hillside cliffs rapidly. The gravity lift is able to lift objects 20 Meters into the air, reduced by 1 Meter per 100 kg the object weighs.",,0.6,44,FALSE
+Power Drain Device,Covenant,Equipment,Mythic,,,"A device that shorts out electronics. Drains Energy Shields within a 4 Meter Radius. Every Round an Energy Shield is within the radius of the Power Drain Device, it loses 50 Shield Rating. Vehicles and Equipment that are within the Power Drain’s Radius are affected by the EMP (3) Special Rule. The Power Drain lasts for 4 Rounds, before shorting out and exploding. Explosions caused by the Power Drain Device deal the damage equivalent to the Plasma Grenade, alongside the EMP (2) Special Rule.",,2.9,40,FALSE
+Radar Jammer,Covenant,Equipment,Mythic,,,Tricks all enemy IFF Tags and Radars to display 15 Enemy Tags for 4 Rounds. One-time use.,,2.1,15,FALSE
+Regenerator,Covenant,Equipment,Mythic,,,"The Regenerator doubles any Energy Shield’s Recharge Rate, while halving the Shield’s Shield Delay. The Regenerator has a 3 Meter Radius that lasts for 4 Rounds before shorting out. One-time use.",,1.9,30,FALSE
+Shock Device,Covenant,Equipment,Mythic,,,"An Electric Immobilization Device that, when attached to any Powered or Semi-Powered Armor, will shock the armor disabling it. When used against Powered Armor, the Character cannot move or take any Actions except for Speech Actions. When used against Semi-Powered Armor, the Armor can no longer perform its functions or hold its own weight, but the Character can still move and take Actions as normal. If the Armor has Energy Shields, the Energy Shields will shut down at the beginning of the next Round. The Armor also cannot perform any of its Actions or Abilities or use its attached Equipment or Permutations.",,0.2,500,FALSE
+Anti-Gravity Belt,Covenant,Equipment,Mythic,,,"A Gravity-Mitigating Mobility Aid Device that allows the Character to ignore the debilitating effects of Gravity. While worn, the Character will take only half Falling Damage, Wrecking and Crashing Damage, and Damage from Explosive Decompression. The Anti-Gravity Belt is considered to hold its own weight so the Character can consider its Weight as 0 while its working.",,2.2,45,TRUE
+,,,,,,MEDICAL EQUIPMENT,,,,
+Artificial Limb,Covenant,Equipment,Mythic,,,"A bionic limb replacement for destroyed or removed limbs. The Artificial Limb has 80 Breakpoints. When at 0, the limb is destroyed.",,0,60,TRUE
+Hyper Coagulant,Covenant,Equipment,Mythic,,,"This gel-like substance rapidly seals and sedates wounds. Allows a character to ignore all side-effects of Special Damage, not including broken and destroyed body parts for 3 rounds. Each dose first gives a character 3 degrees of fatigue. If the user passes their Fatigue maximum and attempts to apply Coagulant, they must pass a -10 Toughness test or slip into a coma for 1D5 hours per every dose given. Each purchase comes with 5 uses.",,0.1,10,TRUE
+Magnetic Splint,Covenant,Equipment,Mythic,,,Reduces any Movement and Attack Penalties from a broken or heavily damaged leg by half.,,2,10,TRUE
+Medical Kit,Covenant,Equipment,Mythic,,,A kit that offers all needed tools to perform medical actions on the battlefield.,,1.7,10,TRUE
+Medical Scanner,Covenant,Equipment,Mythic,,,"Scans bodies to allow a Medic to see the character’s Wounds, Fatigue, and any Special Damage. Also gives advanced information about how an injury can best be cured giving a +5 to Medical Tests.",,0.3,32,TRUE
+Mending Stimulants,Covenant,Equipment,Mythic,,,Contained in a small vial and applied with a rag this water like substance can greatly aid in accelerating the healing of external injuries. Increases the number of wounds healed during an Extended Action by 1D10. Can be applied a maximum of 5 times before causing 1D5 Fatigue per use.,,0.2,20,TRUE
+Respirator Pack,Covenant,Equipment,Mythic,,,"A pack that contains breathable Oxygen or an Oxygen-Methane mix for Characters who cannot breathe on their own, or when there is a lack of a breathable atmosphere. Has enough air to last 4 hours and can recharge in four Full Actions when in a breathable atmosphere.",,2.1,12,TRUE
+Sealant Mesh,Covenant,Equipment,Mythic,,,"Used as a Full Action, Sealant Mesh is an expanding antiseptic skin that removes 3D5 Fatigue and heals 4D10 Wounds. Using Sealant Mesh removes the Character’s ability to naturally heal any Wounds or recover Fatigue until they receive an Extended Medical Test. Each time a Sealant Mesh Skin is used, any Sealant Mesh used after will heal one less dice roll for both Fatigue and Wounds, to a minimum of 0.",,0.7,10,TRUE
+Syringe Set,Covenant,Equipment,Mythic,,,A simple syringe set for any use deemed necessary. +5 to surgical or advanced Medical Tests.,,0.2,10,TRUE
+Thermal Blanket,Covenant,Equipment,Mythic,,,"Allows characters to stay warm in harsh colds. Treats Extreme Heat as up to 20 degrees cooler, and Extreme Cold as up to 20 degrees warmer, as close to the users’ body temperature as possible.",,4.2,5,TRUE
+Wound Sealant,Covenant,Equipment,Mythic,,,"As a Full Action, reduces a Character’s Bleedout to 2 Wounds per Turn.",,0.4,15,TRUE
+Wound Sterilizer,Covenant,Equipment,Mythic,,,A small sterilizing and sealing tool that heals Wounds. Takes a Full Action to apply and heals 4 Wounds 2 Rounds after being applied.,,0.2,6,TRUE
+Dream-Shaper,Covenant,Equipment,Mythic,,,"A stimulant concoction of multiple drugs that allow a Character to go a day without sleep and gain no Fatigue from sleep-related issues. The Dream-Shaper can be used three times, allowing a Character to not need sleep for 4 total days straight, until debilitating effects kick in. Comes with 4 uses.
+
+When on a Dream-Shaper, Characters take -10 to Intellect and Charisma Tests. When on Dream-Shapers for a second day in a row, the Character also gains a -10 Penalty to Leadership Tests. On the third day, the Character is at -20 to Intellect, Charisma, and Leadership Tests. The Character also has difficulty discerning what needs to be done, causing them to become focus-locked on a specific and sometimes pointless goal. The Character will still attempt to protect themselves and others but are not suicidal to complete whatever strange goal they might set out to do. On the fourth day, the Character is at a -30 Penalty to Intellect and Charisma Tests, and a -40 to Leadership Tests. They are still focus-locked on their obsession from the third day. If the Character takes another dose on the fourth, they take 10D10+10 Fatigue that cannot be reduced by Toughness.
+
+Once 20 hours have passed and the Character has not taken more of the Dream-Shaper, they take (X)D10 Fatigue. (X) is +3 for each Dream-Shaper used without rest, and then subtracted by their Toughness Modifier, to a minimum of 5 Fatigue.",,1.5,40,FALSE
+,,,,,,CHEMICAL AND RADIOLOGICAL WEAPONS,,,,
+Ostanalus Gas Canister,Covenant,Equipment,Mythic,,,"A chemical gas weapon that targets Characters that aren’t Kig-Yar. Characters inside the Ostanalus Gas gain a -5 Penalty to their Strength and Toughness Characteristics for each Half Action. Ostanalus Gas has no Counteragent, but the effects will be reversed if the Character is given an Extended Medical Action for a minimum of 4 hours. Ostanalus gas will last in an area for 10 Rounds and fill an area up to a 10 Meter radius, reduced by half with strong winds in an open area.",,6.3,300,FALSE
+Element 120V,Covenant,Equipment,Mythic,,,Randomly compromises Human DNA. Human Characters within the 100 Meter Radius will die within 10D10 Rounds. Burning a Luck will render the Element 120V harmless on a per-Character basis.,,2.4,1305,FALSE
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,"Basic Optics, Scopes, Sights",,,,
+Holoscope,UNSC,Weapon mod,Mythic,,,"1x holographic scope. Takes up minimal space on the Rail it is mounted to, allowing for another item to be mounted, such as a Laser, without adding Aiming Penalties.",Optic,0.1,10,TRUE
+Red Dot Sight,UNSC,Weapon mod,Mythic,,,1x sight. Allows for a Laser to be attached to it without adding Aiming Penalties.,Optic,0.1,10,TRUE
+2x Scope,UNSC,Weapon mod,Mythic,,,2x Scope.,Optic,0.1,4,TRUE
+3x Scope,UNSC,Weapon mod,Mythic,,,3x Scope.,Optic,0.2,6,TRUE
+4x Scope,UNSC,Weapon mod,Mythic,,,4x Scope.,Optic,0.2,8,TRUE
+5x Scope,UNSC,Weapon mod,Mythic,,,5x Scope,Optic,0.2,10,TRUE
+6x Scope,UNSC,Weapon mod,Mythic,,,6x Scope,Optic,0.3,12,TRUE
+S-C 8x Scope,UNSC,Weapon mod,Mythic,,,8x Scope.,Sniper Optic,0.4,14,TRUE
+S-C 9x Scope,UNSC,Weapon mod,Mythic,,,9x Scope,Sniper Optic,0.5,16,TRUE
+S-C 10x Scope,UNSC,Weapon mod,Mythic,,,10x Scope.,Sniper Optic,0.5,18,TRUE
+S-C 12x Scope,UNSC,Weapon mod,Mythic,,,12x Scope.,Sniper Optic,0.6,20,TRUE
+S-C 14x Scope,UNSC,Weapon mod,Mythic,,,14x Scope,Sniper Optic,0.6,24,TRUE
+S-C 16x Scope,UNSC,Weapon mod,Mythic,,,16x Scope.,Sniper Optic,0.7,28,TRUE
+,,,,,,"Specialist Optics, Scopes, Sights",,,,
+EVOS-D 3x,UNSC,Weapon mod,Mythic,,,"1x/3x Modular Scope that shows the distance of a Target when using an Aim Action up to 900 Meters.
+ TYPE: Optic - MOUNT: Upper",Optic,0.2,13,TRUE
+EVOS-D Adaptive,UNSC,Weapon mod,Mythic,,,"3x/5x Modular Scope. Smartlink compatible.
+ TYPE: Optic - MOUNT: Upper",Optic,0.3,26,TRUE
+EVOS-D Marksman,UNSC,Weapon mod,Mythic,,,"6x Scope. Smartlink compatible.
+ TYPE: Optic - MOUNT: Upper",Optic,0.2,22,TRUE
+EVOS-D V2,UNSC,Weapon mod,Mythic,,,"2x/4x Modular Scope that shows the distance of a Target when using an Aim Action up to 900 Meters.
+ TYPE: Optic - MOUNT: Upper",Optic,0.1,17,TRUE
+A2 Scope,UNSC,Weapon mod,Mythic,,,"5x/20x Modular Scope.
+ TYPE: Sniper Optic - MOUNT: Upper",Sniper Optic,1,40,FALSE
+Atlas Hishot Pro-X,UNSC,Weapon mod,Mythic,,,"6x/12x/24x Modular Scope. Smartlink compatible.
+ TYPE: Sniper Optic - MOUNT: Upper",Sniper Optic,1.8,84,FALSE
+COG Sight,UNSC,Weapon mod,Mythic,,,"3x telescopic Scope that scans and displays the Shield Integrity of the Energy Shield of whoever is being aimed at. Smartlink compatible.
+ TYPE: Optic - MOUNT: Upper",Optic,0.2,35,FALSE
+CQB Sight,UNSC,Weapon mod,Mythic,,,"1x sight. Gains a +5 Bonus To Hit when in Melee Combat when used with a Smartlink capable eyepiece or VISR.
+ TYPE: Optic - MOUNT: Upper",Optic,0.1,12,FALSE
+Holographic Scope,UNSC,Weapon mod,Mythic,,,"1x/2x Modular Sight.
+ TYPE: Optic - MOUNT: Upper",Optic,0.2,6,FALSE
+KFA-2 2x,UNSC,Weapon mod,Mythic,,,"2x Smartlink-Only Scope.
+ TYPE: Smartlink - MOUNT: Any",Smartlink,0.2,14,FALSE
+Longshot Sight,UNSC,Weapon mod,Mythic,,,"3x Scope that shows the distance of a Target when using an Aim Action up to 900 Meters. Also shows the amount of Ammo in the weapon. Smartlink compatible.
+ TYPE: Optic - MOUNT: Upper",Optic,0.2,26,FALSE
+Morph Sight,UNSC,Weapon mod,Mythic,,,"3x Scope that is Smartlink Compatible. Can detect Flood Spores and Supercells and highlight Flood Characters in Combat, removing their ability to use Camouflage against the User as long as an Aim Action is being made.
+ TYPE: Optic - MOUNT: Upper",Optic,0.3,66,FALSE
+Oracle N-Variant Scope,UNSC,Weapon mod,Mythic,,,"3x/6x/9x Modular Scope. Smartlink compatible. Toggleable Thermal Special Rule.
+ TYPE: Sniper Optic - MOUNT: Upper",Sniper Optic,1,46,FALSE
+Oracle N-Variant Scope v2,UNSC,Weapon mod,Mythic,,,"4x/8x/12x Modular Scope. Smartlink compatible. Toggleable Thermal Special Rule.
+ TYPE: Sniper Optic - MOUNT: Upper",Sniper Optic,1.2,58,FALSE
+Oracle N-Variant Scope v3,UNSC,Weapon mod,Mythic,,,"5x/10x/15x Modular Scope. Smartlink compatible. Toggleable Thermal Special Rule.
+ TYPE: Sniper Optic - MOUNT: Upper",Sniper Optic,1.4,70,FALSE
+Projection Sight,UNSC,Weapon mod,Mythic,,,"1x projected hologram aiming module that gives a +5 Bonus To Hit when in the weapon’s Close Range. This Bonus is lost in Bright and Blinding Lights, as well as from the effects of Flashbangs, Gas, heavy fog, and Smoke. Takes up minimal space on the Rail it is mounted to, allowing for another item to be mounted, such as a Laser, without adding Aiming Penalties.
+ TYPE: Optic - MOUNT: Upper, Side",Optic,0.1,20,FALSE
+Sentinel Sight,UNSC,Weapon mod,Mythic,,,"4x/6x Modular Scope. Smartlink compatible.
+ TYPE: Optic - MOUNT: Upper",Optic,0.5,30,FALSE
+SLS-V 5B,UNSC,Weapon mod,Mythic,,,"1x Modular Red Dot Sight and 3x Smartlink scope hybrid. A non-magnifying illuminated red dot 1x sight. Smartlink-only 3x Scope secondary zoom feature.
+ TYPE: Optic, Smartlink - MOUNT: Upper","Optic, Smartlink",0.2,13,FALSE
+SRS-C 10x Scope,UNSC,Weapon mod,Mythic,,,"10x Scope. Smartlink compatible. Toggleable Thermal Special Rule.
+ TYPE: Sniper Optic - MOUNT: Upper",Sniper Optic,0.4,35,FALSE
+Threat Marker,UNSC,Weapon mod,Mythic,,,"2x magnifier with Smartlink compatibility that scans and displays friendly and enemy IFF tags on a screen or to a Smartlink-capable device or Scope.
+  Once scanned during an Aim Action, the IFF Tags are tracked up to 4 Rounds after the Character is no longer within the User’s sight. This includes Cloaked and hidden targets.
+ TYPE: Optic - MOUNT: Any",Optic,0.3,70,FALSE
+VnSLS-V 6E,UNSC,Weapon mod,Mythic,,,"2x/4x Smartlink-Only scope.
+ TYPE: Smartlink - MOUNT: Any",Smartlink,0.2,17,FALSE
+WYRD III 3x,UNSC,Weapon mod,Mythic,,,"1x/3x Smartlink-Only Modular Scope.
+ TYPE: Smartlink - MOUNT: Any",Smartlink,0.2,13,FALSE
+WYRD IV 4x,UNSC,Weapon mod,Mythic,,,"1x/4x Smartlink-Only Modular Scope.
+ TYPE: Smartlink - MOUNT: Any",Smartlink,0.3,15,FALSE
+,,,,,,Rails,,,,
+Angled Grip,UNSC,Weapon mod,Mythic,,,"An Angled Grip is added to the bottom rail in front of the weapon, giving a +5 Bonus To Hit while standing still.
+ TYPE: Brace - MOUNT: Lower - RESTRICT: None",Brace,0.4,15,TRUE
+Bayonet,UNSC,Weapon mod,Mythic,,,"A bayonet with the stats of the UNSC Machete. Gives +1 Melee Reach. Counts as having Slow Special Rule when used.
+ TYPE: Underslung - MOUNT: Upper, Side - RESTRICT: None",Underslung,1.7,25,TRUE
+Bipod,UNSC,Weapon mod,Mythic,,,"Deployed and undeployed as a Half Action. Any Attacks made with the weapon will count as being Braced as long as it is resting against a surface and the weapon isn’t being moved.
+
+While deployed, if the weapon is not resting against a surface, a -5 Penalty To Hit is gained from the weight of the bipod, even if the weapon is being Braced by the user. Takes up one Rail Slot.
+ TYPE: Heavy Brace - MOUNT: Lower - RESTRICT: [TH] and [HW]",Heavy Brace,1.4,12,TRUE
+Flashlight,UNSC,Weapon mod,Mythic,,,"Lowers any Darkness Penalties by 30, while also lowering Low-Light Penalties by 15. 
+
+-20 to Aim Actions if mounted on Top Rail.
+ TYPE: Flashlight - MOUNT: Any - RESTRICT: None",Flashlight,0.1,10,TRUE
+Handstop Foregrip,UNSC,Weapon mod,Mythic,,,"When making Attacks while not taking any Movement or Aim Actions during the Turn, the Character gains a +5 To Hit for their first Attack made in the Round.
+ TYPE: Forward Brace - MOUNT: Lower, Side - RESTRICT: Rifle, Carbine, Pistol, SMG, any type of Machine Gun, Sniper Rifle",Forward Brace,0.8,30,TRUE
+Horizontal Grip,UNSC,Weapon mod,Mythic,,,"When making Attacks while using Aim Actions, the Horizontal Grip will give the User +1 to the amount of Attacks in a Turn that gains the benefit of an Aim Action.
+ TYPE: Forward Brace - MOUNT: Lower - RESTRICT: None",Forward Brace,0.5,20,TRUE
+Laser Aiming Module,UNSC,Weapon mod,Mythic,,,"Gives a +5 Bonus To Hit when not using Aim Actions, while also giving the Opponent being aimed at a +5 Bonus to Evasion from attacks made with this weapon. The Opponent only gains this Evasion Bonus if they notice the laser.
+ 
+-20 to Aim Actions if mounted on Top Rail.
+ TYPE: Aiming - MOUNT: Any - RESTRICT: None",Aiming,0.1,10,TRUE
+Tactical Flashlight,UNSC,Weapon mod,Mythic,,,"Lowers any Darkness Penalties by 40, while also lowering Low-Light Penalties by 10. When in Darkness, Opponents gain a -20 Penalty To Hit and a -30 Penalty to Visual Perception Tests. When in Low-Light, Opponents gain a -10 Penalty To Hit and a -15 Penalty to Visual Perception Tests.
+
+-20 to Aim Actions if mounted on Top Rail.
+ TYPE: Flashlight - MOUNT: Any - RESTRICT: None",Flashlight,0.2,15,TRUE
+Tripod,UNSC,Weapon mod,Mythic,,,"Deployed and undeployed as a Full Action. As long as the Tripod is resting against a surface and the weapon is not being moved, all Attacks made have a +5 Bonus To Hit and the weapon is considered Braced. Tripods can also be detached and reattached as a Half Action, keeping the Tripod deployed in-place until needed, again.
+
+If the user attempts to move with the weapon with the Tripod still deployed, the Character’s Movement Action distances are halved. If the weapon is being moved or not being braced with the Tripod deployed, all Attacks with it are at a -30 Penalty To Hit. Takes up two Rail Slots.
+ TYPE: Heavy Brace - MOUNT: Lower - RESTRICT: Sniper Rifles, Machine Guns, and Explosive Launchers",Heavy Brace,5.4,18,TRUE
+Vertical Grip,UNSC,Weapon mod,Mythic,,,"When making any Charge or Run Movements, the Penalty gained To Hit is lessened by 10.
+ TYPE: Forward Brace - MOUNT: Lower, Side - RESTRICT: None",Forward Brace,0.6,15,TRUE
+Adaptive Distance Viewfinder ,,Weapon mod,Mythic,,,"The ADV is an Optic Attachment that must be used with any 5x or larger Optic. The Adaptive Distance Viewfinder is installed underneath the Optic, taking up the same Rail Slots. When used with a Full Action, the Adaptive Distance Viewfinder will update the Optic with the distance of the Target and where the Character will need to Aim to strike the Target. When used, this halves Long and Extreme Range Penalties. When used with a Half or Full Aim Action, this removes Long Range Penalties and reduces Extreme Range Penalties to -15.
+ TYPE: Aiming - MOUNT: Any - RESTRICT: Installed Optics",Aiming,1.7,225,FALSE
+Ammo Counter,UNSC,Weapon mod,Mythic,,,"An Ammo Counter that tracks how many rounds are in the weapon. Can be manually programmed to know how many magazines you’re holding. The Ammo Counter also has an electronic compass built-in. The Ammo Counter does take up one Rail Slot to install.
+ TYPE: Misc. - MOUNT: Upper, Side - RESTRICT: None",Misc.,0.3,5,FALSE
+Ballistic Shield,UNSC,Weapon mod,Mythic,,,"A reinforced glass Physical Shield is placed at the top Rail of the weapon. While making use of Aim Actions, the Character will gain +8 Armor to their Head location and the Arm being used to fire the weapon. This Shield can’t be used to block other Locations or be used with Reactions to move the Shield to block incoming Damage from Ranged Attacks to other locations. The Ballistic Shield has 200 Breakpoints and will no longer offer any Armor benefits once this reaches 0.
+
+If used with weapons that can’t be aimed in a way that would offer protection to the User, no benefits will be gained. Examples include Machine Guns if they’re being held at the hip or Rocket Launchers that are too tall to offer any protection. It is up to the GM to specify if a weapon shouldn’t be gaining these benefits. Some weapons, such as the Spartan Laser, could allow the User to attach the Ballistic Shield on the side of the weapon to gain the same benefits while firing from the shoulder.
+
+If used with Smartlink Scopes that can be used to make Aiming Actions without the need of lifting the rifle to the User’s shoulder and head, these benefits are lost. In these circumstances, the GM may allow the Ballistic Shield to protect 1 Body Location on a Normal Size Category Character, generally being the Chest location.
+
+The Ballistic Shield takes up one Rail Slot.
+ TYPE: Misc. - MOUNT: Upper - RESTRICT: None",Misc.,2.4,80,FALSE
+Bipod Foregrip,UNSC,Weapon mod,Mythic,,,"When used while rested or hooked on a surface such as the ground or a wall, this weapon will be considered Braced.
+
+When used without being Braced, any To Hit Penalties from Full Action and Charge Action movement is reduced by 5.
+ TYPE: Forward Brace - MOUNT: Lower - RESTRICT: None",Forward Brace,1.2,30,FALSE
+Canted Irons,UNSC,Weapon mod,Mythic,,,"A small 45-degree offset Rail mount is added to the top of the weapon for the use of a secondary Ironsight, Optic, Aiming Module, or Flashlight. The Canted Iron takes up one Rail Slot to install and offers two Rail Slots, one directly above the Rail Slot that the Canted Iron is installed on, and one diagonally facing, allowing for one extra attachment. This is generally used to offer more than one Scope.
+
+When using a secondary Optic or Ironsight, the weapon must be held diagonally to use. Stacking Canted Irons is possible, but will offer no benefits to Optics, Lasers, or any other type of Attachment that gives a stat, Bonus, or benefit in general. Each time a Canted Iron is stacked, the Weapon gains a -5 Penalty to Hit.
+ TYPE: Misc. - MOUNT: Upper - RESTRICT: Rifle, Carbine, Pistol, SMG, Machine Guns, Sniper Rifles",Misc.,0.1,15,FALSE
+Energy Bayonet,UNSC,Weapon mod,Mythic,,,"An energy blade added to the weapon that shares the specs of the Covenant Energy Dagger. This can only be taken after 2557. Gives +1 Melee Reach. Counts as having Slow Special Rule when used
+ TYPE: Underslung - MOUNT: Lower - RESTRICT: None",Underslung,1.1,200,FALSE
+Heavy Foregrip,UNSC,Weapon mod,Mythic,,,"When used with [HW] Heavy Weapons while taking no Move Actions, the Penalty To Hit is reduced by 5 and the weapon cannot be dropped by firing when using two hands. When used on a weapon without the [HW] tag, any To Hit Penalties gained from Charge or Run Movement Penalties for are reduced by 10.
+ TYPE: Forward Brace - MOUNT: Lower - RESTRICT: None",Forward Brace,0.9,45,FALSE
+Heavy Weapon Shield,UNSC,Weapon mod,Mythic,,,"The Heavy Weapon Shield is a large Metal Shield that is designed to be used on [HW] Heavy Weapons. The Heavy Weapon Shield will cover 2 Body Locations on a Normal Size Category Character, generally the Chest location and the Arm being used to fire the weapon. The Heavy Weapon Shield removes the User’s ability to gain Bonuses from Aim Actions unless used with a Smartlink Scope, which can be installed in front of the Shield. The Shield is too large to allow a User to easily see through. The Heavy Weapon Shield will give the protected locations +12 Armor and has 400 Breakpoints.
+
+If Crouching while using the Heavy Weapon Shield, the GM may allow it to also protect the Neck and Chin Sublocations of the Head. And if used while Prone, it will protect the User’s Head, Chest, the Arm being used to fire the weapon, and the Leg on the same side of the protected Arm. Though while using this weapon while Prone, the Character is at a -10 Penalty To Hit due to vision problems with the large Shield.
+
+The Heavy Weapon Shield takes up two Rail Slots.
+ TYPE: Misc. - MOUNT: Upper - RESTRICT: None",Misc.,9.3,110,FALSE
+Infrared Aiming Module,UNSC,Weapon mod,Mythic,,,"Gives a +5 Bonus To Hit when not using Aim Actions when using VISR, Infrared, and Thermal equipment. This also gives the Opponent being aimed at a +5 Bonus to Evasion from attacks made with this weapon if the Opponent has VISR, Thermal, or Infrared equipment to see the laser.
+
+-20 to Aim Actions if mounted on Top Rail.
+ TYPE: Aiming - MOUNT: Any - RESTRICT: VISR, Thermal, and Infrared Equipment",Aiming,0.1,15,FALSE
+M301 Grenade Launcher,UNSC,Weapon mod,Mythic,,,"Attaches an underbarrel grenade launcher. Uses the stats of the “Underbarrel Grenade Launcher” found in the explosive launchers section of the UNSC armory.
+ TYPE: Underslung - MOUNT: Lower - RESTRICT: None",Underslung,1.4,45,FALSE
+Underslung Shotgun,UNSC,Weapon mod,Mythic,,,"Attaches an underbarrel shotgun. Shares the stats with the “Underbarrel Shotgun” found in the Shotgun section of the UNSC armory.
+ TYPE: Underslung - MOUNT: Lower - RESTRICT: None",Underslung,1.4,30,FALSE
+Micro Stock,,Weapon mod,Mythic,,,"The Micro Stock reduces the Weapon’s Weight by 15%, which is figured before any other Modifications that modify the Weapon’s Weight. Allows [HW] weapons to be Concealed as [TH] Weapons, [TH] weapons to be Concealed as [OH] weapons, and [OH] weapons to be Concealed as [DW] weapons. Gives [DW] weapons an extra +10 to Camouflage and Concealing.
+
+This also allows the Character to move up to their Full Action and still keep their Aim Action active. However, the Weapon gains a -10 To Hit.",Stock,,20,FALSE
+Heavy Stock,UNSC,Weapon mod,Mythic,,,"Heavy Stock will reduce the amount of Meters a Player can move before an Aim Action is lost by 2 Meters. However, the Heavy Stock doubles the amount of Meters an Enemy must move before the User loses their Aim Action benefits.",Stock,1.9,20,FALSE
+Light Stock,,Weapon mod,Mythic,,,"Light Stock allows the Character to move up to their Full Action and still keep their Aim Action active. However, this reduces the amount of Meters an Enemy must move before the User loses their Aim Action benefits by 2 Meters, to a minimum of 1. Reduces the Weapon’s Weight by 0.1 KG or weighs 0.2 KG if the weapon didn’t have a Stock.",Stock,,25,FALSE
+,,Weapon mod,,,,Barrel Attachments and Modifications,,,,
+Palm Shelf Pistol Grip,UNSC,Weapon mod,Mythic,,,"Replaces the pistol grip with a Palm Shelf grip. This weighted Grip allows a Character to keep their Aim Action after taking Damage from ranged weapons that do less than 20 Damage after Damage Resistance is figured.
+ TYPE: Rear Brace - MOUNT: Lower - RESTRICT: Rifle, Carbine, Pistol, SMG, any type of Machine Gun, Sniper Rifle",Rear Brace,0.7,35,TRUE
+Signet LBE Choke,UNSC,Weapon mod,Mythic,,,"The Signet “Long-Barreled Choke” is a rifled extended choke. This Choke extends the Shotgun’s Close and Optimal Range by 25% only if the Shell being fired still has the Spread Special Rule. Using the LBE Choke with any type of Slug Shell will reduce the Close and Optimal Range to 10% due to breaking the Choke.
+ TYPE: Choke - MOUNT: Barrel - RESTRICT: Shotgun",Choke,0.6,40,TRUE
+WST Choke 45,UNSC,Weapon mod,Mythic,,,"The WST Choke 45 offers a high-precision Full Choke. Shells with Spread Special Rule lose the +10 Bonus To Hit, but the weapon’s Close Range is increased by 50%. Using the WST Choke 45 with any type of Slug Shell will destroy the WST Choke 45.
+ TYPE: Choke - MOUNT: Barrel - RESTRICT: Shotgun",Choke,0.6,40,TRUE
+WST Reinforced Squeeze Choke,UNSC,Weapon mod,Mythic,,,"The WST Reinforced Squeeze Choke offers maximized potential for range. Shells with the Spread Special Rule lose the +10 Bonus To Hit, but the weapon’s Close Range and Optimal Range are increased by 50%. Using the Reinforced Squeeze Choke with any type of Slug will destroy the weapon’s barrel and the Choke, rendering the weapon useless. Natural To Hit rolls of 100 will deal damage to the Squeeze Choke. If this happens twice, the Reinforced Squeeze Choke is destroyed.
+ TYPE: Choke - MOUNT: Barrel - RESTRICT: Shotgun",Choke,0.7,60,TRUE
+Extended barrel,UNSC,Weapon mod,Mythic,,,"The weapon has an extended barrel that increases the weapon’s Long Range by 10% and increases Pierce by 2. The length of the weapon is increased, and the weapon’s base weight is increased by 15%, or 30% of the weapon’s weight if combined with Heavy Barrel. Gives a -20 Penalty for concealing the weapon.
+ TYPE: Modification - MOUNT: Barrel - RESTRICT: Rifle, Pistol, SMG, any type of Machine Gun, Sniper Rifle",Modification,,40,FALSE
+Heavy Barrel,UNSC,Weapon mod,Mythic,,,"The weapon’s heavier barrel decreases the amount of kickback the user receives when firing. The Heavy Barrel adds (X) kg, which is 15% of the weapon’s base weight, or 30% of the weapon’s base weight, if combined with Extended Barrel. When making a Move Action, the User reduces the To Hit Penalties by 10. For example, a Full Action Move will only be at a -10 Penalty To Hit.
+ TYPE: Modification - MOUNT: Barrel - RESTRICT: None",Modification,,40,FALSE
+Misriah 864 Rifled Barrel,UNSC,Weapon mod,Mythic,,,"The Misriah Rifled Barrel is a replacement barrel for any shotgun. This Rifled Barrel, when used with Slugs, will increase the Close Range by 25%.
+ TYPE: Modification - MOUNT: Barrel - RESTRICT: Shotguns",Modification,0,50,FALSE
+Muzzle Brake,UNSC,Weapon mod,Mythic,,,"Reduces the recoil of a weapon when firing but increases the ability to spot the weapon firing. When fired while unbraced, the Muzzle Brake gives the Character a +10 Bonus to Strength Tests as to not drop the weapon.
+
+All Opponents within range to see the weapon fire or hear it gain a +10 Bonus to Perception to spot the weapon firing.
+ TYPE: Muzzle - MOUNT: Barrel - RESTRICT: None",Muzzle,0.2,25,FALSE
+Muzzle Flash Hider,,Weapon mod,Mythic,,,"When firing while Camouflaged, this halves the total Bonuses for the Investigation Test to spot the Character.
+ TYPE: Muzzle - MOUNT: Barrel - RESTRICT: None",Muzzle,0.2,20,FALSE
+Muzzle Flash Suppressor,UNSC,Weapon mod,Mythic,,,"Gives a -20 Penalty to Visual Perception to anyone that could see the weapon fire by suppressing the weapon’s flash.
+ TYPE: Muzzle - MOUNT: Barrel - RESTRICT: None",Muzzle,0.1,20,FALSE
+Sawed-Off Barrel,UNSC,Weapon mod,Mythic,,,"Halves the weapon’s barrel length and removes extensions that give accuracy for better concealment. Reduces the range and weight by 50% and gives a -10 Penalty To Hit. Weapons with the [TH] tag can be concealed as [OH] weapons. When used with the Collapsible/Folding Stock, this weapon gains a +20 Bonus to Concealing. Cannot be stacked with other Barrel Modifications.
+ TYPE: Modification - MOUNT: Barrel - RESTRICT: None",Modification,,0,FALSE
+Short Barrel,UNSC,Weapon mod,Mythic,,,"Heavily reduces weapon’s barrel length to give better concealment. Reduces the weight and range by 25%. Weapons with the [TH] tag can be concealed as [OH] weapons. When used with Collapsible/Folding Stock or is a [OH] or [DW] weapon, this weapon gains a +20 Bonus to Concealing. Cannot be stacked with Extended Barrel Modification.
+ TYPE: Modification - MOUNT: Barrel - RESTRICT: None",Modification,,40,FALSE
+SOCOM Attachment System,UNSC,Weapon mod,Mythic,,1,"The SOCOM Attachment System is an extended attachment with a Muzzle Brake, Suppressor, and a built-in VnSLS/V 6E Scope, Flashlight, and Laser Aiming Module. This may be used on any Pistol or SMG.
+
+The SOCOM gives the weapon a +1 to Pierce, gives a -20 Penalty to see or hear the weapon, and increases the weapon’s Long Range by 10%.
+
+This Attachment also gives the weapon a new firing mode, Auto (6), which replaces any other Auto firing mode the Pistol may have. This is not applicable to an SMG.
+
+No other Barrel and Lower Attachments may be used with this Attachment. Cannot be used with Barrel Modifications that shorten or remove the barrel.
+
+The SOCOM Attachment System weighs 25% of the weapon it is being purchased for. Once purchased, cannot be used with weapons with different names.
+ TYPE: Attachment - MOUNT: Barrel - RESTRICT: Pistol and SMG",Attachment,,75,FALSE
+Hush SOCOM Kit,UNSC,Weapon mod,Mythic,,1,"The Hush SOCOM Kit is an extended set of prebuilt attachments designed for use with any MA-series Carbine or Rifle. This specialized Kit is delicate, so any use of HV, HYV, +P, or +P+ ammo will cause 1D5 Breakpoints to the weapon with each shot made. The Hush Kit will give a +1 to Pierce, a -10 Penalty to see or hear the weapon, and will increase the weapon’s Optimum Range by 15%.
+	No other Barrel and Lower Attachments may be used with the Hush Kit. It also can’t be used with any Barrel Modification that removes the Barrel, such as the Sawed-Off Modification.
+	The Hush Kit weighs 20% of the weapon it is being purchased for. Once purchased, it can’t be used with weapons that have different names.
+TYPE: Attachment - MOUNT: Barrel - RESTRICT: MA-series Rifles and Carbines",Attachment,,75,FALSE
+Sound Dampener,UNSC,Weapon mod,Mythic,,,"Post-War sound suppressing system. Gives a -30 Penalty to Hearing Perception Tests to anyone that could hear the weapon fire. This can only be taken after 2557.
+TYPE: Muzzle - MOUNT: Barrel - RESTRICT: None",Muzzle,0.5,20,FALSE
+SS-M 49 Sound Suppressor,UNSC,Weapon mod,Mythic,,,"Post-War sound suppressing system. Gives a -30 Penalty to Hearing Perception Tests to anyone that could hear the weapon fire. This can only be taken after 2557.
+TYPE: Muzzle - MOUNT: Barrel - RESTRICT: None",Muzzle,,15,FALSE
+,,,,,,,,,,
+Collapsible- Folding Stock,UNSC,Weapon mod,Mythic,,,"Replaces the rear of the weapon with a Collapsing or Foldable stock. The weapon can be folded into a smaller package. Allows [HW] weapons to be Concealed as [TH] Weapons, [TH] weapons to be Concealed as [OH] weapons, and [OH] weapons to be Concealed as [DW] weapons. Gives [DW] weapons an extra +10 to Camouflage and Concealing.
+ TYPE: Stock - MOUNT: Stock - RESTRICT: Weapons with a Stock",Stock,0,15,TRUE
+Flared Magwell,UNSC,Weapon mod,Mythic,,,"Installs a flared Magwell to the weapon to assist in faster reloading. Reduces the weapon's base Reload by 1 by creating a flared opening that allows for easy magazine loading. Cannot be used with weapons that have Single Loading.
+ TYPE: Modification - MOUNT: - RESTRICT: Rifle, Carbine, Pistol, SMG, any type of Machine Gun, Sniper Rifle",Modification,0.2,33,TRUE
+Heavy Stock,UNSC,Weapon mod,Mythic,,,"Heavy Stock will reduce the amount of Meters a Player can move before an Aim Action is lost by 2 Meters. However, the Heavy Stock doubles the amount of Meters an Enemy must move before the User loses their Aim Action benefits.
+ TYPE: Stock - MOUNT: Stock - RESTRICT: Rifle, Carbine, SMG, any type of Machine Guns, Pistols with Stock Adapter",Stock,1.9,20,TRUE
+Light Stock,UNSC,Weapon mod,Mythic,,,"Light Stock allows the Character to move up to their Full Action and still keep their Aim Action active. However, this reduces the amount of Meters an Enemy must move before the User loses their Aim Action benefits by 2 Meters, to a minimum of 1. Reduces the Weapon’s Weight by 0.1 KG or weighs +0.2 KG if the weapon didn’t have a Stock.
+ TYPE: Stock - MOUNT: Stock - RESTRICT: Rifle, Carbine, SMG, any type of Machine Guns, Pistols with Stock Adapter",Stock,,25,TRUE
+Belt-Fed Conversion,UNSC,Weapon mod,Mythic,,,"Weapons that take normal magazines can be modified to be belt-fed weapons. The MAG of the weapon becomes that of the belt being used with it, and the Reload becomes 15.
+
+The Weight of the weapon is increased by 25% and the cost is 60 cR. However, a second option can be taken that allows the weapon to also use standard magazines, still. This increases the weapon’s weight by 50% and the cost is 100 cR.
+ TYPE: Modification - MOUNT: Ammunition and Firing - RESTRICT: Weapons that use Shell and Bullet ammunition",Modification,,,FALSE
+Jet Stabilizers,UNSC,Weapon mod,Mythic,,,"Micro Jet Stabilizes are attached to the barrel of the weapon, altering weapon movement when fired. 
+
+This gives the weapon +5 To Hit.
+ TYPE: Modification - MOUNT: Barrel - RESTRICT: None",Modification,1,45,FALSE
+Kinetic Bolt Modification,UNSC,Weapon mod,Mythic,,,"Replaces the Weapon’s firing mechanism with a Kinetic Charging Mechanism that coats ammunition with Hardlight. This gives the Weapon the Kinetic Special Rule, though it does not gain the +1D10 Damage against targets without Energy Shields. Instead, the weapon gains +1D10 Damage against Vehicles. This allows the Weapon to deal its normal Damage to any Vehicle that does not have the Heavy Plating Special Rule.
+
+Price of this modification is the base weapon’s Price it’s being applied to, multiplied by 5.
+ TYPE: Modification - MOUNT: Barrel - RESTRICT: Weapons that use standard bullet ammunition",Modification,0.2,,FALSE
+Lightweight Weaponry Kit,UNSC,Weapon mod,Mythic,,,"Halves the weapon’s weight by removing plating and installing lighter pieces. Halves the weapons Breakpoints and Weight.
+ TYPE: Modification - MOUNT: All - RESTRICT: None",Modification,,20,FALSE
+Micro Stock,UNSC,Weapon mod,Mythic,,,"The Micro Stock reduces the Weapon’s Weight by 15%, which is figured before any other Modifications that modify the Weapon’s Weight. Allows [HW] weapons to be Concealed as [TH] Weapons, [TH] weapons to be Concealed as [OH] weapons, and [OH] weapons to be Concealed as [DW] weapons. Gives [DW] weapons an extra +10 to Camouflage and Concealing.
+
+This also allows the Character to move up to their Full Action and still keep their Aim Action active. However, the Weapon gains a -10 To Hit.
+ TYPE: Stock - MOUNT: Stock - RESTRICT: Rifle, Carbine, SMG, any type of Machine Guns, Pistols with Stock Adapter",Stock,,20,FALSE
+Pistol Stock Adapter,UNSC,Weapon mod,Mythic,,,"Adds an attachment system that lets the user install a Heavy or Light Stock to a Pistol. Does not come with a Stock. When used, causes [DW] weapons to be concealed as [OH] Weapons and [OH] Weapons to be concealed as [TH] weapons.
+ TYPE: Modification - MOUNT: Stock - RESTRICT: Pistol",Modification,0.3,5,FALSE
+Plasma Adapter Modification,UNSC,Weapon mod,Mythic,,,"Replaces several inner mechanics of the weapon that coats the ammunition in plasma before being fired. Gives the weapon the Cauterize Special Rule. Cannot be used with the Kinetic Bolt Modification. 
+
+Price of this modification is the base weapon’s Price it’s being applied to, multiplied by 5.
+ TYPE: Modification - MOUNT: Barrel - RESTRICT: Weapons that use standard bullet ammunition",Modification,0.3,,FALSE
+Shotgun Automatic Conversion,UNSC,Weapon mod,Mythic,,,"The user modifies the shotgun to fire as Automatic instead of Pump Action. This cost double the cR of the Shotgun to perform. 
+
+The weapon’s Rate of Fire becomes Auto (X), where (X) is the original Pump Action Rate of Fire multiplied by 2, and then an extra +1 added after. For example, a weapon with Pump Action (2) becomes Auto (5).
+
+Weapons that gain the Automatic Conversion gain the general Rifle Reload Time, instead of Pump Action. This also replaces the Shotgun’s ammo feed with a Magazine of the same base Ammunition count.
+ TYPE: Modification - MOUNT: Ammunition and Firing - RESTRICT: Shotgun",Modification,0.1,,FALSE
+Weapon Camouflage,UNSC,Weapon mod,Mythic,,,"The weapon is given a camouflage of the user’s choice. Can be traded in without cost between missions. Gives a +20 Camouflage when attempting to hide the Weapon. When used alongside a User wearing a Ghillie Suit, Heavy and Two-Handed Weapons are hidden alongside them.
+ TYPE: Misc. - MOUNT: All - RESTRICT: None",Misc.,,15,FALSE
+Weapon Ghillie Cover,UNSC,Weapon mod,Mythic,,,"Weaponry can get a Ghillie Cover, which gives the weapon a +20 to Camouflage, meaning that an Opponent trying to spot it in the proper Camouflage and background, will have a -20 Penalty to spot it. This does not stack with Bonuses given from Weapon Camouflage.
+ TYPE: Misc. - MOUNT: Upper - RESTRICT: None",Misc.,1.1,20,FALSE
+,UNSC,Weapon mod,,,,Ammunition Attachments,,,,
+Bullet Loop,UNSC,Weapon mod,Mythic,,,"A Loop that holds up to six Shotgun Shells, allowing the Character to use a Reaction to reload one extra Shell in a Round. Cannot be used with the Micro Stock.
+ TYPE: Misc. - MOUNT: Stock - RESTRICT: None",Misc.,0.1,10,TRUE
+Extended Magazine,UNSC,Weapon mod,Mythic,,,"Extended Magazine that offers double the weapon’s ammunition. This increases the weapon’s weight by 0.05 KG per round in the original Magazine. The price is 1/4th the rounds in the Magazine in cR.
+
+Due to the larger Magazine size, firing the weapon Prone gives a -5 Penalty To Hit.
+ TYPE: Magazine - MOUNT: Magazine - RESTRICT: Weapons that use Magazines or Clips",Magazine,,,TRUE
+Reduced-Capacity Magazine,UNSC,Weapon mod,Mythic,,,"A reduced-capacity magazine that halves the weapon’s Magazine count. This reduces the weapon’s weight by 0.02 KG per each round less than the original magazine and reduces the weapon’s Reload Time by 2, to a minimum of 1. The price is 1/4th the rounds in the Magazine in cR, to a minimum of 2.
+ TYPE: Magazine - MOUNT: Magazine - RESTRICT: Weapons that use Magazines or Clips",Magazine,,,TRUE
+Speed Loader,UNSC,Weapon mod,Mythic,,,"Allows a Revolver weapon to be fully reloaded as a Half Action. A Speed Loader can only be used once before it needs to have its ammunition restocked, which uses the same rules as loading a magazine.
+ TYPE: Misc. - MOUNT: N/A - RESTRICT: Revolver Pistols",Misc.,0.1,18,TRUE
+Drum Magazine,UNSC,Weapon mod,Mythic,,,"A Drum Magazine that offers triple the ammunition in the weapon’s Magazine. Any weapon’s Magazine is tripled, increasing the weapon’s weight by 0.05 KG per round, multiplied by 2, in the original Magazine. The price is 1/4th the rounds in the Magazine in cR.
+ TYPE: Magazine - MOUNT: Magazine - RESTRICT: Weapons that use Magazines or Clips",Magazine,,,FALSE
+Dual-Sided Magazine,UNSC,Weapon mod,Mythic,,,"Two linked Magazines at opposing ends. The Magazines each empty as usual, but when reloading from one of the linked Magazines to another lower the weapon’s Base Reload Time by -2. The price is 1/3rd the cost of how many rounds are in the Dual-Sided Magazine in cR.
+  Due to the longer Magazine size, firing the weapon Prone gives a -5 Penalty To Hit. 
+ TYPE: Magazine - MOUNT: Magazine - RESTRICT: Weapons that use Magazines or Clips",Magazine,,,FALSE
+Extended Belt,UNSC,Weapon mod,Mythic,,,"The belt of any belt-fed weapon is doubled in size. This increases the weight of the weapon by 0.05 KG per round in the belt. The price is 1/4th the rounds in the new sized Belt.
+ TYPE: Magazine - MOUNT: Magazine - RESTRICT: Belt-Fed Weapons",Magazine,,,FALSE
+,,,,,,,,,,
+,,,,,,,,,,
+Standard Ammo - Armor Piercing (AP),UNSC,Special ammo,Mythic,,+4,"[Pierce: +4]
+Compatibility: HE, IN, HV, HYV, MG, DU",,0,0.3,FALSE
+Standard Ammo - High-Explosive (HE),UNSC,Special ammo,Mythic,+1D10,,"[Damage: +1D10]
+Blast (1) Special Rule.
+If the weapon has 4D10 or more base Dice Damage, gain Blast (1). Blast is increased by 1 for every 1D10 base extra after 4D10.
+Compatibility: AP, IN, HV, HYV, MG, DU, T, HP",,0,0.4,FALSE
+Standard Ammo - Shredder (JHP),UNSC,Special ammo,Mythic,+6,,"[Damage: +6]
++1D10 Special Damage Bonus
+Compatibility: HV, HYV, MG, T",,0,0.9,FALSE
+Standard Ammo - Soft Point (JSP),UNSC,Special ammo,Mythic,+5,,"[Damage: +5]
+Compatibility: HV, HYV, MG, T",,0,0.2,FALSE
+Standard Ammo - Incendiary (IN),UNSC,Special ammo,Mythic,,,"Flame (2) Special Rule.
+Compatibility: AP, HE, SAP, HV, HYV, MG, DU, T, HP",,0,1,FALSE
+Standard Ammo - Hollow Point (HP),UNSC,Special ammo,Mythic,+5,,"[Damage: +5]
++1D10 Special Damage Bonus
+Cannot Pierce Through Characters.
+Compatibility: HE, IN, HV, HYV, T, CL, MG",,0,0.8,FALSE
+Standard Ammo - High Velocity (HV),UNSC,Special ammo,Mythic,+3,+3,"[Damage: +3, Pierce: +3]
++10 to Perception Tests to spot this weapon fire.
+Compatibility: All except HYV and CL",,0,0.6,FALSE
+Standard Ammo - Hyper velocity (HYV),UNSC,Special ammo,Mythic,+6,+6,"[Damage: +6, Pierce: +6]
++30 to Perception Tests to spot this weapon fire.
+Compatibility: All except HV and CL",,0,1.1,FALSE
+Standard Ammo - Stun Round (STRD),UNSC,Special ammo,Mythic,,,"Stun (1), Nonlethal Special Rule.
+Compatibility: MG, T",,0,0,FALSE
+Standard Ammo - Tracer (T),UNSC,Special ammo,Mythic,,,"+5 Bonus To Hit.
+All shooters firing at a target hit with tracers within the same Round get a +10 Bonus To Hit. If the Target can see the Tracer Fire, they gain a +10 Bonus to Evasion for that Attack.
+Compatibility: All",,0,0.6,FALSE
+Standard Ammo - Saboted Light Armor Penetrator (SLAP),UNSC,Special ammo,Mythic,,+8,"[Pierce: +8]
+Compatibility: HV, HYV, MG, T, HP, DU",,0,0.2,FALSE
+Standard Ammo - Semi-Armor Piercing (SAP),UNSC,Special ammo,Mythic,,+3,"[Pierce: +3]
+Compatibility: HE, T, IN, HV, HYV, MG, HP",,0,0.1,FALSE
+Standard Ammo - Cold Load (CL),UNSC,Special ammo,Mythic,,,"When used with suppressor, -20 Perception Tests to hear weapon firing.
+Compatibility: All except HV and HYV",,0,0.5,FALSE
+Standard Ammo - Tactical Training Rounds (TTR),UNSC,Special ammo,Mythic,,,"Nonlethal Special Rule.
+When hit, the character must make a +10 Toughness Test or gain +1 Fatigue. Nonlethal Special Rule.
+Compatibility: MG, T",,0,0.4,FALSE
+Standard Ammo - Match Grade (MG),UNSC,Special ammo,Mythic,,,"Match Grade gives a 25% increase to the Weapon’s Close Range.
+Compatibility: All",,0,1,FALSE
+Standard Ammo - Depleted Uranium (DU),UNSC,Special ammo,Mythic,,+7,"[Pierce: +7]
+Flame (1D5) Special Rule.
+Compatibility: All except JHP, JSP, HP, and SAP",,0,1.3,FALSE
+Standard Ammo - Sabot (APFSDS),UNSC,Special ammo,Mythic,,+15,"[Pierce: +15]
++10 Bonus To Hit.
+Round is given a jacket that stabilizes trajectory. Sabot is shed mid-flight.
+Compatibility: HV, HYV, MG, DU",,0,1.5,FALSE
+,UNSC,Special ammo,Mythic,,,Compatibility: ,,0,#DIV/0!,FALSE
+Standard Ammo - Duplex (DX),UNSC,Special ammo,Mythic,,+8,"[Pierce: +8]
++10 Bonus To Hit.
+Compatibility: HE, IN, HV, HYV, MG, DU, HP",,0,1,FALSE
+Standard Ammo - BOLO (BOL),UNSC,Special ammo,Mythic,,,"Homing Special Rule. +10 Bonus To Hit, +1D10 Special Damage Bonus.
+If the weapon has 4D10 or more base Dice Damage, gain Blast (1). Blast is increased by 1 for every 1D10 base extra after 4D10.
+Compatibility: AP, IN, HV, HYV, MG, DU, T, HP",,0,0.6,FALSE
+Standard Ammo - Frangible (FR),UNSC,Special ammo,Mythic,,,"+1D10 Special Damage Bonus
+Compatibility: HV, HYV, MG, T",,0,0,FALSE
+Standard Ammo - Expanding (EG),UNSC,Special ammo,Mythic,,,"+10 Special Damage Bonus
+Compatibility: HV, HYV, MG, T",,0,0.5,FALSE
+Standard Ammo - Over-Pressurized (+P),UNSC,Special ammo,Mythic,+5,+7,"[Damage: +5, Pierce: +7]
+-5 Penalty To Hit.
+Compatibility: HV, HYV, MG, T",,0,1,FALSE
+,UNSC,Special ammo,Mythic,,,Compatibility: ,,0,#DIV/0!,FALSE
+Shotgun - Bird Shot (BS),UNSC,Special ammo,Mythic,,,"+20 Bonus To Hit.
++20 Bonus To Hit.
+Compatibility: All Shot Shells",,0,0,FALSE
+Shotgun - Breaching Shot (BCR),UNSC,Special ammo,Mythic,+5,+3,"[Damage: +5, Pierce: +3]
+Halves the range of the weapon. Deals double damage against objects.
+Compatibility: All Shot Shells",,0,0.8,FALSE
+Shotgun - Flechette Shot (FL),UNSC,Special ammo,Mythic,,+8,"[Pierce: +8]
+Compatibility: All Shot Shells",,0,0,FALSE
+Shotgun - Fragmentation Shot (FRST),UNSC,Special ammo,Mythic,,,"Blast (1) Special Rule.
+Compatibility: All Shot Shells",,0,0,FALSE
+Shotgun - Incendiary Shot (INST),UNSC,Special ammo,Mythic,,,"Flame (2) Special Rule.
+Flame(2) to any Character or surface impacted. Reduced to Flame (1) further than Close Range.
+Compatibility: All Shot Shells",,0,0.9,FALSE
+Shotgun - BOLO Shot (BST),UNSC,Special ammo,Mythic,,,"+2D10 Special Damage Bonus
+Compatibility: All Shot Shells",,0,0.9,FALSE
+Shotgun - Foster  Slug (FS),UNSC,Special ammo,Mythic,+1D10,,"[Damage: +1D10]
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,0.7,FALSE
+Shotgun - Breaching Slug (BSL),UNSC,Special ammo,Mythic,,+12,"[Pierce: +12]
+Halves the range of the weapon. Deals double damage against objects.
+Compatibility: None",,0,0.4,FALSE
+Shotgun - Depleted Uranium Slug (DS),UNSC,Special ammo,Mythic,,+10,"[Pierce: +10]
+Flame (2D5) Special Rule.
+Energy Penetrator rounds made of Depleted Uranium. Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,4,FALSE
+Shotgun - Fragmentation Slug (FRS),UNSC,Special ammo,Mythic,+1D10,,"[Damage: +1D10]
+Blast (2) Special Rule.
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,0.8,FALSE
+Shotgun - Incendiary Slug (INS),UNSC,Special ammo,Mythic,,,"Flame (2D5) Special Rule.
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,3.3,FALSE
+Shotgun - Magnum Slug (MN),UNSC,Special ammo,Mythic,+5,+2,"[Damage: +5, Pierce: +2]
+Penetrating, Kinetic Special Rule.
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,3.4,FALSE
+Shotgun - Stun Slug (STNL),UNSC,Special ammo,Mythic,,,"Stun (3), Nonlethal Special Rule.
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,0.2,FALSE
+Shotgun - Solid Slug (SSL),UNSC,Special ammo,Mythic,+10,,"[Damage: +10]
+Kinetic Special Rule.
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,2.8,FALSE
+Shotgun - Tactical Training Rounds (TTR),UNSC,Special ammo,Mythic,,,"Nonlethal Special Rule.
+When hit, the Opponent must make a Toughness Test or gain a Fatigue. For every one that hits, the test gains a -10 Penalty. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: TZ",,0,0.2,FALSE
+Shotgun - Taser Slug (TZ),UNSC,Special ammo,Mythic,,,"Electrified (1D10) Special Rule.
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: TTR",,0,1,FALSE
+Shotgun - Tungsten Slug (TSL),UNSC,Special ammo,Mythic,,+12,"[Pierce: +12]
+Penetrating Special Rule.
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,1.1,FALSE
+Shotgun - BOLO Slug (BO),UNSC,Special ammo,Mythic,,,"+3D10 Special Damage Bonus
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,1.2,FALSE
+Shotgun - SABOT Slug (SS),UNSC,Special ammo,Mythic,,+12,"[Pierce: +12]
+Kinetic Special Rule.
+Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,1.8,FALSE
+Shotgun - Rifled Slug (RS),UNSC,Special ammo,Mythic,,,"Can only be taken with other Slugs and cannot be taken on its own. Increases the Weapon’s Close Range by 25%, removes Spread Special Rule. Close Range cannot surpass Optimal Range. Slugs double the Close and Optimal Range of the weapon.
+Compatibility: None",,0,1,FALSE
+,UNSC,Special ammo,Mythic,,,Compatibility: ,,0,#DIV/0!,FALSE
+14.5X114mm And Gauss Slug - Grappling Round (GR),UNSC,Special ammo,Mythic,,+6,"[Pierce: +6]
+A long harpoon shaft placed into the barrel to be fired off with an attached 200 Meter nanotube rope. The Grappling Round attaches to any surface the Attack pierces. To load this Round, you must remove the Magazine and load in the Grappling Round from the weapon’s Barrel. This takes one Full Action.
+Compatibility: None",,0,0,FALSE
+,UNSC,Special ammo,Mythic,,,Compatibility: ,,0,#DIV/0!,FALSE
+Flamethrower Fuel - Self-Oxidizing Fuel Mixture (SOF),UNSC,Special ammo,Mythic,,,"Allows the Cryosprayer to be used in a vacuum or atmosphere lacking Oxygen.
+Compatibility: All",,0,0,FALSE
+Flamethrower Fuel - Napalm Defoliant,UNSC,Special ammo,Mythic,+4,,"[Damage: +4]
+Beginning at -30 for the first test, each consecutive Agility Test to put out the fire will get a +10 until this Penalty reaches 0.
+Compatibility: SOF",,0,0.2,FALSE
+Flamethrower Fuel - Nitrace-Ether Defoliant,UNSC,Special ammo,Mythic,,,"+20 meters Range
+Compatibility: SOF",,0,0,FALSE
+Flamethrower Fuel - Triethylaluminium,UNSC,Special ammo,Mythic,,,"Doubles Flame (X) of the Weapon, deals Flame Special Rule even if the struck Character took no Damage. Burns clear, giving -10 Penalty To Hit and to Evasion.
+Compatibility: SOF",,0,3,FALSE
+Flamethrower Fuel - White Diamond Defoliant,UNSC,Special ammo,Mythic,+30,,"[Damage: +30]
+Halves usable range of the Flamethrower, but sprays White Phosphorous, dealing double the Base Damage.
+Compatibility: SOF",,0,3,FALSE
+,UNSC,Special ammo,Mythic,,,Compatibility: ,,0,#DIV/0!,FALSE
+Cryo Sprayer Fuel - Liquid Oxygen,UNSC,Special ammo,Mythic,+3,,"[Damage: +3]
+A faster spraying, more reactive fuel source for the Cryosprayer. Increases range by 10 Meters.
+Compatibility: None",,0,1,FALSE
+Cryo Sprayer Fuel - Liquid Neon,UNSC,Special ammo,Mythic,,+10,"[Pierce: +10]
+Powerful liquid neon that explosively ejects from the Cryosprayer.
+Compatibility: None",,0,1,FALSE
+Cryo Sprayer Fuel - Liquid Hydrogen,UNSC,Special ammo,Mythic,+10,+5,"[Damage: +10, Pierce: +5]
+An incredibly cold fuel source for the Cryosprayer that reduces Range by 10 meters.
+Compatibility: None",,0,2.5,FALSE
+Cryo Sprayer Fuel - Liquid Helium,UNSC,Special ammo,Mythic,+20,,"[Damage: +20]
+A slow and dangerous fuel source. Characters take double the Fatigue from each Attack made with the Cryosprayer.
+	Opponent gains a +10 To Evade this Ammunition Type when further than 10 Meters away. Opponent gains an additional +10 to Evade when further than 20 Meters away and the Damage bonus this Ammunition is given is lost beyond 20 meters out.
+Compatibility: None",,0,5.5,FALSE
+,UNSC,Special ammo,Mythic,,,Compatibility: ,,0,#DIV/0!,FALSE
+40mm - Fragmentation,UNSC,Special ammo,Mythic,+3D10+9,+12,"[Damage: +3D10+9, Pierce: +12]
+Blast (8), Kill (4) Special Rule.
+Compatibility: None",,0,11,FALSE
+40mm - Smoke,UNSC,Special ammo,Mythic,+1D5+4,+1,"[Damage: +1D5+4, Pierce: +1]
+Blast (15) Special Rule.
+Covers a diameter of Blast (15) meters in thick smoke.
+Compatibility: None",,0,3,FALSE
+40mm - Buckshot Canister,UNSC,Special ammo,Mythic,+5D10+5,+20,"[Damage: +5D10+5, Pierce: +20]
+Spread Special Rule.
+Range reduced to 15m-90m. Replaces 40mm Launcher Impact Damage.
+Compatibility: None",,0,7,FALSE
+40mm - Slug Canister,UNSC,Special ammo,Mythic,+6D10+14,+15,"[Damage: +6D10+14, Pierce: +15]
+Kinetic Special Rule.
+Acts as a shotgun slug, Range reduced to 25m-110m. Replaces 40mm Launcher Impact Damage.
+Compatibility: None",,0,9,FALSE
+40mm - Incendiary,UNSC,Special ammo,Mythic,+1D5+1,+21,"[Damage: +1D5+1, Pierce: +21]
+Flame (2D5), Blast (10), Kill (5) Special Rule.
+Compatibility: None",,0,14,FALSE
+40mm - Thermobaric,UNSC,Special ammo,Mythic,+6D10+15,+15,"[Damage: +6D10+15, Pierce: +15]
+Blast (6), Kill (6) Special Rule.
+Compatibility: None",,0,18,FALSE
+40mm - Flashbang,UNSC,Special ammo,Mythic,+1D5+4,+1,"[Damage: +1D5+4, Pierce: +1]
+Blast (25), Kill (3) Special Rule.
+Flashbang.
+Compatibility: None",,0,7,FALSE
+40mm - Parachute Flare,UNSC,Special ammo,Mythic,+1D10,,"[Damage: +1D10]
+Flame (1D5), Blast (2) Special Rule.
+An incredibly bright Flare that falls very slowly, supported by a small parachute. Lights up a radius of 350 Meters. Flame (1D5) within Blast (2). The Parachute Flare stays in the air for (X) Rounds, where (X) is how many Meters from the Ground it is.
+Compatibility: None",,0,3,FALSE
+40mm - Infrared Illuminator,UNSC,Special ammo,Mythic,+1D5+1,+1,"[Damage: +1D5+1, Pierce: +1]
+Provides Infrared Illumination out to 120 Meters.
+Compatibility: None",,0,1,FALSE
+40mm - Tear Gas,UNSC,Special ammo,Mythic,+1D5+1,+1,"[Damage: +1D5+1, Pierce: +1]
+Blast (25), Kill (1) Special Rule.
+Blast (25), Kill (1), Tear Gas Special Rule.
+Compatibility: None",,0,5,FALSE
+40mm - EMP-G,UNSC,Special ammo,Mythic,,,"EMP (6), Blast (8) Special Rule.
+EMP (6) Special Rule within Blast (8).
+Compatibility: None",,0,16,FALSE
+40mm - Thermite Canister,UNSC,Special ammo,Mythic,+2D10+20,+70,"[Damage: +2D10+20, Pierce: +70]
+Cauterize, Blast (10), Kill (4) Special Rule.
+Powerful, hot burning material used to melt through the floor of a Frigate. Charge (1) Special Rule and lasts for 10 Rounds. Thermite-A will deal half Damage and Pierce to those within 10 Meters of the Thermite-A Grenade.
+Compatibility: None",,0,20,FALSE
+40mm - White Diamond,UNSC,Special ammo,Mythic,+1D10+10,+10,"[Damage: +1D10+10, Pierce: +10]
+Flame (4D10), Blast (8), Kill (4) Special Rule.
+Compatibility: None",,0,50,FALSE
+40mm - Cryo Grenade,UNSC,Special ammo,Mythic,+1D5,+14,"[Damage: +1D5, Pierce: +14]
+Cryo (1D10), Blast (8), Kill (4) Special Rule.
+Compatibility: None",,0,20,FALSE
+40mm - Cryobaric Prototype,UNSC,Special ammo,Mythic,+3D10,+25,"[Damage: +3D10, Pierce: +25]
+Cryo (8), Blast (8), Kill (4) Special Rule.
+Compatibility: None",,0,34,FALSE
+,UNSC,Special ammo,Mythic,,,Compatibility: ,,0,#DIV/0!,FALSE
+"Missiles, Rockets, Cannons - Armor Piercing (AP)",UNSC,Special ammo,Mythic,,,"Removes Blast and Kill, doubles Base Damage and Pierce.
+Compatibility: All except HEAT, HESH, SC",,0,0,FALSE
+"Missiles, Rockets, Cannons - High-Explosive Anti-Tank (HEAT)",UNSC,Special ammo,Mythic,,+5,"[Pierce: +5]
+Halves Blast and Kill Radius, gives an extra +15 Pierce against Vehicles and Cover, or +5 Pierce against Vehicles with the Heavy Plating Special Rule.
+Compatibility: All except HESH, SC, AP, HE",,0,0,FALSE
+"Missiles, Rockets, Cannons - High-Velocity (HV)",UNSC,Special ammo,Mythic,,,"Increases the launcher’s Close Range by 25%.
+Compatibility: Any",,0,15,FALSE
+"Missiles, Rockets, Cannons - High-Explosive (HE)",UNSC,Special ammo,Mythic,+5,,"[Damage: +5]
+Increases Blast and Kill Radius by 3.
+Compatibility: All except HEAT",,0,8,FALSE
+"Missiles, Rockets, Cannons - Fragmentation (FG)",UNSC,Special ammo,Mythic,+1D10,,"[Damage: +1D10]
+Increases Blast Radius by 7 and halves Explosive Knockback.
+Compatibility: Any",,0,8,FALSE
+"Missiles, Rockets, Cannons - High-Explosive Squash Head (HESH)",UNSC,Special ammo,Mythic,,,"Kinetic Special Rule.
+Halves Blast and Kill Radius.
+Compatibility: All except HEAT, SC, AP",,0,2,FALSE
+"Missiles, Rockets, Cannons - Sabot Charge (SC)",UNSC,Special ammo,Mythic,,+20,"[Pierce: +20]
+Reduces Blast and Kill Radius by half, to a minimum of 1.
+Compatibility: All except HESH, HEAT, AP",,0,0,FALSE
+"Missiles, Rockets, Cannons - Incendiary (IN)",UNSC,Special ammo,Mythic,,,"Flame (2D5) Special Rule.
+Compatibility: Any",,0,3,FALSE
+"Missiles, Rockets, Cannons - Thermite (TH)",UNSC,Special ammo,Mythic,,+20,"[Pierce: +20]
+Cauterize Special Rule.
+Blast Special Rule lasts for 5 Rounds.
+Compatibility: None",,0,50,FALSE
+"Missiles, Rockets, Cannons - Thermobaric (TB)",UNSC,Special ammo,Mythic,+3D10,,"[Damage: +3D10]
+Increases Blast and Kill Radius by 5 Meters, double Explosive Knockback.
+Compatibility: None",,0,30,FALSE
+"Missiles, Rockets, Cannons - Depleted Uranium (DU)",UNSC,Special ammo,Mythic,+10,+15,"[Damage: +10, Pierce: +15]
+Flame (3D10) Special Rule.
+Halves Blast and Kill Radius.
+Compatibility: None",,0,35,FALSE
+"Missiles, Rockets, Cannons - White Diamond (WP)",UNSC,Special ammo,Mythic,,,"Flame (5D10) Special Rule.
+Compatibility: None",,0,75,FALSE
+,UNSC,Special ammo,Mythic,,,Compatibility: ,,0,#DIV/0!,FALSE
+Brute Shot - EMP,UNSC,Special ammo,Mythic,,,"EMP (3) Special Rule.
+Creates an EMP (3) within the Blast Radius of the weapon.
+Compatibility: None",,0,2.9,FALSE
+Brute Shot - Fire,UNSC,Special ammo,Mythic,+5,,"[Damage: +5]
+Removes the weapon’s Kill Radius but replaces it with Flame (2D5).
+Compatibility: None",,0,3.5,FALSE
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,COVENANT PATTERNS,,,,
+Assault pattern Systems,Covenant,Weapon mod,Mythic,5,8,"The weapon gains +5 Damage, -8 Pierce.", Primary,0,Weapon price x2,FALSE
+Guard Pattern Systems,Covenant,Weapon mod,Mythic,,,An energy bayonet is added to the weapon. The blade is a Covenant Energy Dagger with +1 reach., Primary,0,Weapon price x2,FALSE
+Heavy Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon gains the Dice Minimum (3) Special Rule., Primary,0,Weapon price x2,FALSE
+Marauder Pattern Systems,Covenant,Weapon mod,Mythic,,,"Can only be used with Needle-based weaponry. Reduces the needle(X) of a weapon by 1, minimum of 1.", Primary,0,Weapon price x2,FALSE
+Officer Pattern Systems,Covenant,Weapon mod,Mythic,1D10,-5,"The weapon gains +1D10 Damage, -5 Pierce.", Primary,0,Weapon price x3,FALSE
+Ranger Pattern Systems,Covenant,Weapon mod,Mythic,-4,12,"The weapon gains -4 Damage, +12 Pierce.", Primary,0,Weapon price x3,FALSE
+Stalker Pattern Systems,Covenant,Weapon mod,Mythic,-3,-3,Reduces the Damage and Pierce by 3. And allows the weapon to be fired without affecting Active Camo., Primary,0,Weapon price x2,FALSE
+Support pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon loses all Kill and doubles its Blast., Primary,0,Weapon price x2,FALSE
+Tracker Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon gains the Homing Special Rule but is at a -10 Penalty To Hit., Primary,0,Weapon price x1,FALSE
+Accord Pattern Systems,,,,,,The weapon gains the ability to use human attachments with a top Rail installed., Primary,0,Weapon Price x1,FALSE
+,Covenant,Weapon mod,Mythic,,,,,,,FALSE
+Assault pattern Systems,Covenant,Weapon mod,Mythic,,,"When making Charge or Run actions, the Penalty To Hit is reduced by 15.",Secondary,0,Weapon Price x1,FALSE
+Guard Pattern Systems,Covenant,Weapon mod,Mythic,,,Can only be used with Plasma-based weaponry. Increases projectile velocity and decay rate. Grants the weapon a +10 To Hit.,Secondary,0,Weapon Price x1,FALSE
+Heavy Pattern Systems,Covenant,Weapon mod,Mythic,,,The Magazine capacity of the weapon is doubled.,Secondary,0,Weapon Price x1,FALSE
+Marauder Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon gains a +20 to concealment and allows [HW] weapons to be concealed as [TH] weapons. The weapon must be rebuilt before use. Rebuilding the weapon takes as long as its base reload in actions.,Secondary,0,Weapon Price x1,FALSE
+Officer Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapons furniture is replaced with Decorated plating and symbols which give a +10 to leadership and charisma Tests against characters of your own faction.,Secondary,0,Weapon Price x1,FALSE
+Ranger Pattern Systems,Covenant,Weapon mod,Mythic,,,The Maximum Range of the weapon is doubled.,Secondary,0,Weapon Price x1,FALSE
+Stalker Pattern Systems,Covenant,Weapon mod,Mythic,,,The Close Range and Maximum range of the weapon increases by 50%.,Secondary,0,Weapon Price x1,FALSE
+Support pattern Systems,Covenant,Weapon mod,Mythic,,,Explosive launchers only. When fired indirectly the weapon’s max range is quadrupled and its projectile only detonates when it hits an object or terrain.,Secondary,0,Weapon Price x1,FALSE
+Tracker Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon gains a +10 Bonus to Strength Tests to not drop the weapon when firing. Halves the weapons Breakpoints and Weight.,Secondary,0,Weapon Price x1,FALSE
+Accord Pattern Systems,,,,,,The weapon gains the ability to use human attachments with a side Rail installed.,Secondary,0,Weapon Price x1,FALSE
+,Covenant,Weapon mod,Mythic,,,,,,,FALSE
+Assault pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon gains a +5 Bonus To Hit when in Close Range.,Tactical,0,16,FALSE
+Guard Pattern Systems,Covenant,Weapon mod,Mythic,,,Any weapon that has the Homing Special Rule or the Vehicle Lock Special Rule gains an extra +5 To Hit.,Tactical,0,60,FALSE
+Heavy Pattern Systems,Covenant,Weapon mod,Mythic,,,"The weapons scope gains Thermal Imaging Special Rule and can automatically mark weak spots on known vehicles, reducing the Penalty to hit sublocations by 5.",Tactical,0,42,FALSE
+Marauder Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon gains a 1x Ironsight and loses its Smartlink scope.,Tactical,0,0,FALSE
+Officer Pattern Systems,Covenant,Weapon mod,Mythic,,,Gives other Characters a +10 for firing at targets hit with this weapon in Combined Actions.,Tactical,0,28,FALSE
+Ranger Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon gains a +5 Bonus To Hit when using its optics in Optimal Range or Long Range.,Tactical,0,56,FALSE
+Stalker Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon gains a holographic display which can automatically scan and track targets. The module can track targets for up to 4 Rounds after the Character is no longer within the User’s sight. This includes Cloaked and hidden targets.,Tactical,0,70,FALSE
+Support pattern Systems,Covenant,Weapon mod,Mythic,,,So long as the weapon is pointed towards the target and a spotter has a SmartLink capable designator pointed at the target a target indicator can be streamed into a linked device. This gives a +40 to Indirect fire and allows the weapon to be fired remotely using Smartlink.,Tactical,0,80,FALSE
+Tracker Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon is fitted with a holographic display which displays the radius of its effective blast and kill. Explosives fired by the weapon reduce their scatter by 1 degree of failure to a minimum of 1.,Tactical,0,48,FALSE
+Accord Pattern Systems,Covenant,Weapon mod,Mythic,,,The weapon can take Human Conversion Modifications.,Tactical,0,25,FALSE
+,,,,,,COVENANT FIREARMS,,,,
+Automatic Upgrade,Covenant,Weapon mod,Mythic,,,"Any non-Automatic Semi-Automatic weapon is modified to become Fully Automatic, replacing Semi-Auto(X) with Auto (X). If a weapon already has an Automatic firing mode, it cannot receive this Modification.To figure the weapon’s new Rate of Fire, you multiply Semi-Auto (X) by 2, and then add +1. For example, a weapon with Semi-Auto (3) becomes Auto (7). The cost of this modification is the weapon’s cost.",Modification,0,0,FALSE
+Blood of Suban,Covenant,Weapon mod,Mythic,1,-3,Any Covenant Carbine rifle is able to be modified to replace their 8.7x60mm CRP Round with a Subanese Blamite Crystal shard. This upgrade gives the weapon the Needle (5) Special Rule. The weapon must be reloaded with Needle Rifle Blamite Crystals and no longer works with the 8.7x60mm Rounds.,Modification,0,70,FALSE
+Urs’ Gift,Covenant,Weapon mod,Mythic,-1,-1,"The weapon’s Rate of Fire is increased by 50% of it’s original Rate of Fire. If the weapon has Auto (6), it will be increased to Auto (9). If 50% is not enough to increase the Rate of Fire by 1, it will increase the Rate of Fire by 1. Price is +20 cR for every +1 added to the Rate of Fire.",Modification,0,0,FALSE
+Radiance,Covenant,Weapon mod,Mythic,,,"Explosive Launcher weaponry are compatible with the Radiance Modification. This Modification increases the distance in which Blast and Kill radius reach.For every 4 Meters the Weapon’s Blast reaches, it gains an extra +1 Meter to that range. For every 3 Meters of the Weapon’s Kill reaches, it gains an extra +1 Meter to that range. If either Blast or Kill are below the number needed to be increased by Radiance, they are increased by 1 Meter. The price of this modification is the weapon’s original cost, multiplied by 2.",Modification,0,0,FALSE
+Twin Attendants,Covenant,Weapon mod,Mythic,,,"Any Plasma-based weapon can gain the Twin Attendants modification. This modification is highly unstable, but for every shot the weapon would make, it makes two, instead. For example, a weapon that would fire one Plasma bolt would fire two at that time. This also means that every shot made takes double the magazine cost. Each shot fired needs to be Evaded separately. Due to being unstable, after every Round, the weapon gains a 2% chance of overheating for every shot taken that turn. If the weapon does overheat, it gains the Overheat (X) Special Rule, where (X) is how many shots were fired that Round. The price of this modification is the weapon’s original cost multiplied by 2.",Modification,0,0,FALSE
+Slumber,Covenant,Weapon mod,Mythic,,,"Any Plasma-based weapon can gain the Slumber modification. The weapons is fitted with fission-induced plasma cyclers. On impact, Slumber Plasma reaches near-critical plasma fission causing a blast of energy. Each time a Character is struck with this, they are pushed back 1 Meter. The Weapon’s Pierce is reduced by 1/4th of its original Pierce. The Price of this modification is the weapon’s Rate of Fire multiplied by 10.",Modification,0,0,FALSE
+Jiralhanae Bayonet,Covenant,Weapon mod,Source,,,"Adds a Jiralhanae Combat Knife as a Bayonet to the weapon. This modification is not illegal within the Covenant, but heavily looked down upon by all races except Jiralhanae. The Jiralhanae will also look down on Sangheili Characters who use it. This drops the Disposition of these Characters towards the User by two.",Modification,0,28,FALSE
+,,,,,,,,,,
+,,Weapon mod,,,,COVENANT MELEE,,,,
+Unstable,Covenant,Weapon mod,Mythic,,,"The energy blade’s color changes to a purple, red, or white. The sword rolls a Critical Hit on a 9 or 10. An Unstable sword cannot cloak with the Character using it.",Energy Sword,0,125,FALSE
+Incursion,Covenant,Weapon mod,Mythic,,,"The energy blade’s length is increased, giving the weapon +1 Meter to the Melee Reach.",Energy Sword,0,150,FALSE
+Refraction,Covenant,Weapon mod,Mythic,,,The weapon is outfitted with a protective hand guard. This gives the Character’s Hand that is holding the weapon a +5 Bonus to Armor. This hand guard also gives the Character a +10 Bonus to defending against being Disarmed.,Energy Sword,0,100,FALSE
+Devotion,Covenant,Weapon mod,Mythic,10,-10,"The energy blade glows incredibly bright and has a less stable magnetic-field generator, causing the blade to warp and send out arcs of plasma when the weapon is used in an Attack. Other characters within a Meter of the Target of this weapon must make an Evasion Roll or also be damaged by the energy blade’s plasma arcs. This Attack does not figure in the energy blade’s Pierce when Damaging the other Characters.  This Modification also gives others a +10 to Visual Perception Tests to spot the Weapon.",Energy Sword,0,175,FALSE
+Weightless,Covenant,Weapon mod,Mythic,,-4,"The weapon is made 25% lighter. Due to the lighter-weight modification, the weapon also glows dully and deals less Pierce, overall.",Energy Sword,0,50,FALSE
+Blind,Covenant,Weapon mod,Mythic,,15,The weapon is made 25% heaver and is made nearly invisible to the naked eye unless you are up close to the weapon. This gives Characters a -30 Penalty to Visual Perception Tests to spot the weapon. The sword is given a -10 Penalty to Parrying and a -10 Penalty to being Parried.,Energy Sword,0,400,FALSE
+Night,Covenant,Weapon mod,Mythic,-5,-5,"The weapon is built with a cloaking unit, which counts as the Character using it to have a Cloaking Unit when held. The weapon and the User are both cloaked when activated.",Energy Sword,0,400,FALSE
+Fireblade,Covenant,Weapon mod,Mythic,,,"Serrated edges are added to the middle of each side of the Energy Sword. These are designed to allow the Energy Sword to catch and parry, giving a +10 Bonus to Parrying.",Energy Sword,0,100,FALSE
+Crushing,Covenant,Weapon mod,Mythic,10,,"The large blade of the Gravity Hammer is removed and replaced with powerful thrusters. When the Hammer’s Gravity effect is activated, the Hammer gains a +10 Bonus to Base Damage to that Attack.",Gravity Hammer,0,100,FALSE
+Power,Covenant,Weapon mod,Mythic,,,"The Hammer is larger and bulkier. The hammer weighs an extra 12 KG and is given a +1 Meter to Melee Reach.  The weapon also gains Gravity (5), instead of Gravity (4).",Gravity Hammer,0,200,FALSE
+Edge,Covenant,Weapon mod,Mythic,,,"The blade on the Gravity Hammer is increased in size, similar to a Battle Axe. This gives the blade of the weapon +3 to Damage and +1 to Pierce. This increases the weight of the Hammer by 3 KG.",Gravity Hammer,0,200,FALSE
+Respite,Covenant,Weapon mod,Mythic,,,The Hammer is given a longer handle. This gives the weapon a +1 Meter to Melee Reach.,Gravity Hammer,0,100,FALSE
+Guard,Covenant,Weapon mod,Mythic,,,The weapon is outfitted with a protective hand guard. This gives the Character’s Hand that is holding the weapon a +5 Bonus to Armor. This hand guard also gives the Character a +10 Bonus to defending against being Disarmed.,Gravity Hammer,0,100,FALSE
+Lightweight,Covenant,Weapon mod,Mythic,,,"The Hammer’s length is reduced, reducing the weight of the Hammer by 17 KG. This also reduces the weapon’s Melee Reach by -1 Meter.",Gravity Hammer,0,150,FALSE
+Volatile,Covenant,Weapon mod,Mythic,,,"The Hammer’s Gravity Special Rule no longer hits as a radius, but instead strikes as if it were a Flame (2D10) effect. The Hammer’s Flame (2D10) effect reaches out to 8 Meters long and 2 Meters wide when activated.",Gravity Hammer,0,300,FALSE
+Fate,Covenant,Weapon mod,Mythic,,,The Hammer loses the Gravity Special Rule and is replaced with the Gravimetric (10) Special Rule.,Gravity Hammer,0,400,FALSE
+Burning,Covenant,Weapon mod,Mythic,-3,12,"The Hammer’s blade is removed, but the weapon is given 4 Plasma Blades. This gives the Hammer +12 to Pierce and +4 KG to the Hammer’s Weight. Cauterize Special Rule.",Gravity Hammer,0,350,FALSE
+,,,,,,,,,,
+,,Weapon mod,,,,COVENANT PREMADE SCOPES,,,,
+Covenant Custom Smartlink scope,Covenant,Weapon mod,Mythic,,,"A Smartlink-capable Scope can be added to Covenant ranged weapons. This Scope can have up to two magnifications that can be switched as a Reaction, or a Half Action to not receive a Reaction Penalty. The price of the Scopes purchased is the magnification of the scope in cR multiplied by 2.
+
+The Scope Upgrade Modification does not add a physical scope but installs it into the weapon. Any existing scope the weapon has is replaced. 
+
+The GM may decide if a Character is able to get the Scope Upgrade for their weapon, depending on race, rank, and story. Magnification cannot surpass 12x.If purchasing a dual-magnification scope, the price is the highest magnification scope plus half (rounding up) of the lower magnification scope, multiplied by 2.","Optic, Smartlink",0,,FALSE
+Covenant 2x Smartlink Scope,Covenant,Weapon mod,Mythic,,,"A default Covenant scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,4,FALSE
+Covenant 3x Smartlink Scope,Covenant,Weapon mod,Mythic,,,"A default Covenant scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,6,FALSE
+Covenant 4x Smartlink Scope,Covenant,Weapon mod,Mythic,,,"A default Covenant scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,8,FALSE
+Covenant 3x-6x Smartlink Scope,Covenant,Weapon mod,Mythic,,,"A default Covenant scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,16,FALSE
+Covenant 4x-10x Smartlink Scope,Covenant,Weapon mod,Mythic,,,"A default Covenant scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,24,FALSE
+Covenant 5x-10x Smartlink Scope,Covenant,Weapon mod,Mythic,,,"A default Covenant scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,26,FALSE
+Covenant 8x-10x Smartlink Scope,Covenant,Weapon mod,Mythic,,,"A default Covenant scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,28,FALSE
+Covenant 8x-12x Smartlink Scope,Covenant,Weapon mod,Mythic,,,"A default Covenant scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,32,FALSE
+,,,,,,,,,,
+,,Weapon mod,,,,Banished Weapon mods,,,,
+Armored,Banished,Weapon mod,Mythic,,,"The weapon, when used as a melee weapon, deals an extra +8 Damage. Doubles the Weapon’s weight and doubles the Weapon’s Breakpoints.",Modification,0,100,FALSE
+Charged,Banished,Weapon mod,Mythic,50%,,"The weapon’s Base Damage is increased by 50% of the original Base Damage, but the Rate of Fire is halved. The price is 20 cR for every Rate of Fire reduced.  If the weapon’s Rate of Fire cannot be halved, no Rate of Fire changes are made, but an extra 200 cR is added to the Price. Semi Auto (1) will become Auto (1).",Modification,0,,FALSE
+Explosive,Banished,Weapon mod,Mythic,-4,-4,The weapon’s ammunition is modified to explode on impact with Blast (1). This Modification only works on non-explosive weaponry.,Modification,0,50,FALSE
+Gravitational Grip,Banished,Weapon mod,Mythic,,,The weapon’s grip has a gravitational field that holds it tightly to the User’s hand. The weapon cannot be Disarmed unless the Weapon takes 50 Breakpoints of Damage.,Modification,0,20,FALSE
+Rapid,Banished,Weapon mod,Mythic,,,"The weapon’s rate of fire is increased by 50% of its original Rate of Fire. If a Weapon has Auto (4), it will be increased to Auto (6). If 50% is not enough to increase the Rate of Fire by 1, it will increase the Rate of Fire by 1. This gives the Weapon a -15 To Hit. Price is +10 cR for every +1 added to the Rate of Fire.",Modification,0,,FALSE
+Burning,Banished,Weapon mod,Mythic,-3,12,"The Hammer’s blade is removed, but the weapon is given 4 Plasma Blades. This gives the Weapon a +12 to Pierce and +4 KG to the Weight. Cauterize Special Rule.",,,200,FALSE
+Electrified,Banished,Weapon mod,Mythic,,,Electrified (1D5) Special Rule that can only stun up to 3 Half Actions.,Modification,0,70,FALSE
+Extended,Banished,Weapon mod,Mythic,,,Extends Melee Reach by +1 Meters and increases the weapon’s weight by 25%.,Modification,0,80,FALSE
+Guard,Banished,Weapon mod,Mythic,,,The weapon is outfitted with a protective hand guard. This gives the Character’s Hand that is holding the weapon a +5 Bonus to Armor. This hand guard also gives the Character a +10 Bonus to defending against being Disarmed.,Modification,0,90,FALSE
+Weighted,Banished,Weapon mod,Mythic,1D10,,Increases the weapon’s weight by 50%. The price of this Modification is the price of the weapon it is being applied to.,Modification,0,,FALSE
+,,,,,,,,,,
+,,Weapon mod,,,,FORERUNNER PREMADE SCOPES,,,,
+Forerunner Red Dot,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,8,FALSE
+Forerunner 2x Smartlink Scope,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,10,FALSE
+Forerunner 3x Smartlink Scope,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,12,FALSE
+Forerunner 4x Smartlink Scope,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,14,FALSE
+Forerunner 5x Smartlink Scope,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,16,FALSE
+Forerunner 2x-4x Smartlink Scope,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,16,FALSE
+Forerunner 2x-5x Smartlink Scope,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,18,FALSE
+Forerunner 4x-9x Smartlink Scope,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,28,FALSE
+Forerunner 5x-10x Smartlink Scope,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,32,FALSE
+Forerunner 2x-4x-12x-15x Smartlink Scope,Forerunner,Weapon mod,Mythic,,,"A default Forerunner scope, Usually built into the weapon it is mounted on.","Optic, Smartlink",0,52,FALSE
+,,,,,,,,,,
+,,,,,,ARMOR ABILITIES,,,,
+Armor ability power source - fusion battery ,Universal,Equipment,Mythic,,,A specialized fusion battery unit that may be added to any Armor and Battle Dress Uniform for 200 cR. This will allow the User to power one Armor Ability. The Fusion Battery adds +4 kg to the Armor.,UNI,4,200,FALSE
+Armor Lock,UNSC,Equipment,Mythic,,,"Armor Lock is a system that overcharges an Armor’s Shield. This is called an Overshield, which can take 600 Damage before being forced off as if it were released. When using Armor Lock, the Character cannot move or take any Actions beyond speaking. Armor Lock lasts up to 3 Full Actions before being released. When released, the Armor Lock releases a Blast (2) effect that has the EMP (3) Special Rule. Armor Lock takes 5 Rounds to recharge.
+
+Armor Lock is activated as a Reaction, and the timer begins on the Round used. It takes a Half Action to come out of Armor Lock, whether from releasing it yourself or being forced out of it from the damage taken.","MJL, P",2.7,300,FALSE
+Drop Shield,UNSC,Equipment,Mythic,,,"The Drop Shield creates a shield bubble that encloses a 3 Meter Radius as a Reaction. The Shield lasts for 4 Rounds, or until its Shield Integrity is reduced to 0. The Drop Shield protects anything within it and outside of it, and no attacks may pass its barrier. Any Character can pass through the Drop Shield without any issues. Shield Integrity of 400. Ability takes 5 Rounds to recharge. Heals 1 Wound per Round a Character is within the Shield.","UNSC, P",3.1,250,FALSE
+Drop Wall,UNSC,Equipment,Mythic,,,"Drop Wall is a post-war energy shield that comes 5 segments each, at 1x1 Meter. 5 across, 3 high. Each segment has 100 Breakpoints before it dissipates. One side of the wall can be shot through without stopping the attacks or lowering the Breakpoints. This is decided by the User as its activated. Panels cannot reform until redeployed. The Drop Wall takes 20 Turns to recharge. Takes a Half Action to activate or take down.","UNSC, S",3.4,150,FALSE
+Thrust Package,Universal,Equipment,Mythic,,,Allows the Character to make a Charge Action as a Half Action. Thrust Package takes 6 Half Actions to recharge before it may be used again.,"UNI, S",5.5,150,FALSE
+Hologram,Universal,Equipment,Mythic,,,"When used as a Free Action, a Hologram of the User is projected, which can either move forward at the desired Move Speed of the Character or stand still. The Character may also decide how far off the Hologram moves. Any Character with VISR, a friendly IFF Tag, or Thermal-based vision can identify the Hologram. The Hologram can last up to 10 Rounds, or until a new one is created. The Hologram may be set to mimic the Character’s current movement. The Hologram is projected by a Micro-Drone, which is at a -80 To Hit, and takes a -30 Perception Test to even be able to see due to its small size. If destroyed, it costs 10 cR to replace between missions. A Character may take multiple Micro-Drones, but only one may be used at a time.","UNI, P",5.1,150,FALSE
+Sprint Module,UNSC,Equipment,Mythic,,,"Using the Mjolnir’s Overclocking system, the user’s movement is increased, allowing a character to gain +2 Mythic Agility for two Rounds. If used twice within five Rounds, the user takes a level of Fatigue. The Sprint Module is pre-built into GEN II Mjolnir suits and cannot be used with them.","MJL, P",4.1,100,FALSE
+Regeneration Field,Universal,Equipment,Mythic,,,The Regeneration Field is a secondary Shield Recharging Unit that covers a radius of 3 Meters. Any Energy Shielding within the Regeneration Field gets their Recharge Rate doubled and their Recharge Delay halved. The Regeneration Field lasts for 3 Rounds and must recharge for 5 Rounds. Takes a Half Action to activate.,"UNI, P",2.4,375,FALSE
+M805X Forward Acceleration Unit,UNSC,Equipment,Mythic,,,"This Unit allows the Character to either take a Full Move as a Half Action or a Half Move as an extra Reaction movement that may be used separately from the Character’s standard movement. When used, any others taking Turns after this Ability is used is at a -30 Penalty To Hit the Character. This lasts until the beginning of the User’s next Turn. 
+
+This takes 4 Half Actions to recharge.","MJL, P",6.1,275,FALSE
+T-3 Active Camouflage,Universal,Equipment,Mythic,,,An integrated Camouflage Unit that gives the Character a +60 Bonus to Camouflage. The T-3 Camouflage Unit lasts for 5 Rounds but must recharge for 6 Rounds. This unit does not mask sounds or gunfire.,"UNI, S",4.3,250,FALSE
+Z2500 Automated Protection Drone,Universal,Equipment,Mythic,,,"The Z2500 Automated Protection Drone is an automated Drone that follows the Character or stays in the location in which it was deployed. The Drone has a Hull Integrity of 90 and Armor of 12. The Drone can stay active as long as it stays deployed, and only one can be deployed at a time. When destroyed, the Drone regenerates in 10 Rounds. If the Character moves over 50 Meters from the Protection Drone, it disappears and must regenerate. If the Character calls back the Drone within radius, it does not need regenerated. The Drone will regenerate 5 Hull Integrity per Round when not active, but not destroyed. The Protection Drone uses a Bolt Shot pistol with 40 shots. It also has a Perception and Warfare Range of 40 for making attacks against enemy IFF Tags.","UNI, S",10,300,FALSE
+UNSC Seeker Drone,UNSC,Equipment,Mythic,,,"The Seeker Drone is a flying Armor Ability that attaches to the back of UNSC Armors, which can be used between a backpack and the armor, as it folds outward into the size of a standard UNSC helmet. The Seeker Drone has 55 Hull Integrity and 17 Armor. The Seeker Drone is armed with an M7 Caseless SMG but is modified to use a 100 Round Belt. The Seeker Drone has a 40 Warfare Range and 40 Perception for making attacks against enemy IFF Tags. For Evasion, the Drone has a 60 Agility with no Penalties taken for any sort of missing skills. Can move up to 100 Meters per Turn. 
+
+The UNSC Seeker Drone will automatically follow the Character and can be controlled to stay in one location. The Seeker Drone can also be remotely controlled by a Data Pad or TACPAD or any other UNSC computer program with tethering. The Seeker Drone has a camera which can broadcast its video to any UNSC computer or tetherable equipment like Eyepieces and VISR. If destroyed, the Drone can be replaced with 40 cR.","UNSC, S",10,400,FALSE
+Z5080 Promethean Vision,Universal,Equipment,Mythic,,,"A visual modification system that allows the Character to see up to 30 Meters away, through any walls, floors, and obstacles. This unit is also able to see Camouflaged and Active Camouflage users by negating any of the Bonuses they had on their Test. Promethean Vision lasts for 4 Rounds and must recharge for 6 Rounds.","UNI, P",3.7,300,FALSE
+Z-90 Photon Hardlight Shield,Universal,Equipment,Mythic,,,"The Character generates a shield in front of them that can cover their entire body in the direction they’re facing. This shield is immune to the Penetrating Special Rule. The Hardlight Shield has 200 Breakpoints but can only last for 4 Rounds. Once the shield runs out of time or reaches 0 Breakpoints, it vanishes and must recharge for 7 Rounds. If deactivated without running out of Breakpoints or reaching the Round limitation, the Hardlight Shield recharges for only 4 Rounds. The Hardlight Shield will also protect a Character from Blast and Kill Radius if the Character is facing the source of the explosive.","UNI, P",5.2,400,FALSE
+Series 8 Jetpack,UNSC,Equipment,Mythic,,,"The Series 8 Jetpack allows the Character to boost as a Full Action and hover as a Free Action. Using the Jetpack, the Character can thrust upward 20-(X) Meters, where (X) is +5 for every 150 kg the Character weighs, including worn Armor and Equipment. The Jetpack has 100 Charges. For every round Hovering, it costs 5 Charges, and cannot be used with other boost or Movement Actions. Each time the Jetpack thrusts, it costs 25 Charges. When at 0 Charges, the jetpack cannot be used. When not in use, the Jetpack recovers 10 Charges per Round. When used in zero gravity, (X) is always 0.","UNSC, S",11.7,150,FALSE
+Series 12 Jetpack,UNSC,Equipment,Mythic,,,"The Series 12 Jetpack allows the Character to boost as a Full Action and hover as a Free Action. Using the Jetpack, the Character can thrust upward 20-(X) Meters, where (X) is +5 for every 300 kg the Character weighs, including worn Armor and Equipment. The Jetpack has 100 Charges. For every round Hovering, it costs 5 Charges, and cannot be used with other boost or Movement Actions. Each time the Jetpack thrusts, it costs 25 Charges. When at 0 Charges, the jetpack cannot be used. When not in use, the Jetpack recovers 10 Charges per Round. When used in zero gravity, (X) is always 0.","MJL, S",13.5,150,FALSE
+Covenant Thrust Pack,Covenant,Equipment,Mythic,,,"The Covenant Thrust Pack allows the Character to boost as a Full Action and hover as a Full Action. Using the Thrust Pack, the Character can thrust upward 50-(X) Meters, where (X) is +1 for every 75 kg the Character weighs and has on them. The Thrust Pack has 100 Charges. For every round Hovering, it costs 10 Charges and cannot be used with other boost or Movement Actions. Each time the Thrust Pack thrusts, it costs 25 Charges. When at 0 Charges, the Thrust Pack cannot be used. When not in use, the Thrust Pack recovers 10 Charges per Round. When used in zero gravity, (X) is always 0.","COV, S",10.9,200,FALSE
+Covenant Anti-Gravity Pack,Covenant,Equipment,Mythic,,,"The Covenant Anti-Gravity Pack is a jetpack-like device that gives the Player the Flight Trait. If in 3x or greater Gravity, the Covenant Anti-Gravity Pack acts as the Covenant Thrust Pack, instead.","COV, S",11.4,375,FALSE
+Artemis Tracking System,UNSC,Equipment,Mythic,,,"The Artemis Tracking System (ATS) is an ONI-specialized Armor Ability using a combination of functions. The Artemis Tracking System was created to be used with GEN II Mjolnir Armors but can be modified to work with other Armors. The main ability of ATS is a scanning device that tracks technology and ammunition. ATS is able to scan weaponry to determine ammunition type and amount in the magazine, alongside scanning the weapon to track who it belonged to via IFF Tags and the weapon’s serial number or any available Bio Signatures. Another use of ATS is that it can be used to assist in Tracking and Navigation Tests with a +30 Bonus. If the ATS is used to scan a signature or object of the target, Artemis can be used to gain that +30 Bonus for tracking them or against their Camouflage with an Investigation Test.","UNSC, S",4,500,FALSE
+Artemis Revival System,UNSC,Equipment,Mythic,,,"The Artemis Revival System (ARS) is a Regeneration Field Unit that can be placed over a single Character. ARS emits a small relay of nanobots built for the purpose of medical repair. Comes with 5 Charges with each Half Action reducing a Charge by 1. Every Full Action not used will recharge these by 1.
+
+Each Half Action used, the ARS will repair Shields by 25 Shield Integrity and heal 2 Wounds.","UNSC, P",4,500,FALSE
+Slipspace Personal Teleportation Unit,UNSC,Equipment,Mythic,,,"A UNSC developed single-user Slipspace teleportation system. This unit will teleport the user up to 15 Meters in the direction they are facing as a Half Action. 
+
+The unit will not allow the Character to teleport into material like walls or other Characters and will come out in the same pose and position they were when activating the teleportation. No other Characters may be brought through with this Ability. The teleportation is also as loud as a door slamming, so it can be heard at both the location the character was, and the location they teleported from.
+
+This Unit also has a 5 Round recharge that begins on the Half Action it was used.","UNSC, P",11.5,1000,FALSE
+MQ-96 Support Drone,UNSC,Equipment,Mythic,,,"A flying UNSC Support Drone that uses a Target Designator and Forward Observer Module to scan, detect, and mark targets. The MQ-96 Drone can be used to use Support Points under the control of its User, as well as target drop locations and enemies on IFF tags. The Support Drone can be set to follow any Character within its 1,000 Meter Perceptive Range, as long as they have been Spotted. The Drone has a Perception of 60 for scanning for Camouflaged Characters, as well. The Drone has a 40 Warfare Range for making attacks using a 100 round belt-fed M20 SMG. The Drone can move up to 100 Meters per Turn. For Evasion, the Drone has a 60 Agility with no Penalties taken for any sort of missing skills.
+
+The Drone will automatically follow the Character and can be controlled to stay in one location. The Seeker Drone can also be remotely controlled by a Data Pad or TACPAD or any other UNSC computer program with tethering. The Drone can broadcast its video to any UNSC computer or tetherable equipment like Eyepieces and VISR. If destroyed, the Drone can be replaced with 80 cR.","UNSC, S",19.4,800,FALSE
+Repel,UNSC,Equipment,Mythic,,,"Repel needs an Enclosed Suit to function, else it will also affect the User. Repel is a Cryogenic Radius Emission Tool (Crest) that will create a Cryogenic Blast (6) outward from the User. Any other Character caught within the Blast will be struck with Cryo (6). Repel will emit this Cryogenic Blast for 4 Half Actions from activation. Characters who wear fully enclosed Suits inside the Blast are not protected, however as long as the User of the Repel unit is wearing an Enclosed Suit, they will not be affected.
+
+Once all 4 Blasts have been emitted, it will take 12 Full Actions to recharge.","UNSC, S",8.9,575,FALSE
+,,,,,,,,,,
+,,,,,,Vehicle Body mods,,,,
+Heavy Armor,Universal,Vehicle mod,Mythic,,,"Can be taken up to 3 times per Vehicle and increases the Vehicle’s Armor by +3 Armor on all Locations. The Vehicle’s Top Speed is decreased by 10% of the Vehicle’s base Top Speed. Cannot be used alongside Light Armor. For Walker Vehicles, Heavy Armory will reduce the Mythic Agility Characteristic by 1. If the Walker has no Mythic Characteristic to reduce, Agility will be reduced by 5.",Modification,0,50,FALSE
+Light Armor,Universal,Vehicle mod,Mythic,,,"Can be taken up to 3 times per Vehicle and decreases the Vehicle’s Armor by -3 Armor on all Locations. The Vehicle’s Top Speed is increased by 10% of the Vehicle’s base Top Speed. Cannot be used alongside Heavy Armor. For Walker Vehicles, Light Armor will increase the Mythic Agility Characteristic by 1.",Modification,0,40,FALSE
+Reinforced Armor Plating,Universal,Vehicle mod,Mythic,,,"Reinforced Armor Plating that offers +25 Armor for the Front, Back, and Side Locations. The Plating has 200 Breakpoints that take the Damage before the Vehicle’s Hull Breakpoints will take Damage. Once the Breakpoints are reduced to 0, they no longer work.
+
+The weight of the Plating is 1/4th of the Vehicle’s Weight and reduces the Top Speed and Acceleration by half. For Walker Vehicles, the Vehicle’s Agility Characteristic is halved.","Attachment Front, Side and Back",0,150,FALSE
+Open-Topped,Universal,Vehicle mod,Mythic,,,The Vehicle gains the Op-Top Special Rule. Only usable on Enclosed-Top Vehicles.,Modification,0,10,FALSE
+Enclosed-Topped,Universal,Vehicle mod,Mythic,,,The Vehicle gains the Enclosed-Top Special Rule. Only usable on Open-Top Vehicles.,Modification,0,20,FALSE
+Armored Module,Universal,Vehicle mod,Mythic,,,"A chosen Vehicle Breakpoint is increased by 20% of the base Breakpoint amount. Each upgrade increases the Vehicle’s weight by 10% of the Vehicle’s base weight. 
+
+The price of this Module is (X) cR, where (X) is the amount of Breakpoints gained by the upgrade. Each Breakpoint Location can only be increased once.",Modification,0,,FALSE
+Crevasse-Protection Bars,Universal,Vehicle mod,Mythic,,,"Horizontal bars that are used to protect a vehicle from falling into crevasses, pits, ice formations, and traps. The bars stretch out 1 Meter from the Vehicle’s front and rear locations per every Size Point of the Vehicle. 
+
+The cost is 5 cR for every Size Point of the Vehicle. Does not work for Walker or Flying vehicles.",Attachment Front and Back,0,,FALSE
+Roll Cage,Universal,Vehicle mod,Mythic,,,A Roll Cage is installed into the Vehicle’s Crew Module and Passenger locations. The Roll Cage halves all Damage Characters receive from any Rolling and Wrecks the Vehicle is in. Does not take up any Attachment locations of the Vehicle.,Attachment Crew,0,50,FALSE
+Plow Unit,Universal,Vehicle mod,Mythic,,,"A V-shaped plow for moving snow, sand, and wreckage. Halves all Penalties gained from Dangerous Terrain and Difficult Terrain gained by wreckage, snow, loose ground, etc. 
+
+Costs (X) cR where (X) is 10 for each Size Point of the vehicle. 
+
+Can be used with other Front Attachments if a Size Point is used.",Attachment Front,0,,FALSE
+EDAD Unit,Universal,Vehicle mod,Mythic,,,"An Explosives Detector and Detonation Unit that attaches to the front of the vehicle 4 Meters ahead. This unit detects explosives up to 15 Meters from the front of the Vehicle and warns the Pilot of the strength and Blast radius of the explosive, as well as if the explosive would damage the vehicle. The Pilot is then given the choice to detonate the explosive. Weighs 400kg and has 35 Armor and 400 Breakpoints.",Attachment Front,0,100,FALSE
+,,Vehicle mod,,,,PROPULSION MODIFICATIONS,,0,,
+Engine Enhancement,Universal,Vehicle mod,Mythic,,,"This modification increases the Vehicle’s Acceleration and Top Speed by 10%, to a minimum of +1. This modification may be taken 5 times per Vehicle. 
+The Cost is (X) cR, where (X) is the total number gained to Top Speed and Acceleration Characteristics.
+
+For Walker Vehicles, the Vehicle will gain a +1 to Mythic Agility. However, this can only be taken 3 times per Walker Vehicle. 
+The Cost is (X) cR, where (X) is the total Mythic Agility of the Vehicle before the Modification is taken, multiplied by 15.",Modification,0,,FALSE
+Improved Brake System,Universal,Vehicle mod,Mythic,,,"Increases the Vehicle’s Brake Characteristic and can be taken up to 5 times. Each time it is taken, the Vehicle’s Brake is increased by 10% of the Vehicle’s base Brake Characteristic. The cost is (X) cR, where (X) is the total number gained to the Brake Characteristic. 
+Does not work on Walker Vehicles.",Modification,0,,FALSE
+,,Vehicle mod,,,,MOBILITY MODIFICATIONS,,0,,
+Sand and Snow Tread,Universal,Vehicle mod,Mythic,,,"Each wheel is replaced with a triangular track giving the Vehicle the Continuous Track Special Rule. When half of the vehicle’s wheels are replaced, Rough and Difficult Terrain Penalties are removed on Sand and Snow, but the Vehicle’s Top Speed and Acceleration is reduced by 10%. 
+
+When used with all the Vehicle’s wheels, the Rough and Difficult Terrain Penalties are removed on Sand and Snow, but the Vehicle’s Top Speed and Acceleration is reduced by 20%.
+
+Costs 10 cR per Wheel and must replace either half or all the Vehicle’s wheels.",Mobility,0,,FALSE
+Hover System,Universal,Vehicle mod,Mythic,,,"The vehicle’s mobility system are replaced by an air-based hover system that allows the Vehicle to hover up to 1 Meter above the surface, including bodies of water. This modification halves the Acceleration, Brake, and Top Speed of the Vehicle, though the Vehicle no longer takes Penalties to Rough and Difficult Terrain. 
+Costs 50 cR for every Size Point of the Vehicle.
+
+The second option for the Hover System is to keep the vehicle’s original mobility system and be able to switch to and from the Hover System as a Full Action. 
+Costs 80 cR for every Size Point of the Vehicle and takes up 2 Size Points.",Mobility,0,,FALSE
+Anti-Gravitational,Universal,Vehicle mod,Mythic,,,"The Vehicle’s wheels or tracks are all replaced with anti-gravitational technology either based on Covenant or Forerunner technology. The Vehicle gains the Anti-Gravitational Special Rule. 
+
+This costs 50 cR for every Size Point of the Vehicle. Does not work on Flying or Walker vehicles.",Mobility,0,,FALSE
+Full Track,Universal,Vehicle mod,Mythic,,,"The mobility system is replaced with Full Tracks, giving the vehicle the Continuous Track Special Rule. This reduces the Vehicle’s Maneuver by 25%. 
+
+This costs 25 cR per Size Point of the Vehicle. Does not work on Flying or Walker vehicles.",Mobility,0,,FALSE
+Mobility Up-Armor,Universal,Vehicle mod,Mythic,,,The mobility system the Vehicle uses has been modified to have protective plating. This gives the Vehicle +4 Armor when Mobility is struck.,Modification,0,50,FALSE
+Slipspace Drive,Universal,Vehicle mod,Mythic,,,Gives the Vehicle the Slipspace Special Rule. Must be used on flying vehicles.,Mobility,0,1000,FALSE
+,,Vehicle mod,,,,ELECTRONIC MODIFICATIONS,,0,,
+Energy Shield Installation,Universal,Vehicle mod,Mythic,,,"An attachment that can be taken (X) times, where (X) is the Vehicle’s Size Points. Each Installation takes up a Size Point of the Vehicle and weighs 10 kg. When first taken, the Vehicle gains an Energy Shield with a Shield Rating of 150, a Recharge Delay of 2, and a Recharge Rate of 25.
+
+Each time this attachment is taken afterwards, or if the Vehicle already came with an Energy Shield, the Shield Rating gains +50 and the Recharge Rate gains +5.",Attachment,0,100,FALSE
+AI Uplink Module,Universal,Vehicle mod,Mythic,,,"A small uplink module for Smart and Dumb AI is installed into the Vehicle. This module allows an AI Character to control a Vehicle normally. If the Vehicle has a Neural Interface installed, the AI is also able to control the weapons.",Modification,0,150,FALSE
+Neural Interface,Universal,Vehicle mod,Mythic,,,The Vehicle gains the Neural Interface Special Rule.,Modification,0,100,FALSE
+Nanomachine Repair System,Universal,Vehicle mod,Mythic,,,A Nanomachine Repair System that may be installed up to 5 times per Vehicle. Each System can repair each Breakpoint of the Vehicle at the beginning of every Round. Each Repair System is only able to repair 150 Breakpoints before needing a recharge which costs 100 cR. Each Repair System takes up 1 Size Point of the Vehicle.,Attachment,0,250,FALSE
+,,Vehicle mod,,,,COMBAT MODIFICATIONS,,0,,
+ECM Module,Universal,Vehicle mod,Mythic,,,"An Electronic Countermeasure Device used to deceive Radar, Motion Tracker, Sonar, and other Targeting and Scanning systems. Weapons with the Homing Special Rule and Vehicle Lock Special Rule lose their Bonuses from the Special Rules. When being scanned with any equipment that maps out locations, tracks IFF Tags, or attempts to target any object will see 3 versions of the Vehicle, each one scattered 3D10 Meters from where the Vehicle actually is.",Attachment,0,100,FALSE
+Active Protection System,Universal,Vehicle mod,Mythic,,,"The Active Protection System, or APS, is an Anti-Targeting device that fires decoy flares when the vehicle is Targeted by another vehicle or a weapon with Homing or Vehicle Lock Special Rule. The launched flares move out 15 Meters on both sides from the Vehicle and are active for 5 Rounds. All Vehicle Lock, Homing, and Targeting will lock onto the flares instead of the vehicle.
+
+The APS can be used 5 times before needing restocked. Each full APS restock costs 90 cR.",Attachment,0,140,FALSE
+Active Defense System,Universal,Vehicle mod,Mythic,,,"The Active Defense System, or ADS, is an electro-kinetic detonation system used to destroy explosives before impacting the vehicle.
+
+The Active Defense System detonates explosives (X) Meters from the Vehicle, where (X) is the Vehicle’s Size Points multiplied by 3. After the Active Defense System detonates an explosive, it must recharge for 4 Rounds.
+
+It takes 1 Size Point to install this Attachment per 2 Size Points the vehicle has.",Attachment,0,160,FALSE
+Smoke Screen Emitter,Universal,Vehicle mod,Mythic,,,"Smoke Screen Emitters release magnetized Smoke within (X) Meters out from each side of the vehicle, where (X) is the Vehicle’s Size Points. The Smoke lasts for 6 Rounds and stops any Vehicle Tracking, Homing, and Vehicle Lock weapon from targeting the Vehicle or anything else within or beyond the Smoke Screen. Motion Trackers and Radars cannot register anything within the Smoke Screen.
+
+The Smoke Screen cannot move alongside the Vehicle but can be spread out from the Vehicle driving. If spread out too much, the GM may decide to halve the length the Smoke Screen lasts. 
+
+The Smoke Screen costs 50 cR for each overall Size Point of the Vehicle, and one Weapon Point to install. The Smoke Screen Emitter has 4 Uses, each Use costs 20 cR to replace.",Attachment,0,,FALSE
+Flare Launcher,Universal,Vehicle mod,Mythic,,,"For two Weapon Points or one Size Point, the Vehicle has a Flare Launcher installed. This modification launches 40mm Parachute Flares into any chosen direction as if it were a standard turret. The Flare Launcher can fire the Flare that deals 3D10 Damage with Flame (1D5) on impact. The Flare can be fired up to 400 Meters into the air, which then slowly falls to the ground.",Attachment,0,40,FALSE
+Light Ordnance Launcher,Universal,Vehicle mod,Mythic,,,"For two Weapon Points or one Size Point, the Vehicle has a launcher installed which allows a chosen 1 SP strike to be called in from the vehicle. The vehicle must be within range and can launch 3 Strikes before requiring a resupply at a base. Resupply costs 15 cR for each use.",Attachment,0,200,FALSE
+Expanded Ammo Bins,Universal,Vehicle mod,Mythic,,,These bins take up one size point on the vehicle and allow the vehicle to store 5 additional reloads worth of ammunition in a secure blast proof container. Vehicle Autoloaders cannot take ammo from these bins directly and must be resupplied manually. The extra ammunition is not resupplied when a vehicle returns to base and must be purchased separately.,Attachment,0,40,FALSE
+,,Vehicle mod,,,,COMBAT MODIFICATIONS,,0,,
+Recovery Winch,Universal,Vehicle mod,Mythic,,,The Recovery Winch is an electronic device with 100 Meters of Nanotube Cable. The cable and winch can support 5 Metric Tons.,Attachment,0,35,FALSE
+Heavy Winch,Universal,Vehicle mod,Mythic,,,The Heavy Winch is a Recovery Winch that supports 15 Metric Tons. It costs one Size Point to install.,Attachment,0,75,FALSE
+Flood Light,Universal,Vehicle mod,Mythic,,,"The Flood Light is a bright light able to illuminate a 100 Meter range. When shined at a Character, that Character takes a -60 Penalty to Visual Perception Tests. This Light can be remote-controlled by a paired digital device to control the direction it faces.",Attachment,0,30,FALSE
+Siren,Universal,Vehicle mod,Mythic,,,A loud siren that causes a -40 Penalty to Hearing Perception Tests within a 50 Meter Range and a  -20 Penalty to Hearing Perception Tests within 100 Meters.,Attachment,0,40,FALSE
+Camera Module,Universal,Vehicle mod,Mythic,,,A four-piece camera system installed onto the Vehicle. The cameras face out on each side of the Vehicle with a 180-degree field of view. These are considered Optics for the Vehicle.,Attachment,0,70,FALSE
+Police Light,Universal,Vehicle mod,Mythic,,,A bright police light for the top of vehicles.,Attachment,0,15,FALSE
+Fast Rope,Universal,Vehicle mod,Mythic,,,A rope system that allows for Characters to propel down from a vehicle. Can install up to 2 Fast Ropes per Size Point of the Vehicle.,Attachment,0,10,FALSE
+5-Point Harness,Universal,Vehicle mod,Mythic,,,"When getting in Wrecks or Head-On Collisions, the Characters won’t take Damage. Instead, the Characters take 1 Fatigue for every 10 Points of Damage that would have been dealt to them after figuring Damage Resistance. Costs 4 cR per each seat on the Vehicle.",Attachment,0,,FALSE
+,,Vehicle mod,,,,VEHICLE MELEE MODIFICATIONS,,0,,
+Torque Amplified Gauntlets,Universal,Vehicle mod,Mythic,,,Installs Torque Amplified Gauntlets onto the Walker’s Arms. Gives +5 Mythic Strength with Slow Special Rule. Base Price of 34 cR. +60 cR to install on non-Cyclops Walkers to cover the cost of the devices.,Attachment,0,34,FALSE
+Jackhammer,Universal,Vehicle mod,Mythic,,,"Attaches one Jackhammer onto the Walker’s Arm. -5 Mythic Strength, Burst (5) Punch Unarmed Melee. Base Price of 23 cR. +60 cR to install on non-Cyclops Walkers to cover the cost of the device.",Attachment,0,23,FALSE
+,,,,,,,,,,TRUE
+,,,,,,,,,,FALSE
+,,,,,,,,,,FALSE
+,,,,,,,,,,FALSE
+,,,,,,,,,,FALSE
+,,,,,,,,,,FALSE
+,,,,,,,,,,FALSE
+,,,,,,,,,,FALSE
+,,,,,,,,,,FALSE
+,,,,,,,,,,FALSE
+,,,,,,,,,,FALSE
+Chainsaw Bayonet,,Weapon mod,Emergence day,,,,,0,40,FALSE
+Serrated Knife Bayonet,,Weapon mod,Emergence day,,,,,0,30,FALSE

@@ -1,0 +1,83 @@
+[
+  {
+    "name": "ONI Operative",
+    "description": "Field intelligence specialist with social and technical support skills.",
+    "notes": "Use as a merge template for existing characters or overwrite for fresh builds.",
+    "header": {
+      "soldierType": "ONI Operative",
+      "specialisation": "Intelligence",
+      "rank": "Field Agent"
+    },
+    "characteristics": {
+      "int": 45,
+      "per": 40,
+      "cha": 35,
+      "agi": 30
+    },
+    "mythic": {
+      "str": 0,
+      "tou": 0,
+      "agi": 1
+    },
+    "skills": {
+      "base": {
+        "technology": { "tier": "trained", "modifier": 0, "selectedCharacteristic": "int" },
+        "investigation": { "tier": "plus10", "modifier": 0, "selectedCharacteristic": "int" },
+        "deception": { "tier": "trained", "modifier": 5, "selectedCharacteristic": "cha" },
+        "appeal": { "tier": "trained", "modifier": 0, "selectedCharacteristic": "cha" }
+      },
+      "custom": []
+    },
+    "skillChoices": [
+      {
+        "count": 2,
+        "tier": "plus10",
+        "label": "skills of choice",
+        "notes": "Select during character creation",
+        "source": "Soldier Type Trait"
+      }
+    ],
+    "training": [
+      "Basic",
+      "Infantry",
+      "ONI field procedures"
+    ],
+    "educations": [
+      "Military Command"
+    ],
+    "abilities": [
+      "Linguist"
+    ],
+    "traits": [
+      "Resistant"
+    ],
+    "equipmentPacks": [
+      {
+        "name": "ONI Infiltration Kit",
+        "description": "Light covert field loadout",
+        "items": [
+          "Suppressed SMG",
+          "Comms kit",
+          "Lock override tool"
+        ]
+      },
+      {
+        "name": "ONI Analyst Kit",
+        "description": "Technical and intel support loadout",
+        "items": [
+          "Data pad",
+          "Signal scanner",
+          "Backup sidearm"
+        ]
+      }
+    ],
+    "equipment": {
+      "credits": 100,
+      "primaryWeapon": "M6 Sidearm",
+      "secondaryWeapon": "Suppressed SMG",
+      "armorName": "Light Tactical Armor",
+      "utilityLoadout": "Comms kit, lock override tool",
+      "inventoryNotes": "Issued by ONI quartermaster"
+    }
+  }
+]

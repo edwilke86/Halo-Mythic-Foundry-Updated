@@ -1,0 +1,166 @@
+No Weapon,,,,,,,,,,,,charges,,,charges,,,,,,,,Impacts,,,,Damage Effects,,,,,,,Radius Effects,,,,,,,,,,,,,,,,,Price Breakdown,,,,
+,faction,Source,Base Roll (Xd5),Base Roll (Xd10),Base damage,Pierce,Crit bonus (Xd10),Crit bonus (X),Range Bonus (%),,Flame (X),Flame (XD5),Flame (XD10),Cryo (X),Cryo (XD5),Cryo (XD10),Electrified (XD10),Acid (X),Tranq (X),Needle (X),Sticky,Spike / Arrow,Cauterize,Hardlight,Penetrating,Kinetic,Headshot,Stun,Nonlethal,Spread,EMP (X),Gravity (X),Gravimetric (X),Blast (X),Kill (X),Dice minimum (X),Homing,Vehicle lock,To hit penalty (-X),Spot Bonus (+X), ,Ammo price multiplier, ,Purchase quantity (X),Price Override,,Modifier Price,DPT price,,ROF multiplier,Max DPT + pierce, .,Compatibility,Special rules,Description
+Default,,,,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,,0,cR,10,,,0.0,0.0,,1.0,0,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Standard Ammo - Armor Piercing (AP),UNSC,Mythic,,0,0,4,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,3,cR,10,,,0.0,1.0,,1.0,2,,"HE, IN, HV, HYV, MG, DU",,
+Standard Ammo - High-Explosive (HE),UNSC,Mythic,,1,0,-7,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,,,4,cR,10,,,0.2,1.1,,1.0,2,,"AP, IN, HV, HYV, MG, DU, T, HP",Blast (1) Special Rule.,"If the weapon has 4D10 or more base Dice Damage, gain Blast (1). Blast is increased by 1 for every 1D10 base extra after 4D10."
+Standard Ammo - High-Explosive (HE) TEST CHANGE,UNSC,Mythic,,1,0,-3,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,,,6,cR,10,,,0.2,2.1,,1.0,4,,"AP, IN, HV, HYV, MG, DU, T, HP",Blast (1) Special Rule.,"If the weapon has 4D10 or more base Dice Damage, gain Blast (1). Blast is increased by 1 for every 1D10 base extra after 4D10."
+Standard Ammo - Shredder (JHP),UNSC,Mythic,,0,6,-9,1,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,9,cR,10,,,0.0,3.4,,1.0,7,,"HV, HYV, MG, T",+1D10 Special Damage Bonus,
+Standard Ammo - Soft Point (JSP),UNSC,Mythic,,0,5,-8,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,2,cR,10,,,0.0,0.5,,1.0,1,,"HV, HYV, MG, T",,
+Standard Ammo - Incendiary (IN),UNSC,Mythic,,0,-3,-3,0,0,,,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,10,cR,10,10,,0.0,3.3,,1.0,7,,"AP, HE, SAP, HV, HYV, MG, DU, T, HP",Flame (2) Special Rule.,
+Standard Ammo - Hollow Point (HP),UNSC,Mythic,,0,5,-8,1,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,8,cR,10,,,0.0,3.1,,1.0,7,,"HE, IN, HV, HYV, T, CL, MG",+1D10 Special Damage Bonus,Cannot Pierce Through Characters.
+Standard Ammo - High Velocity (HV),UNSC,Mythic,,0,3,3,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,6,cR,10,,,0.0,2.2,,1.0,5,,All except HYV and CL,,+10 to Perception Tests to spot this weapon fire.
+Standard Ammo - Hyper velocity (HYV),UNSC,Mythic,,0,6,6,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,11,cR,10,,,0.0,4.3,,1.0,9,,All except HV and CL,,+30 to Perception Tests to spot this weapon fire.
+Standard Ammo - Stun Round (STRD),UNSC,Mythic,,0,-15,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.9,-7.2,,1.0,-15,,"MG, T","Stun (1), Nonlethal Special Rule.",
+Standard Ammo - Tracer (T),UNSC,Mythic,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-5,,,6,cR,10,6,,0.0,0.0,,1.0,0,,All,+5 Bonus To Hit.,"All shooters firing at a target hit with tracers within the same Round get a +10 Bonus To Hit. If the Target can see the Tracer Fire, they gain a +10 Bonus to Evasion for that Attack."
+Standard Ammo - Saboted Light Armor Penetrator (SLAP),UNSC,Mythic,,0,-3,8,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,2,cR,10,,,0.0,0.5,,1.0,1,,"HV, HYV, MG, T, HP, DU",,
+Standard Ammo - Semi-Armor Piercing (SAP),UNSC,Mythic,,0,-1,3,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,1,cR,10,,,0.0,0.2,,1.0,1,,"HE, T, IN, HV, HYV, MG, HP",,
+Standard Ammo - Cold Load (CL),UNSC,Mythic,,0,-2,-2,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,5,cR,10,5,,0.0,-1.4,,1.0,-3,,All except HV and HYV,,"When used with suppressor, -20 Perception Tests to hear weapon firing."
+Standard Ammo - Tactical Training Rounds (TTR),UNSC,Mythic,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,,,4,cR,10,4,,0.0,0.0,,1.0,0,,"MG, T",Nonlethal Special Rule.,"When hit, the character must make a +10 Toughness Test or gain +1 Fatigue. Nonlethal Special Rule."
+Standard Ammo - Match Grade (MG),UNSC,Mythic,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,10,cR,10,10,,0.0,0.0,,1.0,0,,All,,Match Grade gives a 25% increase to the Weapon’s Close Range.
+Standard Ammo - Depleted Uranium (DU),UNSC,Mythic,,0,-3,7,0,0,,,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,13,cR,10,,,0.0,5.0,,1.0,11,,"All except JHP, JSP, HP, and SAP",Flame (1D5) Special Rule.,
+Standard Ammo - Sabot (APFSDS),UNSC,Mythic,,0,-5,15,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-10,,,15,cR,10,15,,0.0,1.2,,1.0,3,,"HV, HYV, MG, DU",+10 Bonus To Hit.,Round is given a jacket that stabilizes trajectory. Sabot is shed mid-flight.
+,,The Armory Variants Only (For Now),,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Standard Ammo - Duplex (DX),UNSC,Mythic,,-2,-6,8,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-10,,,10,cR,10,10,,0.0,-6.2,,1.0,-13,,"HE, IN, HV, HYV, MG, DU, HP",+10 Bonus To Hit.,
+Standard Ammo - BOLO (BOL),UNSC,Mythic,,0,-5,-5,1,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,-10,,,6,cR,10,6,,0.0,-1.1,,1.0,-2,,"AP, IN, HV, HYV, MG, DU, T, HP","Homing Special Rule. +10 Bonus To Hit, +1D10 Special Damage Bonus.","If the weapon has 4D10 or more base Dice Damage, gain Blast (1). Blast is increased by 1 for every 1D10 base extra after 4D10."
+Standard Ammo - Frangible (FR),UNSC,Mythic,,-1,0,-4,1,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,-1.0,,1.0,-2,,"HV, HYV, MG, T",+1D10 Special Damage Bonus,
+Standard Ammo - Expanding (EG),UNSC,Mythic,,0,-3,-6,0,10,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,5,cR,10,,,0.0,1.9,,1.0,4,,"HV, HYV, MG, T",+10 Special Damage Bonus,
+Standard Ammo - Over-Pressurized (+P),UNSC,Mythic,,0,5,7,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,,,10,cR,10,,,0.0,3.9,,1.0,8,,"HV, HYV, MG, T",-5 Penalty To Hit.,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Shotgun - Bird Shot (BS),UNSC,Mythic,,0,-3,-3,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-20,,,0,cR,10,,,0.0,-2.2,,1.0,-5,,All Shot Shells,+20 Bonus To Hit.,+20 Bonus To Hit.
+Shotgun - Breaching Shot (BCR),UNSC,Mythic,,0,5,3,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,8,cR,10,,,0.0,3.1,,1.0,7,,All Shot Shells,,Halves the range of the weapon. Deals double damage against objects.
+Shotgun - Flechette Shot (FL),UNSC,Mythic,,0,-4,8,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,0.0,,1.0,0,,All Shot Shells,,
+Shotgun - Fragmentation Shot (FRST),UNSC,Mythic,,0,-3,-5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,,,0,cR,10,,,0.2,-2.9,,1.0,-6,,All Shot Shells,Blast (1) Special Rule.,
+Shotgun - Incendiary Shot (INST),UNSC,Mythic,,0,-3,-2,0,0,,,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,9,cR,10,,,0.0,3.5,,1.0,7,,All Shot Shells,Flame (2) Special Rule.,Flame(2) to any Character or surface impacted. Reduced to Flame (1) further than Close Range.
+Shotgun - BOLO Shot (BST),UNSC,Mythic,,0,-5,-4,2,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,9,cR,10,9,,0.0,1.9,,1.0,4,,All Shot Shells,+2D10 Special Damage Bonus,
+Shotgun - Foster  Slug (FS),UNSC,Mythic,,1,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,7,cR,10,,,0.0,2.6,,1.0,6,,None,,Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - Breaching Slug (BSL),UNSC,Mythic,,-2,0,12,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,4,cR,10,4,,0.0,-2.4,,1.0,-5,,None,,Halves the range of the weapon. Deals double damage against objects.
+Shotgun - Depleted Uranium Slug (DS),UNSC,Mythic,,0,0,10,0,0,,,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,40,cR,10,,,0.0,16.0,,1.0,33,,None,Flame (2D5) Special Rule.,Energy Penetrator rounds made of Depleted Uranium. Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - Fragmentation Slug (FRS),UNSC,Mythic,,1,0,-1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,,,8,cR,10,,,0.5,2.6,,1.0,6,,None,Blast (2) Special Rule.,Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - Incendiary Slug (INS),UNSC,Mythic,,0,0,-3,0,0,,,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,33,cR,10,,,0.0,12.9,,1.0,27,,None,Flame (2D5) Special Rule.,Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - Magnum Slug (MN),UNSC,Mythic,,0,5,2,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,,34,cR,10,,,7.7,5.8,,1.0,12,,None,"Penetrating, Kinetic Special Rule.",Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - Stun Slug (STNL),UNSC,Mythic,,0,-15,-6,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,1,0,0,0,0,0,0,0,0,0,0,,,2,cR,10,2,,2.6,-8.6,,1.0,-18,,None,"Stun (3), Nonlethal Special Rule.",Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - Solid Slug (SSL),UNSC,Mythic,,0,10,-4,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,,28,cR,10,,,4.3,6.7,,1.0,14,,None,Kinetic Special Rule.,Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - Tactical Training Rounds (TTR),UNSC,Mythic,,-1,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,,,2,cR,10,2,,0.0,-2.6,,1.0,-6,,TZ,Nonlethal Special Rule.,"When hit, the Opponent must make a Toughness Test or gain a Fatigue. For every one that hits, the test gains a -10 Penalty. Slugs double the Close and Optimal Range of the weapon."
+Shotgun - Taser Slug (TZ),UNSC,Mythic,,0,-5,-1,0,0,,,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,10,cR,10,10,,0.5,-2.6,,1.0,-6,,TTR,Electrified (1D10) Special Rule.,Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - Tungsten Slug (TSL),UNSC,Mythic,,0,-4,12,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,11,cR,10,,,3.4,1.0,,1.0,2,,None,Penetrating Special Rule.,Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - BOLO Slug (BO),UNSC,Mythic,,0,-5,-4,3,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,12,cR,10,,,0.0,4.6,,1.0,10,,None,+3D10 Special Damage Bonus,Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - SABOT Slug (SS),UNSC,Mythic,,0,-6,12,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,,18,cR,10,,,4.3,2.9,,1.0,6,,None,Kinetic Special Rule.,Removes Spread Special Rule. Slugs double the Close and Optimal Range of the weapon.
+Shotgun - Rifled Slug (RS),UNSC,Mythic,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,10,cR,10,10,,0.0,0.0,,1.0,0,,None,,"Can only be taken with other Slugs and cannot be taken on its own. Increases the Weapon’s Close Range by 25%, removes Spread Special Rule. Close Range cannot surpass Optimal Range. Slugs double the Close and Optimal Range of the weapon."
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+14.5X114mm And Gauss Slug - Grappling Round (GR),UNSC,Mythic,,0,-12,6,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,-4.3,,1.0,-9,,None,,"A long harpoon shaft placed into the barrel to be fired off with an attached 200 Meter nanotube rope. The Grappling Round attaches to any surface the Attack pierces. To load this Round, you must remove the Magazine and load in the Grappling Round from the weapon’s Barrel. This takes one Full Action."
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Flamethrower Fuel - Self-Oxidizing Fuel Mixture (SOF),UNSC,Mythic,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,0.0,,1.0,0,,All,,Allows the Cryosprayer to be used in a vacuum or atmosphere lacking Oxygen.
+Flamethrower Fuel - Napalm Defoliant,UNSC,Mythic,,0,4,-6,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,2,cR,10,,,0.0,0.5,,1.0,1,,SOF,,"Beginning at -30 for the first test, each consecutive Agility Test to put out the fire will get a +10 until this Penalty reaches 0."
+Flamethrower Fuel - Nitrace-Ether Defoliant,UNSC,Mythic,,0,-5,-4,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,-3.4,,1.0,-7,,SOF,,+20 meters Range
+Flamethrower Fuel - Triethylaluminium,UNSC,Mythic,,0,-5,-5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,30,cR,10,30,,0.0,-3.6,,1.0,-8,,SOF,,"Doubles Flame (X) of the Weapon, deals Flame Special Rule even if the struck Character took no Damage. Burns clear, giving -10 Penalty To Hit and to Evasion."
+Flamethrower Fuel - White Diamond Defoliant,UNSC,Mythic,,0,30,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,30,cR,10,30,,0.0,14.4,,1.0,30,,SOF,,"Halves usable range of the Flamethrower, but sprays White Phosphorous, dealing double the Base Damage."
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Cryo Sprayer Fuel - Liquid Oxygen,UNSC,Mythic,,0,3,-5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,10,cR,10,10,,0.0,0.2,,1.0,1,,None,,"A faster spraying, more reactive fuel source for the Cryosprayer. Increases range by 10 Meters."
+Cryo Sprayer Fuel - Liquid Neon,UNSC,Mythic,,0,0,10,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,10,cR,10,10,,0.0,2.4,,1.0,5,,None,,Powerful liquid neon that explosively ejects from the Cryosprayer.
+Cryo Sprayer Fuel - Liquid Hydrogen,UNSC,Mythic,,0,10,5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,25,cR,10,25,,0.0,6.0,,1.0,13,,None,,An incredibly cold fuel source for the Cryosprayer that reduces Range by 10 meters.
+Cryo Sprayer Fuel - Liquid Helium,UNSC,Mythic,,0,20,-5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,55,cR,10,55,,0.0,8.4,,1.0,18,,None,,"A slow and dangerous fuel source. Characters take double the Fatigue from each Attack made with the Cryosprayer.
+	Opponent gains a +10 To Evade this Ammunition Type when further than 10 Meters away. Opponent gains an additional +10 to Evade when further than 20 Meters away and the Damage bonus this Ammunition is given is lost beyond 20 meters out."
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+40mm - Fragmentation,UNSC,Mythic,0,3,9,12,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,4,0,0,0,0,,,11,cR,1,,,7.8,33.3,,1.0,69,,None,"Blast (8), Kill (4) Special Rule.",
+40mm - Smoke,UNSC,Mythic,1,0,4,1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,,,3,cR,1,,,8.5,2.4,,1.0,5,,None,Blast (15) Special Rule.,Covers a diameter of Blast (15) meters in thick smoke.
+40mm - Buckshot Canister,UNSC,Mythic,0,5,5,20,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,,7,cR,1,,,1.7,25.7,,1.0,54,,None,Spread Special Rule.,Range reduced to 15m-90m. Replaces 40mm Launcher Impact Damage.
+40mm - Slug Canister,UNSC,Mythic,0,6,14,15,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,,9,cR,1,,,4.3,29.0,,1.0,61,,None,Kinetic Special Rule.,"Acts as a shotgun slug, Range reduced to 25m-110m. Replaces 40mm Launcher Impact Damage."
+40mm - Incendiary,UNSC,Mythic,1,0,1,21,0,0,,,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,5,0,0,0,0,,,14,cR,1,,,10.5,42.0,,1.0,88,,None,"Flame (2D5), Blast (10), Kill (5) Special Rule.",
+40mm - Thermobaric,UNSC,Mythic,0,6,15,15,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,6,0,0,0,0,,,18,cR,1,,,9.5,58.6,,1.0,122,,None,"Blast (6), Kill (6) Special Rule.",
+40mm - Flashbang,UNSC,Mythic,1,0,4,1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,25,3,0,0,0,0,,,7,cR,1,,,19.6,4.8,,1.0,10,,None,"Blast (25), Kill (3) Special Rule.",Flashbang.
+40mm - Parachute Flare,UNSC,Mythic,0,1,0,0,0,0,,,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,,,3,cR,1,,,0.5,8.2,,1.0,17,,None,"Flame (1D5), Blast (2) Special Rule.","An incredibly bright Flare that falls very slowly, supported by a small parachute. Lights up a radius of 350 Meters. Flame (1D5) within Blast (2). The Parachute Flare stays in the air for (X) Rounds, where (X) is how many Meters from the Ground it is."
+40mm - Infrared Illuminator,UNSC,Mythic,1,0,1,1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,1,cR,1,,,0.0,0.7,,1.0,2,,None,,Provides Infrared Illumination out to 120 Meters.
+40mm - Tear Gas,UNSC,Mythic,1,0,1,1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,25,1,0,0,0,0,,,5,cR,1,,,17.3,1.6,,1.0,3,,None,"Blast (25), Kill (1) Special Rule.","Blast (25), Kill (1), Tear Gas Special Rule."
+40mm - EMP-G,UNSC,Mythic,0,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,8,0,0,0,0,0,,,16,cR,1,16,,3.7,31.7,,1.0,66,,None,"EMP (6), Blast (8) Special Rule.",EMP (6) Special Rule within Blast (8).
+40mm - Thermite Canister,UNSC,Mythic,0,2,20,70,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,10,4,0,0,0,0,,,20,cR,1,,,10.0,69.7,,1.0,145,,None,"Cauterize, Blast (10), Kill (4) Special Rule.","Powerful, hot burning material used to melt through the floor of a Frigate. Charge (1) Special Rule and lasts for 10 Rounds. Thermite-A will deal half Damage and Pierce to those within 10 Meters of the Thermite-A Grenade."
+40mm - White Diamond,UNSC,Mythic,0,1,10,10,0,0,,,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,4,0,0,0,0,,,50,cR,1,,,7.8,190.6,,1.0,397,,None,"Flame (4D10), Blast (8), Kill (4) Special Rule.",
+40mm - Cryo Grenade,UNSC,Mythic,1,0,0,14,0,0,,,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,4,0,0,0,0,,,20,cR,1,20,,7.8,28.5,,1.0,59,,None,"Cryo (1D10), Blast (8), Kill (4) Special Rule.",
+40mm - Cryobaric Prototype,UNSC,Mythic,0,3,0,25,0,0,,,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,4,0,0,0,0,,,34,cR,1,,,7.8,126.2,,1.0,263,,None,"Cryo (8), Blast (8), Kill (4) Special Rule.",
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+"Missiles, Rockets, Cannons - Armor Piercing (AP)",UNSC,Mythic,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,1,,,0.0,0.0,,1.0,0,,"All except HEAT, HESH, SC",,"Removes Blast and Kill, doubles Base Damage and Pierce."
+"Missiles, Rockets, Cannons - High-Explosive Anti-Tank (HEAT)",UNSC,Mythic,,0,-5,5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,1,,,0.0,-1.2,,1.0,-3,,"All except HESH, SC, AP, HE",,"Halves Blast and Kill Radius, gives an extra +15 Pierce against Vehicles and Cover, or +5 Pierce against Vehicles with the Heavy Plating Special Rule."
+"Missiles, Rockets, Cannons - High-Velocity (HV)",UNSC,Mythic,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,15,cR,1,15,,0.0,0.0,,1.0,0,,Any,,Increases the launcher’s Close Range by 25%.
+"Missiles, Rockets, Cannons - High-Explosive (HE)",UNSC,Mythic,,0,5,-15,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,,,8,cR,1,8,,3.7,-2.6,,1.0,-6,,All except HEAT,,Increases Blast and Kill Radius by 3.
+"Missiles, Rockets, Cannons - Fragmentation (FG)",UNSC,Mythic,,1,0,-10,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,0,0,0,0,0,,,8,cR,1,8,,3.1,0.3,,1.0,1,,Any,,Increases Blast Radius by 7 and halves Explosive Knockback.
+"Missiles, Rockets, Cannons - High-Explosive Squash Head (HESH)",UNSC,Mythic,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,,0,0,0,0,0,0,0,0,0,0,0,,,2,cR,1,,,4.3,2.9,,1.0,6,,"All except HEAT, SC, AP",Kinetic Special Rule.,Halves Blast and Kill Radius.
+"Missiles, Rockets, Cannons - Sabot Charge (SC)",UNSC,Mythic,,0,-15,20,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,1,,,0.0,-2.4,,1.0,-5,,"All except HESH, HEAT, AP",,"Reduces Blast and Kill Radius by half, to a minimum of 1."
+"Missiles, Rockets, Cannons - Incendiary (IN)",UNSC,Mythic,,-1,0,-10,0,0,,,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,3,cR,1,,,0.0,8.5,,1.0,18,,Any,Flame (2D5) Special Rule.,
+"Missiles, Rockets, Cannons - Thermite (TH)",UNSC,Mythic,,0,0,20,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,50,cR,1,50,,0.9,4.8,,1.0,10,,None,Cauterize Special Rule.,Blast Special Rule lasts for 5 Rounds.
+"Missiles, Rockets, Cannons - Thermobaric (TB)",UNSC,Mythic,,3,0,-10,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,10,0,0,0,0,,,30,cR,1,30,,18.5,12.1,,1.0,25,,None,,"Increases Blast and Kill Radius by 5 Meters, double Explosive Knockback."
+"Missiles, Rockets, Cannons - Depleted Uranium (DU)",UNSC,Mythic,,0,10,15,0,0,,,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,35,cR,1,35,,0.0,58.3,,1.0,121,,None,Flame (3D10) Special Rule.,Halves Blast and Kill Radius.
+"Missiles, Rockets, Cannons - White Diamond (WP)",UNSC,Mythic,,0,-20,-15,0,0,,,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,75,cR,1,75,,0.0,94.1,,1.0,196,,None,Flame (5D10) Special Rule.,
+"Missiles, Rockets, Cannons - Canister (CCC)",UNSC,Mythic,,0,0,-15,0,0,-50,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,1,0,0,0,0,0,0,0,0,0,0,,9,cR,10,,,1.7,1.7,,1.0,4,,,Spread Special Rule.,Halves the Close and Optimal Range. Remove Blast (X) and Kill (X). Can only be used on Cannon Shells.
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Brute Shot - EMP,Covenant,Mythic,,0,-5,-2,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,,,29,cR,10,,,0.0,11.5,,1.0,24,,None,EMP (3) Special Rule.,Creates an EMP (3) within the Blast Radius of the weapon.
+Brute Shot - Fire,Covenant,Mythic,,0,5,-2,0,0,,,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-2,0,0,0,0,,,35,cR,10,,,-1.7,15.5,,1.0,32,,None,,Removes the weapon’s Kill Radius but replaces it with Flame (2D5).
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+BS EMP Warhead,,,,0,0,0,0,,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,4,0,0,0,,,30,cR,10,,,11.9,0.0,,1.0,0,,,"Kill (8), Dice minimum (4) Special Rule.",
+Bluescreen Warhead,,,,0,10,8,0,,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,4,0,0,0,,,64,cR,10,,,11.9,13.4,,1.0,28,,,"Kill (8), Dice minimum (4) Special Rule.",
+Venom Warhead,,,,0,-3,-3,0,,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,4,0,0,0,,,65,cR,10,65,,11.9,-4.3,,1.0,-9,,,"Kill (8), Dice minimum (4) Special Rule.",
+,,,,EXPANSION SHOTGUN SHELLS,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Venom Shot (VS),,,,0,-3,-3,0,,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,12,cR,10,12,,0.0,-2.2,,1.0,-5,,,,
+Venom Slug (VSL),,,,0,-3,-5,0,,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-20,,,20,cR,10,20,,0.0,-2.6,,1.0,-6,,,+20 Bonus To Hit.,
+Bluescreen Shot (BS),,,,0,4,2,0,,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,6,cR,10,6,,0.0,2.4,,1.0,5,,,,
+Bluescreen Slug (BSL),,,,0,8,4,0,,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,,,14,cR,10,14,,0.2,5.3,,1.0,11,,,Blast (1) Special Rule.,
+,,,,40K Bolts,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Antiphasic,,,,0,-1,-1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,,,9,cR,10,,,4.3,-0.7,,1.0,-2,,,Stun (5) Special Rule.,
+Banestrike,,,,0,0,20,-1,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,6,cR,10,,,0.0,2.2,,1.0,5,,,+-1D10 Special Damage Bonus,
+Bloodshard,,,,0,-10,20,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,0.0,,1.0,0,,,,
+Derevenant,,,,0,-3,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,,,8,cR,10,,,4.3,-1.4,,1.0,-3,,,Stun (5) Special Rule.,
+Dragonfire,,,,0,-5,-1,0,0,,,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,7,cR,10,,,0.0,2.8,,1.0,6,,,Flame (2) Special Rule.,
+Executioner,,,,0,-9,5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,1,0,0,,,0,cR,10,,,0.0,-3.6,,1.0,-7,,,Homing Special Rule.,
+Hellfire,,,,0,-3,0,0,0,,,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,10,cR,10,,,0.0,4.0,,1.0,8,,,Flame (2) Special Rule.,
+Helspears,,,,0,-5,5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,6,cR,10,,,3.4,-1.2,,1.0,-3,,,Penetrating Special Rule.,
+Hyperfrag,,,,0,-1,-1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,5,0,0,0,0,0,,,4,cR,10,,,2.0,-0.8,,1.0,-2,,,Blast (5) Special Rule.,
+Implosion,,,,-2,0,0,5,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,2,1,0,0,0,0,,,47,cR,10,,,1.2,17.4,,1.0,36,,,"Blast (2), Kill (1) Special Rule. +5D10 Special Damage Bonus",
+Inertial Fusion,,,,0,-4,-4,4,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,28,cR,10,,,3.4,7.7,,1.0,16,,,Penetrating Special Rule. +4D10 Special Damage Bonus,
+Inferno,,,,0,-3,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,-1.4,,1.0,-3,,,,
+Kraken Penetrator,,,,0,-5,14,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,3,cR,10,,,0.0,1.0,,1.0,2,,,,
+Metal Storm Frag,,,,0,-10,6,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,3,0,0,0,0,0,,,0,cR,10,,,1.0,-3.7,,1.0,-8,,,Blast (3) Special Rule.,
+Mortis,,,,0,-9,0,5,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,23,cR,10,,,0.0,8.9,,1.0,19,,,+5D10 Special Damage Bonus,
+Psybolt,,,,0,-2,-1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,-1.2,,1.0,-3,,,,
+Scorpius,,,,0,-8,16,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,1,0,0,,,0,cR,10,,,0.0,0.0,,1.0,0,,,Homing Special Rule.,
+Seeker,,,,0,-8,-1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,1,0,0,,,0,cR,10,,,0.0,-4.7,,1.0,-10,,,Homing Special Rule.,
+Shrapnel,,,,0,-5,-1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,1,0,0,0,0,0,0,0,0,0,,,11,cR,10,,,1.7,2.6,,1.0,6,,,Spread Special Rule.,
+Stable Flux-Core,,,,0,-4,22,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,9,cR,10,,,0.0,3.4,,1.0,7,,,,
+Stalker Silenced,,,,0,-10,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,-4.8,,1.0,-10,,,,
+Tempest,,,,0,-5,-1,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,3,0,0,0,0,0,0,0,0,,,30,cR,10,,,0.0,11.8,,1.0,25,,,EMP (3) Special Rule.,
+Thermic Penetrator,,,,0,5,5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,9,cR,10,,,0.0,3.6,,1.0,8,,,,
+Ulysses,,,,0,-15,15,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,-3.6,,1.0,-8,,,,
+Vengeance,,,,0,0,20,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,12,cR,10,,,0.0,4.8,,1.0,10,,,,
+Witch,,,,0,-3,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,,,8,cR,10,,,4.3,-1.4,,1.0,-3,,,Stun (5) Special Rule.,
+Witchseeker,,,,0,-6,-2,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,-3.4,,1.0,-7,,,,
+,,,,40K Shotgun Shells,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Amputator,,,,0,-5,-4,2,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,5,cR,10,,,0.0,1.9,,1.0,4,,,+2D10 Special Damage Bonus,
+Bolt,,,,0,13,-4,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,14,cR,10,,,0.0,5.3,,1.0,11,,,,
+Cryptclearer,,,,1,0,-5,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,4,cR,10,,,0.0,1.4,,1.0,3,,,,
+Cryptus,,,,2,-6,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,6,cR,10,,,0.0,2.4,,1.0,5,,,,
+Executioner,,,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,0.0,,1.0,0,,,,
+Flechette,,,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,0.0,,1.0,0,,,,
+Gas Round,,,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,0.0,,1.0,0,,,,
+Ignitius,,,,0,-3,-2,0,0,,,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,9,cR,10,,,0.0,3.5,,1.0,7,,,Flame (2) Special Rule.,
+Inferno,,,,0,-6,-6,0,0,,,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,28,cR,10,,,0.0,11.0,,1.0,23,,,Flame (4) Special Rule.,
+Solid Slug,,,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,0.0,,1.0,0,,,,
+Stun Shell,,,,0,0,0,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,0,cR,10,,,0.0,0.0,,1.0,0,,,,
+Wyrmbreath,,,,-2,0,-8,0,0,,,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,,,53,cR,10,,,0.0,21.0,,1.0,44,,,Flame (6) Special Rule.,
+,,,,Mass Effect Blocks,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Harpoon,,,,0,-5,5,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,,1,cR,10,,,0.9,-0.7,,1.0,-2,,,Spike Special Rule.,
+,,,,40K Shotgun Missiles,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Flakk,,,,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,1,0,0,0,,0,cR,10,,,0.0,0.0,,1.0,0,,,Homing Special Rule.,
+Hunter Killer,,,,0,2,12,0,0,100,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,-4,-2,0,0,0,0,0,,2,cR,10,,,-3.2,3.8,,1.0,8,,,"Blast (-4), Kill (-2) Special Rule.",
+,,,,Azur Lane and Armored Heart,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Flak,,,,0,0,-6,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,3,0,0,0,0,0,0,,0,cR,10,,,1.0,-1.6,,1.0,-3,,,Blast (3) Special Rule.,
+SAP,,,,0,-3,6,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,,0,cR,10,,,0.0,0.0,,1.0,0,,,,
+AP,,,,0,-6,12,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,,0,cR,10,,,0.0,0.0,,1.0,0,,,,
+HE,,,,1,0,-5,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,1,0,0,0,0,0,0,,5,cR,10,,,0.2,1.6,,1.0,3,,,Blast (1) Special Rule.,
+Star,,,,-1,0,-10,0,0,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,,12,cR,10,,,0.0,4.6,,1.0,10,,,Flame (1D10) Special Rule.,
+Grape,,,,0,-4,-6,0,0,-50,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,1,0,0,0,0,0,0,0,0,0,0,,10,cR,10,,,1.7,1.9,,1.0,4,,,Spread Special Rule.,
+Tracer,,,,0,-6,-2,0,0,-50,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,1,0,0,0,0,0,0,0,0,0,0,,10,cR,10,,,1.7,1.9,,1.0,4,,,Spread Special Rule.,
+SABOT,,,,0,-3,15,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,,6,cR,10,,,0.0,2.2,,1.0,5,,,,
+Default,,,,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,,0,cR,10,,,0.0,0.0,,1.0,0,,,,

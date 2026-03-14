@@ -9,7 +9,9 @@
     "Item": {
       "gear": "Gear",
       "ability": "Ability",
-      "education": "Education"
+      "education": "Education",
+      "soldierType": "Soldier Type",
+      "trait": "Trait"
     }
   }
 }

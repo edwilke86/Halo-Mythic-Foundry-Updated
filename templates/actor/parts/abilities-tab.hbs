@@ -47,5 +47,50 @@
         <i class="fas fa-plus"></i> Custom
       </button>
     </div>
+
+    <h2 style="margin-top: 12px;">Traits</h2>
+
+    {{#if mythicTraits.length}}
+    <div class="mythic-traits-table">
+      <div class="mythic-trait-col-headers">
+        <div>Name</div>
+        <div>Category</div>
+        <div>Access</div>
+        <div>Description</div>
+        <div></div>
+      </div>
+
+      {{#each mythicTraits as |trait|}}
+        <div class="mythic-trait-row">
+          <div class="ability-col-name">
+            <div class="ability-name-actions">
+              <button class="trait-open-btn action-btn" type="button" data-item-id="{{trait.id}}" title="Open trait sheet">
+                {{trait.name}}
+              </button>
+              <button class="trait-post-btn action-btn" type="button" data-item-id="{{trait.id}}" title="Post trait to chat">
+                <i class="fas fa-comment-alt"></i>
+              </button>
+            </div>
+          </div>
+          <div class="ability-col-action">{{trait.category}}</div>
+          <div class="ability-col-action">{{#if trait.grantOnly}}Granted{{else}}Selectable{{/if}}</div>
+          <div class="ability-col-description" title="{{trait.shortDescription}}">{{trait.shortDescription}}</div>
+          <div class="ability-col-delete">
+            <button class="trait-remove-btn action-btn" type="button" data-item-id="{{trait.id}}" title="Remove trait">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      {{/each}}
+    </div>
+    {{else}}
+      <p class="ability-empty-hint">No traits yet.</p>
+    {{/if}}
+
+    <div class="section-actions-row">
+      <button class="trait-add-custom-btn action-btn" type="button" title="Create custom trait">
+        <i class="fas fa-plus"></i> New Trait
+      </button>
+    </div>
   </section>
 </div>

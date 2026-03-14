@@ -1,0 +1,146 @@
+<div class="{{cssClass}} mythic-ability-item-sheet mythic-soldier-type-sheet">
+  <header class="ability-sheet-header">
+    <img class="ability-sheet-icon" src="{{item.img}}" title="{{item.name}}" alt="{{item.name}}" />
+    <div class="ability-sheet-header-text">
+      <h2 class="ability-sheet-title">{{item.name}}</h2>
+      <div class="ability-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
+        <span class="ability-page-badge">Soldier Type Template</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="ability-sheet-body">
+    <div class="ability-info-row">
+      <label for="soldier-name">Name</label>
+      <input id="soldier-name" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-description">Description</label>
+      <textarea id="soldier-description" name="system.description" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{soldierType.description}}</textarea>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="soldier-header-type">Soldier Type</label>
+        <input id="soldier-header-type" type="text" name="system.header.soldierType" value="{{soldierType.header.soldierType}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-header-rank">Rank</label>
+        <input id="soldier-header-rank" type="text" name="system.header.rank" value="{{soldierType.header.rank}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-header-special">Specialisation</label>
+        <input id="soldier-header-special" type="text" name="system.header.specialisation" value="{{soldierType.header.specialisation}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="soldier-header-race">Race</label>
+        <input id="soldier-header-race" type="text" name="system.header.race" value="{{soldierType.header.race}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-header-upbringing">Upbringing</label>
+        <input id="soldier-header-upbringing" type="text" name="system.header.upbringing" value="{{soldierType.header.upbringing}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-header-environment">Environment</label>
+        <input id="soldier-header-environment" type="text" name="system.header.environment" value="{{soldierType.header.environment}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="soldier-header-lifestyle">Lifestyle</label>
+        <input id="soldier-header-lifestyle" type="text" name="system.header.lifestyle" value="{{soldierType.header.lifestyle}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-credits">Credits</label>
+        <input id="soldier-credits" type="number" min="0" step="1" name="system.equipment.credits" value="{{soldierType.equipment.credits}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-mythic-agi">Mythic AGI</label>
+        <input id="soldier-mythic-agi" type="number" min="0" step="1" name="system.mythic.agi" value="{{soldierType.mythic.agi}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="soldier-char-str">STR</label>
+        <input id="soldier-char-str" type="number" min="0" step="1" name="system.characteristics.str" value="{{soldierType.characteristics.str}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-char-tou">TOU</label>
+        <input id="soldier-char-tou" type="number" min="0" step="1" name="system.characteristics.tou" value="{{soldierType.characteristics.tou}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-char-agi">AGI</label>
+        <input id="soldier-char-agi" type="number" min="0" step="1" name="system.characteristics.agi" value="{{soldierType.characteristics.agi}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="soldier-char-int">INT</label>
+        <input id="soldier-char-int" type="number" min="0" step="1" name="system.characteristics.int" value="{{soldierType.characteristics.int}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-char-per">PER</label>
+        <input id="soldier-char-per" type="number" min="0" step="1" name="system.characteristics.per" value="{{soldierType.characteristics.per}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-char-cha">CHA</label>
+        <input id="soldier-char-cha" type="number" min="0" step="1" name="system.characteristics.cha" value="{{soldierType.characteristics.cha}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-educations">Educations (one per line)</label>
+      <textarea id="soldier-educations" name="mythic.educationsText" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{educationsText}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-abilities">Abilities (one per line)</label>
+      <textarea id="soldier-abilities" name="mythic.abilitiesText" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{abilitiesText}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-traits">Granted Traits (one per line)</label>
+      <textarea id="soldier-traits" name="mythic.traitsText" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{traitsText}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-training">Training Grants (one per line)</label>
+      <textarea id="soldier-training" name="mythic.trainingText" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{trainingText}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-skills-base">Skills Base Patch JSON</label>
+      <textarea id="soldier-skills-base" name="mythic.skillsBaseJson" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{skillsBaseJson}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-skills-custom">Custom Skills JSON</label>
+      <textarea id="soldier-skills-custom" name="mythic.skillsCustomJson" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{skillsCustomJson}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-skill-choices">Skill Choice Rules JSON</label>
+      <textarea id="soldier-skill-choices" name="mythic.skillChoicesJson" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{skillChoicesJson}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-equipment-packs">Equipment Pack Choices JSON</label>
+      <textarea id="soldier-equipment-packs" name="mythic.equipmentPacksJson" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{equipmentPacksJson}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="soldier-notes">Notes</label>
+      <textarea id="soldier-notes" name="system.notes" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{soldierType.notes}}</textarea>
+    </div>
+  </section>
+</div>

@@ -27,12 +27,10 @@ Current direction (next):
   - drag-and-drop application flow with overwrite/merge/cancel prompt
   - safe-apply preview/conflict handling scaffold
 - Keep Milestone 4 remaining P0 depth tasks as active backfill while Milestone 5 is underway
+- Treat Warzone content as in-scope for base system compendia and rules support (not deferred to a separate expansion module)
 
 ## How to use this file
 
-- Mark completed items with [x]
-- Add new ideas under Quick Capture at the bottom as they come up
-- Keep implementation notes under each task when useful
 - Use priorities:
   - P0 = blocker / core playability
   - P1 = high value
@@ -98,12 +96,31 @@ Implementation note:
 
 ### Soldier Type drag-and-drop starter templates
 
+Implementation note:
+
+- Soldier Types are now treated as a capstone creation step that depends on completed foundations for Traits, Training/Proficiencies, Equipment Kits, Modifiers, Squad-Up, and Characteristic Advancement automation.
+- Current Soldier Type code in-system is a prototype spike for UX exploration and should be refactored after those dependencies are implemented.
+
 - [ ] P0 Create compendium pack for Soldier Types
 - [ ] P0 Define Soldier Type data format (starting characteristics, skills, talents, gear, notes)
 - [ ] P0 Implement drag-and-drop handler onto actor sheet
 - [ ] P0 Prompt for apply mode on drop: overwrite / merge / cancel
 - [ ] P0 Add safe-apply logic with conflict detection and preview
 - [ ] P1 Add undo support for last template application
+
+Prerequisite foundation tasks (before final Soldier Type implementation):
+
+- [ ] P0 Add item type: Traits (with automatic grants and display on actor)
+- [x] P0 Add Training/Proficiency model (weapons, vehicles, technology) and actor UI wiring
+- [ ] P0 Add item type/model for Soldier Type modifiers (e.g., carry weight formulas)
+- [ ] P0 Add Squad Up bonus model and automation hooks
+- [ ] P0 Add Characteristic Advancement auto-apply rules for creation flow
+- [ ] P0 Add Equipment Pack / Kit model with per-Soldier-Type selectable starting kits
+
+Implementation note:
+
+- Soldier Type templates now apply training grants into the actor training/proficiency model, and skill-choice grants are resolved during template application; equipment-pack choice data still remains pending for later resolution UI.
+- Item sync metadata foundation is now in place (`system.sync` with canonical ID/version fields on item system data) to support future compendium-to-world/actor update propagation workflows.
 
 ### Drag-and-drop background packages (race/specialisation/lifestyle/environment/upbringing)
 
@@ -156,6 +173,12 @@ Implementation note:
 - [ ] P1 Add import/export pipeline for actor templates and compendium content
 - [ ] P1 Add optional JSON patch importer for bulk data updates
 - [ ] P2 Add compatibility helpers for future module integrations
+
+Warzone integration decision:
+
+- [ ] P0 Include Warzone-tagged data in base-system import/compendium workflow
+- [ ] P1 Add source-scope filters for imports (e.g., Mythic-only, Mythic+Warzone)
+- [ ] P1 Mark imported records with source metadata so future module split remains possible
 
 ## Milestone 8: Testing, Validation, and Stability
 

@@ -193,6 +193,8 @@ const MYTHIC_SOLDIER_TYPE_SCHEMA_VERSION = 1;
 const MYTHIC_CONTENT_SYNC_VERSION = 1;
 const MYTHIC_WORLD_MIGRATION_VERSION = 5;
 const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
+const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
+const MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY = "ignoreBasicAmmoCounts";
 const MYTHIC_CHARACTERISTIC_KEYS = ["str", "tou", "agi", "wfm", "wfr", "int", "per", "crg", "cha", "ldr"];
 const MYTHIC_SYNC_DEFAULT_SCOPE_BY_TYPE = Object.freeze({
   gear: "mythic",
@@ -238,6 +240,24 @@ function buildCanonicalItemId(itemType, itemName = "", sourcePage = null) {
   const numericPage = Number(sourcePage);
   const pagePart = Number.isFinite(numericPage) && numericPage > 0 ? `-p${Math.floor(numericPage)}` : "";
   return `${typePart}:${namePart}${pagePart}`;
+}
+
+function getAmmoConfig() {
+  const result = {
+    ignoreBasicAmmoWeight: true,
+    ignoreBasicAmmoCounts: false
+  };
+
+  try {
+    if (game?.settings) {
+      result.ignoreBasicAmmoWeight = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY));
+      result.ignoreBasicAmmoCounts = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY));
+    }
+  } catch (_error) {
+    // Keep defaults if settings are unavailable during early lifecycle calls.
+  }
+
+  return result;
 }
 
 function normalizeItemSyncData(syncData, itemType, itemName = "", options = {}) {
@@ -744,6 +764,7 @@ function getCanonicalCharacterSystemData() {
       armorName: "",
       utilityLoadout: "",
       carriedIds: [],
+      ammoPools: {},
       weaponState: {},
       equipped: {
         weaponIds: [],
@@ -961,6 +982,21 @@ function normalizeCharacterSystemData(systemData) {
   };
 
   merged.equipment.carriedIds = normalizeIdArray(merged.equipment?.carriedIds);
+
+  const rawAmmoPools = (merged.equipment?.ammoPools && typeof merged.equipment.ammoPools === "object")
+    ? merged.equipment.ammoPools
+    : {};
+  const normalizedAmmoPools = {};
+  for (const [rawKey, rawPool] of Object.entries(rawAmmoPools)) {
+    const key = toSlug(rawKey);
+    if (!key) continue;
+    const pool = (rawPool && typeof rawPool === "object") ? rawPool : {};
+    normalizedAmmoPools[key] = {
+      name: String(pool.name ?? "").trim(),
+      count: toNonNegativeWhole(pool.count, 0)
+    };
+  }
+  merged.equipment.ammoPools = normalizedAmmoPools;
 
   const rawWeaponState = (merged.equipment?.weaponState && typeof merged.equipment.weaponState === "object")
     ? merged.equipment.weaponState
@@ -2964,6 +3000,10 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const equippedWeaponItems = weaponItems.filter((entry) => entry.isEquipped);
     const equippedArmor = findById(equippedArmorId);
     const wieldedWeapon = findById(wieldedWeaponId);
+    const ammoConfig = getAmmoConfig();
+    const rawAmmoPools = (systemData?.equipment?.ammoPools && typeof systemData.equipment.ammoPools === "object")
+      ? systemData.equipment.ammoPools
+      : {};
     const rawWeaponState = (systemData?.equipment?.weaponState && typeof systemData.equipment.weaponState === "object")
       ? systemData.equipment.weaponState
       : {};
@@ -2995,6 +3035,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return {
         ...item,
         isMelee,
+        ammoKey: toSlug(String(item.ammoName ?? "")),
         reach: Math.max(1, toNonNegativeWhole(item.rangeClose, 1)),
         magazineMax,
         magazineCurrent,
@@ -3006,6 +3047,26 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ammoLabel: String(item.ammoName ?? "").trim() || "Ammo"
       };
     });
+
+    const ammoMap = new Map();
+    for (const weapon of weaponItems) {
+      const ammoLabel = String(weapon.ammoName ?? "").trim();
+      if (!ammoLabel) continue;
+      const ammoKey = toSlug(ammoLabel);
+      if (!ammoKey) continue;
+
+      if (!ammoMap.has(ammoKey)) {
+        const pool = (rawAmmoPools[ammoKey] && typeof rawAmmoPools[ammoKey] === "object")
+          ? rawAmmoPools[ammoKey]
+          : {};
+        ammoMap.set(ammoKey, {
+          key: ammoKey,
+          name: String(pool.name ?? ammoLabel).trim() || ammoLabel,
+          count: toNonNegativeWhole(pool.count, 0)
+        });
+      }
+    }
+    const ammoEntries = Array.from(ammoMap.values()).sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
     const equipped = {
       weaponIds: equippedWeaponIds,
@@ -3026,6 +3087,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       equipped,
       equippedWeaponItems,
       readyWeaponCards,
+      ammoEntries,
+      ammoConfig,
       equippedArmor,
       wieldedWeapon,
       readyWeaponCount: equippedWeaponItems.length
@@ -4053,6 +4116,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".gear-wield-btn[data-item-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onSetWieldedWeapon(event);
+      });
+    });
+
+    root.querySelectorAll(".ammo-count-input[data-ammo-key]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onAmmoCountChange(event);
       });
     });
 
@@ -5952,6 +6021,22 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  async _onAmmoCountChange(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const ammoKey = toSlug(String(event.currentTarget?.dataset?.ammoKey ?? ""));
+    if (!ammoKey) return;
+
+    const ammoName = String(event.currentTarget?.dataset?.ammoName ?? "").trim();
+    const value = toNonNegativeWhole(event.currentTarget?.value ?? 0, 0);
+
+    await this.actor.update({
+      [`system.equipment.ammoPools.${ammoKey}.name`]: ammoName,
+      [`system.equipment.ammoPools.${ammoKey}.count`]: value
+    });
+  }
+
   async _onReloadWeapon(event) {
     event.preventDefault();
     if (!this.isEditable) return;
@@ -5967,14 +6052,45 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (isMelee) return;
 
     const maxMagazine = toNonNegativeWhole(gear.range?.magazine, 0);
-    await this.actor.update({
-      [`system.equipment.weaponState.${itemId}.magazineCurrent`]: maxMagazine
-    });
+    const ammoConfig = getAmmoConfig();
+    const ammoName = String(gear.ammoName ?? "").trim();
+    const ammoKey = toSlug(ammoName);
+
+    const currentMagazine = toNonNegativeWhole(
+      this.actor.system?.equipment?.weaponState?.[itemId]?.magazineCurrent,
+      maxMagazine
+    );
+    const roundsNeeded = Math.max(0, maxMagazine - currentMagazine);
+
+    let loadedRounds = roundsNeeded;
+    let nextReserveCount = null;
+
+    if (!ammoConfig.ignoreBasicAmmoCounts && roundsNeeded > 0) {
+      const reserveCount = toNonNegativeWhole(this.actor.system?.equipment?.ammoPools?.[ammoKey]?.count, 0);
+      loadedRounds = Math.min(reserveCount, roundsNeeded);
+      nextReserveCount = reserveCount - loadedRounds;
+      if (loadedRounds <= 0) {
+        ui.notifications.warn(`No ${ammoName || "matching"} reserve ammo available to reload ${item.name}.`);
+        return;
+      }
+    }
+
+    const nextMagazine = currentMagazine + loadedRounds;
+    const updateData = {
+      [`system.equipment.weaponState.${itemId}.magazineCurrent`]: nextMagazine
+    };
+    if (nextReserveCount !== null && ammoKey) {
+      updateData[`system.equipment.ammoPools.${ammoKey}.name`] = ammoName || "Ammo";
+      updateData[`system.equipment.ammoPools.${ammoKey}.count`] = nextReserveCount;
+    }
+
+    await this.actor.update(updateData);
 
     const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const reserveText = nextReserveCount === null ? "(reserve not tracked)" : `(reserve ${nextReserveCount})`;
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      content: `<p><strong>${esc(this.actor.name)}</strong> reloads <strong>${esc(item.name)}</strong> to ${maxMagazine}.</p>`,
+      content: `<p><strong>${esc(this.actor.name)}</strong> reloads <strong>${esc(item.name)}</strong> to ${nextMagazine}/${maxMagazine} ${esc(reserveText)}.</p>`,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
     });
   }
@@ -5994,13 +6110,40 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const toHitModifier = Number.isFinite(Number(state?.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
     const damageModifier = Number.isFinite(Number(state?.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0;
     const isMelee = gear.weaponClass === "melee";
-    const ammoCurrent = toNonNegativeWhole(state?.magazineCurrent, toNonNegativeWhole(gear.range?.magazine, 0));
-    const ammoText = isMelee ? "n/a" : `${ammoCurrent}/${toNonNegativeWhole(gear.range?.magazine, 0)}`;
+    const ammoConfig = getAmmoConfig();
+    const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
+    const ammoCurrent = toNonNegativeWhole(state?.magazineCurrent, magazineMax);
+
+    const normalizedMode = mode.toLowerCase();
+    const consumedPerAttack = isMelee
+      ? 0
+      : (normalizedMode.includes("full") || normalizedMode.includes("auto")
+        ? 5
+        : normalizedMode.includes("burst")
+          ? 3
+          : 1);
+
+    if (!isMelee && !ammoConfig.ignoreBasicAmmoCounts) {
+      if (ammoCurrent <= 0) {
+        ui.notifications.warn(`${item.name} is empty. Reload required.`);
+        return;
+      }
+
+      const nextAmmo = Math.max(0, ammoCurrent - consumedPerAttack);
+      await this.actor.update({
+        [`system.equipment.weaponState.${itemId}.magazineCurrent`]: nextAmmo
+      });
+    }
+
+    const effectiveAmmo = (!isMelee && !ammoConfig.ignoreBasicAmmoCounts)
+      ? Math.max(0, ammoCurrent - consumedPerAttack)
+      : ammoCurrent;
+    const ammoText = isMelee ? "n/a" : `${effectiveAmmo}/${magazineMax}`;
     const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
 
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      content: `<p><strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(item.name)}</strong> (${esc(mode)}). To-Hit Mod: ${toHitModifier >= 0 ? `+${toHitModifier}` : toHitModifier}, Damage Mod: ${damageModifier >= 0 ? `+${damageModifier}` : damageModifier}, Ammo: ${esc(ammoText)}.</p>`,
+      content: `<p><strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(item.name)}</strong> (${esc(mode)}). To-Hit Mod: ${toHitModifier >= 0 ? `+${toHitModifier}` : toHitModifier}, Damage Mod: ${damageModifier >= 0 ? `+${damageModifier}` : damageModifier}, Ammo: ${esc(ammoText)}${isMelee ? "" : `, Consumed: ${consumedPerAttack}` }.</p>`,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
     });
   }
@@ -6765,6 +6908,24 @@ Hooks.once("init", async () => {
     config: false,
     type: Number,
     default: 0
+  });
+
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY, {
+    name: "Ignore Basic Ammo Weight",
+    hint: "If enabled, standard ammunition weight is ignored in inventory/encumbrance workflows.",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY, {
+    name: "Ignore Basic Ammo Counts",
+    hint: "If enabled, basic ammunition tracking is disabled (magazine and reserve counts are not consumed).",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
   });
 
   await foundry.applications.handlebars.loadTemplates(MYTHIC_ACTOR_PARTIAL_TEMPLATES);

@@ -238,6 +238,7 @@ Live content sync and update propagation:
 - [ ] P2 Vehicle-specific actor sheet and interaction workflows
 - [ ] P2 Optional campaign-level progression dashboards
 - [ ] P3 Optional narrative/mission tracking helpers
+- [ ] P2 Expand GM ammo configuration options (beyond ignore basic ammo weight/counts)
 
 ## Notes
 

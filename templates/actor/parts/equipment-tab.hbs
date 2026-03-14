@@ -29,9 +29,13 @@
             <span class="mythic-equipment-meta">{{item.weaponClass}}</span>
             <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" {{#if item.isCarried}}checked{{/if}} /> Carried</label>
             <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-kind="weapon" {{#if item.isEquipped}}checked{{/if}} /> Ready</label>
-            <button type="button" class="action-btn gear-wield-btn" data-item-id="{{item.id}}" {{#unless item.isEquipped}}disabled{{/unless}}>{{#if item.isWielded}}Wielded{{else}}Wield{{/if}}</button>
+            {{#unless item.isWielded}}
+            <button type="button" class="action-btn gear-wield-btn" data-item-id="{{item.id}}" {{#unless item.isEquipped}}disabled{{/unless}}>Wield</button>
+            {{else}}
+            <span class="mythic-equipment-meta">Wielded</span>
+            {{/unless}}
             <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}">Open</button>
-            <button type="button" class="action-btn gear-remove-btn" data-item-id="{{item.id}}">Remove</button>
+            <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}">Remove</button>
           </div>
           {{/each}}
         </div>
@@ -53,7 +57,7 @@
             <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-kind="armor" {{#if item.isEquipped}}checked{{/if}} /> Equipped</label>
             <span class="mythic-equipment-meta">{{#if item.isEquipped}}Active{{else}}Inactive{{/if}}</span>
             <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}">Open</button>
-            <button type="button" class="action-btn gear-remove-btn" data-item-id="{{item.id}}">Remove</button>
+            <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}">Remove</button>
           </div>
           {{/each}}
         </div>
@@ -78,12 +82,35 @@
             <span class="mythic-equipment-meta">Not equippable</span>
           {{/if}}
           <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}">Open</button>
-          <button type="button" class="action-btn gear-remove-btn" data-item-id="{{item.id}}">Remove</button>
+          <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}">Remove</button>
         </div>
         {{/each}}
       </div>
     </div>
     {{/if}}
+
+    <div class="mythic-phase4-card full-width">
+      <h3>Ammo</h3>
+      <p class="mythic-ready-weapon-empty">
+        Count Tracking: {{#if mythicEquipment.ammoConfig.ignoreBasicAmmoCounts}}Ignored by GM Setting{{else}}Enabled{{/if}} | 
+        Weight Tracking: {{#if mythicEquipment.ammoConfig.ignoreBasicAmmoWeight}}Ignored by GM Setting{{else}}Enabled{{/if}}
+      </p>
+      {{#if mythicEquipment.ammoEntries.length}}
+        <div class="mythic-ammo-list">
+          {{#each mythicEquipment.ammoEntries as |ammo|}}
+          <div class="mythic-ammo-row">
+            <span class="mythic-ammo-name">{{ammo.name}}</span>
+            <label>
+              Count
+              <input type="number" min="0" step="1" class="ammo-count-input" data-ammo-key="{{ammo.key}}" data-ammo-name="{{ammo.name}}" value="{{ammo.count}}" {{#if ../mythicEquipment.ammoConfig.ignoreBasicAmmoCounts}}disabled{{/if}} />
+            </label>
+          </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="mythic-ready-weapon-empty">No ammo-bearing weapons on this actor yet.</p>
+      {{/if}}
+    </div>
 
     <div class="mythic-phase4-card full-width">
       <h3>Inventory Notes</h3>

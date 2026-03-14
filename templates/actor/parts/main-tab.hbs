@@ -242,7 +242,9 @@
               </div>
               <div class="mythic-ready-weapon-header-actions">
                 <span class="mythic-ready-weapon-state">{{#if weapon.isWielded}}Wielded{{else}}Ready{{/if}}</span>
+                {{#unless weapon.isWielded}}
                 <button type="button" class="action-btn gear-wield-btn" data-item-id="{{weapon.id}}">Wield this weapon</button>
+                {{/unless}}
               </div>
             </header>
 
@@ -268,11 +270,13 @@
             {{/if}}
 
             <div class="mythic-ready-weapon-controls">
+              {{#unless weapon.isMelee}}
               <label>Scope
                 <select class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="scopeMode">
                   {{selectOptions weapon.scopeOptions selected=weapon.scopeMode}}
                 </select>
               </label>
+              {{/unless}}
               <label>To Hit Mod
                 <input type="number" step="1" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="toHitModifier" value="{{weapon.toHitModifier}}" />
               </label>
@@ -281,10 +285,12 @@
               </label>
             </div>
 
+            {{#unless weapon.isMelee}}
             <div class="mythic-ready-weapon-row-inline">
               <span><strong>Reload:</strong> {{weapon.rangeReload}}</span>
               <span><strong>Magazine:</strong> {{weapon.magazineMax}}</span>
             </div>
+            {{/unless}}
           </article>
           {{/each}}
         </div>

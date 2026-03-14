@@ -2516,6 +2516,240 @@
   .mythic-character-sheet .mythic-combat-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============================================================
+   REACTION TRACKER (in character sheet right column)
+   ============================================================ */
+.mythic-character-sheet .mythic-reactions-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mythic-character-sheet .mythic-reaction-ticks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 24px;
+  align-items: center;
+}
+
+.mythic-character-sheet .mythic-reaction-tick {
+  display: inline-block;
+  color: #e05050;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.mythic-character-sheet .mythic-reaction-none {
+  color: #556677;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.mythic-character-sheet .mythic-reaction-penalty {
+  font-size: 0.78rem;
+  color: #c8d4e8;
+}
+
+.mythic-character-sheet .mythic-reaction-penalty strong {
+  color: #e05050;
+}
+
+.mythic-character-sheet .mythic-reaction-controls {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   ATTACK / EVASION CHAT CARDS
+   ============================================================ */
+.mythic-attack-card,
+.mythic-evasion-card,
+.mythic-damage-applied {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  background: #222e3e;
+  border: 1px solid #3a5070;
+  border-radius: 4px;
+  padding: 8px 10px;
+  color: #c8d4e8;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.mythic-attack-header,
+.mythic-evasion-header {
+  font-size: 0.88rem;
+  margin-bottom: 5px;
+  color: #d4dff0;
+}
+
+.mythic-attack-roll-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 6px;
+  margin-bottom: 5px;
+}
+
+/* Inline dice result bubble */
+.mythic-attack-card .mythic-roll-inline,
+.mythic-evasion-card .mythic-roll-inline {
+  display: inline-block;
+  background: #2e4060;
+  border: 1px solid #4a6488;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #e8f0ff;
+  min-width: 2.2ch;
+  text-align: center;
+}
+
+.mythic-roll-target {
+  font-weight: bold;
+  color: #9fd4ff;
+}
+
+.mythic-vs {
+  color: #667788;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mythic-stat-label {
+  color: #778899;
+  font-size: 0.76rem;
+  flex-basis: 100%;
+}
+
+.mythic-stat-mods {
+  color: #6aadcc;
+}
+
+/* Verdict labels */
+.mythic-attack-verdict {
+  font-weight: bold;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mythic-attack-verdict.success   { color: #62df84; }
+.mythic-attack-verdict.failure   { color: #e05050; }
+.mythic-attack-verdict.crit-fail { color: #ff3838; letter-spacing: 0.08em; }
+
+/* Detail rows */
+.mythic-attack-details,
+.mythic-evasion-compare {
+  margin: 4px 0;
+  font-size: 0.83rem;
+}
+
+.mythic-dmg-row,
+.mythic-loc-row {
+  margin: 2px 0;
+}
+
+.mythic-dice-formula {
+  color: #778899;
+  font-size: 0.76rem;
+}
+
+.mythic-zone-label { color: #778899; }
+.mythic-subloc     { color: #c8d4e8; }
+
+.mythic-special-dmg {
+  color: #ffd040;
+  font-weight: bold;
+  font-size: 0.8rem;
+  margin-left: 4px;
+}
+
+/* Collapsible miss details */
+.mythic-miss-details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 2px 0;
+  color: #cc6666;
+}
+.mythic-miss-details > summary::marker,
+.mythic-miss-details > summary::-webkit-details-marker { display: none; }
+.mythic-miss-details[open] > summary { color: #dd8888; }
+
+/* Ammo note, reaction note */
+.mythic-ammo-note,
+.mythic-reaction-note {
+  color: #778899;
+  font-size: 0.76rem;
+  margin-left: 4px;
+}
+
+/* Divider inside chat card */
+.mythic-card-hr {
+  border: none;
+  border-top: 1px solid #2e4458;
+  margin: 6px 0 0;
+}
+
+/* Wound calculation block in evasion card */
+.mythic-wound-calc {
+  margin: 5px 0;
+  font-size: 0.83rem;
+}
+
+.mythic-wound-total {
+  color: #e05050;
+  font-size: 1rem;
+}
+
+/* Damage applied notification */
+.mythic-damage-applied {
+  font-size: 0.85rem;
+  padding: 6px 10px;
+}
+
+/* ============================================================
+   GM PANEL (injected below attack cards for GMs only)
+   ============================================================ */
+.mythic-gm-attack-panel {
+  background: #18232e;
+  border: 1px solid #50708a;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #c8d4e8;
+}
+
+.mythic-gm-panel-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #5a9bcc;
+  margin-bottom: 5px;
+}
+
+.mythic-gm-target-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+}
+
+.mythic-gm-target-row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
 
   .mythic-character-sheet .mythic-phase4-grid.two-column {
     grid-template-columns: 1fr;

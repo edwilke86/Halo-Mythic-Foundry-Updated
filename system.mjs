@@ -196,6 +196,88 @@ const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
 const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
 const MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY = "ignoreBasicAmmoCounts";
 const MYTHIC_CHARACTERISTIC_KEYS = ["str", "tou", "agi", "wfm", "wfr", "int", "per", "crg", "cha", "ldr"];
+
+// --- Hit Location Table (inverted roll → location) ---
+const MYTHIC_HIT_LOCATION_TABLE = (() => {
+  const t = {};
+  // Head (01-10)
+  for (let i =  1; i <=  2; i++) t[i] = { zone: "Head",      subZone: "Neck",                       drKey: "head"  };
+  for (let i =  3; i <=  4; i++) t[i] = { zone: "Head",      subZone: "Mouth",                      drKey: "head"  };
+  for (let i =  5; i <=  6; i++) t[i] = { zone: "Head",      subZone: "Nose",                       drKey: "head"  };
+  t[7]                          = { zone: "Head",      subZone: "Eyes",                       drKey: "head"  };
+  t[8]                          = { zone: "Head",      subZone: "Ear",                        drKey: "head"  };
+  for (let i =  9; i <= 10; i++) t[i] = { zone: "Head",      subZone: "Forehead",                   drKey: "head"  };
+  // Left Arm (11-20)
+  for (let i = 11; i <= 12; i++) t[i] = { zone: "Left Arm",  subZone: "Hands",                      drKey: "lArm"  };
+  for (let i = 13; i <= 15; i++) t[i] = { zone: "Left Arm",  subZone: "Forearm",                    drKey: "lArm"  };
+  t[16]                         = { zone: "Left Arm",  subZone: "Elbow",                      drKey: "lArm"  };
+  for (let i = 17; i <= 19; i++) t[i] = { zone: "Left Arm",  subZone: "Bicep",                      drKey: "lArm"  };
+  t[20]                         = { zone: "Left Arm",  subZone: "Shoulder",                   drKey: "lArm"  };
+  // Right Arm (21-30)
+  for (let i = 21; i <= 22; i++) t[i] = { zone: "Right Arm", subZone: "Hands",                      drKey: "rArm"  };
+  for (let i = 23; i <= 25; i++) t[i] = { zone: "Right Arm", subZone: "Forearm",                    drKey: "rArm"  };
+  t[26]                         = { zone: "Right Arm", subZone: "Elbow",                      drKey: "rArm"  };
+  for (let i = 27; i <= 29; i++) t[i] = { zone: "Right Arm", subZone: "Bicep",                      drKey: "rArm"  };
+  t[30]                         = { zone: "Right Arm", subZone: "Shoulder",                   drKey: "rArm"  };
+  // Left Leg (31-45)
+  for (let i = 31; i <= 32; i++) t[i] = { zone: "Left Leg",  subZone: "Foot",                       drKey: "lLeg"  };
+  for (let i = 33; i <= 37; i++) t[i] = { zone: "Left Leg",  subZone: "Shin",                       drKey: "lLeg"  };
+  t[38]                         = { zone: "Left Leg",  subZone: "Knee",                       drKey: "lLeg"  };
+  for (let i = 39; i <= 43; i++) t[i] = { zone: "Left Leg",  subZone: "Thigh",                      drKey: "lLeg"  };
+  for (let i = 44; i <= 45; i++) t[i] = { zone: "Left Leg",  subZone: "Hip",                        drKey: "lLeg"  };
+  // Right Leg (46-60)
+  for (let i = 46; i <= 47; i++) t[i] = { zone: "Right Leg", subZone: "Foot",                       drKey: "rLeg"  };
+  for (let i = 48; i <= 53; i++) t[i] = { zone: "Right Leg", subZone: "Shin",                       drKey: "rLeg"  };
+  t[54]                         = { zone: "Right Leg", subZone: "Knee",                       drKey: "rLeg"  };
+  for (let i = 55; i <= 58; i++) t[i] = { zone: "Right Leg", subZone: "Thigh",                      drKey: "rLeg"  };
+  for (let i = 59; i <= 60; i++) t[i] = { zone: "Right Leg", subZone: "Hip",                        drKey: "rLeg"  };
+  // Chest (61-100)
+  for (let i = 61; i <= 65;  i++) t[i] = { zone: "Chest", subZone: "Pelvis",                        drKey: "chest" };
+  for (let i = 66; i <= 72;  i++) t[i] = { zone: "Chest", subZone: "Intestines",                    drKey: "chest" };
+  for (let i = 73; i <= 78;  i++) t[i] = { zone: "Chest", subZone: "Spine",                         drKey: "chest" };
+  for (let i = 79; i <= 84;  i++) t[i] = { zone: "Chest", subZone: "Stomach, Kidney, or Liver",     drKey: "chest" };
+  for (let i = 85; i <= 89;  i++) t[i] = { zone: "Chest", subZone: "Heart",                         drKey: "chest" };
+  for (let i = 90; i <= 96;  i++) t[i] = { zone: "Chest", subZone: "Lungs",                         drKey: "chest" };
+  for (let i = 97; i <= 100; i++) t[i] = { zone: "Chest", subZone: "Ribcage",                       drKey: "chest" };
+  return t;
+})();
+
+// Invert a roll's digits to get the hit location roll.
+// Natural 100 = crit fail (returns null). Natural 1 → "01" reversed → 10.
+function invertAttackRoll(roll) {
+  if (roll === 100) return null;
+  const str = String(roll).padStart(2, "0");
+  const inverted = parseInt(str.split("").reverse().join(""), 10);
+  return Math.max(1, inverted);
+}
+
+function resolveHitLocation(attackRoll) {
+  const locRoll = invertAttackRoll(attackRoll);
+  if (locRoll === null) return null;
+  return {
+    locRoll,
+    ...(MYTHIC_HIT_LOCATION_TABLE[locRoll] ?? { zone: "Chest", subZone: "Ribcage", drKey: "chest" })
+  };
+}
+
+function getFireModeToHitBonus(modeValue) {
+  const base = String(modeValue ?? "").toLowerCase().replace(/\s*\([^)]*\)/g, "").trim();
+  const MAP = {
+    "single": 0, "single-shot": 0, "single shot": 0,
+    "semi-auto": 10, "semi": 10,
+    "burst": 20, "burst-fire": 20,
+    "auto": 20, "automatic": 20, "full-auto": 20,
+    "sustained": 20,
+    "pump": 0, "charge": 0, "overheat": 0, "recharge": 0, "attack": 0
+  };
+  return MAP[base] ?? 0;
+}
+
+// Returns (target - roll) / 10; positive = success (DOS), negative = failure (DOF).
+function computeAttackDOS(target, roll) {
+  return (target - roll) / 10;
+}
+
 const MYTHIC_SYNC_DEFAULT_SCOPE_BY_TYPE = Object.freeze({
   gear: "mythic",
   ability: "mythic",
@@ -753,7 +835,8 @@ function getCanonicalCharacterSystemData() {
           lLeg: 0,
           rLeg: 0
         }
-      }
+      },
+      reactions: { count: 0 }
     },
     gravity: 1.0,
     equipment: {
@@ -963,6 +1046,9 @@ function normalizeCharacterSystemData(systemData) {
   for (const key of ["head", "chest", "lArm", "rArm", "lLeg", "rLeg"]) {
     merged.combat.dr.armor[key] = clampWhole(merged.combat.dr.armor[key]);
   }
+
+  merged.combat.reactions ??= {};
+  merged.combat.reactions.count = Math.max(0, Math.floor(Number(merged.combat.reactions?.count ?? 0)));
 
   const gravRaw = Number(merged.gravity ?? 1.0);
   merged.gravity = Number.isFinite(gravRaw) ? Math.max(0, Math.min(4, Math.round(gravRaw * 10) / 10)) : 1.0;
@@ -3164,7 +3250,15 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         rArm: withArmor("rArm"),
         lLeg: withArmor("lLeg"),
         rLeg: withArmor("rLeg")
-      }
+      },
+      reactions: (() => {
+        const count = Math.max(0, Math.floor(Number(combat?.reactions?.count ?? 0)));
+        return {
+          count,
+          penalty: count * -10,
+          ticks: Array.from({ length: count }, (_, i) => i + 1)
+        };
+      })()
     };
   }
 
@@ -4146,6 +4240,18 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".hth-attack-btn[data-attack]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onPostHandToHandAttack(event);
+      });
+    });
+
+    root.querySelectorAll(".reaction-add-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onReactionAdd(event);
+      });
+    });
+
+    root.querySelectorAll(".reaction-reset-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onReactionReset(event);
       });
     });
 
@@ -6107,44 +6213,165 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
     const state = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
-    const toHitModifier = Number.isFinite(Number(state?.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
+    const toHitMod = Number.isFinite(Number(state?.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
     const damageModifier = Number.isFinite(Number(state?.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0;
     const isMelee = gear.weaponClass === "melee";
     const ammoConfig = getAmmoConfig();
     const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
     const ammoCurrent = toNonNegativeWhole(state?.magazineCurrent, magazineMax);
 
+    // Ammo consumption
     const normalizedMode = mode.toLowerCase();
     const consumedPerAttack = isMelee
       ? 0
-      : (normalizedMode.includes("full") || normalizedMode.includes("auto")
-        ? 5
-        : normalizedMode.includes("burst")
-          ? 3
-          : 1);
+      : (normalizedMode.includes("full") || normalizedMode.includes("auto") ? 5
+        : normalizedMode.includes("burst") ? 3 : 1);
 
     if (!isMelee && !ammoConfig.ignoreBasicAmmoCounts) {
       if (ammoCurrent <= 0) {
         ui.notifications.warn(`${item.name} is empty. Reload required.`);
         return;
       }
-
-      const nextAmmo = Math.max(0, ammoCurrent - consumedPerAttack);
       await this.actor.update({
-        [`system.equipment.weaponState.${itemId}.magazineCurrent`]: nextAmmo
+        [`system.equipment.weaponState.${itemId}.magazineCurrent`]: Math.max(0, ammoCurrent - consumedPerAttack)
       });
     }
 
-    const effectiveAmmo = (!isMelee && !ammoConfig.ignoreBasicAmmoCounts)
+    const newAmmoCurrent = (!isMelee && !ammoConfig.ignoreBasicAmmoCounts)
       ? Math.max(0, ammoCurrent - consumedPerAttack)
       : ammoCurrent;
-    const ammoText = isMelee ? "n/a" : `${effectiveAmmo}/${magazineMax}`;
-    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+
+    // Determine attack characteristic (WFR for ranged, WFM for melee)
+    const characteristics = this.actor.system?.characteristics ?? {};
+    const statKey = isMelee ? "wfm" : "wfr";
+    const baseStat = toNonNegativeWhole(characteristics[statKey], 0);
+    const fireModeBonus = getFireModeToHitBonus(mode);
+    const effectiveTarget = baseStat + fireModeBonus + toHitMod;
+
+    // Roll to hit (d100, lower is better)
+    const attackRoll = await new Roll("1d100").evaluate();
+    const rawRoll = attackRoll.total;
+    const isCritFail = rawRoll === 100;
+    const dosValue = computeAttackDOS(effectiveTarget, rawRoll);
+    const isSuccess = !isCritFail && dosValue >= 0;
+    const absDisplay = Math.abs(dosValue).toFixed(1);
+
+    // Hit location (invert roll digits; 100 = crit fail, 1 -> 10)
+    const hitLoc = resolveHitLocation(rawRoll);
+
+    // Damage roll
+    const d10Count = toNonNegativeWhole(gear.damage?.baseRollD10, 0);
+    const d5Count = toNonNegativeWhole(gear.damage?.baseRollD5, 0);
+    const baseFlat = Number(gear.damage?.baseDamage ?? 0);
+    const flatTotal = baseFlat + damageModifier;
+    const damageParts = [];
+    if (d10Count > 0) damageParts.push(`${d10Count}d10`);
+    if (d5Count > 0) damageParts.push(`${d5Count}d5`);
+    if (flatTotal !== 0 || damageParts.length === 0) damageParts.push(String(flatTotal));
+    const damageFormula = damageParts.join(" + ");
+    const damageRoll = await new Roll(damageFormula).evaluate();
+    const damageTotal = damageRoll.total;
+    // Special damage: any d10 showing a 10
+    const hasSpecialDamage = damageRoll.dice
+      .filter((d) => d.faces === 10)
+      .some((d) => d.results.some((r) => r.result === 10));
+    const damagePierce = Math.max(0, Number(gear.damage?.pierce ?? 0));
+
+    // Targeting info
+    const targets = [...(game.user.targets ?? [])];
+    const targetToken = targets[0] ?? null;
+    const targetName = targetToken?.document?.name ?? targetToken?.name ?? null;
+
+    const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
+    const signMod = (v) => v > 0 ? `+${v}` : v < 0 ? String(v) : "";
+    const statLabel = statKey.toUpperCase();
+
+    // Build modifier note
+    const modParts = [];
+    if (fireModeBonus !== 0) modParts.push(`${esc(mode.replace(/\s*\([^)]*\)/g, "").trim())} ${signMod(fireModeBonus)}`);
+    if (toHitMod !== 0) modParts.push(`Wpn ${signMod(toHitMod)}`);
+    const modNote = modParts.length ? ` <span class="mythic-stat-mods">(${modParts.join(", ")})</span>` : "";
+
+    // Hit location HTML
+    const locHtml = hitLoc
+      ? `<strong class="mythic-subloc">${esc(hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(hitLoc.zone)})</span>`
+      : `<em>—</em>`;
+
+    // Damage display
+    const dmgBreakdown = `<span class="mythic-roll-inline">${damageTotal}</span>`
+      + ` <span class="mythic-dice-formula">[${esc(damageFormula)}]</span>`
+      + `&ensp;Pierce <strong>${damagePierce}</strong>`
+      + (hasSpecialDamage ? ` <span class="mythic-special-dmg">&#9888; Special Damage!</span>` : "");
+
+    let resultHtml;
+    if (isCritFail) {
+      resultHtml = `<div class="mythic-attack-verdict crit-fail">Critical Failure &mdash; no effect.</div>`;
+    } else if (isSuccess) {
+      resultHtml = `<div class="mythic-attack-details success">
+        <div class="mythic-dmg-row">${dmgBreakdown}</div>
+        <div class="mythic-loc-row">Hit Location: ${locHtml}</div>
+      </div>`;
+    } else {
+      resultHtml = `<details class="mythic-miss-details">
+        <summary>Miss &mdash; <span class="mythic-attack-verdict failure">${absDisplay} Degrees of Failure.</span> (click to reveal details)</summary>
+        <div class="mythic-attack-details">
+          <div class="mythic-dmg-row">Damage (not dealt): ${dmgBreakdown}</div>
+          <div class="mythic-loc-row">Would have hit: ${locHtml}</div>
+        </div>
+      </details>`;
+    }
+
+    const ammoHtml = isMelee ? "" : ` <span class="mythic-ammo-note">(${newAmmoCurrent}/${magazineMax})</span>`;
+
+    const content = `<div class="mythic-attack-card">
+  <div class="mythic-attack-header">
+    <strong>${esc(this.actor.name)}</strong> fires <strong>${esc(item.name)}</strong>${targetName ? ` at <em>${esc(targetName)}</em>` : ""}${ammoHtml}
+  </div>
+  <div class="mythic-attack-roll-row">
+    <span class="mythic-roll-inline">${rawRoll}</span>
+    <span class="mythic-vs">vs</span>
+    <span class="mythic-roll-target">${effectiveTarget}</span>
+    <span class="mythic-stat-label">${statLabel} ${baseStat}${modNote}</span>
+    <span class="mythic-attack-verdict ${isCritFail ? "crit-fail" : isSuccess ? "success" : "failure"}">
+      ${isCritFail ? "Critical Failure" : isSuccess ? `${absDisplay} Degrees of Success!` : `${absDisplay} Degrees of Failure.`}
+    </span>
+  </div>
+  ${resultHtml}
+  <hr class="mythic-card-hr">
+</div>`;
+
+    // Attack data stored in flags so the GM can roll evasion from the chat card
+    const attackData = {
+      attackerId: this.actor.id,
+      attackerName: this.actor.name,
+      weaponId: itemId,
+      weaponName: item.name,
+      mode,
+      rawRoll,
+      effectiveTarget,
+      statKey,
+      baseStat,
+      fireModeBonus,
+      toHitMod,
+      isCritFail,
+      isSuccess,
+      dosValue,
+      hitLoc: hitLoc ?? null,
+      damageFormula,
+      damageTotal,
+      damagePierce,
+      hasSpecialDamage,
+      targetTokenId: targetToken?.id ?? null,
+      targetActorId: targetToken?.actor?.id ?? null,
+      sceneId: canvas?.scene?.id ?? null
+    };
 
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      content: `<p><strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(item.name)}</strong> (${esc(mode)}). To-Hit Mod: ${toHitModifier >= 0 ? `+${toHitModifier}` : toHitModifier}, Damage Mod: ${damageModifier >= 0 ? `+${damageModifier}` : damageModifier}, Ammo: ${esc(ammoText)}${isMelee ? "" : `, Consumed: ${consumedPerAttack}` }.</p>`,
-      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+      content,
+      rolls: [attackRoll, damageRoll],
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+      flags: { "Halo-Mythic-Foundry-Updated": { attackData } }
     });
   }
 
@@ -6158,6 +6385,17 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       content: `<p><strong>${esc(this.actor.name)}</strong> uses <strong>${esc(attack)}</strong> (hand-to-hand).</p>`,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
     });
+  }
+
+  async _onReactionAdd(event) {
+    event.preventDefault();
+    const current = Math.max(0, Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)));
+    await this.actor.update({ "system.combat.reactions.count": current + 1 });
+  }
+
+  async _onReactionReset(event) {
+    event.preventDefault();
+    await this.actor.update({ "system.combat.reactions.count": 0 });
   }
 
   async _onAddCustomTrait(event) {
@@ -7241,3 +7479,198 @@ Hooks.on("preUpdateActor", (actor, changes) => {
     foundry.utils.setProperty(changes, "prototypeToken.name", changes.name);
   }
 });
+
+// ============================================================
+//  COMBAT TURN RESET: reactions reset at start of character's turn
+// ============================================================
+Hooks.on("updateCombat", async (combat, changed) => {
+  if (!("turn" in changed) && !("round" in changed)) return;
+  if (!game.user.isGM) return;
+  const actor = combat.combatant?.actor;
+  if (actor?.type === "character") {
+    await actor.update({ "system.combat.reactions.count": 0 });
+  }
+});
+
+// ============================================================
+//  CHAT MESSAGE: inject GM evasion panel on attack cards,
+//               wire apply-damage buttons on evasion result cards
+// ============================================================
+Hooks.on("renderChatMessage", (message, html) => {
+  const cardEl = html instanceof jQuery ? html[0] : html;
+
+  // --- Attack card GM panel ---
+  const attackData = message.getFlag("Halo-Mythic-Foundry-Updated", "attackData");
+  if (attackData && game.user.isGM) {
+    const msgId = message.id;
+    const panel = document.createElement("div");
+    panel.classList.add("mythic-gm-attack-panel");
+    panel.innerHTML = `
+      <div class="mythic-gm-panel-title">GM Controls</div>
+      <div class="mythic-gm-target-row">
+        <label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="targeted" checked> Targeted Token</label>
+        <label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="selected"> Selected Token(s)</label>
+      </div>
+      <button type="button" class="action-btn mythic-evasion-btn">Roll Evasion</button>
+    `;
+    panel.querySelector(".mythic-evasion-btn").addEventListener("click", async () => {
+      const targetMode = panel.querySelector(".mythic-tgt-radio:checked")?.value ?? "targeted";
+      await mythicRollEvasion(msgId, targetMode, attackData);
+    });
+    cardEl.appendChild(panel);
+  }
+
+  // --- Evasion result card: wire apply-damage buttons (GM only) ---
+  const evasionResult = message.getFlag("Halo-Mythic-Foundry-Updated", "evasionResult");
+  if (evasionResult && game.user.isGM) {
+    cardEl.querySelectorAll(".mythic-apply-dmg-btn[data-actor-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await mythicApplyWoundDamage(btn.dataset.actorId, Number(btn.dataset.wounds ?? 0));
+      });
+    });
+  }
+});
+
+// ============================================================
+//  EVASION ROLL — called by GM clicking "Roll Evasion" in chat
+// ============================================================
+async function mythicRollEvasion(messageId, targetMode, attackData) {
+  let targetActors = [];
+
+  if (targetMode === "selected") {
+    targetActors = (canvas.tokens?.controlled ?? [])
+      .map((t) => t.actor)
+      .filter(Boolean);
+  } else {
+    // Try original targeted token first, then fall back to GM's current targets
+    if (attackData.targetActorId) {
+      const scene = game.scenes.get(attackData.sceneId ?? "") ?? canvas.scene;
+      const token = scene?.tokens?.get(attackData.targetTokenId ?? "");
+      if (token?.actor) targetActors = [token.actor];
+    }
+    if (!targetActors.length) {
+      targetActors = [...(game.user.targets ?? [])].map((t) => t.actor).filter(Boolean);
+    }
+    if (!targetActors.length) {
+      ui.notifications.warn("No target found. Have the attacker target a token, or select one as GM.");
+      return;
+    }
+  }
+
+  if (!targetActors.length) {
+    ui.notifications.warn("No tokens selected.");
+    return;
+  }
+
+  for (const targetActor of targetActors) {
+    // Build evasion target: AGI + skill tier bonus + skill modifier + reaction penalty
+    const skillsNorm = normalizeSkillsData(targetActor.system?.skills);
+    const evasionSkill = skillsNorm.base?.evasion ?? {};
+    const tierBonus = getSkillTierBonus(evasionSkill.tier ?? "untrained", evasionSkill.category ?? "basic");
+    const agiValue = toNonNegativeWhole(targetActor.system?.characteristics?.agi, 0);
+    const evasionMod = Number(evasionSkill.modifier ?? 0);
+    const reactionCount = Math.max(0, Math.floor(Number(targetActor.system?.combat?.reactions?.count ?? 0)));
+    const reactionPenalty = reactionCount * -10;
+    const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty);
+
+    // Increment target's reaction count (this reaction costs them)
+    const newReactionCount = reactionCount + 1;
+    await targetActor.update({ "system.combat.reactions.count": newReactionCount });
+
+    // Roll evasion
+    const evasionRoll = await new Roll("1d100").evaluate();
+    const evasionResult = evasionRoll.total;
+    const evasionDOS = computeAttackDOS(evasionTarget, evasionResult);
+    const evasionSuccess = evasionDOS >= 0;
+
+    // Compare attacker DOS vs evader DOS
+    const attackDOS = Number(attackData.dosValue ?? 0);
+    // Evader succeeds only if evasion succeeded AND evader's DOS >= attacker's DOS
+    const isEvaded = evasionSuccess && evasionDOS >= attackDOS;
+
+    const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
+    const signStr = (v) => v > 0 ? `+${v}` : v < 0 ? String(v) : "\xb10";
+
+    // Compute wound damage if not evaded and attack was a hit
+    let woundDamage = 0;
+    let woundDamageHtml = "";
+    if (!isEvaded && attackData.isSuccess && attackData.hitLoc) {
+      const drKey = attackData.hitLoc.drKey;
+      const armorValue = toNonNegativeWhole(targetActor.system?.combat?.dr?.armor?.[drKey], 0);
+      const derivedTarget = computeCharacterDerivedValues(targetActor.system ?? {});
+      const touCombined = Math.max(0, Number(derivedTarget.touCombined ?? 0));
+      const totalDR = touCombined + armorValue;
+      const pierce = Number(attackData.damagePierce ?? 0);
+      const effectiveDR = Math.max(0, totalDR - pierce);
+      woundDamage = Math.max(0, Number(attackData.damageTotal ?? 0) - effectiveDR);
+      woundDamageHtml = `<div class="mythic-wound-calc">
+        Wound Dmg: <strong>${attackData.damageTotal}</strong> &minus; (DR <strong>${totalDR}</strong> &minus; Pierce <strong>${pierce}</strong>) = <strong class="mythic-wound-total">${woundDamage}</strong>
+        ${attackData.hasSpecialDamage ? '<span class="mythic-special-dmg">&#9888; Special Damage!</span>' : ""}
+      </div>
+      <button type="button" class="action-btn mythic-apply-dmg-btn"
+              data-actor-id="${esc(targetActor.id)}"
+              data-wounds="${woundDamage}">Apply ${woundDamage} Wounds to ${esc(targetActor.name)}</button>`;
+    }
+
+    const evasionStatNote = `AGI ${agiValue}`
+      + (tierBonus !== 0 ? ` ${signStr(tierBonus)}` : "")
+      + (evasionMod !== 0 ? ` ${signStr(evasionMod)}` : "")
+      + (reactionPenalty !== 0 ? ` ${signStr(reactionPenalty)} reactions` : "");
+
+    const content = `<div class="mythic-evasion-card">
+  <div class="mythic-evasion-header">
+    <strong>${esc(targetActor.name)}</strong> attempts to evade
+    <span class="mythic-reaction-note">(Reaction ${newReactionCount}; cumulative penalty ${reactionPenalty})</span>
+  </div>
+  <div class="mythic-attack-roll-row">
+    <span class="mythic-roll-inline">${evasionResult}</span>
+    <span class="mythic-vs">vs</span>
+    <span class="mythic-roll-target">${evasionTarget}</span>
+    <span class="mythic-stat-label">${evasionStatNote}</span>
+    <span class="mythic-attack-verdict ${evasionSuccess ? "success" : "failure"}">
+      ${Math.abs(evasionDOS).toFixed(1)} Degrees of ${evasionSuccess ? "Success!" : "Failure."}
+    </span>
+  </div>
+  <div class="mythic-evasion-compare">
+    Attacker <strong>${Math.abs(attackDOS).toFixed(1)} DOS</strong> &mdash;
+    Evader <strong>${Math.abs(evasionDOS).toFixed(1)} ${evasionSuccess ? "DOS" : "DOF"}</strong>
+    &ensp;&rArr;&ensp;
+    <strong class="mythic-attack-verdict ${isEvaded ? "success" : "failure"}">${isEvaded ? "Attack EVADED!" : "Attack HITS!"}</strong>
+  </div>
+  ${!isEvaded && attackData.isSuccess ? woundDamageHtml : ""}
+  <hr class="mythic-card-hr">
+</div>`;
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: targetActor }),
+      content,
+      rolls: [evasionRoll],
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+      flags: {
+        "Halo-Mythic-Foundry-Updated": {
+          evasionResult: { targetActorId: targetActor.id, woundDamage, isEvaded }
+        }
+      }
+    });
+  }
+}
+
+// ============================================================
+//  APPLY WOUND DAMAGE — called when GM clicks "Apply Wounds"
+// ============================================================
+async function mythicApplyWoundDamage(actorId, damage) {
+  const actor = game.actors.get(actorId);
+  if (!actor) {
+    ui.notifications.warn("Target actor not found.");
+    return;
+  }
+  const currentWounds = Number(actor.system?.combat?.wounds?.current ?? 0);
+  const maxWounds = Number(actor.system?.combat?.wounds?.max ?? 9999);
+  const newWounds = Math.min(currentWounds + damage, maxWounds);
+  await actor.update({ "system.combat.wounds.current": newWounds });
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(actor.name)}</strong> takes <strong>${damage}</strong> wound damage (${currentWounds} \u2192 ${newWounds} / ${maxWounds}).</div>`,
+    type: CONST.CHAT_MESSAGE_STYLES.OTHER
+  });
+}

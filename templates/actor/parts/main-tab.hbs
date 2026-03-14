@@ -226,6 +226,21 @@
             <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.supportPoints.max" value="{{mythicCombat.supportPoints.max}}" /></div>
           </div>
         </div>
+
+        <div class="mythic-right-block">
+          <div class="mythic-resource-label">Reactions</div>
+          <div class="mythic-reactions-tracker">
+            <div class="mythic-reaction-ticks">
+              {{#each mythicCombat.reactions.ticks}}<span class="mythic-reaction-tick" title="Reaction {{this}}">&#9670;</span>{{/each}}
+              {{#unless mythicCombat.reactions.count}}<span class="mythic-reaction-none">No reactions used</span>{{/unless}}
+            </div>
+            <div class="mythic-reaction-penalty">Cumulative Penalty: <strong>{{mythicCombat.reactions.penalty}}</strong></div>
+            <div class="mythic-reaction-controls">
+              <button type="button" class="action-btn reaction-add-btn">+ Use Reaction</button>
+              <button type="button" class="action-btn reaction-reset-btn">↺ Reset</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

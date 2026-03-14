@@ -1,3 +1,197 @@
+{{#if isGearItem}}
+<div class="{{cssClass}} mythic-ability-item-sheet mythic-gear-item-sheet">
+  <header class="ability-sheet-header">
+    <img class="ability-sheet-icon" src="{{item.img}}" title="{{item.name}}" alt="{{item.name}}" />
+    <div class="ability-sheet-header-text">
+      <h2 class="ability-sheet-title">{{item.name}}</h2>
+      <div class="ability-sheet-meta">
+        <span class="ability-action-badge">Class: <strong>{{gear.itemClass}}</strong></span>
+        {{#unless isArmorItem}}<span class="ability-action-badge">Mode: <strong>{{gear.weaponClass}}</strong></span>{{/unless}}
+        <span class="ability-page-badge">Source: {{gear.source}}</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="ability-sheet-body">
+    <div class="ability-info-row">
+      <label for="gear-name">Name</label>
+      <input id="gear-name" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-item-class">Item Class</label>
+        <input id="gear-item-class" type="text" name="system.itemClass" value="{{gear.itemClass}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-faction">Faction</label>
+        <input id="gear-faction" type="text" name="system.faction" value="{{gear.faction}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-source">Source</label>
+        <input id="gear-source" type="text" name="system.source" value="{{gear.source}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    {{#if isArmorItem}}
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-head">Head DR</label>
+        <input id="armor-head" type="number" min="0" step="1" name="system.protection.head" value="{{gear.protection.head}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-arms">Arms DR</label>
+        <input id="armor-arms" type="number" min="0" step="1" name="system.protection.arms" value="{{gear.protection.arms}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-chest">Chest DR</label>
+        <input id="armor-chest" type="number" min="0" step="1" name="system.protection.chest" value="{{gear.protection.chest}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-legs">Legs DR</label>
+        <input id="armor-legs" type="number" min="0" step="1" name="system.protection.legs" value="{{gear.protection.legs}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-shield">Shield Integrity</label>
+        <input id="armor-shield" type="number" min="0" step="1" name="system.shields.integrity" value="{{gear.shields.integrity}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-delay">Shield Delay</label>
+        <input id="armor-delay" type="number" min="0" step="1" name="system.shields.delay" value="{{gear.shields.delay}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-recharge">Recharge Rate</label>
+        <input id="armor-recharge" type="number" min="0" step="1" name="system.shields.rechargeRate" value="{{gear.shields.rechargeRate}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-price">Price</label>
+        <input id="armor-price" type="number" min="0" step="1" name="system.price.amount" value="{{gear.price.amount}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-weight">Weight (kg)</label>
+        <input id="armor-weight" type="number" min="0" step="0.1" name="system.weightKg" value="{{gear.weightKg}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="armor-modifiers">Modifiers</label>
+      <textarea id="armor-modifiers" name="system.modifiers" rows="2" {{#unless canEditFields}}disabled{{/unless}}>{{gear.modifiers}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="armor-special-rules">Special Rules</label>
+      <textarea id="armor-special-rules" name="system.specialRules" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{gear.specialRules}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="armor-description">Description</label>
+      <textarea id="armor-description" name="system.description" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
+    </div>
+    {{else}}
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-weapon-class">Weapon Class</label>
+        <input id="gear-weapon-class" type="text" name="system.weaponClass" value="{{gear.weaponClass}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-category">Category</label>
+        <input id="gear-category" type="text" name="system.category" value="{{gear.category}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-weapon-type">Weapon Type</label>
+        <input id="gear-weapon-type" type="text" name="system.weaponType" value="{{gear.weaponType}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-base">Base Damage</label>
+        <input id="gear-dmg-base" type="number" min="0" step="1" name="system.damage.baseDamage" value="{{gear.damage.baseDamage}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-pierce">Pierce</label>
+        <input id="gear-dmg-pierce" type="number" step="1" name="system.damage.pierce" value="{{gear.damage.pierce}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-mag">Magazine</label>
+        <input id="gear-mag" type="number" min="0" step="1" name="system.range.magazine" value="{{gear.range.magazine}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-close">Close Range</label>
+        <input id="gear-close" type="number" min="0" step="1" name="system.range.close" value="{{gear.range.close}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-max">Max Range</label>
+        <input id="gear-max" type="number" min="0" step="1" name="system.range.max" value="{{gear.range.max}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-reload">Reload</label>
+        <input id="gear-reload" type="number" min="0" step="1" name="system.range.reload" value="{{gear.range.reload}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-price">Price</label>
+        <input id="gear-price" type="number" min="0" step="1" name="system.price.amount" value="{{gear.price.amount}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-currency">Currency</label>
+        <input id="gear-currency" type="text" name="system.price.currency" value="{{gear.price.currency}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-weight">Weight (kg)</label>
+        <input id="gear-weight" type="number" min="0" step="0.1" name="system.weightKg" value="{{gear.weightKg}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-info-row">
+      <label for="gear-ammo">Ammo</label>
+      <input id="gear-ammo" type="text" name="system.ammoName" value="{{gear.ammoName}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row">
+      <label for="gear-nicknames">Nicknames</label>
+      <input id="gear-nicknames" type="text" name="system.nicknames" value="{{nicknamesDisplay}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row">
+      <label for="gear-fire-modes">Fire Modes</label>
+      <input id="gear-fire-modes" type="text" name="system.fireModes" value="{{fireModesDisplay}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-special-rules">Special Rules</label>
+      <textarea id="gear-special-rules" name="system.specialRules" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{gear.specialRules}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-attachments">Attachments</label>
+      <textarea id="gear-attachments" name="system.attachments" rows="2" {{#unless canEditFields}}disabled{{/unless}}>{{gear.attachments}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-description">Description</label>
+      <textarea id="gear-description" name="system.description" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
+    </div>
+    {{/if}}
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-sync">Sync Metadata</label>
+      <textarea id="gear-sync" rows="5" disabled>{{readOnlySystem}}</textarea>
+    </div>
+  </section>
+</div>
+{{else}}
 <div class="{{cssClass}}">
   <header class="sheet-header">
     <h1>{{item.name}}</h1>
@@ -8,3 +202,4 @@
     <p>Type: {{item.type}}</p>
   </section>
 </div>
+{{/if}}

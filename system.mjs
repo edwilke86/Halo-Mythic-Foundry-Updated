@@ -184,12 +184,14 @@ const MYTHIC_FACTION_TRAINING_DEFINITIONS = [
 ];
 
 const MYTHIC_ACTOR_SCHEMA_VERSION = 2;
+const MYTHIC_GEAR_SCHEMA_VERSION = 1;
 const MYTHIC_ABILITY_SCHEMA_VERSION = 1;
 const MYTHIC_TRAIT_SCHEMA_VERSION = 1;
 const MYTHIC_EDUCATION_SCHEMA_VERSION = 1;
+const MYTHIC_ARMOR_VARIANT_SCHEMA_VERSION = 1;
 const MYTHIC_SOLDIER_TYPE_SCHEMA_VERSION = 1;
 const MYTHIC_CONTENT_SYNC_VERSION = 1;
-const MYTHIC_WORLD_MIGRATION_VERSION = 4;
+const MYTHIC_WORLD_MIGRATION_VERSION = 5;
 const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
 const MYTHIC_CHARACTERISTIC_KEYS = ["str", "tou", "agi", "wfm", "wfr", "int", "per", "crg", "cha", "ldr"];
 const MYTHIC_SYNC_DEFAULT_SCOPE_BY_TYPE = Object.freeze({
@@ -197,8 +199,12 @@ const MYTHIC_SYNC_DEFAULT_SCOPE_BY_TYPE = Object.freeze({
   ability: "mythic",
   trait: "mythic",
   education: "mythic",
+  armorVariant: "mythic",
   soldierType: "mythic"
 });
+const MYTHIC_REFERENCE_RANGED_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Ranged Weps.csv";
+const MYTHIC_REFERENCE_MELEE_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Melee Weps.csv";
+const MYTHIC_REFERENCE_ARMOR_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Armor.csv";
 
 function coerceSchemaVersion(value, fallback = 1) {
   const numeric = Number(value);
@@ -284,6 +290,73 @@ function normalizeStringList(values) {
     normalized.push(label);
   }
   return normalized;
+}
+
+function splitCsvText(csvText) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < csvText.length; i += 1) {
+    const ch = csvText[i];
+    const next = csvText[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (!inQuotes && ch === ",") {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+
+    if (!inQuotes && (ch === "\n" || ch === "\r")) {
+      if (ch === "\r" && next === "\n") i += 1;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+
+    cell += ch;
+  }
+
+  if (cell.length || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function findHeaderRowIndex(rows, expectedHeader) {
+  const marker = String(expectedHeader ?? "").trim().toLowerCase();
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = Array.isArray(rows[i]) ? rows[i] : [];
+    if (row.some((cell) => String(cell ?? "").trim().toLowerCase() === marker)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function buildHeaderMap(headerRow) {
+  const map = {};
+  for (let i = 0; i < headerRow.length; i += 1) {
+    const key = String(headerRow[i] ?? "").trim().toLowerCase();
+    if (!key || map[key] !== undefined) continue;
+    map[key] = i;
+  }
+  return map;
 }
 
 function buildTrainingFlagDefaults(definitions) {
@@ -465,6 +538,8 @@ async function runWorldSchemaMigration() {
       normalized = normalizeTraitSystemData(item.system ?? {}, item.name ?? "");
     } else if (item.type === "education") {
       normalized = normalizeEducationSystemData(item.system ?? {}, item.name ?? "");
+    } else if (item.type === "armorVariant") {
+      normalized = normalizeArmorVariantSystemData(item.system ?? {}, item.name ?? "");
     } else if (item.type === "soldierType") {
       normalized = normalizeSoldierTypeSystemData(item.system ?? {}, item.name ?? "");
     } else if (item.type === "gear") {
@@ -668,6 +743,12 @@ function getCanonicalCharacterSystemData() {
       secondaryWeapon: "",
       armorName: "",
       utilityLoadout: "",
+      carriedIds: [],
+      equipped: {
+        weaponIds: [],
+        armorId: "",
+        wieldedWeaponId: ""
+      },
       inventoryNotes: ""
     },
     medical: {
@@ -871,6 +952,32 @@ function normalizeCharacterSystemData(systemData) {
     merged.equipment[key] = String(merged.equipment?.[key] ?? "");
   }
 
+  const normalizeIdArray = (value) => {
+    const source = Array.isArray(value) ? value : [];
+    return Array.from(new Set(source
+      .map((entry) => String(entry ?? "").trim())
+      .filter(Boolean)));
+  };
+
+  merged.equipment.carriedIds = normalizeIdArray(merged.equipment?.carriedIds);
+  merged.equipment.equipped ??= {};
+
+  const legacyPrimary = String(merged.equipment?.equipped?.primaryWeaponId ?? "").trim();
+  const legacySecondary = String(merged.equipment?.equipped?.secondaryWeaponId ?? "").trim();
+  const legacyWeaponIds = [legacyPrimary, legacySecondary].filter(Boolean);
+
+  let weaponIds = normalizeIdArray(merged.equipment?.equipped?.weaponIds);
+  if (!weaponIds.length && legacyWeaponIds.length) {
+    weaponIds = Array.from(new Set(legacyWeaponIds));
+  }
+
+  merged.equipment.equipped.weaponIds = weaponIds;
+  merged.equipment.equipped.armorId = String(merged.equipment?.equipped?.armorId ?? "").trim();
+  merged.equipment.equipped.wieldedWeaponId = String(merged.equipment?.equipped?.wieldedWeaponId ?? "").trim();
+  if (merged.equipment.equipped.wieldedWeaponId && !merged.equipment.equipped.weaponIds.includes(merged.equipment.equipped.wieldedWeaponId)) {
+    merged.equipment.equipped.wieldedWeaponId = "";
+  }
+
   merged.medical ??= {};
   for (const key of ["status", "treatmentNotes", "recoveryNotes"]) {
     merged.medical[key] = String(merged.medical?.[key] ?? "");
@@ -1031,6 +1138,77 @@ function normalizeTraitSystemData(systemData, itemName = "") {
   delete merged.frequency;
   delete merged.repeatable;
 
+  return merged;
+}
+
+function getCanonicalArmorVariantSystemData() {
+  return {
+    schemaVersion: MYTHIC_ARMOR_VARIANT_SCHEMA_VERSION,
+    shortDescription: "",
+    description: "",
+    notes: "",
+    editMode: false,
+    generation: "gen1",
+    compatibleFamilies: ["mjolnir"],
+    modifiers: {
+      protection: {
+        head: 0,
+        arms: 0,
+        chest: 0,
+        legs: 0
+      },
+      shields: {
+        integrity: 0,
+        delay: 0,
+        rechargeRate: 0
+      },
+      weightKg: 0
+    },
+    tags: []
+  };
+}
+
+function normalizeArmorVariantSystemData(systemData, itemName = "") {
+  const source = foundry.utils.deepClone(systemData ?? {});
+  const defaults = getCanonicalArmorVariantSystemData();
+  const merged = foundry.utils.mergeObject(defaults, source, {
+    inplace: false,
+    insertKeys: true,
+    insertValues: true,
+    overwrite: true,
+    recursive: true
+  });
+
+  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ARMOR_VARIANT_SCHEMA_VERSION);
+  merged.shortDescription = String(merged.shortDescription ?? "").trim();
+  merged.description = String(merged.description ?? "").trim();
+  merged.notes = String(merged.notes ?? "").trim();
+  merged.editMode = Boolean(merged.editMode);
+
+  const generation = String(merged.generation ?? "gen1").trim().toLowerCase();
+  merged.generation = ["gen1", "gen2", "gen3", "other"].includes(generation) ? generation : "other";
+
+  const families = Array.isArray(merged.compatibleFamilies)
+    ? merged.compatibleFamilies
+    : String(merged.compatibleFamilies ?? "")
+      .split(",")
+      .map((entry) => String(entry ?? "").trim().toLowerCase())
+      .filter(Boolean);
+  merged.compatibleFamilies = Array.from(new Set(families.length ? families : ["mjolnir"]));
+
+  merged.modifiers.protection.head = Number.isFinite(Number(merged.modifiers?.protection?.head)) ? Number(merged.modifiers.protection.head) : 0;
+  merged.modifiers.protection.arms = Number.isFinite(Number(merged.modifiers?.protection?.arms)) ? Number(merged.modifiers.protection.arms) : 0;
+  merged.modifiers.protection.chest = Number.isFinite(Number(merged.modifiers?.protection?.chest)) ? Number(merged.modifiers.protection.chest) : 0;
+  merged.modifiers.protection.legs = Number.isFinite(Number(merged.modifiers?.protection?.legs)) ? Number(merged.modifiers.protection.legs) : 0;
+  merged.modifiers.shields.integrity = Number.isFinite(Number(merged.modifiers?.shields?.integrity)) ? Number(merged.modifiers.shields.integrity) : 0;
+  merged.modifiers.shields.delay = Number.isFinite(Number(merged.modifiers?.shields?.delay)) ? Number(merged.modifiers.shields.delay) : 0;
+  merged.modifiers.shields.rechargeRate = Number.isFinite(Number(merged.modifiers?.shields?.rechargeRate)) ? Number(merged.modifiers.shields.rechargeRate) : 0;
+  merged.modifiers.weightKg = Number.isFinite(Number(merged.modifiers?.weightKg)) ? Number(merged.modifiers.weightKg) : 0;
+
+  const tags = Array.isArray(merged.tags) ? merged.tags : String(merged.tags ?? "").split(",");
+  merged.tags = Array.from(new Set(tags.map((entry) => String(entry ?? "").trim().toLowerCase()).filter(Boolean)));
+
+  merged.sync = normalizeItemSyncData(merged.sync, "armorVariant", itemName);
   return merged;
 }
 
@@ -1295,13 +1473,125 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
 
 function normalizeGearSystemData(systemData, itemName = "") {
   const source = foundry.utils.deepClone(systemData ?? {});
-  const merged = foundry.utils.mergeObject({ sync: {} }, source, {
+  const merged = foundry.utils.mergeObject({
+    schemaVersion: MYTHIC_GEAR_SCHEMA_VERSION,
+    itemClass: "weapon",
+    weaponClass: "ranged",
+    faction: "",
+    source: "mythic",
+    category: "",
+    weaponType: "",
+    wieldingType: "",
+    ammoName: "",
+    nicknames: [],
+    fireModes: [],
+    damage: {
+      baseRollD5: 0,
+      baseRollD10: 0,
+      baseDamage: 0,
+      pierce: 0
+    },
+    range: {
+      close: 0,
+      max: 0,
+      reload: 0,
+      magazine: 0
+    },
+    price: {
+      amount: 0,
+      currency: "cr"
+    },
+    weightKg: 0,
+    specialRules: "",
+    attachments: "",
+    description: "",
+    // Armor-specific fields (ignored for weapons)
+    modifiers: "",
+    protection: {
+      head: 0,
+      arms: 0,
+      chest: 0,
+      legs: 0
+    },
+    shields: {
+      integrity: 0,
+      delay: 0,
+      rechargeRate: 0
+    },
+    sourceReference: {
+      table: "",
+      rowNumber: 0
+    },
+    sync: {}
+  }, source, {
     inplace: false,
     insertKeys: true,
     insertValues: true,
     overwrite: true,
     recursive: true
   });
+
+  const parseList = (value, delimiter = ",") => {
+    const text = String(value ?? "").trim();
+    if (!text) return [];
+    return text
+      .split(delimiter)
+      .map((entry) => String(entry ?? "").trim())
+      .filter(Boolean);
+  };
+
+  const schemaRaw = Number(merged.schemaVersion ?? MYTHIC_GEAR_SCHEMA_VERSION);
+  merged.schemaVersion = Number.isFinite(schemaRaw)
+    ? Math.max(1, Math.floor(schemaRaw))
+    : MYTHIC_GEAR_SCHEMA_VERSION;
+
+  const itemClass = String(merged.itemClass ?? "weapon").trim().toLowerCase();
+  merged.itemClass = itemClass || "weapon";
+
+  const weaponClass = String(merged.weaponClass ?? "ranged").trim().toLowerCase();
+  merged.weaponClass = ["ranged", "melee", "armor", "vehicle", "other"].includes(weaponClass) ? weaponClass : "other";
+
+  merged.faction = String(merged.faction ?? "").trim();
+  merged.source = String(merged.source ?? "mythic").trim().toLowerCase() || "mythic";
+  merged.category = String(merged.category ?? "").trim();
+  merged.weaponType = String(merged.weaponType ?? "").trim();
+  merged.wieldingType = String(merged.wieldingType ?? "").trim();
+  merged.ammoName = String(merged.ammoName ?? "").trim();
+  merged.nicknames = normalizeStringList(Array.isArray(merged.nicknames) ? merged.nicknames : parseList(merged.nicknames));
+  merged.fireModes = normalizeStringList(Array.isArray(merged.fireModes) ? merged.fireModes : parseList(merged.fireModes));
+
+  merged.damage.baseRollD5 = toNonNegativeWhole(merged.damage?.baseRollD5, 0);
+  merged.damage.baseRollD10 = toNonNegativeWhole(merged.damage?.baseRollD10, 0);
+  merged.damage.baseDamage = toNonNegativeWhole(merged.damage?.baseDamage, 0);
+  merged.damage.pierce = Number.isFinite(Number(merged.damage?.pierce)) ? Number(merged.damage.pierce) : 0;
+
+  merged.range.close = toNonNegativeWhole(merged.range?.close, 0);
+  merged.range.max = toNonNegativeWhole(merged.range?.max, 0);
+  merged.range.reload = toNonNegativeWhole(merged.range?.reload, 0);
+  merged.range.magazine = toNonNegativeWhole(merged.range?.magazine, 0);
+
+  merged.price.amount = toNonNegativeWhole(merged.price?.amount, 0);
+  merged.price.currency = String(merged.price?.currency ?? "cr").trim().toLowerCase() || "cr";
+  merged.weightKg = Number.isFinite(Number(merged.weightKg)) ? Math.max(0, Number(merged.weightKg)) : 0;
+
+  merged.specialRules = String(merged.specialRules ?? "").trim();
+  merged.attachments = String(merged.attachments ?? "").trim();
+  merged.description = String(merged.description ?? "").trim();
+
+  // Armor variants are now their own item type and are no longer stored inline on armor.
+  if (Object.hasOwn(merged, "armorVariant")) delete merged.armorVariant;
+  merged.modifiers = String(merged.modifiers ?? "").trim();
+  merged.protection.head = toNonNegativeWhole(merged.protection?.head, 0);
+  merged.protection.arms = toNonNegativeWhole(merged.protection?.arms, 0);
+  merged.protection.chest = toNonNegativeWhole(merged.protection?.chest, 0);
+  merged.protection.legs = toNonNegativeWhole(merged.protection?.legs, 0);
+  merged.shields.integrity = toNonNegativeWhole(merged.shields?.integrity, 0);
+  merged.shields.delay = toNonNegativeWhole(merged.shields?.delay, 0);
+  merged.shields.rechargeRate = toNonNegativeWhole(merged.shields?.rechargeRate, 0);
+
+  merged.sourceReference.table = String(merged.sourceReference?.table ?? "").trim();
+  merged.sourceReference.rowNumber = toNonNegativeWhole(merged.sourceReference?.rowNumber, 0);
+
   merged.sync = normalizeItemSyncData(merged.sync, "gear", itemName);
   return merged;
 }
@@ -1326,6 +1616,1149 @@ function mapNumberedObjectToArray(value) {
     .filter(([key]) => /^\d+$/.test(key))
     .sort((left, right) => Number(left[0]) - Number(right[0]))
     .map(([, entry]) => entry);
+}
+
+function getCell(row, headerMap, key) {
+  const index = headerMap[String(key ?? "").toLowerCase()];
+  return index === undefined ? "" : String(row[index] ?? "").trim();
+}
+
+function parseWholeOrZero(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
+}
+
+function parseNumericOrZero(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function parseWeaponFireModes(row, headerMap) {
+  const modeMap = [
+    ["Semi-Auto", "semi-auto"],
+    ["Automatic", "auto"],
+    ["Burst-Fire", "burst"],
+    ["Sustained", "sustained"],
+    ["Pump", "pump"],
+    ["Charge / Drawback (X)", "charge"],
+    ["Overheat (X)", "overheat"],
+    ["Recharge (X)", "recharge"]
+  ];
+
+  const result = [];
+  for (const [column, label] of modeMap) {
+    const raw = getCell(row, headerMap, column);
+    const value = Number(raw);
+    if (Number.isFinite(value) && value > 0) {
+      result.push(`${label}(${Math.floor(value)})`);
+    }
+  }
+  return result;
+}
+
+function parseReferenceWeaponRows(rows, weaponClass, tableName) {
+  const headerIndex = findHeaderRowIndex(rows, "Full name");
+  if (headerIndex < 0) return [];
+
+  const headerRow = rows[headerIndex];
+  const headerMap = buildHeaderMap(headerRow);
+  const parsed = [];
+
+  for (let i = headerIndex + 1; i < rows.length; i += 1) {
+    const row = rows[i] ?? [];
+    const fullName = getCell(row, headerMap, "Full name");
+    if (!fullName || /^default$/i.test(fullName) || /^no weapon$/i.test(fullName)) continue;
+
+    const source = getCell(row, headerMap, "Source").toLowerCase() || "mythic";
+    if (!MYTHIC_ALLOWED_WEAPON_SOURCES.has(source)) continue;
+    const category = getCell(row, headerMap, "Weapon Category");
+    const weaponType = getCell(row, headerMap, "Weapon type") || getCell(row, headerMap, "Weapon Type");
+    const wieldingType = getCell(row, headerMap, "Wielding Type");
+    const ammoName = getCell(row, headerMap, "Ammunition name");
+    const nicknames = normalizeStringList(getCell(row, headerMap, "Nicknames").split(","));
+    const specialRules = getCell(row, headerMap, "Special rules");
+    const attachments = getCell(row, headerMap, "Attachments");
+    const description = getCell(row, headerMap, "Extra description\n\nDO NOT ADD \nSPECIAL RULES HERE\n");
+
+    const baseRollD5 = parseWholeOrZero(getCell(row, headerMap, "Base Roll (Xd5)"));
+    const baseRollD10 = parseWholeOrZero(getCell(row, headerMap, "Base Roll (Xd10)"));
+    const baseDamage = parseWholeOrZero(getCell(row, headerMap, "Base damage"));
+    const pierce = parseNumericOrZero(getCell(row, headerMap, "Pierce"));
+
+    const closeRange = parseWholeOrZero(getCell(row, headerMap, "Close range"));
+    const maxRange = parseWholeOrZero(getCell(row, headerMap, "Max range"));
+    const reload = parseWholeOrZero(getCell(row, headerMap, "Reload"));
+    const magazine = parseWholeOrZero(getCell(row, headerMap, "Magazine"));
+
+    const priceAmount = parseWholeOrZero(getCell(row, headerMap, "weapon price"));
+    const priceCurrency = (getCell(row, headerMap, " ") || "cR").toLowerCase();
+    const weightKg = parseNumericOrZero(getCell(row, headerMap, "Weight [KG]"));
+
+    const fireModes = parseWeaponFireModes(row, headerMap);
+
+    const defaultIcon = weaponClass === "melee" ? MYTHIC_MELEE_WEAPON_DEFAULT_ICON : MYTHIC_RANGED_WEAPON_DEFAULT_ICON;
+    parsed.push({
+      name: fullName,
+      type: "gear",
+      img: defaultIcon,
+      system: normalizeGearSystemData({
+        itemClass: "weapon",
+        weaponClass,
+        faction: getCell(row, headerMap, "faction"),
+        source,
+        category,
+        weaponType,
+        wieldingType,
+        ammoName,
+        nicknames,
+        fireModes,
+        damage: {
+          baseRollD5,
+          baseRollD10,
+          baseDamage,
+          pierce
+        },
+        range: {
+          close: closeRange,
+          max: maxRange,
+          reload,
+          magazine
+        },
+        price: {
+          amount: priceAmount,
+          currency: priceCurrency || "cr"
+        },
+        weightKg,
+        specialRules,
+        attachments,
+        description,
+        sourceReference: {
+          table: tableName,
+          rowNumber: i + 1
+        },
+        sync: {
+          sourceScope: source,
+          sourceCollection: tableName,
+          contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
+          canonicalId: buildCanonicalItemId("gear", `${weaponClass}-${getCell(row, headerMap, "faction")}-${fullName}`)
+        }
+      }, fullName)
+    });
+  }
+
+  return parsed;
+}
+
+async function loadReferenceWeaponItems() {
+  const sources = [
+    { path: MYTHIC_REFERENCE_RANGED_WEAPONS_CSV, weaponClass: "ranged", tableName: "ranged-weapons" },
+    { path: MYTHIC_REFERENCE_MELEE_WEAPONS_CSV, weaponClass: "melee", tableName: "melee-weapons" }
+  ];
+
+  const allItems = [];
+  for (const source of sources) {
+    try {
+      const response = await fetch(source.path);
+      if (!response.ok) {
+        console.warn(`[mythic-system] Could not fetch ${source.path}: HTTP ${response.status}`);
+        continue;
+      }
+      const text = await response.text();
+      const rows = splitCsvText(text);
+      const parsed = parseReferenceWeaponRows(rows, source.weaponClass, source.tableName);
+      allItems.push(...parsed);
+    } catch (error) {
+      console.warn(`[mythic-system] Failed parsing reference CSV ${source.path}`, error);
+    }
+  }
+
+  return allItems;
+}
+
+function classifyWeaponFactionBucket(rawFaction) {
+  const text = String(rawFaction ?? "").trim().toLowerCase();
+  if (!text) return { key: "other", label: "Other" };
+  if (text.includes("banished")) return { key: "banished", label: "Banished" };
+  if (text.includes("covenant")) return { key: "covenant", label: "Covenant" };
+  if (text.includes("forerunner")) return { key: "forerunner", label: "Forerunner" };
+  if (text.includes("flood")) return { key: "flood", label: "Flood" };
+
+  const humanMarkers = ["unsc", "oni", "urf", "insurrection", "insurrectionist", "human", "civilian"];
+  if (humanMarkers.some((marker) => text.includes(marker))) {
+    return { key: "human", label: "Human" };
+  }
+
+  return { key: "other", label: "Other" };
+}
+
+function getWeaponCompendiumDescriptor(itemData) {
+  const weaponClassRaw = String(itemData?.system?.weaponClass ?? "other").trim().toLowerCase();
+  const weaponClass = weaponClassRaw === "melee" ? "melee" : "ranged";
+  const faction = classifyWeaponFactionBucket(itemData?.system?.faction);
+
+  // Other faction — not imported
+  if (faction.key === "other") return null;
+
+  // Flood — ranged and melee share one compendium
+  if (faction.key === "flood") {
+    return {
+      key: "flood",
+      name: "mythic-weapons-flood",
+      label: "Flood Weapons"
+    };
+  }
+
+  return {
+    key: `${faction.key}-${weaponClass}`,
+    name: `mythic-weapons-${faction.key}-${weaponClass}`,
+    label: `${faction.label} ${weaponClass === "melee" ? "Melee" : "Ranged"} Weapons`
+  };
+}
+
+async function ensureReferenceWeaponsCompendium(name, label) {
+  const packId = `world.${name}`;
+  let pack = game.packs?.get(packId) ?? null;
+  if (pack) return pack;
+
+  const CompendiumCtor =
+    foundry?.documents?.collections?.CompendiumCollection
+    ?? globalThis?.CompendiumCollection;
+
+  if (!CompendiumCtor || typeof CompendiumCtor.createCompendium !== "function") {
+    throw new Error("Compendium creation API is not available in this Foundry version.");
+  }
+
+  await CompendiumCtor.createCompendium({
+    type: "Item",
+    label,
+    name,
+    package: "world",
+    system: "Halo-Mythic-Foundry-Updated"
+  });
+
+  pack = game.packs?.get(packId) ?? null;
+  if (!pack) throw new Error(`Could not create world compendium '${name}'.`);
+  return pack;
+}
+
+async function buildCompendiumCanonicalMap(pack) {
+  const docs = await pack.getDocuments();
+  const map = new Map();
+  for (const doc of docs) {
+    const canonical = String(doc.system?.sync?.canonicalId ?? "").trim();
+    if (!canonical) continue;
+    map.set(canonical, doc);
+  }
+  return map;
+}
+
+async function importReferenceWeapons(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can import reference weapon data.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const rows = await loadReferenceWeaponItems();
+  if (!rows.length) {
+    ui.notifications?.warn("No reference weapon rows were loaded from CSV files.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const target = String(options?.target ?? "compendium").trim().toLowerCase();
+  const importToWorld = target === "world";
+  const dryRun = options?.dryRun === true;
+
+  let byCanonicalId = new Map();
+  let compendiumPack = null;
+
+  if (importToWorld) {
+    const existingGear = (game.items ?? []).filter((entry) => entry.type === "gear");
+    for (const item of existingGear) {
+      const canonical = String(item.system?.sync?.canonicalId ?? "").trim();
+      if (!canonical) continue;
+      byCanonicalId.set(canonical, item);
+    }
+  } else {
+    // Compendium mode uses split packs by faction/species and ranged/melee.
+    byCanonicalId = new Map();
+  }
+
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  const pendingCreates = [];
+
+  if (!importToWorld) {
+    const grouped = new Map();
+    for (const itemData of rows) {
+      const descriptor = getWeaponCompendiumDescriptor(itemData);
+      if (!descriptor) { skipped += 1; continue; }  // null = skip (e.g. "other" faction)
+      const bucketKey = descriptor.key;
+      if (!grouped.has(bucketKey)) grouped.set(bucketKey, { descriptor, items: [] });
+      grouped.get(bucketKey).items.push(itemData);
+    }
+
+    const processedPacks = [];
+
+    for (const { descriptor, items } of grouped.values()) {
+      try {
+        compendiumPack = await ensureReferenceWeaponsCompendium(descriptor.name, descriptor.label);
+      } catch (error) {
+        console.error("[mythic-system] Failed to prepare reference weapons compendium.", error);
+        ui.notifications?.error(`Could not prepare compendium ${descriptor.label}. See console for details.`);
+        continue;
+      }
+
+      byCanonicalId = await buildCompendiumCanonicalMap(compendiumPack);
+      const createBatch = [];
+
+      for (const itemData of items) {
+        const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+        if (!canonicalId) {
+          skipped += 1;
+          continue;
+        }
+
+        const existing = byCanonicalId.get(canonicalId);
+        if (!existing) {
+          if (!dryRun) createBatch.push(itemData);
+          created += 1;
+          continue;
+        }
+
+        const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name);
+        nextSystem.sync.sourceCollection = descriptor.name;
+        const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+        const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+        if (foundry.utils.isEmpty(diff) && !nameChanged) {
+          skipped += 1;
+          continue;
+        }
+
+        if (!dryRun) {
+          await existing.update({ name: itemData.name, system: nextSystem });
+        }
+        updated += 1;
+      }
+
+      if (!dryRun && createBatch.length) {
+        await Item.createDocuments(createBatch, { pack: compendiumPack.collection });
+      }
+
+      processedPacks.push({ label: descriptor.label, created: createBatch.length });
+    }
+
+    if (!dryRun) {
+      ui.notifications?.info(`Reference weapon import complete to split compendiums. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+      if (processedPacks.length) {
+        console.log("[mythic-system] Imported compendium buckets:", processedPacks);
+      }
+      // Keep equipment packs organized as part of normal import flow.
+      await organizeEquipmentCompendiumFolders();
+    }
+
+    return { created, updated, skipped, mode: "split-compendiums", buckets: grouped.size };
+  }
+
+  for (const itemData of rows) {
+    const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+    if (!canonicalId) {
+      skipped += 1;
+      continue;
+    }
+
+    const existing = byCanonicalId.get(canonicalId);
+    if (!existing) {
+      if (!dryRun) {
+        if (importToWorld) {
+          pendingCreates.push(itemData);
+        } else {
+          pendingCreates.push(itemData);
+        }
+      }
+      created += 1;
+      continue;
+    }
+
+    const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name);
+    const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+    const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+    if (foundry.utils.isEmpty(diff) && !nameChanged) {
+      skipped += 1;
+      continue;
+    }
+
+    if (!dryRun) {
+      await existing.update({ name: itemData.name, system: nextSystem });
+    }
+    updated += 1;
+  }
+
+  if (!dryRun && pendingCreates.length) {
+    if (importToWorld) {
+      await Item.createDocuments(pendingCreates);
+    }
+  }
+
+  if (!dryRun) {
+    const targetLabel = "world items";
+    ui.notifications?.info(`Reference weapon import complete to ${targetLabel}. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  }
+
+  return { created, updated, skipped };
+}
+
+async function removeImportedWorldReferenceWeapons(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can remove imported reference weapons.");
+    return { removed: 0, kept: 0 };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const dedupeOnly = options?.dedupeOnly === true;
+  const worldGear = (game.items ?? []).filter((entry) => entry.type === "gear");
+
+  const imported = worldGear.filter((item) => {
+    const table = String(item.system?.sourceReference?.table ?? item.system?.sync?.sourceCollection ?? "").trim().toLowerCase();
+    return table === "ranged-weapons" || table === "melee-weapons";
+  });
+
+  if (!imported.length) {
+    return { removed: 0, kept: 0 };
+  }
+
+  let toDelete = [];
+  if (!dedupeOnly) {
+    toDelete = imported.map((item) => item.id).filter(Boolean);
+  } else {
+    const seen = new Set();
+    for (const item of imported) {
+      const canonical = String(item.system?.sync?.canonicalId ?? "").trim() || String(item.name ?? "").trim().toLowerCase();
+      if (!canonical || !seen.has(canonical)) {
+        seen.add(canonical);
+        continue;
+      }
+      toDelete.push(item.id);
+    }
+  }
+
+  if (!dryRun && toDelete.length) {
+    await Item.deleteDocuments(toDelete);
+  }
+
+  return {
+    removed: toDelete.length,
+    kept: imported.length - toDelete.length
+  };
+}
+
+async function updateWeaponCompendiumIcons(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can update weapon compendium icons.");
+    return { updated: 0 };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const allPacks = Array.from(game.packs ?? []);
+  const weaponPacks = allPacks.filter((pack) => pack.metadata?.name?.startsWith("mythic-weapons-"));
+
+  if (!weaponPacks.length) {
+    ui.notifications?.warn("No weapon compendiums found. Run importReferenceWeapons first.");
+    return { updated: 0 };
+  }
+
+  let total = 0;
+  for (const pack of weaponPacks) {
+    const docs = await pack.getDocuments();
+    const updates = [];
+    for (const doc of docs) {
+      const wClass = String(doc.system?.weaponClass ?? "").trim().toLowerCase();
+      const correctIcon = wClass === "melee" ? MYTHIC_MELEE_WEAPON_DEFAULT_ICON : MYTHIC_RANGED_WEAPON_DEFAULT_ICON;
+      if (doc.img !== correctIcon) {
+        updates.push({ _id: doc.id, img: correctIcon });
+      }
+    }
+    if (!updates.length) continue;
+    if (!dryRun) {
+      await Item.updateDocuments(updates, { pack: pack.collection });
+    }
+    total += updates.length;
+    console.log(`[mythic-system] ${dryRun ? "[DRY RUN] " : ""}Updated ${updates.length} icons in ${pack.metadata?.label ?? pack.collection}`);
+  }
+
+  ui.notifications?.info(`[Mythic] ${dryRun ? "Would update" : "Updated"} ${total} weapon icons.`);
+  return { updated: total };
+}
+
+async function removeNonMythicCompendiumWeapons(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can remove non-Mythic compendium entries.");
+    return { removed: 0 };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const allPacks = Array.from(game.packs ?? []);
+  const weaponPacks = allPacks.filter((pack) => pack.metadata?.name?.startsWith("mythic-weapons-"));
+
+  if (!weaponPacks.length) {
+    ui.notifications?.warn("No weapon compendiums found.");
+    return { removed: 0 };
+  }
+
+  let total = 0;
+  for (const pack of weaponPacks) {
+    const docs = await pack.getDocuments();
+    const toDelete = [];
+    for (const doc of docs) {
+      const src = String(doc.system?.source ?? "").trim().toLowerCase() || "mythic";
+      if (!MYTHIC_ALLOWED_WEAPON_SOURCES.has(src)) {
+        toDelete.push(doc.id);
+        console.log(`[mythic-system] ${dryRun ? "[DRY RUN] " : ""}Remove non-Mythic: "${doc.name}" (source: ${src}) from ${pack.metadata?.label ?? pack.collection}`);
+      }
+    }
+    if (!toDelete.length) continue;
+    if (!dryRun) {
+      await Item.deleteDocuments(toDelete, { pack: pack.collection });
+    }
+    total += toDelete.length;
+  }
+
+  ui.notifications?.info(`[Mythic] ${dryRun ? "Would remove" : "Removed"} ${total} non-Mythic weapon entries from compendiums.`);
+  return { removed: total };
+}
+
+/**
+ * Deletes legacy compendiums that are no longer created by the current importer:
+ *   - mythic-weapons-flood-ranged / mythic-weapons-flood-melee  (merged into flood)
+ *   - mythic-weapons-other-ranged / mythic-weapons-other-melee  (dropped)
+ *   - Any world compendium whose name or label matches "mythic-reference-weapons" /
+ *     "Mythic Reference Weapons" (leftover from earlier import iterations)
+ */
+
+// ─── Armor importer ───────────────────────────────────────────────────────────
+
+const MYTHIC_ALLOWED_ARMOR_SOURCES = Object.freeze(new Set(["mythic", "warzone"]));
+const MYTHIC_ARMOR_ROW_EXCLUSION_REGEX = /stink\s*machine|helldiver|secret\s*helldivers\s*test/i;
+
+function getArmorCompendiumDescriptor(itemData) {
+  const faction = classifyWeaponFactionBucket(itemData?.system?.faction);
+  if (faction.key === "other") return null;
+  return {
+    key: faction.key,
+    name: `mythic-armor-${faction.key}`,
+    label: `${faction.label} Armor`
+  };
+}
+
+function parseReferenceArmorRows(rows) {
+  // Row 0 also contains "Armour name" as a category label; "faction" only
+  // appears on the true column-header row (row 1), so use that as the marker.
+  const headerIndex = findHeaderRowIndex(rows, "faction");
+  if (headerIndex < 0) return [];
+
+  const headerRow = rows[headerIndex];
+  const headerMap = buildHeaderMap(headerRow);
+  const parsed = [];
+
+  for (let i = headerIndex + 1; i < rows.length; i += 1) {
+    const row = rows[i] ?? [];
+    const fullName = getCell(row, headerMap, "Armour name");
+    if (!fullName || /^default$/i.test(fullName)) continue;
+
+    // Explicitly excluded rows requested by project direction.
+    if (MYTHIC_ARMOR_ROW_EXCLUSION_REGEX.test(fullName)) continue;
+
+    const source = getCell(row, headerMap, "Source").toLowerCase() || "mythic";
+    if (!MYTHIC_ALLOWED_ARMOR_SOURCES.has(source)) continue;
+
+    // Armor variants are now their own item type and should not be imported as armor.
+    const variantFlag = parseWholeOrZero(getCell(row, headerMap, "Armor Variant"));
+    if (variantFlag > 0) continue;
+
+    const faction = getCell(row, headerMap, "faction");
+    const specialRules = getCell(row, headerMap, "Special rule");
+    const modifiers = getCell(row, headerMap, "Modifiers");
+    const description = getCell(row, headerMap, "Description");
+    if (MYTHIC_ARMOR_ROW_EXCLUSION_REGEX.test(description) || MYTHIC_ARMOR_ROW_EXCLUSION_REGEX.test(specialRules)) continue;
+
+    const protHead = parseWholeOrZero(getCell(row, headerMap, "Head"));
+    const protArms = parseWholeOrZero(getCell(row, headerMap, "Arms"));
+    const protChest = parseWholeOrZero(getCell(row, headerMap, "Chest"));
+    const protLegs = parseWholeOrZero(getCell(row, headerMap, "Legs"));
+
+    const shieldIntegrity = parseWholeOrZero(getCell(row, headerMap, "Shield Integrity"));
+    const shieldDelay = parseWholeOrZero(getCell(row, headerMap, "Delay"));
+    const shieldRecharge = parseWholeOrZero(getCell(row, headerMap, "Recharge Rate"));
+
+    const priceAmount = parseWholeOrZero(getCell(row, headerMap, "Price"));
+    const priceCurrency = (getCell(row, headerMap, ".") || "cr").trim().toLowerCase() || "cr";
+    const weightKg = parseNumericOrZero(getCell(row, headerMap, "Weight [KG]"));
+
+    parsed.push({
+      name: fullName,
+      type: "gear",
+      img: "systems/Halo-Mythic-Foundry-Updated/assets/icons/Soldier Type.png",
+      system: normalizeGearSystemData({
+        itemClass: "armor",
+        weaponClass: "other",
+        faction,
+        source,
+        specialRules,
+        modifiers,
+        description,
+        protection: { head: protHead, arms: protArms, chest: protChest, legs: protLegs },
+        shields: { integrity: shieldIntegrity, delay: shieldDelay, rechargeRate: shieldRecharge },
+        price: { amount: priceAmount, currency: priceCurrency },
+        weightKg,
+        sourceReference: { table: "armor", rowNumber: i - headerIndex }
+      }, fullName)
+    });
+  }
+
+  return parsed;
+}
+
+async function loadReferenceArmorItems() {
+  const resp = await fetch(MYTHIC_REFERENCE_ARMOR_CSV);
+  if (!resp.ok) {
+    console.error(`[mythic-system] Could not fetch armor CSV: ${resp.status} ${resp.statusText}`);
+    return [];
+  }
+  const text = await resp.text();
+  const rows = splitCsvText(text);
+  return parseReferenceArmorRows(rows);
+}
+
+function getArmorVariantCompendiumDescriptor(itemData) {
+  const faction = classifyWeaponFactionBucket(itemData?.system?.faction);
+  if (faction.key === "other") return null;
+  return {
+    key: faction.key,
+    name: `mythic-armor-variants-${faction.key}`,
+    label: `${faction.label} Armor Variants`
+  };
+}
+
+function parseReferenceArmorVariantRows(rows) {
+  const headerIndex = findHeaderRowIndex(rows, "faction");
+  if (headerIndex < 0) return [];
+
+  const headerRow = rows[headerIndex];
+  const headerMap = buildHeaderMap(headerRow);
+  const parsed = [];
+
+  const inferGeneration = (name) => {
+    const text = String(name ?? "").toLowerCase();
+    if (/\bgen\s*i{1}\b|\bgen\s*1\b/.test(text)) return "gen1";
+    if (/\bgen\s*ii\b|\bgen\s*2\b/.test(text)) return "gen2";
+    if (/\bgen\s*iii\b|\bgen\s*3\b/.test(text)) return "gen3";
+    return "other";
+  };
+
+  for (let i = headerIndex + 1; i < rows.length; i += 1) {
+    const row = rows[i] ?? [];
+    const fullName = getCell(row, headerMap, "Armour name");
+    if (!fullName || /^default$/i.test(fullName)) continue;
+
+    if (MYTHIC_ARMOR_ROW_EXCLUSION_REGEX.test(fullName)) continue;
+
+    const source = getCell(row, headerMap, "Source").toLowerCase() || "mythic";
+    if (!MYTHIC_ALLOWED_ARMOR_SOURCES.has(source)) continue;
+
+    const variantFlag = parseWholeOrZero(getCell(row, headerMap, "Armor Variant"));
+    if (variantFlag <= 0) continue;
+
+    const faction = getCell(row, headerMap, "faction");
+    const specialRules = getCell(row, headerMap, "Special rule");
+    const modifiers = getCell(row, headerMap, "Modifiers");
+    const description = getCell(row, headerMap, "Description");
+    if (MYTHIC_ARMOR_ROW_EXCLUSION_REGEX.test(description) || MYTHIC_ARMOR_ROW_EXCLUSION_REGEX.test(specialRules)) continue;
+
+    const protHead = parseNumericOrZero(getCell(row, headerMap, "Head"));
+    const protArms = parseNumericOrZero(getCell(row, headerMap, "Arms"));
+    const protChest = parseNumericOrZero(getCell(row, headerMap, "Chest"));
+    const protLegs = parseNumericOrZero(getCell(row, headerMap, "Legs"));
+
+    const shieldIntegrity = parseNumericOrZero(getCell(row, headerMap, "Shield Integrity"));
+    const shieldDelay = parseNumericOrZero(getCell(row, headerMap, "Delay"));
+    const shieldRecharge = parseNumericOrZero(getCell(row, headerMap, "Recharge Rate"));
+
+    const weightKg = parseNumericOrZero(getCell(row, headerMap, "Weight [KG]"));
+
+    parsed.push({
+      name: fullName,
+      type: "armorVariant",
+      img: MYTHIC_ABILITY_DEFAULT_ICON,
+      system: normalizeArmorVariantSystemData({
+        faction,
+        source,
+        shortDescription: String(modifiers ?? "").trim(),
+        description,
+        notes: specialRules,
+        generation: inferGeneration(fullName),
+        compatibleFamilies: ["mjolnir"],
+        modifiers: {
+          protection: { head: protHead, arms: protArms, chest: protChest, legs: protLegs },
+          shields: { integrity: shieldIntegrity, delay: shieldDelay, rechargeRate: shieldRecharge },
+          weightKg
+        },
+        sourceReference: { table: "armor-variants", rowNumber: i - headerIndex },
+        sync: {
+          sourceScope: source,
+          sourceCollection: "armor-variants"
+        }
+      }, fullName)
+    });
+  }
+
+  return parsed;
+}
+
+async function loadReferenceArmorVariantItems() {
+  const resp = await fetch(MYTHIC_REFERENCE_ARMOR_CSV);
+  if (!resp.ok) {
+    console.error(`[mythic-system] Could not fetch armor CSV: ${resp.status} ${resp.statusText}`);
+    return [];
+  }
+  const text = await resp.text();
+  const rows = splitCsvText(text);
+  return parseReferenceArmorVariantRows(rows);
+}
+
+async function importReferenceArmorVariants(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can import armor variants.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const rows = await loadReferenceArmorVariantItems();
+  if (!rows.length) {
+    ui.notifications?.warn("No armor variant rows were loaded from the CSV file.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const dryRun = options?.dryRun === true;
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+  const processedPacks = [];
+  const grouped = new Map();
+
+  for (const itemData of rows) {
+    const descriptor = getArmorVariantCompendiumDescriptor(itemData);
+    if (!descriptor) {
+      skipped += 1;
+      continue;
+    }
+    if (!grouped.has(descriptor.key)) grouped.set(descriptor.key, { descriptor, items: [] });
+    grouped.get(descriptor.key).items.push(itemData);
+  }
+
+  for (const { descriptor, items } of grouped.values()) {
+    let pack;
+    try {
+      pack = await ensureReferenceWeaponsCompendium(descriptor.name, descriptor.label);
+    } catch (error) {
+      console.error("[mythic-system] Failed to prepare armor variant compendium.", error);
+      ui.notifications?.error(`Could not prepare compendium ${descriptor.label}. See console.`);
+      continue;
+    }
+
+    const byCanonicalId = await buildCompendiumCanonicalMap(pack);
+    const createBatch = [];
+
+    for (const itemData of items) {
+      const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+      if (!canonicalId) {
+        skipped += 1;
+        continue;
+      }
+
+      const existing = byCanonicalId.get(canonicalId);
+      if (!existing) {
+        if (!dryRun) createBatch.push(itemData);
+        created += 1;
+        continue;
+      }
+
+      const nextSystem = normalizeArmorVariantSystemData(itemData.system ?? {}, itemData.name);
+      nextSystem.sync.sourceCollection = descriptor.name;
+      const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+      const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+      if (foundry.utils.isEmpty(diff) && !nameChanged) {
+        skipped += 1;
+        continue;
+      }
+
+      if (!dryRun) {
+        await existing.update({ name: itemData.name, system: nextSystem });
+      }
+      updated += 1;
+    }
+
+    if (!dryRun && createBatch.length) {
+      await Item.createDocuments(createBatch, { pack: pack.collection });
+    }
+
+    processedPacks.push({ label: descriptor.label, created: createBatch.length });
+  }
+
+  if (!dryRun) {
+    ui.notifications?.info(`Armor variant import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+    console.log("[mythic-system] Imported armor variant compendium buckets:", processedPacks);
+    await organizeEquipmentCompendiumFolders();
+  }
+
+  return { created, updated, skipped, mode: "split-compendiums", buckets: grouped.size };
+}
+
+async function importReferenceArmor(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can import reference armor data.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const rows = await loadReferenceArmorItems();
+  if (!rows.length) {
+    ui.notifications?.warn("No reference armor rows were loaded from the CSV file.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const dryRun = options?.dryRun === true;
+  let created = 0, updated = 0, skipped = 0;
+  const processedPacks = [];
+  const grouped = new Map();
+
+  for (const itemData of rows) {
+    const descriptor = getArmorCompendiumDescriptor(itemData);
+    if (!descriptor) { skipped += 1; continue; }
+    if (!grouped.has(descriptor.key)) grouped.set(descriptor.key, { descriptor, items: [] });
+    grouped.get(descriptor.key).items.push(itemData);
+  }
+
+  for (const { descriptor, items } of grouped.values()) {
+    let pack;
+    try {
+      pack = await ensureReferenceWeaponsCompendium(descriptor.name, descriptor.label);
+    } catch (error) {
+      console.error("[mythic-system] Failed to prepare armor compendium.", error);
+      ui.notifications?.error(`Could not prepare compendium ${descriptor.label}. See console.`);
+      continue;
+    }
+
+    const byCanonicalId = await buildCompendiumCanonicalMap(pack);
+    const createBatch = [];
+
+    for (const itemData of items) {
+      const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+      if (!canonicalId) { skipped += 1; continue; }
+
+      const existing = byCanonicalId.get(canonicalId);
+      if (!existing) {
+        if (!dryRun) createBatch.push(itemData);
+        created += 1;
+        continue;
+      }
+
+      const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name);
+      nextSystem.sync.sourceCollection = descriptor.name;
+      const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+      const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+      if (foundry.utils.isEmpty(diff) && !nameChanged) { skipped += 1; continue; }
+
+      if (!dryRun) await existing.update({ name: itemData.name, system: nextSystem });
+      updated += 1;
+    }
+
+    if (!dryRun && createBatch.length) {
+      await Item.createDocuments(createBatch, { pack: pack.collection });
+    }
+    processedPacks.push({ label: descriptor.label, created: createBatch.length });
+  }
+
+  if (!dryRun) {
+    ui.notifications?.info(`Armor import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+    console.log("[mythic-system] Imported armor compendium buckets:", processedPacks);
+    // Keep equipment packs organized as part of normal import flow.
+    await organizeEquipmentCompendiumFolders();
+  }
+  return { created, updated, skipped, mode: "split-compendiums", buckets: grouped.size };
+}
+
+async function removeEmbeddedArmorVariants(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can remove embedded armor variants.");
+    return { removedWorld: 0, removedCompendium: 0 };
+  }
+
+  const dryRun = options?.dryRun === true;
+  let removedWorld = 0;
+  let removedCompendium = 0;
+
+  const worldArmor = (game.items ?? []).filter((item) => item.type === "gear" && item.system?.itemClass === "armor");
+  for (const item of worldArmor) {
+    if (!Object.hasOwn(item.system ?? {}, "armorVariant")) continue;
+    if (!dryRun) {
+      await item.update({ "system.-=armorVariant": null }, { diff: false, render: false });
+    }
+    removedWorld += 1;
+  }
+
+  const armorPacks = Array.from(game.packs ?? []).filter((pack) => {
+    const name = String(pack.metadata?.name ?? "").toLowerCase();
+    return name.startsWith("mythic-armor-");
+  });
+
+  for (const pack of armorPacks) {
+    const docs = await pack.getDocuments();
+    const updates = [];
+    for (const doc of docs) {
+      if (!Object.hasOwn(doc.system ?? {}, "armorVariant")) continue;
+      updates.push({ _id: doc.id, "system.-=armorVariant": null });
+    }
+    if (!updates.length) continue;
+    if (!dryRun) {
+      await Item.updateDocuments(updates, { pack: pack.collection, diff: false });
+    }
+    removedCompendium += updates.length;
+  }
+
+  ui.notifications?.info(
+    `[Mythic] ${dryRun ? "Would remove" : "Removed"} embedded armor variants from ${removedWorld} world item(s) and ${removedCompendium} compendium item(s).`
+  );
+  return { removedWorld, removedCompendium, dryRun };
+}
+
+async function removeArmorVariantRowsFromArmorCompendiums(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can remove armor-variant rows from armor compendiums.");
+    return { removed: 0, packsTouched: 0, dryRun: Boolean(options?.dryRun) };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const armorPacks = Array.from(game.packs ?? []).filter((pack) => {
+    const name = String(pack.metadata?.name ?? "").toLowerCase();
+    return name.startsWith("mythic-armor-");
+  });
+
+  let removed = 0;
+  let packsTouched = 0;
+
+  // Heuristic for legacy imported variant docs from armor CSV.
+  const variantNameRegex = /^gen\s*(i{1,3}|iv|v|vi|vii|viii|ix|x|\d+)\b/i;
+
+  for (const pack of armorPacks) {
+    const docs = await pack.getDocuments();
+    const toDelete = docs
+      .filter((doc) => variantNameRegex.test(String(doc.name ?? "").trim()))
+      .map((doc) => doc.id)
+      .filter(Boolean);
+
+    if (!toDelete.length) continue;
+    packsTouched += 1;
+    if (!dryRun) {
+      await Item.deleteDocuments(toDelete, { pack: pack.collection });
+    }
+    removed += toDelete.length;
+  }
+
+  ui.notifications?.info(
+    `[Mythic] ${dryRun ? "Would remove" : "Removed"} ${removed} armor-variant row(s) from ${packsTouched} armor compendium pack(s).`
+  );
+
+  return { removed, packsTouched, dryRun };
+}
+
+async function removeExcludedArmorRowsFromCompendiums(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can remove excluded armor rows from compendiums.");
+    return { removed: 0, packsTouched: 0, dryRun: Boolean(options?.dryRun) };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const armorPacks = Array.from(game.packs ?? []).filter((pack) => {
+    const name = String(pack.metadata?.name ?? "").toLowerCase();
+    return name.startsWith("mythic-armor-");
+  });
+
+  let removed = 0;
+  let packsTouched = 0;
+
+  for (const pack of armorPacks) {
+    const docs = await pack.getDocuments();
+    const toDelete = docs
+      .filter((doc) => {
+        const name = String(doc.name ?? "");
+        const specialRules = String(doc.system?.specialRules ?? "");
+        const description = String(doc.system?.description ?? "");
+        return MYTHIC_ARMOR_ROW_EXCLUSION_REGEX.test(name)
+          || MYTHIC_ARMOR_ROW_EXCLUSION_REGEX.test(specialRules)
+          || MYTHIC_ARMOR_ROW_EXCLUSION_REGEX.test(description);
+      })
+      .map((doc) => doc.id)
+      .filter(Boolean);
+
+    if (!toDelete.length) continue;
+    packsTouched += 1;
+    if (!dryRun) {
+      await Item.deleteDocuments(toDelete, { pack: pack.collection });
+    }
+    removed += toDelete.length;
+  }
+
+  ui.notifications?.info(
+    `[Mythic] ${dryRun ? "Would remove" : "Removed"} ${removed} excluded armor row(s) from ${packsTouched} armor compendium pack(s).`
+  );
+
+  return { removed, packsTouched, dryRun };
+}
+
+// ─── Legacy weapon compendium cleanup ─────────────────────────────────────────
+
+/**
+ *   - mythic-weapons-flood-ranged / mythic-weapons-flood-melee  (merged into flood)
+ *   - mythic-weapons-other-ranged / mythic-weapons-other-melee  (dropped)
+ *   - Any world compendium whose name or label matches "mythic-reference-weapons" /
+ *     "Mythic Reference Weapons" (leftover from earlier import iterations)
+ */
+async function cleanupLegacyWeaponCompendiums(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can delete legacy compendiums.");
+    return { deleted: [] };
+  }
+
+  const dryRun = options?.dryRun === true;
+
+  const LEGACY_NAMES = new Set([
+    "mythic-weapons-flood-ranged",
+    "mythic-weapons-flood-melee",
+    "mythic-weapons-other-ranged",
+    "mythic-weapons-other-melee",
+    "mythic-reference-weapons",
+  ]);
+  const LEGACY_LABELS = new Set([
+    "Mythic Reference Weapons",
+  ]);
+
+  const allPacks = Array.from(game.packs ?? []);
+  const toDelete = allPacks.filter((pack) => {
+    const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
+    const label = String(pack.metadata?.label ?? "").trim();
+    return LEGACY_NAMES.has(name) || LEGACY_LABELS.has(label);
+  });
+
+  if (!toDelete.length) {
+    ui.notifications?.info("[Mythic] No legacy weapon compendiums found to delete.");
+    return { deleted: [] };
+  }
+
+  const deleted = [];
+  for (const pack of toDelete) {
+    const label = pack.metadata?.label ?? pack.collection;
+    if (!dryRun) {
+      try {
+        await pack.deleteCompendium();
+        console.log(`[mythic-system] Deleted legacy compendium: ${label}`);
+      } catch (err) {
+        console.error(`[mythic-system] Failed to delete compendium ${label}:`, err);
+      }
+    } else {
+      console.log(`[mythic-system] [DRY RUN] Would delete: ${label}`);
+    }
+    deleted.push(label);
+  }
+
+  ui.notifications?.info(`[Mythic] ${dryRun ? "Would delete" : "Deleted"} ${deleted.length} legacy compendium(s): ${deleted.join(", ")}`);
+  return { deleted };
+}
+
+async function organizeEquipmentCompendiumFolders(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can organize compendium folders.");
+    return { assigned: 0, createdFolders: 0, skipped: 0 };
+  }
+
+  const dryRun = options?.dryRun === true;
+
+  const targetFolderByFaction = {
+    human: "Human Equipment",
+    covenant: "Covenant Equipment",
+    banished: "Banished Equipment",
+    forerunner: "Forerunner Equpment"
+  };
+
+  const getCompendiumFolder = async (name) => {
+    const existing = (game.folders ?? []).find((folder) => folder.type === "Compendium" && folder.name === name);
+    if (existing) return { folder: existing, created: false };
+    if (dryRun) return { folder: null, created: true };
+    const created = await Folder.create({ name, type: "Compendium" });
+    return { folder: created, created: true };
+  };
+
+  const folderIdByFaction = {};
+  let createdFolders = 0;
+  for (const [faction, folderName] of Object.entries(targetFolderByFaction)) {
+    const { folder, created } = await getCompendiumFolder(folderName);
+    if (created) createdFolders += 1;
+    folderIdByFaction[faction] = folder?.id ?? null;
+  }
+
+  const allPacks = Array.from(game.packs ?? []);
+  const equipmentPacks = allPacks.filter((pack) => {
+    const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
+    return name.startsWith("mythic-weapons-")
+      || name.startsWith("mythic-armor-")
+      || name.startsWith("mythic-armor-variants-");
+  });
+
+  const compendiumConfiguration = foundry.utils.deepClone(game.settings.get("core", "compendiumConfiguration") ?? {});
+
+  let assigned = 0;
+  let skipped = 0;
+  for (const pack of equipmentPacks) {
+    const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
+    const match = /^mythic-(?:weapons|armor|armor-variants)-([a-z]+)(?:-|$)/.exec(name);
+    const faction = match?.[1] ?? "";
+
+    // Flood (and any unknown factions) stay ungrouped by request.
+    if (!Object.hasOwn(targetFolderByFaction, faction)) {
+      skipped += 1;
+      continue;
+    }
+
+    const folderId = folderIdByFaction[faction];
+    if (!folderId && !dryRun) {
+      skipped += 1;
+      continue;
+    }
+
+    const key = pack.collection;
+    const current = compendiumConfiguration[key] && typeof compendiumConfiguration[key] === "object"
+      ? compendiumConfiguration[key]
+      : {};
+    if (String(current.folder ?? "") === String(folderId ?? "")) {
+      skipped += 1;
+      continue;
+    }
+
+    compendiumConfiguration[key] = {
+      ...current,
+      folder: folderId
+    };
+    assigned += 1;
+  }
+
+  if (!dryRun) {
+    await game.settings.set("core", "compendiumConfiguration", compendiumConfiguration);
+  }
+
+  ui.notifications?.info(
+    `[Mythic] ${dryRun ? "Would assign" : "Assigned"} ${assigned} equipment compendium(s), `
+    + `${dryRun ? "would create" : "created"} ${createdFolders} folder(s), skipped ${skipped}.`
+  );
+
+  return { assigned, createdFolders, skipped, dryRun };
 }
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -1440,11 +2873,86 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? Math.min(999, Math.round((carriedWeight / carryCapacity) * 100))
       : 0;
 
+    const baseGearItems = (this.actor?.items ?? [])
+      .filter((item) => item.type === "gear")
+      .map((item) => {
+        const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+        return {
+          id: item.id,
+          name: item.name,
+          img: item.img,
+          itemClass: gear.itemClass,
+          weaponClass: gear.weaponClass,
+          source: gear.source,
+          weightKg: Number(gear.weightKg ?? 0)
+        };
+      });
+
+    const sortedBaseGearItems = baseGearItems.sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+    const validItemIds = new Set(sortedBaseGearItems.map((entry) => String(entry.id)));
+
+    const carriedIds = Array.isArray(systemData?.equipment?.carriedIds)
+      ? systemData.equipment.carriedIds.map((entry) => String(entry ?? "").trim()).filter((entry) => validItemIds.has(entry))
+      : [];
+    const carriedSet = new Set(carriedIds);
+
+    const equippedWeaponIdsRaw = Array.isArray(systemData?.equipment?.equipped?.weaponIds)
+      ? systemData.equipment.equipped.weaponIds
+      : [];
+    const equippedWeaponIds = Array.from(new Set(equippedWeaponIdsRaw
+      .map((entry) => String(entry ?? "").trim())
+      .filter((entry) => validItemIds.has(entry))));
+    const equippedWeaponSet = new Set(equippedWeaponIds);
+
+    let equippedArmorId = String(systemData?.equipment?.equipped?.armorId ?? "").trim();
+    if (!validItemIds.has(equippedArmorId)) equippedArmorId = "";
+
+    let wieldedWeaponId = String(systemData?.equipment?.equipped?.wieldedWeaponId ?? "").trim();
+    if (!equippedWeaponSet.has(wieldedWeaponId)) wieldedWeaponId = "";
+
+    const sortedGearItems = sortedBaseGearItems.map((entry) => {
+      const id = String(entry.id ?? "");
+      const isWeapon = entry.itemClass === "weapon";
+      const isArmor = entry.itemClass === "armor";
+      return {
+        ...entry,
+        canEquip: isWeapon || isArmor,
+        isCarried: carriedSet.has(id),
+        isEquipped: isWeapon ? equippedWeaponSet.has(id) : (isArmor ? id === equippedArmorId : false),
+        isWielded: isWeapon && id === wieldedWeaponId
+      };
+    });
+
+    const weaponItems = sortedGearItems.filter((entry) => entry.itemClass === "weapon");
+    const armorItems = sortedGearItems.filter((entry) => entry.itemClass === "armor");
+    const otherItems = sortedGearItems.filter((entry) => entry.itemClass !== "weapon" && entry.itemClass !== "armor");
+
+    const findById = (id) => sortedGearItems.find((entry) => String(entry.id) === String(id)) ?? null;
+    const equippedWeaponItems = weaponItems.filter((entry) => entry.isEquipped);
+    const equippedArmor = findById(equippedArmorId);
+    const wieldedWeapon = findById(wieldedWeaponId);
+
+    const equipped = {
+      weaponIds: equippedWeaponIds,
+      armorId: equippedArmorId,
+      wieldedWeaponId,
+      carriedIds
+    };
+
     return {
       carriedWeight,
       carryCapacity,
       loadPercent,
-      remainingCarry: Math.max(0, Math.round((carryCapacity - carriedWeight) * 10) / 10)
+      remainingCarry: Math.max(0, Math.round((carryCapacity - carriedWeight) * 10) / 10),
+      gearItems: sortedGearItems,
+      weaponItems,
+      armorItems,
+      otherItems,
+      equipped,
+      equippedWeaponItems,
+      equippedArmor,
+      wieldedWeapon,
+      readyWeaponCount: equippedWeaponItems.length
     };
   }
 
@@ -2433,6 +3941,42 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".trait-post-btn[data-item-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onPostTraitToChat(event);
+      });
+    });
+
+    // Gear: open, remove, and inventory toggles
+    root.querySelectorAll(".gear-open-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const itemId = String(event.currentTarget.dataset.itemId ?? "");
+        if (!itemId) return;
+        const item = this.actor.items.get(itemId);
+        if (!item?.sheet) return;
+        item.sheet.render(true);
+      });
+    });
+
+    root.querySelectorAll(".gear-remove-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRemoveGearItem(event);
+      });
+    });
+
+    root.querySelectorAll(".gear-carried-toggle[data-item-id]").forEach((checkbox) => {
+      checkbox.addEventListener("change", (event) => {
+        void this._onToggleCarriedGear(event);
+      });
+    });
+
+    root.querySelectorAll(".gear-equipped-toggle[data-item-id][data-kind]").forEach((checkbox) => {
+      checkbox.addEventListener("change", (event) => {
+        void this._onToggleEquippedGear(event);
+      });
+    });
+
+    root.querySelectorAll(".gear-wield-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onSetWieldedWeapon(event);
       });
     });
 
@@ -4156,6 +5700,125 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  async _onRemoveGearItem(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    if (!itemId) return;
+
+    const equipment = this.actor.system?.equipment ?? {};
+    const equipped = equipment?.equipped ?? {};
+    const carriedIds = Array.isArray(equipment?.carriedIds) ? equipment.carriedIds : [];
+    const weaponIds = Array.isArray(equipped?.weaponIds) ? equipped.weaponIds : [];
+    const armorId = String(equipped?.armorId ?? "");
+    const wieldedWeaponId = String(equipped?.wieldedWeaponId ?? "");
+
+    const nextCarried = carriedIds.filter((id) => String(id) !== itemId);
+    const nextWeaponIds = weaponIds.filter((id) => String(id) !== itemId);
+    const nextArmorId = armorId === itemId ? "" : armorId;
+    const nextWielded = wieldedWeaponId === itemId ? "" : wieldedWeaponId;
+
+    const updateData = {
+      "system.equipment.carriedIds": nextCarried,
+      "system.equipment.equipped.weaponIds": nextWeaponIds,
+      "system.equipment.equipped.armorId": nextArmorId,
+      "system.equipment.equipped.wieldedWeaponId": nextWielded
+    };
+
+    await this.actor.update(updateData);
+
+    await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
+  }
+
+  async _onToggleCarriedGear(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    if (!itemId) return;
+    const checked = Boolean(event.currentTarget?.checked);
+
+    const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+      ? this.actor.system.equipment.carriedIds
+      : [];
+    const nextCarried = checked
+      ? Array.from(new Set([...carriedIds, itemId]))
+      : carriedIds.filter((id) => String(id) !== itemId);
+
+    await this.actor.update({
+      "system.equipment.carriedIds": nextCarried
+    });
+  }
+
+  async _onToggleEquippedGear(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    const kind = String(event.currentTarget?.dataset?.kind ?? "").trim().toLowerCase();
+    if (!itemId || !kind) return;
+    const checked = Boolean(event.currentTarget?.checked);
+
+    const item = this.actor.items.get(itemId);
+    if (!item || item.type !== "gear") return;
+
+    const equipped = this.actor.system?.equipment?.equipped ?? {};
+    const weaponIds = Array.isArray(equipped?.weaponIds) ? equipped.weaponIds : [];
+    const armorId = String(equipped?.armorId ?? "");
+    let wieldedWeaponId = String(equipped?.wieldedWeaponId ?? "");
+
+    let nextWeaponIds = weaponIds;
+    let nextArmorId = armorId;
+
+    if (kind === "weapon") {
+      nextWeaponIds = checked
+        ? Array.from(new Set([...weaponIds, itemId]))
+        : weaponIds.filter((id) => String(id) !== itemId);
+      if (!nextWeaponIds.includes(wieldedWeaponId)) {
+        wieldedWeaponId = "";
+      }
+    } else if (kind === "armor") {
+      nextArmorId = checked ? itemId : (armorId === itemId ? "" : armorId);
+    } else {
+      return;
+    }
+
+    await this.actor.update({
+      "system.equipment.equipped.weaponIds": nextWeaponIds,
+      "system.equipment.equipped.armorId": nextArmorId,
+      "system.equipment.equipped.wieldedWeaponId": wieldedWeaponId
+    });
+  }
+
+  async _onSetWieldedWeapon(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    if (!itemId) return;
+
+    const item = this.actor.items.get(itemId);
+    if (!item || item.type !== "gear") return;
+
+    const equippedWeaponIds = Array.isArray(this.actor.system?.equipment?.equipped?.weaponIds)
+      ? this.actor.system.equipment.equipped.weaponIds.map((id) => String(id))
+      : [];
+
+    if (!equippedWeaponIds.includes(itemId)) return;
+
+    await this.actor.update({
+      "system.equipment.equipped.wieldedWeaponId": itemId
+    });
+
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content: `<p><strong>${esc(this.actor.name)}</strong> is now wielding <strong>${esc(item.name)}</strong>. Timing automation pending.</p>`,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
   async _onAddCustomTrait(event) {
     event.preventDefault();
     if (!this.isEditable) return;
@@ -4341,11 +6004,15 @@ class MythicItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
       classes: ["mythic-system", "sheet", "item"],
       position: {
-        width: 520,
-        height: 360
+        width: 700,
+        height: 760
       },
       window: {
         resizable: true
+      },
+      form: {
+        submitOnChange: true,
+        closeOnSubmit: false
       }
     }, { inplace: false });
 
@@ -4360,8 +6027,38 @@ class MythicItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
     context.cssClass = this.options.classes.join(" ");
     context.item = this.item;
     context.editable = this.isEditable;
-    context.canEditFields = this.isEditable && Boolean(this.item.system?.editMode);
+    context.canEditFields = this.item.type === "gear"
+      ? this.isEditable
+      : (this.isEditable && Boolean(this.item.system?.editMode));
+    context.isGearItem = this.item.type === "gear";
+
+    if (context.isGearItem) {
+      const gear = normalizeGearSystemData(this.item.system ?? {}, this.item.name ?? "");
+      context.gear = gear;
+      context.isArmorItem = gear.itemClass === "armor";
+      context.nicknamesDisplay = Array.isArray(gear.nicknames) ? gear.nicknames.join(", ") : "";
+      context.fireModesDisplay = Array.isArray(gear.fireModes) ? gear.fireModes.join(", ") : "";
+      context.readOnlySystem = JSON.stringify(gear, null, 2);
+    }
+
     return context;
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    if (!this.isEditable) return;
+
+    const imgEl = this.element?.querySelector(".ability-sheet-icon");
+    if (!imgEl) return;
+    imgEl.style.cursor = "pointer";
+    imgEl.addEventListener("click", () => {
+      const fp = new FilePicker({
+        type: "image",
+        current: this.item.img,
+        callback: (path) => this.item.update({ img: path })
+      });
+      fp.browse();
+    });
   }
 }
 
@@ -4609,6 +6306,109 @@ class MythicTraitSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   }
 }
 
+class MythicArmorVariantSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+      classes: ["mythic-system", "sheet", "item", "armor-variant"],
+      position: {
+        width: 700,
+        height: 760
+      },
+      window: {
+        resizable: true
+      },
+      form: {
+        submitOnChange: true,
+        closeOnSubmit: false
+      }
+    }, { inplace: false });
+
+  static PARTS = {
+    sheet: {
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/armor-variant-sheet.hbs"
+    }
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    context.cssClass = this.options.classes.join(" ");
+    context.item = this.item;
+    context.editable = this.isEditable;
+    context.canEditFields = this.isEditable && Boolean(this.item.system?.editMode);
+    context.variant = normalizeArmorVariantSystemData(this.item.system ?? {}, this.item.name ?? "");
+    context.compatibleFamiliesDisplay = Array.isArray(context.variant.compatibleFamilies)
+      ? context.variant.compatibleFamilies.join(", ")
+      : "";
+    context.tagsDisplay = Array.isArray(context.variant.tags)
+      ? context.variant.tags.join(", ")
+      : "";
+    context.generationOptions = [
+      { value: "gen1", label: "GEN I" },
+      { value: "gen2", label: "GEN II" },
+      { value: "gen3", label: "GEN III" },
+      { value: "other", label: "Other" }
+    ];
+    return context;
+  }
+
+  _prepareSubmitData(event, form, formData, updateData = {}) {
+    const submitData = super._prepareSubmitData(event, form, formData, updateData);
+
+    const familiesRaw = String(foundry.utils.getProperty(submitData, "mythic.compatibleFamilies") ?? "");
+    foundry.utils.setProperty(
+      submitData,
+      "system.compatibleFamilies",
+      familiesRaw
+        .split(",")
+        .map((entry) => String(entry ?? "").trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    const tagsRaw = String(foundry.utils.getProperty(submitData, "mythic.tags") ?? "");
+    foundry.utils.setProperty(
+      submitData,
+      "system.tags",
+      tagsRaw
+        .split(",")
+        .map((entry) => String(entry ?? "").trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    if (submitData.mythic !== undefined) delete submitData.mythic;
+    foundry.utils.setProperty(
+      submitData,
+      "system",
+      normalizeArmorVariantSystemData(foundry.utils.getProperty(submitData, "system") ?? {}, submitData.name ?? this.item.name ?? "")
+    );
+    return submitData;
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    if (!this.isEditable) return;
+
+    const toggleBtn = this.element?.querySelector(".mythic-toggle-edit-btn");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const current = Boolean(this.item.system?.editMode);
+        await this.item.update({ "system.editMode": !current });
+      });
+    }
+
+    const imgEl = this.element?.querySelector(".ability-sheet-icon");
+    if (!imgEl) return;
+    imgEl.style.cursor = "pointer";
+    imgEl.addEventListener("click", () => {
+      const fp = new FilePicker({
+        type: "image",
+        current: this.item.img,
+        callback: (path) => this.item.update({ img: path })
+      });
+      fp.browse();
+    });
+  }
+}
+
 class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
       classes: ["mythic-system", "sheet", "item", "soldier-type"],
@@ -4769,7 +6569,7 @@ Hooks.once("init", async () => {
     default: 0
   });
 
-  await loadTemplates(MYTHIC_ACTOR_PARTIAL_TEMPLATES);
+  await foundry.applications.handlebars.loadTemplates(MYTHIC_ACTOR_PARTIAL_TEMPLATES);
 
   ActorCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicActorSheet, {
     makeDefault: true,
@@ -4801,6 +6601,11 @@ Hooks.once("init", async () => {
     types: ["trait"]
   });
 
+  ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicArmorVariantSheet, {
+    makeDefault: true,
+    types: ["armorVariant"]
+  });
+
   CONFIG.Actor.trackableAttributes = {
     character: {
       bar: [],
@@ -4812,6 +6617,36 @@ Hooks.once("init", async () => {
 Hooks.once("ready", () => {
   console.log("[mythic-system] Ready");
   void maybeRunWorldMigration();
+
+  game.mythic ??= {};
+  game.mythic.importReferenceWeapons = importReferenceWeapons;
+  game.mythic.importReferenceWeaponsToWorld = (options = {}) => importReferenceWeapons({ ...options, target: "world" });
+  game.mythic.removeImportedWorldReferenceWeapons = removeImportedWorldReferenceWeapons;
+  game.mythic.updateWeaponCompendiumIcons = updateWeaponCompendiumIcons;
+  game.mythic.removeNonMythicCompendiumWeapons = removeNonMythicCompendiumWeapons;
+  game.mythic.removeEmbeddedArmorVariants = removeEmbeddedArmorVariants;
+  game.mythic.removeArmorVariantRowsFromArmorCompendiums = removeArmorVariantRowsFromArmorCompendiums;
+  game.mythic.removeExcludedArmorRowsFromCompendiums = removeExcludedArmorRowsFromCompendiums;
+  game.mythic.cleanupLegacyWeaponCompendiums = cleanupLegacyWeaponCompendiums;
+  game.mythic.organizeEquipmentCompendiumFolders = organizeEquipmentCompendiumFolders;
+  game.mythic.importReferenceArmor = importReferenceArmor;
+  game.mythic.importReferenceArmorVariants = importReferenceArmorVariants;
+  game.mythic.previewReferenceArmor = async () => {
+    const rows = await loadReferenceArmorItems();
+    return { total: rows.length };
+  };
+  game.mythic.previewReferenceArmorVariants = async () => {
+    const rows = await loadReferenceArmorVariantItems();
+    return { total: rows.length };
+  };
+  game.mythic.previewReferenceWeapons = async () => {
+    const rows = await loadReferenceWeaponItems();
+    return {
+      total: rows.length,
+      ranged: rows.filter((entry) => entry.system?.weaponClass === "ranged").length,
+      melee: rows.filter((entry) => entry.system?.weaponClass === "melee").length
+    };
+  };
 
   // Seed compendium packs on first load (GM only)
   if (game.user?.isGM) {
@@ -4888,6 +6723,12 @@ Hooks.once("ready", () => {
 
 const MYTHIC_EDUCATION_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/education.png";
 const MYTHIC_ABILITY_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/ability.png";
+const MYTHIC_RANGED_WEAPON_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/Ranged Weapons.png";
+const MYTHIC_MELEE_WEAPON_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/Melee Weapons.png";
+
+// Sources considered official Mythic system content. Rows from other sources
+// (e.g. Star Wars, Mass Effect, 40K crossovers) are skipped during import.
+const MYTHIC_ALLOWED_WEAPON_SOURCES = Object.freeze(new Set(["mythic", "warzone"]));
 
 Hooks.on("preCreateItem", (item, createData) => {
   const initialName = String(createData?.name ?? item?.name ?? "").trim();
@@ -4929,6 +6770,16 @@ Hooks.on("preCreateItem", (item, createData) => {
     return;
   }
 
+  if (item.type === "armorVariant") {
+    const normalized = normalizeArmorVariantSystemData(createData.system ?? {}, initialName);
+    foundry.utils.setProperty(createData, "system", normalized);
+    const currentImg = createData.img ?? item.img ?? "";
+    if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
+      foundry.utils.setProperty(createData, "img", MYTHIC_ABILITY_DEFAULT_ICON);
+    }
+    return;
+  }
+
   if (item.type === "soldierType") {
     const normalized = normalizeSoldierTypeSystemData(createData.system ?? {}, initialName);
     foundry.utils.setProperty(createData, "system", normalized);
@@ -4936,8 +6787,37 @@ Hooks.on("preCreateItem", (item, createData) => {
 });
 
 Hooks.on("preUpdateItem", (item, changes) => {
-  if (changes.system === undefined) return;
   const nextName = String(changes.name ?? item.name ?? "").trim();
+  const hasSystemChanges = changes.system !== undefined;
+
+  if (!hasSystemChanges) {
+    if (changes.name === undefined) return;
+
+    if (item.type === "gear") {
+      changes.system = normalizeGearSystemData(item.system ?? {}, nextName);
+      return;
+    }
+    if (item.type === "ability") {
+      changes.system = normalizeAbilitySystemData(item.system ?? {}, nextName);
+      return;
+    }
+    if (item.type === "trait") {
+      changes.system = normalizeTraitSystemData(item.system ?? {}, nextName);
+      return;
+    }
+    if (item.type === "education") {
+      changes.system = normalizeEducationSystemData(item.system ?? {}, nextName);
+      return;
+    }
+    if (item.type === "armorVariant") {
+      changes.system = normalizeArmorVariantSystemData(item.system ?? {}, nextName);
+      return;
+    }
+    if (item.type === "soldierType") {
+      changes.system = normalizeSoldierTypeSystemData(item.system ?? {}, nextName);
+    }
+    return;
+  }
 
   const nextSystem = foundry.utils.mergeObject(foundry.utils.deepClone(item.system ?? {}), changes.system ?? {}, {
     inplace: false,
@@ -4959,6 +6839,11 @@ Hooks.on("preUpdateItem", (item, changes) => {
 
   if (item.type === "education") {
     changes.system = normalizeEducationSystemData(nextSystem, nextName);
+    return;
+  }
+
+  if (item.type === "armorVariant") {
+    changes.system = normalizeArmorVariantSystemData(nextSystem, nextName);
     return;
   }
 

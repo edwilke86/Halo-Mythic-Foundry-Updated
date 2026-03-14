@@ -997,6 +997,103 @@
   display: grid;
   gap: 10px;
 }
+.mythic-phase4-subsection {
+  margin-top: 10px;
+}
+.mythic-phase4-subsection h4 {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.mythic-equipment-slot-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.mythic-equipment-slot-label {
+  font-weight: 600;
+}
+.mythic-equipment-slot-value {
+  opacity: 0.9;
+}
+.mythic-equipment-list {
+  display: grid;
+  gap: 6px;
+}
+.mythic-equipment-row {
+  display: grid;
+  grid-template-columns: 28px minmax(120px, 1.2fr) minmax(70px, 0.6fr) auto auto auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.16);
+}
+.mythic-equipment-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+.mythic-equipment-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mythic-equipment-meta {
+  opacity: 0.8;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+.mythic-equipment-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.mythic-equipment-toggle input[type="checkbox"] {
+  margin: 0;
+}
+.mythic-inventory-load-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.mythic-inventory-ready-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.mythic-ready-weapon-list {
+  display: grid;
+  gap: 6px;
+}
+.mythic-ready-weapon-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.2);
+}
+.mythic-ready-weapon-name {
+  font-weight: 600;
+}
+.mythic-ready-weapon-state {
+  font-size: 11px;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+.mythic-ready-weapon-empty {
+  margin: 0;
+  opacity: 0.8;
+}
 
 .mythic-character-sheet .mythic-phase4-grid {
   display: grid;

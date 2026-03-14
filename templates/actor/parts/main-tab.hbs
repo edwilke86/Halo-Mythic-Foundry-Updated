@@ -226,6 +226,23 @@
             <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.supportPoints.max" value="{{mythicCombat.supportPoints.max}}" /></div>
           </div>
         </div>
+
+        <div class="mythic-right-block">
+          <div class="mythic-resource-label">Ready Weapons</div>
+          {{#if mythicEquipment.equippedWeaponItems.length}}
+            <div class="mythic-ready-weapon-list">
+              {{#each mythicEquipment.equippedWeaponItems as |item|}}
+              <div class="mythic-ready-weapon-row">
+                <span class="mythic-ready-weapon-name">{{item.name}}</span>
+                <span class="mythic-ready-weapon-state">{{#if item.isWielded}}Wielded{{else}}Ready{{/if}}</span>
+                <button type="button" class="action-btn gear-wield-btn" data-item-id="{{item.id}}">Wield this weapon</button>
+              </div>
+              {{/each}}
+            </div>
+          {{else}}
+            <p class="mythic-ready-weapon-empty">No equipped weapons yet. Mark weapons as Equipped in Inventory.</p>
+          {{/if}}
+        </div>
       </div>
     </div>
   </section>

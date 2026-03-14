@@ -62,6 +62,12 @@
           "benefit",
           "notes"
         ]
+      },
+      "armorVariant": {
+        "htmlFields": [
+          "description",
+          "notes"
+        ]
       }
     }
   },

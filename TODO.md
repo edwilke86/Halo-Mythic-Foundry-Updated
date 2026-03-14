@@ -180,6 +180,15 @@ Warzone integration decision:
 - [ ] P1 Add source-scope filters for imports (e.g., Mythic-only, Mythic+Warzone)
 - [ ] P1 Mark imported records with source metadata so future module split remains possible
 
+Live content sync and update propagation:
+
+- [x] P0 Add item sync metadata foundation (`system.sync` canonical id/scope/version fields)
+- [ ] P0 Build GM-triggered "Sync System Content" action to update world/actor item copies by canonical id
+- [ ] P0 Define field-level merge policy for sync (preserve player edits vs overwrite system-managed fields)
+- [ ] P1 Add world setting for sync mode (off / notify / auto-apply)
+- [ ] P1 Add migration-safe sync logs/reporting (how many items updated/skipped/conflicted)
+- [ ] P1 Add periodic/update-time sync pass for packaged compendium content version bumps
+
 ## Milestone 8: Testing, Validation, and Stability
 
 - [ ] P0 Add smoke test checklist for each major sheet action

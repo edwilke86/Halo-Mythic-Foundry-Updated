@@ -1,27 +1,89 @@
 <div class="tab equipment" data-group="primary" data-tab="equipment">
   <section class="panel mythic-phase4-panel">
-    <h2>Equipment</h2>
+    <h2>Inventory</h2>
 
-    <div class="mythic-phase4-grid two-column">
-      <div class="mythic-phase4-card">
-        <h3>Load Summary</h3>
-        <div class="mythic-phase4-field-grid compact">
-          <div class="mythic-mini-field"><span>Credits</span><input type="number" min="0" name="system.equipment.credits" value="{{mythicSystem.equipment.credits}}" /></div>
-          <div class="mythic-mini-field"><span>Carried Weight</span><input type="number" min="0" name="system.equipment.carriedWeight" value="{{mythicEquipment.carriedWeight}}" /></div>
-          <div class="mythic-phase4-stat"><span>Carry Capacity</span><strong>{{mythicEquipment.carryCapacity}}</strong></div>
-          <div class="mythic-phase4-stat"><span>Remaining</span><strong>{{mythicEquipment.remainingCarry}}</strong></div>
-          <div class="mythic-phase4-stat full"><span>Load Utilization</span><strong>{{mythicEquipment.loadPercent}}%</strong></div>
-        </div>
+    <div class="mythic-phase4-card full-width mythic-inventory-load-summary">
+      <h3>Load Summary</h3>
+      <div class="mythic-phase4-field-grid compact mythic-inventory-load-grid">
+        <div class="mythic-mini-field"><span>Credits</span><input type="number" min="0" name="system.equipment.credits" value="{{mythicSystem.equipment.credits}}" /></div>
+        <div class="mythic-mini-field"><span>Carried Weight</span><input type="number" min="0" name="system.equipment.carriedWeight" value="{{mythicEquipment.carriedWeight}}" /></div>
+        <div class="mythic-phase4-stat"><span>Carry Capacity</span><strong>{{mythicEquipment.carryCapacity}}</strong></div>
+        <div class="mythic-phase4-stat"><span>Remaining</span><strong>{{mythicEquipment.remainingCarry}}</strong></div>
+        <div class="mythic-phase4-stat"><span>Load Utilization</span><strong>{{mythicEquipment.loadPercent}}%</strong></div>
       </div>
-
-      <div class="mythic-phase4-card">
-        <h3>Ready Loadout</h3>
-        <div class="bio-row"><label>Primary Weapon</label><input type="text" name="system.equipment.primaryWeapon" value="{{mythicSystem.equipment.primaryWeapon}}" /></div>
-        <div class="bio-row"><label>Secondary Weapon</label><input type="text" name="system.equipment.secondaryWeapon" value="{{mythicSystem.equipment.secondaryWeapon}}" /></div>
-        <div class="bio-row"><label>Armor</label><input type="text" name="system.equipment.armorName" value="{{mythicSystem.equipment.armorName}}" /></div>
-        <div class="bio-row"><label>Utility Loadout</label><input type="text" name="system.equipment.utilityLoadout" value="{{mythicSystem.equipment.utilityLoadout}}" /></div>
+      <div class="mythic-inventory-ready-summary">
+        <div class="mythic-phase4-stat"><span>Equipped Armor</span><strong>{{#if mythicEquipment.equippedArmor}}{{mythicEquipment.equippedArmor.name}}{{else}}(none){{/if}}</strong></div>
+        <div class="mythic-phase4-stat"><span>Wielded Weapon</span><strong>{{#if mythicEquipment.wieldedWeapon}}{{mythicEquipment.wieldedWeapon.name}}{{else}}(none){{/if}}</strong></div>
+        <div class="mythic-phase4-stat"><span>Ready Weapons</span><strong>{{mythicEquipment.readyWeaponCount}}</strong></div>
       </div>
     </div>
+
+    <div class="mythic-phase4-card full-width">
+      <h3>Weapons (Actor Items)</h3>
+      {{#if mythicEquipment.weaponItems.length}}
+        <div class="mythic-equipment-list">
+          {{#each mythicEquipment.weaponItems as |item|}}
+          <div class="mythic-equipment-row">
+            <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+            <span class="mythic-equipment-name">{{item.name}}</span>
+            <span class="mythic-equipment-meta">{{item.weaponClass}}</span>
+            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" {{#if item.isCarried}}checked{{/if}} /> Carried</label>
+            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-kind="weapon" {{#if item.isEquipped}}checked{{/if}} /> Ready</label>
+            <button type="button" class="action-btn gear-wield-btn" data-item-id="{{item.id}}" {{#unless item.isEquipped}}disabled{{/unless}}>{{#if item.isWielded}}Wielded{{else}}Wield{{/if}}</button>
+            <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}">Open</button>
+            <button type="button" class="action-btn gear-remove-btn" data-item-id="{{item.id}}">Remove</button>
+          </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <p>No weapon items on this actor yet. Drag weapons from compendiums onto the actor.</p>
+      {{/if}}
+    </div>
+
+    <div class="mythic-phase4-card full-width">
+      <h3>Armor (Actor Items)</h3>
+      {{#if mythicEquipment.armorItems.length}}
+        <div class="mythic-equipment-list">
+          {{#each mythicEquipment.armorItems as |item|}}
+          <div class="mythic-equipment-row">
+            <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+            <span class="mythic-equipment-name">{{item.name}}</span>
+            <span class="mythic-equipment-meta">armor</span>
+            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" {{#if item.isCarried}}checked{{/if}} /> Carried</label>
+            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-kind="armor" {{#if item.isEquipped}}checked{{/if}} /> Equipped</label>
+            <span class="mythic-equipment-meta">{{#if item.isEquipped}}Active{{else}}Inactive{{/if}}</span>
+            <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}">Open</button>
+            <button type="button" class="action-btn gear-remove-btn" data-item-id="{{item.id}}">Remove</button>
+          </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <p>No armor items on this actor yet. Drag armor from compendiums onto the actor.</p>
+      {{/if}}
+    </div>
+
+    {{#if mythicEquipment.otherItems.length}}
+    <div class="mythic-phase4-card full-width">
+      <h3>Other Gear</h3>
+      <div class="mythic-equipment-list">
+        {{#each mythicEquipment.otherItems as |item|}}
+        <div class="mythic-equipment-row">
+          <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+          <span class="mythic-equipment-name">{{item.name}}</span>
+          <span class="mythic-equipment-meta">{{item.itemClass}}</span>
+          <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" {{#if item.isCarried}}checked{{/if}} /> Carried</label>
+          {{#if item.canEquip}}
+            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} /> Equipped</label>
+          {{else}}
+            <span class="mythic-equipment-meta">Not equippable</span>
+          {{/if}}
+          <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}">Open</button>
+          <button type="button" class="action-btn gear-remove-btn" data-item-id="{{item.id}}">Remove</button>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+    {{/if}}
 
     <div class="mythic-phase4-card full-width">
       <h3>Inventory Notes</h3>

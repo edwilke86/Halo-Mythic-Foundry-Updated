@@ -2751,6 +2751,7 @@
   cursor: pointer;
 }
 
+@media (max-width: 740px) {
   .mythic-character-sheet .mythic-phase4-grid.two-column {
     grid-template-columns: 1fr;
   }
@@ -3114,4 +3115,11 @@
 .mythic-prompt .dialog-buttons button.default {
   background: var(--mythic-table-bg) !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* GM panel / evasion card buttons  ensure readable text in dark chat context */
+.mythic-gm-attack-panel .action-btn,
+.mythic-evasion-card .mythic-apply-dmg-btn {
+  color: #e8f0ff;
+  font-weight: 600;
 }

@@ -6313,7 +6313,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       </div>`;
     } else {
       resultHtml = `<details class="mythic-miss-details">
-        <summary>Miss &mdash; <span class="mythic-attack-verdict failure">${absDisplay} Degrees of Failure.</span> (click to reveal details)</summary>
+        <summary>Miss &mdash; <span class="mythic-attack-verdict failure">${absDisplay} Degrees of Failure.</span> (click to reveal damage details)</summary>
         <div class="mythic-attack-details">
           <div class="mythic-dmg-row">Damage (not dealt): ${dmgBreakdown}</div>
           <div class="mythic-loc-row">Would have hit: ${locHtml}</div>
@@ -7501,15 +7501,20 @@ Hooks.on("renderChatMessage", (message, html) => {
 
   // --- Attack card GM panel ---
   const attackData = message.getFlag("Halo-Mythic-Foundry-Updated", "attackData");
-  if (attackData && game.user.isGM) {
+  if (attackData && game.user.isGM && attackData.isSuccess) {
     const msgId = message.id;
     const panel = document.createElement("div");
     panel.classList.add("mythic-gm-attack-panel");
+    const hasTarget = !!attackData.targetTokenId;
+    const targetedRadio = hasTarget
+      ? `<label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="targeted" checked> Targeted Token</label>`
+      : '';
+    const selectedChecked = hasTarget ? '' : ' checked';
     panel.innerHTML = `
       <div class="mythic-gm-panel-title">GM Controls</div>
       <div class="mythic-gm-target-row">
-        <label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="targeted" checked> Targeted Token</label>
-        <label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="selected"> Selected Token(s)</label>
+        ${targetedRadio}
+        <label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="selected"${selectedChecked}> Selected Token(s)</label>
       </div>
       <button type="button" class="action-btn mythic-evasion-btn">Roll Evasion</button>
     `;
@@ -7666,11 +7671,11 @@ async function mythicApplyWoundDamage(actorId, damage) {
   }
   const currentWounds = Number(actor.system?.combat?.wounds?.current ?? 0);
   const maxWounds = Number(actor.system?.combat?.wounds?.max ?? 9999);
-  const newWounds = Math.min(currentWounds + damage, maxWounds);
+  const newWounds = Math.max(0, currentWounds - damage);
   await actor.update({ "system.combat.wounds.current": newWounds });
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor }),
-    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(actor.name)}</strong> takes <strong>${damage}</strong> wound damage (${currentWounds} \u2192 ${newWounds} / ${maxWounds}).</div>`,
+    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(actor.name)}</strong> loses <strong>${damage}</strong> wounds (${currentWounds} \u2192 ${newWounds}).</div>`,
     type: CONST.CHAT_MESSAGE_STYLES.OTHER
   });
 }

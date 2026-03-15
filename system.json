@@ -74,6 +74,15 @@
           "description",
           "notes"
         ]
+      },
+      "upbringing": {
+        "htmlFields": ["description"]
+      },
+      "environment": {
+        "htmlFields": ["description"]
+      },
+      "lifestyle": {
+        "htmlFields": ["description"]
       }
     }
   },
@@ -94,6 +103,54 @@
       "name": "abilities",
       "label": "Abilities",
       "path": "packs/abilities",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "traits",
+      "label": "Traits",
+      "path": "packs/traits",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "upbringings",
+      "label": "Upbringings",
+      "path": "packs/upbringings",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "environments",
+      "label": "Environments",
+      "path": "packs/environments",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "lifestyles",
+      "label": "Lifestyles",
+      "path": "packs/lifestyles",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
       "ownership": {

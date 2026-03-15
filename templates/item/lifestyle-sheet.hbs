@@ -1,0 +1,83 @@
+<div class="{{cssClass}} mythic-lifestyle-item-sheet">
+
+  <header class="item-sheet-header">
+    <img class="lifestyle-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
+    <div class="item-sheet-header-text">
+      <h2 class="item-sheet-title">{{item.name}}</h2>
+      <div class="item-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
+        <span class="item-type-badge">Lifestyle</span>
+        <span class="item-variant-count-badge">{{variantRows.length}} variant{{#if (gt variantRows.length 1)}}s{{/if}}</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="item-sheet-body">
+
+    {{#if canEditFields}}
+    <div class="item-info-block">
+      <div class="item-info-row">
+        <label for="lifestyle-item-name">Name</label>
+        <input id="lifestyle-item-name" type="text" name="name" value="{{item.name}}" />
+      </div>
+      <div class="item-info-row item-notes-row">
+        <label for="lifestyle-desc">Notes</label>
+        <textarea id="lifestyle-desc" name="system.description" rows="3">{{item.system.description}}</textarea>
+      </div>
+      <div class="item-info-row item-notes-row">
+        <label for="lifestyle-variants-editor">Variants</label>
+        <textarea id="lifestyle-variants-editor" name="mythic.variantsText" rows="9" placeholder="weight | label | modifiers | optional choices&#10;5 | You worked out more than anything. | +3 str, +3 tou, -3 int, -3 per |&#10;5 | You worked out alone. | +3 str, +3 tou, -3 cha, -3 ldr |&#10;1 | Weapon specialist. | -3 int | +3 wfm OR +3 wfr">{{variantsText}}</textarea>
+      </div>
+      <p class="modifier-none">Format: <strong>weight | label | modifiers | choices</strong>. Choices can use <strong>OR</strong> and multiple groups can be split with <strong>;</strong>.</p>
+    </div>
+    <hr class="item-divider" />
+    {{/if}}
+
+    <div class="lifestyle-variants">
+      {{#each variantRows}}
+        <div class="lifestyle-variant">
+          <div class="lifestyle-variant-header">
+            <span class="lifestyle-variant-range">Roll {{rangeLabel}}</span>
+            <span class="creation-path-pill">Weight {{weight}}</span>
+            <span class="lifestyle-variant-label">{{label}}</span>
+          </div>
+
+          {{#if modifierDisplay}}
+            <div class="lifestyle-variant-mods">
+              {{modifierDisplay}}
+            </div>
+          {{/if}}
+
+          {{#each choiceLines}}
+            <div class="lifestyle-variant-choice">
+              <span class="lifestyle-choice-label">Choice — {{label}}:</span>
+              <div class="modifier-group modifier-group--choice">
+                {{#each options}}
+                  <div class="modifier-option">
+                    <span class="modifier-option-bullet">◆</span>
+                    <span class="modifier-option-text">{{label}}</span>
+                    {{#if modifiers}}
+                      <span class="modifier-stats">{{modifiers}}</span>
+                    {{/if}}
+                  </div>
+                {{/each}}
+              </div>
+            </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="modifier-none">No variants defined.</p>
+      {{/each}}
+    </div>
+
+    {{#unless canEditFields}}
+      {{#if item.system.description}}
+        <div class="item-description-display">{{item.system.description}}</div>
+      {{/if}}
+    {{/unless}}
+
+  </section>
+
+</div>

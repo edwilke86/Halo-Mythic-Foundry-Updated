@@ -2,6 +2,132 @@
   <section class="panel mythic-phase4-panel">
     <h2>Advancements</h2>
 
+    <div class="mythic-phase4-card full-width creation-path-card">
+      <h3>Character Creation Path</h3>
+
+      <div class="creation-path-grid two-column">
+        <div class="creation-path-field">
+          <div class="creation-path-row">
+            <label>Upbringing</label>
+            <div class="creation-dropzone" data-kind="upbringing" title="Drag a Upbringing item here">
+              {{#if mythicAdvancements.creationPath.selectedUpbringingName}}
+                {{mythicAdvancements.creationPath.selectedUpbringingName}}
+              {{else}}
+                Drop Upbringing Here
+              {{/if}}
+            </div>
+            {{#if mythicAdvancements.creationPath.selectedUpbringingHasChoices}}
+              <button type="button" class="action-btn creation-upbringing-prompt-btn">Choices</button>
+            {{/if}}
+            <button type="button" class="action-btn creation-open-upbringings-btn">Compendium</button>
+            <button type="button" class="action-btn creation-clear-btn" data-kind="upbringing">Clear</button>
+          </div>
+          {{#if mythicAdvancements.creationPath.upbringingChoicePills.length}}
+            <div class="creation-path-meta">
+              {{#each mythicAdvancements.creationPath.upbringingChoicePills}}
+                <span class="creation-path-pill">{{this}}</span>
+              {{/each}}
+            </div>
+          {{/if}}
+        </div>
+
+        <div class="creation-path-field">
+          <div class="creation-path-row">
+            <label>Environment</label>
+            <div class="creation-dropzone" data-kind="environment" title="Drag an Environment item here">
+              {{#if mythicAdvancements.creationPath.selectedEnvironmentName}}
+                {{mythicAdvancements.creationPath.selectedEnvironmentName}}
+              {{else}}
+                Drop Environment Here
+              {{/if}}
+            </div>
+            {{#if mythicAdvancements.creationPath.selectedEnvironmentHasChoices}}
+              <button type="button" class="action-btn creation-environment-prompt-btn">Choices</button>
+            {{/if}}
+            <button type="button" class="action-btn creation-open-environments-btn">Compendium</button>
+            <button type="button" class="action-btn creation-clear-btn" data-kind="environment">Clear</button>
+          </div>
+          <div class="creation-path-meta">
+            {{#each mythicAdvancements.creationPath.environmentMetaPills}}
+              <span class="creation-path-pill">{{this}}</span>
+            {{/each}}
+            {{#unless mythicAdvancements.creationPath.selectedEnvironmentIsAllowed}}
+              <span class="creation-path-pill warning">Invalid for upbringing</span>
+            {{/unless}}
+          </div>
+        </div>
+      </div>
+
+      <div class="creation-path-lifestyles">
+        <div class="creation-path-lifestyle-header-row">
+          <h4>Lifestyles (up to 3)</h4>
+          <button type="button" class="action-btn creation-open-lifestyles-btn">Open Lifestyles Compendium</button>
+        </div>
+
+        {{#each mythicAdvancements.creationPath.lifestyles}}
+          <div class="creation-lifestyle-slot">
+            <div class="creation-path-row creation-path-row-lifestyle">
+              <label>Lifestyle {{slotNumber}}</label>
+              <div class="creation-dropzone" data-kind="lifestyle" data-slot-index="{{slotIndex}}" title="Drag a Lifestyle item here">
+                {{#if lifestyleName}}
+                  {{lifestyleName}}
+                {{else}}
+                  Drop Lifestyle Here
+                {{/if}}
+              </div>
+              <button type="button" class="action-btn creation-lifestyle-prompt-btn" data-slot-index="{{slotIndex}}">Variant</button>
+              {{#if hasVariantChoices}}
+                <button type="button" class="action-btn creation-lifestyle-choice-btn" data-slot-index="{{slotIndex}}">Choices</button>
+              {{/if}}
+              <button type="button" class="action-btn creation-clear-btn" data-kind="lifestyle" data-slot-index="{{slotIndex}}">Clear</button>
+            </div>
+
+            {{#if metaPills.length}}
+              <div class="creation-path-meta">
+                {{#each metaPills}}
+                  <span class="creation-path-pill">{{this}}</span>
+                {{/each}}
+              </div>
+            {{/if}}
+          </div>
+        {{/each}}
+      </div>
+
+      <div class="creation-path-outcome-block">
+        <h4>Applied Outcome</h4>
+        {{#if mythicAdvancements.creationPath.outcome.netDeltaPills.length}}
+          <div class="creation-path-meta creation-path-meta-no-indent">
+            {{#each mythicAdvancements.creationPath.outcome.netDeltaPills}}
+              <span class="creation-path-pill">Net {{this}}</span>
+            {{/each}}
+          </div>
+        {{/if}}
+
+        {{#if mythicAdvancements.creationPath.outcome.appliedCount}}
+          <div class="creation-path-meta creation-path-meta-no-indent">
+            {{#each mythicAdvancements.creationPath.outcome.summaryPills}}
+              <span class="creation-path-pill">{{this}}</span>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="creation-path-meta creation-path-meta-no-indent">
+            <span class="creation-path-pill">No applied modifiers yet</span>
+          </div>
+        {{/if}}
+
+        {{#if mythicAdvancements.creationPath.outcome.pendingLines.length}}
+          <div class="creation-path-outcome-pending">
+            {{#if mythicAdvancements.creationPath.outcome.hasPendingChoices}}
+              <div class="creation-path-outcome-line creation-path-outcome-guard">Creation Path incomplete: pending choices block prerequisite-validated progression.</div>
+            {{/if}}
+            {{#each mythicAdvancements.creationPath.outcome.pendingLines}}
+              <div class="creation-path-outcome-line">{{this}}</div>
+            {{/each}}
+          </div>
+        {{/if}}
+      </div>
+    </div>
+
     <div class="mythic-phase4-grid two-column">
       <div class="mythic-phase4-card">
         <h3>XP Summary</h3>

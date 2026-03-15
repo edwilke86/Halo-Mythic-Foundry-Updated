@@ -1,0 +1,72 @@
+<div class="{{cssClass}} mythic-upbringing-item-sheet">
+
+  <header class="item-sheet-header">
+    <img class="upbringing-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
+    <div class="item-sheet-header-text">
+      <h2 class="item-sheet-title">{{item.name}}</h2>
+      <div class="item-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
+        <span class="item-type-badge">Upbringing</span>
+        <span class="item-env-badge" title="Allowed environments">Environments: <strong>{{allowedEnvsDisplay}}</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <section class="item-sheet-body">
+
+    {{#if canEditFields}}
+    <div class="item-info-block">
+      <div class="item-info-row">
+        <label for="upbringing-item-name">Name</label>
+        <input id="upbringing-item-name" type="text" name="name" value="{{item.name}}" />
+      </div>
+      <div class="item-info-row">
+        <label for="upbringing-env">Allowed Environments</label>
+        <input id="upbringing-env" type="text" name="mythic.allowedEnvironmentsEditor"
+               value="{{allowedEnvironmentsEditor}}"
+               placeholder="city, country, forest, town, wasteland (leave blank = any)" />
+      </div>
+      <div class="item-info-row item-notes-row">
+        <label for="upbringing-desc">Notes</label>
+        <textarea id="upbringing-desc" name="system.description" rows="3">{{item.system.description}}</textarea>
+      </div>
+      <div class="item-info-row item-notes-row">
+        <label for="upbringing-rules">Mechanics</label>
+        <textarea id="upbringing-rules" name="mythic.rulesText" rows="7" placeholder="choice: +5 int | +5 cha&#10;choice: -5 ldr | -5 agi&#10;fixed: +2 wounds, -1 str">{{rulesText}}</textarea>
+      </div>
+      <p class="modifier-none">One line per rule. Use <strong>choice:</strong> with | separators, or <strong>fixed:</strong> with comma-separated modifiers.</p>
+    </div>
+    {{/if}}
+
+    <div class="modifier-groups">
+      {{#each modifierSummaryLines}}
+        <div class="modifier-group modifier-group--{{type}}">
+          <div class="modifier-group-label">{{label}}</div>
+          {{#each options}}
+            <div class="modifier-option">
+              {{#if (eq ../type "choice")}}
+                <span class="modifier-option-bullet">◆</span>
+              {{/if}}
+              <span class="modifier-option-text">{{label}}</span>
+              {{#if modifiers}}
+                <span class="modifier-stats">{{modifiers}}</span>
+              {{/if}}
+            </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="modifier-none">No characteristic modifiers (Commoner).</p>
+      {{/each}}
+    </div>
+
+    {{#unless canEditFields}}
+      {{#if item.system.description}}
+        <div class="item-description-display">{{item.system.description}}</div>
+      {{/if}}
+    {{/unless}}
+
+  </section>
+
+</div>

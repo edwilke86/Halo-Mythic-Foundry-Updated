@@ -1,0 +1,63 @@
+<div class="{{cssClass}} mythic-environment-item-sheet">
+
+  <header class="item-sheet-header">
+    <img class="environment-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
+    <div class="item-sheet-header-text">
+      <h2 class="item-sheet-title">{{item.name}}</h2>
+      <div class="item-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
+        <span class="item-type-badge">Environment</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="item-sheet-body">
+
+    {{#if canEditFields}}
+    <div class="item-info-block">
+      <div class="item-info-row">
+        <label for="env-item-name">Name</label>
+        <input id="env-item-name" type="text" name="name" value="{{item.name}}" />
+      </div>
+      <div class="item-info-row item-notes-row">
+        <label for="env-desc">Notes</label>
+        <textarea id="env-desc" name="system.description" rows="3">{{item.system.description}}</textarea>
+      </div>
+      <div class="item-info-row item-notes-row">
+        <label for="env-rules">Mechanics</label>
+        <textarea id="env-rules" name="mythic.rulesText" rows="7" placeholder="choice: +5 agi | +5 crg | +5 per&#10;choice: -5 str | -5 tou | -5 per">{{rulesText}}</textarea>
+      </div>
+      <p class="modifier-none">Use one line per rule. <strong>choice:</strong> for pick-one options, <strong>fixed:</strong> for always-applied bundles.</p>
+    </div>
+    {{/if}}
+
+    <div class="modifier-groups">
+      {{#each modifierSummaryLines}}
+        <div class="modifier-group modifier-group--{{type}}">
+          <div class="modifier-group-label">{{label}}</div>
+          {{#each options}}
+            <div class="modifier-option">
+              <span class="modifier-option-bullet">◆</span>
+              <span class="modifier-option-text">{{label}}</span>
+              {{#if modifiers}}
+                <span class="modifier-stats">{{modifiers}}</span>
+              {{/if}}
+            </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="modifier-none">No characteristic modifiers defined.</p>
+      {{/each}}
+    </div>
+
+    {{#unless canEditFields}}
+      {{#if item.system.description}}
+        <div class="item-description-display">{{item.system.description}}</div>
+      {{/if}}
+    {{/unless}}
+
+  </section>
+
+</div>

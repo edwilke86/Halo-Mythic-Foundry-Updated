@@ -145,6 +145,8 @@ const MYTHIC_EDUCATION_DEFINITIONS = [
 
 const MYTHIC_ABILITY_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/abilities.json";
 let mythicAbilityDefinitionsCache = null;
+const MYTHIC_TRAIT_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/traits.json";
+let mythicTraitDefinitionsCache = null;
 
 const MYTHIC_WEAPON_TRAINING_DEFINITIONS = [
   { key: "basic", label: "Basic", xpCost: 150, weaponTypes: ["Pistol", "Knife", "Shotgun"], aliases: ["basic", "basic weapon", "basic weapons"] },
@@ -190,6 +192,9 @@ const MYTHIC_TRAIT_SCHEMA_VERSION = 1;
 const MYTHIC_EDUCATION_SCHEMA_VERSION = 1;
 const MYTHIC_ARMOR_VARIANT_SCHEMA_VERSION = 1;
 const MYTHIC_SOLDIER_TYPE_SCHEMA_VERSION = 1;
+const MYTHIC_UPBRINGING_SCHEMA_VERSION = 1;
+const MYTHIC_ENVIRONMENT_SCHEMA_VERSION = 1;
+const MYTHIC_LIFESTYLE_SCHEMA_VERSION = 1;
 const MYTHIC_CONTENT_SYNC_VERSION = 1;
 const MYTHIC_WORLD_MIGRATION_VERSION = 5;
 const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
@@ -896,6 +901,12 @@ async function runWorldSchemaMigration() {
       normalized = normalizeSoldierTypeSystemData(item.system ?? {}, item.name ?? "");
     } else if (item.type === "gear") {
       normalized = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    } else if (item.type === "upbringing") {
+      normalized = normalizeUpbringingSystemData(item.system ?? {}, item.name ?? "");
+    } else if (item.type === "environment") {
+      normalized = normalizeEnvironmentSystemData(item.system ?? {}, item.name ?? "");
+    } else if (item.type === "lifestyle") {
+      normalized = normalizeLifestyleSystemData(item.system ?? {}, item.name ?? "");
     }
 
     if (!normalized) continue;
@@ -965,6 +976,87 @@ async function loadMythicAbilityDefinitions() {
     mythicAbilityDefinitionsCache = [];
     return mythicAbilityDefinitionsCache;
   }
+}
+
+async function loadMythicTraitDefinitions() {
+  if (Array.isArray(mythicTraitDefinitionsCache)) return mythicTraitDefinitionsCache;
+  try {
+    const response = await fetch(MYTHIC_TRAIT_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const defs = Array.isArray(json) ? json : [];
+    mythicTraitDefinitionsCache = defs;
+    return defs;
+  } catch (error) {
+    console.error("[mythic-system] Failed to load trait definitions JSON.", error);
+    mythicTraitDefinitionsCache = [];
+    return mythicTraitDefinitionsCache;
+  }
+}
+
+const MYTHIC_TRAIT_TEXT_TO_STAT = Object.freeze({
+  strength: "str",
+  toughness: "tou",
+  agility: "agi",
+  intellect: "int",
+  perception: "per",
+  courage: "crg",
+  charisma: "cha",
+  leadership: "ldr",
+  "warfare melee": "wfm",
+  "warfare range": "wfr"
+});
+
+function parseTraitTextStatBonuses(text) {
+  const content = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!content) return [];
+
+  const statBonusByKey = {};
+  for (const key of Object.values(MYTHIC_TRAIT_TEXT_TO_STAT)) {
+    statBonusByKey[key] = 0;
+  }
+
+  for (const match of content.matchAll(/([+-]\d+)\s*(?:bonus|penalty)?\s*to\s*(strength|toughness|agility|intellect|perception|courage|charisma|leadership|warfare\s+melee|warfare\s+range)\b/gi)) {
+    const amount = Number(match[1]);
+    const label = String(match[2] ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+    const key = MYTHIC_TRAIT_TEXT_TO_STAT[label];
+    if (!key || !Number.isFinite(amount)) continue;
+    statBonusByKey[key] += amount;
+  }
+
+  for (const match of content.matchAll(/(strength|toughness|agility|intellect|perception|courage|charisma|leadership|warfare\s+melee|warfare\s+range)\s*([+-]\d+)/gi)) {
+    const amount = Number(match[2]);
+    const label = String(match[1] ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+    const key = MYTHIC_TRAIT_TEXT_TO_STAT[label];
+    if (!key || !Number.isFinite(amount)) continue;
+    statBonusByKey[key] += amount;
+  }
+
+  return Object.entries(statBonusByKey)
+    .filter(([, value]) => Number.isFinite(value) && value !== 0)
+    .map(([key, value]) => ({ key, value: Math.trunc(value) }));
+}
+
+function buildTraitAutoEffects(definition) {
+  const benefit = String(definition?.benefit ?? "");
+  const parsedBonuses = parseTraitTextStatBonuses(benefit);
+  if (!parsedBonuses.length) return [];
+
+  const mode = CONST.ACTIVE_EFFECT_MODES?.ADD ?? 2;
+  const changes = parsedBonuses.map((entry) => ({
+    key: `system.characteristics.${entry.key}`,
+    mode,
+    value: String(entry.value),
+    priority: 20
+  }));
+
+  return [{
+    name: "Trait Auto Modifiers",
+    transfer: true,
+    disabled: false,
+    description: "Auto-generated from trait bonus/penalty text.",
+    changes
+  }];
 }
 
 function buildSkillRankDefaults(override = {}) {
@@ -1123,7 +1215,18 @@ function getCanonicalCharacterSystemData() {
       xpEarned: 0,
       xpSpent: 0,
       unlockedFeatures: "",
-      spendLog: ""
+      spendLog: "",
+      creationPath: {
+        upbringingItemId: "",
+        upbringingSelections: {},
+        environmentItemId: "",
+        environmentSelections: {},
+        lifestyles: [
+          { itemId: "", mode: "manual", variantId: "", rollResult: 0, choiceSelections: {} },
+          { itemId: "", mode: "manual", variantId: "", rollResult: 0, choiceSelections: {} },
+          { itemId: "", mode: "manual", variantId: "", rollResult: 0, choiceSelections: {} }
+        ]
+      }
     },
     notes: {
       missionLog: "",
@@ -1413,6 +1516,38 @@ function normalizeCharacterSystemData(systemData) {
     merged.advancements[key] = String(merged.advancements?.[key] ?? "");
   }
 
+  const rawCreationPath = (merged.advancements?.creationPath && typeof merged.advancements.creationPath === "object")
+    ? merged.advancements.creationPath
+    : {};
+  const clampRoll = (value) => Math.max(0, Math.min(999, toNonNegativeWhole(value, 0)));
+  const normalizeChoiceSelections = (value) => {
+    const source = (value && typeof value === "object" && !Array.isArray(value)) ? value : {};
+    return Object.fromEntries(Object.entries(source)
+      .map(([key, selection]) => [String(key ?? "").trim(), String(selection ?? "").trim()])
+      .filter(([key, selection]) => key && selection));
+  };
+
+  const lifestylesRaw = Array.isArray(rawCreationPath.lifestyles) ? rawCreationPath.lifestyles : [];
+  const lifestyles = Array.from({ length: 3 }, (_, index) => {
+    const entry = (lifestylesRaw[index] && typeof lifestylesRaw[index] === "object") ? lifestylesRaw[index] : {};
+    const mode = String(entry.mode ?? "manual").trim().toLowerCase() === "roll" ? "roll" : "manual";
+    return {
+      itemId: String(entry.itemId ?? "").trim(),
+      mode,
+      variantId: String(entry.variantId ?? "").trim(),
+      rollResult: clampRoll(entry.rollResult),
+      choiceSelections: normalizeChoiceSelections(entry.choiceSelections)
+    };
+  });
+
+  merged.advancements.creationPath = {
+    upbringingItemId: String(rawCreationPath.upbringingItemId ?? "").trim(),
+    upbringingSelections: normalizeChoiceSelections(rawCreationPath.upbringingSelections),
+    environmentItemId: String(rawCreationPath.environmentItemId ?? "").trim(),
+    environmentSelections: normalizeChoiceSelections(rawCreationPath.environmentSelections),
+    lifestyles
+  };
+
   merged.notes ??= {};
   for (const key of ["missionLog", "personalNotes", "gmNotes"]) {
     merged.notes[key] = String(merged.notes?.[key] ?? "");
@@ -1697,6 +1832,155 @@ function normalizeEducationSystemData(systemData, itemName = "") {
   merged.skills = skills;
   merged.sync = normalizeItemSyncData(merged.sync, "education", itemName);
 
+  return merged;
+}
+
+// ── Upbringing ────────────────────────────────────────────────────────────────
+
+/**
+ * A modifier group option: one selectable set of characteristic/wound changes.
+ * @typedef {{ label: string, modifiers: Array<{kind: string, key?: string, value: number}> }} MythicModifierOption
+ */
+
+/**
+ * A modifier group: either a "fixed" bundle (always applied) or a "choice" (player picks one option).
+ * @typedef {{ id: string, label: string, type: "fixed"|"choice", options: MythicModifierOption[] }} MythicModifierGroup
+ */
+
+function normalizeModifierOption(opt) {
+  const label = String(opt?.label ?? "").trim();
+  const modifiers = Array.isArray(opt?.modifiers)
+    ? opt.modifiers.map((m) => ({
+        kind:  String(m?.kind ?? "stat"),
+        key:   m?.key  != null ? String(m.key).toLowerCase()  : undefined,
+        value: Number.isFinite(Number(m?.value)) ? Number(m.value) : 0
+      }))
+    : [];
+  return { label, modifiers };
+}
+
+function normalizeModifierGroup(group) {
+  const id    = String(group?.id    ?? foundry.utils.randomID()).trim();
+  const label = String(group?.label ?? "").trim();
+  const type  = String(group?.type  ?? "choice").toLowerCase() === "fixed" ? "fixed" : "choice";
+  const options = Array.isArray(group?.options)
+    ? group.options.map(normalizeModifierOption)
+    : [];
+  return { id, label, type, options };
+}
+
+function getCanonicalUpbringingSystemData() {
+  return {
+    schemaVersion: MYTHIC_UPBRINGING_SCHEMA_VERSION,
+    editMode: false,
+    description: "",
+    allowedEnvironments: [],  // empty = any; values: "city","country","forest","town","wasteland"
+    modifierGroups: []        // MythicModifierGroup[]
+  };
+}
+
+function normalizeUpbringingSystemData(systemData, itemName = "") {
+  const source   = foundry.utils.deepClone(systemData ?? {});
+  const defaults = getCanonicalUpbringingSystemData();
+  const merged   = foundry.utils.mergeObject(defaults, source, {
+    inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true
+  });
+  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_UPBRINGING_SCHEMA_VERSION);
+  merged.editMode = Boolean(merged.editMode);
+  merged.description = String(merged.description ?? "");
+  merged.allowedEnvironments = Array.isArray(merged.allowedEnvironments)
+    ? merged.allowedEnvironments.map((e) => String(e).toLowerCase().trim()).filter(Boolean)
+    : [];
+  merged.modifierGroups = Array.isArray(merged.modifierGroups)
+    ? merged.modifierGroups.map(normalizeModifierGroup)
+    : [];
+  return merged;
+}
+
+// ── Environment ───────────────────────────────────────────────────────────────
+
+function getCanonicalEnvironmentSystemData() {
+  return {
+    schemaVersion: MYTHIC_ENVIRONMENT_SCHEMA_VERSION,
+    editMode: false,
+    description: "",
+    modifierGroups: []  // MythicModifierGroup[]
+  };
+}
+
+function normalizeEnvironmentSystemData(systemData, itemName = "") {
+  const source   = foundry.utils.deepClone(systemData ?? {});
+  const defaults = getCanonicalEnvironmentSystemData();
+  const merged   = foundry.utils.mergeObject(defaults, source, {
+    inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true
+  });
+  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ENVIRONMENT_SCHEMA_VERSION);
+  merged.editMode = Boolean(merged.editMode);
+  merged.description = String(merged.description ?? "");
+  merged.modifierGroups = Array.isArray(merged.modifierGroups)
+    ? merged.modifierGroups.map(normalizeModifierGroup)
+    : [];
+  return merged;
+}
+
+// ── Lifestyle ─────────────────────────────────────────────────────────────────
+
+/**
+ * One roll-range variant of a lifestyle.
+ * @typedef {{
+ *   id: string,
+ *   rollMin: number,
+ *   rollMax: number,
+ *   label: string,
+ *   modifiers: Array<{kind:string, key?:string, value:number}>,
+ *   choiceGroups: MythicModifierGroup[]
+ * }} MythicLifestyleVariant
+ */
+
+function normalizeLifestyleVariant(v) {
+  const rollMin = Number.isFinite(Number(v?.rollMin)) ? Number(v.rollMin) : 1;
+  const rollMax = Number.isFinite(Number(v?.rollMax)) ? Number(v.rollMax) : 10;
+  const fallbackWeight = Math.max(1, (Math.floor(rollMax) - Math.floor(rollMin)) + 1);
+  return {
+    id:       String(v?.id    ?? foundry.utils.randomID()).trim(),
+    rollMin,
+    rollMax,
+    weight: Number.isFinite(Number(v?.weight)) ? Math.max(1, Math.floor(Number(v.weight))) : fallbackWeight,
+    label:    String(v?.label ?? "").trim(),
+    modifiers: Array.isArray(v?.modifiers)
+      ? v.modifiers.map((m) => ({
+          kind:  String(m?.kind ?? "stat"),
+          key:   m?.key != null ? String(m.key).toLowerCase() : undefined,
+          value: Number.isFinite(Number(m?.value)) ? Number(m.value) : 0
+        }))
+      : [],
+    choiceGroups: Array.isArray(v?.choiceGroups)
+      ? v.choiceGroups.map(normalizeModifierGroup)
+      : []
+  };
+}
+
+function getCanonicalLifestyleSystemData() {
+  return {
+    schemaVersion: MYTHIC_LIFESTYLE_SCHEMA_VERSION,
+    editMode: false,
+    description: "",
+    variants: []  // MythicLifestyleVariant[]
+  };
+}
+
+function normalizeLifestyleSystemData(systemData, itemName = "") {
+  const source   = foundry.utils.deepClone(systemData ?? {});
+  const defaults = getCanonicalLifestyleSystemData();
+  const merged   = foundry.utils.mergeObject(defaults, source, {
+    inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true
+  });
+  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_LIFESTYLE_SCHEMA_VERSION);
+  merged.editMode = Boolean(merged.editMode);
+  merged.description = String(merged.description ?? "");
+  merged.variants = Array.isArray(merged.variants)
+    ? merged.variants.map(normalizeLifestyleVariant)
+    : [];
   return merged;
 }
 
@@ -3354,7 +3638,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
-    const derived = computeCharacterDerivedValues(normalizedSystem);
+    const creationPathOutcome = await this._resolveCreationPathOutcome(normalizedSystem);
+    const effectiveSystem = this._applyCreationPathOutcomeToSystem(normalizedSystem, creationPathOutcome);
+    const derived = computeCharacterDerivedValues(effectiveSystem);
     const faction = this.actor.system?.header?.faction ?? "";
     const customLogo = this.actor.system?.header?.logoPath ?? "";
 
@@ -3362,17 +3648,18 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.actor = this.actor;
     context.editable = this.isEditable;
     context.mythicSystem = normalizedSystem;
+    context.mythicCreationPathOutcome = creationPathOutcome;
     context.mythicLogo = customLogo || this._getFactionLogoPath(faction);
     context.mythicFactionIndex = this._getFactionIndex(faction);
     const characteristicModifiers = derived.modifiers;
     context.mythicCharacteristicModifiers = characteristicModifiers;
     context.mythicBiography = this._getBiographyData(normalizedSystem);
-    context.mythicDerived = this._getMythicDerivedData(normalizedSystem, derived);
-    context.mythicCombat = this._getCombatViewData(normalizedSystem, characteristicModifiers, derived);
-    context.mythicAdvancements = this._getAdvancementViewData(normalizedSystem);
-    context.mythicEquipment = this._getEquipmentViewData(normalizedSystem, derived);
+    context.mythicDerived = this._getMythicDerivedData(effectiveSystem, derived);
+    context.mythicCombat = this._getCombatViewData(effectiveSystem, characteristicModifiers, derived);
+    context.mythicAdvancements = await this._getAdvancementViewData(normalizedSystem, creationPathOutcome);
+    context.mythicEquipment = this._getEquipmentViewData(effectiveSystem, derived);
     context.mythicGravityValue = String(normalizedSystem?.gravity ?? 1.0);
-    context.mythicSkills = this._getSkillsViewData(normalizedSystem?.skills, normalizedSystem?.characteristics);
+    context.mythicSkills = this._getSkillsViewData(normalizedSystem?.skills, effectiveSystem?.characteristics);
     context.mythicFactionOptions = [
       "United Nations Space Command",
       "Office of Naval Intelligence",
@@ -3410,14 +3697,458 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return context;
   }
 
-  _getAdvancementViewData(systemData) {
+  async _getAdvancementViewData(systemData, creationPathOutcome = null) {
     const earned = toNonNegativeWhole(systemData?.advancements?.xpEarned, 0);
     const spent = toNonNegativeWhole(systemData?.advancements?.xpSpent, 0);
+    const creationPath = normalizeCharacterSystemData({ advancements: systemData?.advancements ?? {} }).advancements.creationPath;
+    const resolvedOutcome = (creationPathOutcome && typeof creationPathOutcome === "object")
+      ? creationPathOutcome
+      : await this._resolveCreationPathOutcome(systemData);
+
+    const [upbringingDocs, environmentDocs, lifestyleDocs] = await Promise.all([
+      this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings"),
+      this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments"),
+      this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.lifestyles")
+    ]);
+
+    const upbringingOptions = upbringingDocs.map((doc) => ({ value: doc.id, label: doc.name }));
+    const allEnvironmentOptions = environmentDocs.map((doc) => ({ value: doc.id, label: doc.name }));
+    const lifestyleOptions = lifestyleDocs.map((doc) => ({ value: doc.id, label: doc.name }));
+
+    const selectedUpbringing = upbringingDocs.find((doc) => doc.id === creationPath.upbringingItemId) ?? null;
+    const selectedEnvironment = environmentDocs.find((doc) => doc.id === creationPath.environmentItemId) ?? null;
+    const upbringingChoiceState = this._buildCreationChoiceState(selectedUpbringing?.system?.modifierGroups, creationPath.upbringingSelections);
+    const environmentChoiceState = this._buildCreationChoiceState(selectedEnvironment?.system?.modifierGroups, creationPath.environmentSelections);
+    const allowedEnvironmentKeysRaw = Array.isArray(selectedUpbringing?.system?.allowedEnvironments)
+      ? selectedUpbringing.system.allowedEnvironments
+      : [];
+    const allowedEnvironmentKeys = allowedEnvironmentKeysRaw
+      .map((entry) => String(entry ?? "").trim().toLowerCase())
+      .filter(Boolean);
+    const hasEnvironmentRestriction = allowedEnvironmentKeys.length > 0;
+    const allowedEnvironmentOptions = hasEnvironmentRestriction
+      ? allEnvironmentOptions.filter((option) => {
+        const key = this._creationEnvironmentKeyFromName(option.label);
+        return key && allowedEnvironmentKeys.includes(key);
+      })
+      : allEnvironmentOptions;
+
+    const selectedEnvironmentIsAllowed = !selectedEnvironment
+      || !hasEnvironmentRestriction
+      || allowedEnvironmentKeys.includes(this._creationEnvironmentKeyFromName(selectedEnvironment.name));
+
+    const lifestyles = Array.isArray(creationPath.lifestyles) ? creationPath.lifestyles : [];
+    const lifestyleSlots = Array.from({ length: 3 }, (_, slotIndex) => {
+      const slot = (lifestyles[slotIndex] && typeof lifestyles[slotIndex] === "object") ? lifestyles[slotIndex] : {};
+      const mode = String(slot.mode ?? "manual").trim().toLowerCase() === "roll" ? "roll" : "manual";
+      const selectedLifestyle = lifestyleDocs.find((doc) => doc.id === String(slot.itemId ?? "")) ?? null;
+      const variantsRaw = Array.isArray(selectedLifestyle?.system?.variants) ? selectedLifestyle.system.variants : [];
+      const variantOptions = variantsRaw.map((variant, variantIndex) => ({
+        value: String(variant.id ?? `variant-${variantIndex + 1}`),
+        label: `${variant.rollMin}-${variant.rollMax}: ${String(variant.label ?? "Variant")}`
+      }));
+      const rollResult = Math.max(0, Math.min(999, toNonNegativeWhole(slot.rollResult, 0)));
+      const resolvedVariant = this._getResolvedLifestyleVariant(slot, selectedLifestyle);
+      const variantChoiceState = this._buildCreationChoiceState(resolvedVariant?.choiceGroups, slot.choiceSelections);
+      const resolvedModifierSummary = this._summarizeVariantModifiers(resolvedVariant);
+      const metaPills = [];
+
+      if (mode === "roll" && rollResult > 0) metaPills.push(`Roll ${rollResult}`);
+      if (resolvedVariant?.label) metaPills.push(String(resolvedVariant.label));
+      else if (selectedLifestyle) metaPills.push("Variant pending");
+      metaPills.push(...variantChoiceState.displayPills);
+
+      return {
+        slotIndex,
+        slotNumber: slotIndex + 1,
+        selectedLifestyleId: String(slot.itemId ?? ""),
+        lifestyleName: selectedLifestyle?.name ?? "",
+        mode,
+        isRollMode: mode === "roll",
+        manualVariantId: String(slot.variantId ?? ""),
+        rollResult,
+        variantOptions,
+        resolvedVariantLabel: resolvedVariant ? String(resolvedVariant.label ?? "") : "",
+        resolvedModifierSummary,
+        hasVariantChoices: variantChoiceState.hasChoices,
+        metaPills
+      };
+    });
+
+    const environmentMetaPills = [`Allowed: ${hasEnvironmentRestriction
+      ? allowedEnvironmentOptions.map((entry) => entry.label).join(", ")
+      : "Any"}`,
+    ...environmentChoiceState.displayPills];
+
     return {
       earned,
       spent,
-      available: Math.max(0, earned - spent)
+      available: Math.max(0, earned - spent),
+      creationPath: {
+        selectedUpbringingId: creationPath.upbringingItemId,
+        selectedEnvironmentId: creationPath.environmentItemId,
+        selectedUpbringingName: selectedUpbringing?.name ?? "",
+        selectedEnvironmentName: selectedEnvironment?.name ?? "",
+        upbringingOptions,
+        environmentOptions: allowedEnvironmentOptions,
+        lifestyleOptions,
+        selectedUpbringingHasChoices: upbringingChoiceState.hasChoices,
+        selectedEnvironmentHasChoices: environmentChoiceState.hasChoices,
+        upbringingChoicePills: upbringingChoiceState.displayPills,
+        environmentMetaPills,
+        lifestyles: lifestyleSlots,
+        hasEnvironmentRestriction,
+        allowedEnvironmentLabel: hasEnvironmentRestriction
+          ? allowedEnvironmentOptions.map((entry) => entry.label).join(", ")
+          : "Any",
+        selectedEnvironmentIsAllowed,
+        outcome: {
+          summaryPills: Array.isArray(resolvedOutcome?.summaryPills) ? resolvedOutcome.summaryPills : [],
+          netDeltaPills: Array.isArray(resolvedOutcome?.netDeltaPills) ? resolvedOutcome.netDeltaPills : [],
+          detailLines: Array.isArray(resolvedOutcome?.detailLines) ? resolvedOutcome.detailLines : [],
+          pendingLines: Array.isArray(resolvedOutcome?.pendingLines) ? resolvedOutcome.pendingLines : [],
+          hasPendingChoices: Boolean(resolvedOutcome?.hasPendingChoices),
+          appliedCount: Math.max(0, Number(resolvedOutcome?.appliedCount ?? 0))
+        }
+      }
     };
+  }
+
+  _emptyCreationPathOutcome() {
+    return {
+      statBonuses: Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((key) => [key, 0])),
+      woundBonus: 0,
+      appliedCount: 0,
+      summaryPills: [],
+      netDeltaPills: [],
+      detailLines: [],
+      pendingLines: [],
+      hasPendingChoices: false
+    };
+  }
+
+  _collectCreationPathGroupModifiers(groups, selections = {}, sourceLabel = "") {
+    const detailLines = [];
+    const pendingLines = [];
+    const appliedModifiers = [];
+    const normalizedSource = String(sourceLabel ?? "").trim() || "Creation Path";
+    const groupList = Array.isArray(groups) ? groups : [];
+
+    const pushModifiers = (modifiers, reasonLabel) => {
+      for (const rawModifier of Array.isArray(modifiers) ? modifiers : []) {
+        const kind = String(rawModifier?.kind ?? "").trim().toLowerCase();
+        const value = Number(rawModifier?.value ?? 0);
+        if (!Number.isFinite(value) || value === 0) continue;
+        if (kind === "wound") {
+          appliedModifiers.push({ kind: "wound", value, source: normalizedSource, reason: reasonLabel });
+          continue;
+        }
+        if (kind === "stat") {
+          const key = String(rawModifier?.key ?? "").trim().toLowerCase();
+          if (!MYTHIC_CHARACTERISTIC_KEYS.includes(key)) continue;
+          appliedModifiers.push({ kind: "stat", key, value, source: normalizedSource, reason: reasonLabel });
+        }
+      }
+    };
+
+    for (const group of groupList) {
+      const groupType = String(group?.type ?? "fixed").trim().toLowerCase();
+      const groupLabel = String(group?.label ?? "Choice").trim() || "Choice";
+      const options = Array.isArray(group?.options) ? group.options : [];
+      if (!options.length) continue;
+
+      if (groupType === "choice") {
+        const resolved = this._getCreationChoiceOption(group, selections?.[group.id]);
+        if (!resolved?.option) {
+          pendingLines.push(`${normalizedSource}: ${groupLabel} (pending)`);
+          continue;
+        }
+        const optionLabel = String(resolved.option?.label ?? `Option ${resolved.index + 1}`).trim() || `Option ${resolved.index + 1}`;
+        detailLines.push(`${normalizedSource}: ${optionLabel}`);
+        pushModifiers(resolved.option?.modifiers, `${groupLabel}: ${optionLabel}`);
+        continue;
+      }
+
+      const fixed = options[0] ?? null;
+      if (!fixed) continue;
+      const optionLabel = String(fixed?.label ?? groupLabel).trim() || groupLabel;
+      detailLines.push(`${normalizedSource}: ${optionLabel}`);
+      pushModifiers(fixed?.modifiers, `${groupLabel}: ${optionLabel}`);
+    }
+
+    return { appliedModifiers, detailLines, pendingLines };
+  }
+
+  _addCreationPathModifiersToOutcome(outcome, modifiers = []) {
+    for (const modifier of Array.isArray(modifiers) ? modifiers : []) {
+      if (modifier.kind === "stat" && modifier.key && MYTHIC_CHARACTERISTIC_KEYS.includes(modifier.key)) {
+        outcome.statBonuses[modifier.key] = Number(outcome.statBonuses[modifier.key] ?? 0) + Number(modifier.value ?? 0);
+      } else if (modifier.kind === "wound") {
+        outcome.woundBonus += Number(modifier.value ?? 0);
+      }
+      outcome.appliedCount += 1;
+      outcome.summaryPills.push(`${modifier.source}: ${_formatModifier(modifier)}`);
+    }
+  }
+
+  async _resolveCreationPathOutcome(systemData) {
+    const outcome = this._emptyCreationPathOutcome();
+    const normalized = normalizeCharacterSystemData(systemData);
+    const creationPath = normalized.advancements?.creationPath ?? {};
+
+    const [upbringingDocs, environmentDocs, lifestyleDocs] = await Promise.all([
+      this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings"),
+      this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments"),
+      this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.lifestyles")
+    ]);
+
+    const selectedUpbringing = upbringingDocs.find((doc) => doc.id === String(creationPath.upbringingItemId ?? "")) ?? null;
+    const selectedEnvironment = environmentDocs.find((doc) => doc.id === String(creationPath.environmentItemId ?? "")) ?? null;
+
+    if (selectedUpbringing) {
+      const resolved = this._collectCreationPathGroupModifiers(
+        selectedUpbringing.system?.modifierGroups,
+        creationPath.upbringingSelections,
+        `Upbringing: ${selectedUpbringing.name}`
+      );
+      this._addCreationPathModifiersToOutcome(outcome, resolved.appliedModifiers);
+      outcome.detailLines.push(...resolved.detailLines);
+      outcome.pendingLines.push(...resolved.pendingLines);
+    }
+
+    if (selectedEnvironment) {
+      const resolved = this._collectCreationPathGroupModifiers(
+        selectedEnvironment.system?.modifierGroups,
+        creationPath.environmentSelections,
+        `Environment: ${selectedEnvironment.name}`
+      );
+      this._addCreationPathModifiersToOutcome(outcome, resolved.appliedModifiers);
+      outcome.detailLines.push(...resolved.detailLines);
+      outcome.pendingLines.push(...resolved.pendingLines);
+    }
+
+    const lifestyles = Array.isArray(creationPath.lifestyles) ? creationPath.lifestyles : [];
+    for (let slotIndex = 0; slotIndex < 3; slotIndex += 1) {
+      const slot = (lifestyles[slotIndex] && typeof lifestyles[slotIndex] === "object") ? lifestyles[slotIndex] : {};
+      const lifestyleId = String(slot.itemId ?? "").trim();
+      if (!lifestyleId) continue;
+      const lifestyleDoc = lifestyleDocs.find((doc) => doc.id === lifestyleId) ?? null;
+      if (!lifestyleDoc) continue;
+
+      const slotLabel = `Lifestyle ${slotIndex + 1}: ${lifestyleDoc.name}`;
+      const resolvedVariant = this._getResolvedLifestyleVariant(slot, lifestyleDoc);
+      if (!resolvedVariant) {
+        outcome.pendingLines.push(`${slotLabel}: variant pending`);
+        continue;
+      }
+
+      const baseModifiers = Array.isArray(resolvedVariant.modifiers) ? resolvedVariant.modifiers : [];
+      const normalizedBase = baseModifiers
+        .map((entry) => ({ kind: String(entry?.kind ?? "").trim().toLowerCase(), key: String(entry?.key ?? "").trim().toLowerCase(), value: Number(entry?.value ?? 0), source: slotLabel }))
+        .filter((entry) => Number.isFinite(entry.value) && entry.value !== 0 && (entry.kind === "wound" || (entry.kind === "stat" && MYTHIC_CHARACTERISTIC_KEYS.includes(entry.key))));
+      this._addCreationPathModifiersToOutcome(outcome, normalizedBase);
+      outcome.detailLines.push(`${slotLabel}: ${String(resolvedVariant.label ?? "Variant")}`);
+
+      const resolvedChoices = this._collectCreationPathGroupModifiers(
+        resolvedVariant.choiceGroups,
+        slot.choiceSelections,
+        slotLabel
+      );
+      this._addCreationPathModifiersToOutcome(outcome, resolvedChoices.appliedModifiers);
+      outcome.detailLines.push(...resolvedChoices.detailLines);
+      outcome.pendingLines.push(...resolvedChoices.pendingLines);
+    }
+
+    outcome.summaryPills = Array.from(new Set(outcome.summaryPills));
+    outcome.detailLines = Array.from(new Set(outcome.detailLines));
+    outcome.pendingLines = Array.from(new Set(outcome.pendingLines));
+    outcome.hasPendingChoices = outcome.pendingLines.length > 0;
+
+    const netDeltaPills = [];
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      const value = Number(outcome.statBonuses?.[key] ?? 0);
+      if (!Number.isFinite(value) || value === 0) continue;
+      netDeltaPills.push(_formatModifier({ kind: "stat", key, value }));
+    }
+    if (Number.isFinite(Number(outcome.woundBonus)) && Number(outcome.woundBonus) !== 0) {
+      netDeltaPills.push(_formatModifier({ kind: "wound", value: Number(outcome.woundBonus) }));
+    }
+    outcome.netDeltaPills = netDeltaPills;
+    return outcome;
+  }
+
+  _applyCreationPathOutcomeToSystem(systemData, creationPathOutcome) {
+    const normalized = normalizeCharacterSystemData(systemData);
+    const outcome = (creationPathOutcome && typeof creationPathOutcome === "object")
+      ? creationPathOutcome
+      : this._emptyCreationPathOutcome();
+    const effective = foundry.utils.deepClone(normalized);
+
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      const baseValue = Number(effective.characteristics?.[key] ?? 0);
+      const bonus = Number(outcome?.statBonuses?.[key] ?? 0);
+      const next = Number.isFinite(baseValue + bonus) ? baseValue + bonus : baseValue;
+      effective.characteristics[key] = Math.max(0, next);
+    }
+
+    const normalizedEffective = normalizeCharacterSystemData(effective);
+    const woundBonus = Number(outcome?.woundBonus ?? 0);
+    if (Number.isFinite(woundBonus) && woundBonus !== 0) {
+      const nextMax = Math.max(0, Math.floor(Number(normalizedEffective.combat?.wounds?.max ?? 0) + woundBonus));
+      normalizedEffective.combat.wounds.max = nextMax;
+      normalizedEffective.combat.wounds.current = Math.min(
+        Math.max(0, Math.floor(Number(normalizedEffective.combat?.wounds?.current ?? 0))),
+        nextMax
+      );
+      normalizedEffective.combat.woundsBar.value = normalizedEffective.combat.wounds.current;
+      normalizedEffective.combat.woundsBar.max = nextMax;
+    }
+
+    return normalizedEffective;
+  }
+
+  async _getCreationPathPackDocs(packKey) {
+    const pack = game.packs.get(packKey);
+    if (!pack) return [];
+    try {
+      const docs = await pack.getDocuments();
+      return docs.sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+    } catch (error) {
+      console.error(`[mythic-system] Failed to read creation path compendium ${packKey}.`, error);
+      return [];
+    }
+  }
+
+  _creationEnvironmentKeyFromName(name = "") {
+    const normalized = String(name ?? "").trim().toLowerCase();
+    if (!normalized) return "";
+    if (normalized.includes("forest") || normalized.includes("jungle")) return "forest";
+    if (normalized.includes("wasteland")) return "wasteland";
+    if (normalized.includes("country")) return "country";
+    if (normalized.includes("town")) return "town";
+    if (normalized.includes("city")) return "city";
+    return normalized;
+  }
+
+  _getCreationChoiceGroups(groups) {
+    return (Array.isArray(groups) ? groups : [])
+      .filter((group) => String(group?.type ?? "choice").trim().toLowerCase() === "choice")
+      .filter((group) => Array.isArray(group?.options) && group.options.length > 0);
+  }
+
+  _getCreationChoiceOption(group, selectionValue) {
+    if (!group || !Array.isArray(group.options)) return null;
+
+    const index = Number(selectionValue);
+    if (Number.isInteger(index) && index >= 0 && index < group.options.length) {
+      return { index, option: group.options[index] };
+    }
+
+    const normalized = String(selectionValue ?? "").trim();
+    if (!normalized) return null;
+    const matchIndex = group.options.findIndex((option) => String(option?.label ?? "").trim() === normalized);
+    if (matchIndex >= 0) {
+      return { index: matchIndex, option: group.options[matchIndex] };
+    }
+
+    return null;
+  }
+
+  _buildCreationChoiceState(groups, selections = {}) {
+    const choiceGroups = this._getCreationChoiceGroups(groups);
+    const displayPills = [];
+    let pendingCount = 0;
+
+    for (const group of choiceGroups) {
+      const resolved = this._getCreationChoiceOption(group, selections?.[group.id]);
+      if (resolved?.option?.label) {
+        displayPills.push(String(resolved.option.label));
+      } else {
+        pendingCount += 1;
+      }
+    }
+
+    if (pendingCount > 0) {
+      displayPills.push(`${pendingCount} choice${pendingCount === 1 ? "" : "s"} pending`);
+    }
+
+    return {
+      hasChoices: choiceGroups.length > 0,
+      pendingCount,
+      displayPills
+    };
+  }
+
+  _getResolvedLifestyleVariant(slot, lifestyleDoc) {
+    if (!lifestyleDoc) return null;
+    const variants = Array.isArray(lifestyleDoc.system?.variants) ? lifestyleDoc.system.variants : [];
+    const mode = String(slot?.mode ?? "manual").trim().toLowerCase() === "roll" ? "roll" : "manual";
+    const rollResult = Math.max(0, Math.min(999, toNonNegativeWhole(slot?.rollResult, 0)));
+    const resolvedById = variants.find((variant) => String(variant?.id ?? "") === String(slot?.variantId ?? "")) ?? null;
+    return mode === "roll"
+      ? (this._findLifestyleVariantForRoll(variants, rollResult) ?? resolvedById)
+      : resolvedById;
+  }
+
+  async _promptForCreationChoiceSelections({ title, itemName, groups, currentSelections = {} } = {}) {
+    const choiceGroups = this._getCreationChoiceGroups(groups);
+    if (!choiceGroups.length) return {};
+
+    const nextSelections = {};
+    const escapedItemName = foundry.utils.escapeHTML(String(itemName ?? "Creation Choice"));
+
+    for (let index = 0; index < choiceGroups.length; index += 1) {
+      const group = choiceGroups[index];
+      const current = this._getCreationChoiceOption(group, currentSelections?.[group.id]);
+      const escapedGroupLabel = foundry.utils.escapeHTML(String(group?.label ?? "Choose one option."));
+      const buttons = group.options.map((option, optionIndex) => {
+        const optionLabel = String(option?.label ?? `Option ${optionIndex + 1}`).trim() || `Option ${optionIndex + 1}`;
+        return {
+          action: `option-${optionIndex + 1}`,
+          label: current?.index === optionIndex ? `${optionLabel} (Current)` : optionLabel,
+          callback: () => String(optionIndex)
+        };
+      });
+
+      const choice = await foundry.applications.api.DialogV2.wait({
+        window: {
+          title: String(title ?? "Creation Choice")
+        },
+        content: `<p><strong>${escapedItemName}</strong></p><p>${index + 1}/${choiceGroups.length}: ${escapedGroupLabel}</p>`,
+        buttons: [
+          ...buttons,
+          {
+            action: "cancel",
+            label: "Cancel",
+            callback: () => null
+          }
+        ],
+        rejectClose: false,
+        modal: true
+      });
+
+      if (choice == null) return null;
+      nextSelections[group.id] = String(choice);
+    }
+
+    return nextSelections;
+  }
+
+  _findLifestyleVariantForRoll(variants, rollResult) {
+    if (!Array.isArray(variants) || !Number.isFinite(Number(rollResult)) || rollResult < 1) return null;
+    return variants.find((variant) => {
+      const min = toNonNegativeWhole(variant?.rollMin, 1);
+      const max = toNonNegativeWhole(variant?.rollMax, 10);
+      return rollResult >= min && rollResult <= max;
+    }) ?? null;
+  }
+
+  _summarizeVariantModifiers(variant) {
+    if (!variant || typeof variant !== "object") return "";
+    const baseModifiers = Array.isArray(variant.modifiers) ? variant.modifiers.map((entry) => _formatModifier(entry)) : [];
+    const choiceGroups = Array.isArray(variant.choiceGroups) ? variant.choiceGroups : [];
+    const choiceSummary = choiceGroups.length > 0 ? [`${choiceGroups.length} choice group(s)`] : [];
+    return [...baseModifiers, ...choiceSummary].filter(Boolean).join(", ");
   }
 
   _getEquipmentViewData(systemData, derivedData = null) {
@@ -4264,7 +4995,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return [...requiredNames].filter(Boolean);
   }
 
-  _evaluateAbilityPrerequisites(abilityData) {
+  async _evaluateAbilityPrerequisites(abilityData) {
     const prereqText = String(abilityData?.system?.prerequisiteText ?? "");
     const structuredRules = normalizeAbilitySystemData(abilityData?.system ?? {}).prerequisiteRules;
     if (!prereqText.trim() && !structuredRules.length) {
@@ -4273,9 +5004,16 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const reasons = [];
     const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
-    const chars = normalizedSystem?.characteristics ?? {};
-    const luckMax = Number(normalizedSystem?.combat?.luck?.max ?? 0);
-    const skills = normalizeSkillsData(normalizedSystem?.skills);
+    const creationPathOutcome = await this._resolveCreationPathOutcome(normalizedSystem);
+    const effectiveSystem = this._applyCreationPathOutcomeToSystem(normalizedSystem, creationPathOutcome);
+    const chars = effectiveSystem?.characteristics ?? {};
+    const luckMax = Number(effectiveSystem?.combat?.luck?.max ?? 0);
+    const skills = normalizeSkillsData(effectiveSystem?.skills);
+
+    if (Array.isArray(creationPathOutcome?.pendingLines) && creationPathOutcome.pendingLines.length > 0) {
+      reasons.push("Creation Path has unresolved choices.");
+    }
+
     const ownedAbilities = new Set(
       this.actor.items
         .filter((i) => i.type === "ability")
@@ -4951,6 +5689,73 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".trait-open-compendium-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openCompendiumPack("Halo-Mythic-Foundry-Updated.traits", "Traits");
+      });
+    });
+
+    root.querySelectorAll(".creation-open-upbringings-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openCompendiumPack("Halo-Mythic-Foundry-Updated.upbringings", "Upbringings");
+      });
+    });
+
+    root.querySelectorAll(".creation-open-environments-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openCompendiumPack("Halo-Mythic-Foundry-Updated.environments", "Environments");
+      });
+    });
+
+    root.querySelectorAll(".creation-open-lifestyles-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openCompendiumPack("Halo-Mythic-Foundry-Updated.lifestyles", "Lifestyles");
+      });
+    });
+
+    root.querySelectorAll(".creation-dropzone[data-kind]").forEach((zone) => {
+      zone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+      });
+      zone.addEventListener("drop", (event) => {
+        void this._onCreationDrop(event);
+      });
+    });
+
+    root.querySelectorAll(".creation-clear-btn[data-kind]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCreationClearSelection(event);
+      });
+    });
+
+    root.querySelectorAll(".creation-upbringing-prompt-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCreationUpbringingPrompt(event);
+      });
+    });
+
+    root.querySelectorAll(".creation-environment-prompt-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCreationEnvironmentPrompt(event);
+      });
+    });
+
+    root.querySelectorAll(".creation-lifestyle-prompt-btn[data-slot-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCreationLifestylePrompt(event);
+      });
+    });
+
+    root.querySelectorAll(".creation-lifestyle-choice-btn[data-slot-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCreationLifestyleChoicePrompt(event);
+      });
+    });
+
     const portraitToggleButton = root.querySelector(".portrait-toggle-btn");
     if (portraitToggleButton) {
       portraitToggleButton.addEventListener("click", (event) => {
@@ -5025,6 +5830,429 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
     pack.render(true);
+  }
+
+  async _onCreationDrop(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const zone = event.currentTarget;
+    const kind = String(zone?.dataset?.kind ?? "").trim().toLowerCase();
+    const slotIndex = Number(zone?.dataset?.slotIndex ?? -1);
+
+    const raw = event.dataTransfer?.getData("text/plain");
+    if (!raw) return;
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return;
+    }
+
+    const uuid = String(parsed?.uuid ?? "").trim();
+    if (!uuid) return;
+    const dropped = await fromUuid(uuid);
+    if (!dropped) return;
+
+    if (kind === "upbringing") {
+      if (dropped.type !== "upbringing") {
+        ui.notifications?.warn("Drop an Upbringing item here.");
+        return;
+      }
+      const resolvedId = await this._resolveCreationPathItemId("upbringing", dropped);
+      if (!resolvedId) return;
+      await this._assignCreationUpbringing(resolvedId);
+      return;
+    }
+
+    if (kind === "environment") {
+      if (dropped.type !== "environment") {
+        ui.notifications?.warn("Drop an Environment item here.");
+        return;
+      }
+      const resolvedId = await this._resolveCreationPathItemId("environment", dropped);
+      if (!resolvedId) return;
+      await this._assignCreationEnvironment(resolvedId);
+      return;
+    }
+
+    if (kind === "lifestyle") {
+      if (dropped.type !== "lifestyle") {
+        ui.notifications?.warn("Drop a Lifestyle item here.");
+        return;
+      }
+      if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 2) return;
+      const resolvedId = await this._resolveCreationPathItemId("lifestyle", dropped);
+      if (!resolvedId) return;
+      await this._assignCreationLifestyle(slotIndex, resolvedId);
+      await this._promptAndApplyLifestyleVariant(slotIndex);
+    }
+  }
+
+  async _resolveCreationPathItemId(kind, dropped) {
+    const packMap = {
+      upbringing: "Halo-Mythic-Foundry-Updated.upbringings",
+      environment: "Halo-Mythic-Foundry-Updated.environments",
+      lifestyle: "Halo-Mythic-Foundry-Updated.lifestyles"
+    };
+    const expectedPack = packMap[String(kind ?? "").trim().toLowerCase()];
+    if (!expectedPack) return "";
+
+    const droppedPack = String(dropped?.pack ?? "").trim();
+    const droppedId = String(dropped?.id ?? "").trim();
+    if (droppedPack === expectedPack && droppedId) return droppedId;
+
+    const docs = await this._getCreationPathPackDocs(expectedPack);
+    const droppedName = String(dropped?.name ?? "").trim().toLowerCase();
+    const byName = docs.find((doc) => String(doc.name ?? "").trim().toLowerCase() === droppedName);
+    if (byName?.id) return byName.id;
+
+    ui.notifications?.warn(`Drop from the matching ${kind} compendium, or ensure a compendium item has the same name.`);
+    return "";
+  }
+
+  async _onCreationClearSelection(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const button = event.currentTarget;
+    const kind = String(button?.dataset?.kind ?? "").trim().toLowerCase();
+    const slotIndex = Number(button?.dataset?.slotIndex ?? -1);
+
+    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
+    creationPath.lifestyles ??= [];
+
+    if (kind === "upbringing") {
+      creationPath.upbringingItemId = "";
+      creationPath.upbringingSelections = {};
+    } else if (kind === "environment") {
+      creationPath.environmentItemId = "";
+      creationPath.environmentSelections = {};
+    } else if (kind === "lifestyle" && Number.isInteger(slotIndex) && slotIndex >= 0 && slotIndex <= 2) {
+      creationPath.lifestyles[slotIndex] = { itemId: "", mode: "manual", variantId: "", rollResult: 0, choiceSelections: {} };
+    }
+
+    await this.actor.update({ "system.advancements.creationPath": creationPath });
+  }
+
+  async _onCreationUpbringingPrompt(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+    await this._promptAndApplyUpbringingChoices();
+  }
+
+  async _onCreationEnvironmentPrompt(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+    await this._promptAndApplyEnvironmentChoices();
+  }
+
+  async _onCreationLifestylePrompt(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+    const slotIndex = Number(event.currentTarget?.dataset?.slotIndex ?? -1);
+    if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 2) return;
+    await this._promptAndApplyLifestyleVariant(slotIndex);
+  }
+
+  async _onCreationLifestyleChoicePrompt(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+    const slotIndex = Number(event.currentTarget?.dataset?.slotIndex ?? -1);
+    if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 2) return;
+    await this._promptAndApplyLifestyleChoices(slotIndex);
+  }
+
+  async _promptAndApplyUpbringingChoices() {
+    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
+    const selectedUpbringingId = String(creationPath.upbringingItemId ?? "").trim();
+    if (!selectedUpbringingId) {
+      ui.notifications?.warn("Drop an upbringing first.");
+      return;
+    }
+
+    const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
+    const selectedUpbringing = docs.find((doc) => doc.id === selectedUpbringingId) ?? null;
+    if (!selectedUpbringing) {
+      ui.notifications?.warn("Upbringing not found in compendium.");
+      return;
+    }
+
+    const selections = await this._promptForCreationChoiceSelections({
+      title: "Upbringing Choice",
+      itemName: selectedUpbringing.name,
+      groups: selectedUpbringing.system?.modifierGroups,
+      currentSelections: creationPath.upbringingSelections
+    });
+
+    if (selections == null) return;
+    creationPath.upbringingSelections = selections;
+    await this.actor.update({ "system.advancements.creationPath": creationPath });
+  }
+
+  async _promptAndApplyEnvironmentChoices() {
+    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
+    const selectedEnvironmentId = String(creationPath.environmentItemId ?? "").trim();
+    if (!selectedEnvironmentId) {
+      ui.notifications?.warn("Drop an environment first.");
+      return;
+    }
+
+    const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
+    const selectedEnvironment = docs.find((doc) => doc.id === selectedEnvironmentId) ?? null;
+    if (!selectedEnvironment) {
+      ui.notifications?.warn("Environment not found in compendium.");
+      return;
+    }
+
+    const selections = await this._promptForCreationChoiceSelections({
+      title: "Environment Choice",
+      itemName: selectedEnvironment.name,
+      groups: selectedEnvironment.system?.modifierGroups,
+      currentSelections: creationPath.environmentSelections
+    });
+
+    if (selections == null) return;
+    creationPath.environmentSelections = selections;
+    await this.actor.update({ "system.advancements.creationPath": creationPath });
+  }
+
+  async _promptAndApplyLifestyleChoices(slotIndex) {
+    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
+    creationPath.lifestyles ??= [];
+    creationPath.lifestyles[slotIndex] ??= { itemId: "", mode: "manual", variantId: "", rollResult: 0, choiceSelections: {} };
+    const slot = creationPath.lifestyles[slotIndex];
+    const selectedLifestyleId = String(slot.itemId ?? "").trim();
+    if (!selectedLifestyleId) {
+      ui.notifications?.warn("Drop a lifestyle first.");
+      return;
+    }
+
+    const lifestyleDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.lifestyles");
+    const lifestyleDoc = lifestyleDocs.find((doc) => doc.id === selectedLifestyleId) ?? null;
+    if (!lifestyleDoc) {
+      ui.notifications?.warn("Lifestyle not found in compendium.");
+      return;
+    }
+
+    const resolvedVariant = this._getResolvedLifestyleVariant(slot, lifestyleDoc);
+    if (!resolvedVariant) {
+      ui.notifications?.warn("Choose a lifestyle variant first.");
+      return;
+    }
+
+    const selections = await this._promptForCreationChoiceSelections({
+      title: "Lifestyle Choice",
+      itemName: `${lifestyleDoc.name}: ${resolvedVariant.label}`,
+      groups: resolvedVariant.choiceGroups,
+      currentSelections: slot.choiceSelections
+    });
+
+    if (selections == null) return;
+    creationPath.lifestyles[slotIndex].choiceSelections = selections;
+    await this.actor.update({ "system.advancements.creationPath": creationPath });
+  }
+
+  async _assignCreationUpbringing(upbringingId) {
+    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
+    creationPath.upbringingItemId = String(upbringingId ?? "").trim();
+    creationPath.upbringingSelections = {};
+
+    const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
+    const selectedUpbringing = docs.find((doc) => doc.id === creationPath.upbringingItemId) ?? null;
+    const allowedKeys = Array.isArray(selectedUpbringing?.system?.allowedEnvironments)
+      ? selectedUpbringing.system.allowedEnvironments.map((entry) => String(entry ?? "").trim().toLowerCase()).filter(Boolean)
+      : [];
+
+    if (allowedKeys.length > 0 && creationPath.environmentItemId) {
+      const envDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
+      const selectedEnv = envDocs.find((doc) => doc.id === String(creationPath.environmentItemId ?? "").trim()) ?? null;
+      const envKey = this._creationEnvironmentKeyFromName(selectedEnv?.name ?? "");
+      if (!envKey || !allowedKeys.includes(envKey)) {
+        creationPath.environmentItemId = "";
+        creationPath.environmentSelections = {};
+      }
+    }
+
+    await this.actor.update({ "system.advancements.creationPath": creationPath });
+
+    if (this._getCreationChoiceGroups(selectedUpbringing?.system?.modifierGroups).length > 0) {
+      await this._promptAndApplyUpbringingChoices();
+    }
+  }
+
+  async _assignCreationEnvironment(environmentId) {
+    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
+    const selectedEnvironmentId = String(environmentId ?? "").trim();
+
+    const upbringingId = String(creationPath.upbringingItemId ?? "").trim();
+    if (upbringingId && selectedEnvironmentId) {
+      const upbringingDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
+      const selectedUpbringing = upbringingDocs.find((doc) => doc.id === upbringingId) ?? null;
+      const allowedKeys = Array.isArray(selectedUpbringing?.system?.allowedEnvironments)
+        ? selectedUpbringing.system.allowedEnvironments.map((entry) => String(entry ?? "").trim().toLowerCase()).filter(Boolean)
+        : [];
+
+      if (allowedKeys.length > 0) {
+        const envDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
+        const selectedEnv = envDocs.find((doc) => doc.id === selectedEnvironmentId) ?? null;
+        const envKey = this._creationEnvironmentKeyFromName(selectedEnv?.name ?? "");
+        if (!envKey || !allowedKeys.includes(envKey)) {
+          ui.notifications?.warn("That environment is not allowed for the selected upbringing.");
+          return;
+        }
+      }
+    }
+
+    creationPath.environmentItemId = selectedEnvironmentId;
+    creationPath.environmentSelections = {};
+    await this.actor.update({ "system.advancements.creationPath": creationPath });
+
+    const environmentDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
+    const selectedEnvironment = environmentDocs.find((doc) => doc.id === selectedEnvironmentId) ?? null;
+    if (this._getCreationChoiceGroups(selectedEnvironment?.system?.modifierGroups).length > 0) {
+      await this._promptAndApplyEnvironmentChoices();
+    }
+  }
+
+  async _assignCreationLifestyle(slotIndex, lifestyleId) {
+    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
+    creationPath.lifestyles ??= [];
+    creationPath.lifestyles[slotIndex] = {
+      itemId: String(lifestyleId ?? "").trim(),
+      mode: "manual",
+      variantId: "",
+      rollResult: 0,
+      choiceSelections: {}
+    };
+    await this.actor.update({ "system.advancements.creationPath": creationPath });
+  }
+
+  _lifestyleVariantWeight(variant) {
+    const explicitWeight = toNonNegativeWhole(variant?.weight, 0);
+    if (explicitWeight > 0) return explicitWeight;
+    const rollMin = toNonNegativeWhole(variant?.rollMin, 1);
+    const rollMax = toNonNegativeWhole(variant?.rollMax, 10);
+    return Math.max(1, (rollMax - rollMin) + 1);
+  }
+
+  _pickWeightedLifestyleVariant(variants = []) {
+    const buckets = (Array.isArray(variants) ? variants : [])
+      .map((variant) => ({ variant, weight: this._lifestyleVariantWeight(variant) }))
+      .filter((entry) => entry.weight > 0);
+    const totalWeight = buckets.reduce((sum, entry) => sum + entry.weight, 0);
+    if (totalWeight < 1) return { variant: null, roll: 0, totalWeight: 0 };
+    const roll = Math.max(1, toNonNegativeWhole(Math.ceil(Math.random() * totalWeight), 1));
+    let running = 0;
+    for (const entry of buckets) {
+      running += entry.weight;
+      if (roll <= running) {
+        return { variant: entry.variant, roll, totalWeight };
+      }
+    }
+    return { variant: buckets[buckets.length - 1]?.variant ?? null, roll, totalWeight };
+  }
+
+  async _promptAndApplyLifestyleVariant(slotIndex) {
+    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
+    creationPath.lifestyles ??= [];
+    creationPath.lifestyles[slotIndex] ??= { itemId: "", mode: "manual", variantId: "", rollResult: 0, choiceSelections: {} };
+    const selectedLifestyleId = String(creationPath.lifestyles[slotIndex].itemId ?? "").trim();
+    if (!selectedLifestyleId) {
+      ui.notifications?.warn("Drop a lifestyle first.");
+      return;
+    }
+
+    const lifestyleDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.lifestyles");
+    const lifestyleDoc = lifestyleDocs.find((doc) => doc.id === selectedLifestyleId) ?? null;
+    if (!lifestyleDoc) {
+      ui.notifications?.warn("Lifestyle not found in compendium.");
+      return;
+    }
+
+    const variants = Array.isArray(lifestyleDoc.system?.variants) ? lifestyleDoc.system.variants : [];
+    if (!variants.length) {
+      ui.notifications?.warn("This lifestyle has no variants defined.");
+      return;
+    }
+
+    const variantButtons = variants.map((variant, index) => {
+      const variantId = String(variant?.id ?? `variant-${index + 1}`);
+      const rollMin = toNonNegativeWhole(variant?.rollMin, 1);
+      const rollMax = toNonNegativeWhole(variant?.rollMax, 10);
+      const rangeLabel = rollMin === rollMax ? `${rollMin}` : `${rollMin}-${rollMax}`;
+      const textLabel = String(variant?.label ?? `Variant ${index + 1}`).trim() || `Variant ${index + 1}`;
+      return {
+        action: `variant-${index + 1}`,
+        label: `${rangeLabel}: ${textLabel}`,
+        callback: () => ({ mode: "manual", variantId })
+      };
+    });
+
+    const selection = await foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "Lifestyle Variant"
+      },
+      content: `<p>Choose a variant for the <strong>${foundry.utils.escapeHTML(lifestyleDoc.name ?? "Lifestyle")}</strong> lifestyle:</p>`,
+      buttons: [
+        ...variantButtons,
+        {
+          action: "random",
+          label: "Random",
+          callback: () => ({ mode: "random" })
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+
+    if (!selection || typeof selection !== "object") return;
+
+    if (selection.mode === "random") {
+      const picked = this._pickWeightedLifestyleVariant(variants);
+      const choiceSelections = await this._promptForCreationChoiceSelections({
+        title: "Lifestyle Choice",
+        itemName: `${lifestyleDoc.name}: ${String(picked.variant?.label ?? "Variant")}`,
+        groups: picked.variant?.choiceGroups,
+        currentSelections: {}
+      });
+      if (choiceSelections == null) return;
+      creationPath.lifestyles[slotIndex].mode = "roll";
+      creationPath.lifestyles[slotIndex].variantId = String(picked.variant?.id ?? "");
+      creationPath.lifestyles[slotIndex].rollResult = picked.roll;
+      creationPath.lifestyles[slotIndex].choiceSelections = choiceSelections;
+      await this.actor.update({ "system.advancements.creationPath": creationPath });
+      return;
+    }
+
+    const selectedVariantId = String(selection.variantId ?? "").trim();
+    if (!selectedVariantId) return;
+    const selectedVariant = variants.find((variant) => String(variant?.id ?? "") === selectedVariantId) ?? null;
+    const choiceSelections = await this._promptForCreationChoiceSelections({
+      title: "Lifestyle Choice",
+      itemName: `${lifestyleDoc.name}: ${String(selectedVariant?.label ?? "Variant")}`,
+      groups: selectedVariant?.choiceGroups,
+      currentSelections: {}
+    });
+    if (choiceSelections == null) return;
+    creationPath.lifestyles[slotIndex].mode = "manual";
+    creationPath.lifestyles[slotIndex].variantId = selectedVariantId;
+    creationPath.lifestyles[slotIndex].rollResult = 0;
+    creationPath.lifestyles[slotIndex].choiceSelections = choiceSelections;
+    await this.actor.update({ "system.advancements.creationPath": creationPath });
   }
 
   _applyMythicPromptClass(html) {
@@ -5626,7 +6854,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
 
     if (enforceAbilityPrereqs) {
-      const prereqCheck = this._evaluateAbilityPrerequisites(pendingAbility);
+      const prereqCheck = await this._evaluateAbilityPrerequisites(pendingAbility);
       if (!prereqCheck.ok) {
         const forceAdd = await this._confirmAbilityPrerequisiteOverride(result.name, prereqCheck.reasons);
         if (!forceAdd) return;
@@ -5709,7 +6937,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       if (enforceAbilityPrereqs) {
-        const prereqCheck = this._evaluateAbilityPrerequisites(itemData);
+        const prereqCheck = await this._evaluateAbilityPrerequisites(itemData);
         if (!prereqCheck.ok) {
           const details = prereqCheck.reasons.slice(0, 3).join("; ");
           ui.notifications.warn(`Cannot add ${itemData.name}: prerequisites not met. ${details}`);
@@ -6391,7 +7619,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       itemData.system = normalizeAbilitySystemData(itemData.system ?? {});
 
       if (enforceAbilityPrereqs) {
-        const prereqCheck = this._evaluateAbilityPrerequisites(itemData);
+        const prereqCheck = await this._evaluateAbilityPrerequisites(itemData);
         if (!prereqCheck.ok) {
           skippedAbilities.push({ name: abilityName, reasons: prereqCheck.reasons });
           continue;
@@ -6408,8 +7636,10 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (exists) continue;
 
       let itemData = null;
+      itemData = await this._importCompendiumItemDataByName("Halo-Mythic-Foundry-Updated.traits", traitName);
+
       const worldTrait = game.items?.find((entry) => entry.type === "trait" && String(entry.name ?? "").toLowerCase() === traitName.toLowerCase());
-      if (worldTrait) {
+      if (!itemData && worldTrait) {
         itemData = worldTrait.toObject();
       }
 
@@ -8066,6 +9296,409 @@ class MythicArmorVariantSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   }
 }
 
+function resolveCharacteristicKey(raw) {
+  const normalized = String(raw ?? "").trim().toLowerCase();
+  if (!normalized) return "";
+  const map = {
+    str: "str", strength: "str",
+    tou: "tou", toughness: "tou",
+    agi: "agi", agility: "agi",
+    wfm: "wfm", "warfare melee": "wfm", melee: "wfm",
+    wfr: "wfr", "warfare ranged": "wfr", ranged: "wfr",
+    int: "int", intellect: "int",
+    per: "per", perception: "per",
+    crg: "crg", courage: "crg",
+    cha: "cha", charisma: "cha",
+    ldr: "ldr", leadership: "ldr"
+  };
+  return map[normalized] ?? "";
+}
+
+function parseModifierToken(token) {
+  const trimmed = String(token ?? "").trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^([+-]?\d+)\s*(.+)$/i);
+  if (!match) return null;
+  const value = Number(match[1]);
+  if (!Number.isFinite(value)) return null;
+  const rawKey = String(match[2] ?? "").trim().toLowerCase();
+  if (!rawKey) return null;
+  if (rawKey === "wounds" || rawKey === "wound") {
+    return { kind: "wound", value: Math.floor(value) };
+  }
+  const key = resolveCharacteristicKey(rawKey);
+  if (!key) return null;
+  return { kind: "stat", key, value: Math.floor(value) };
+}
+
+function parseModifierList(rawText) {
+  return String(rawText ?? "")
+    .split(",")
+    .map((part) => parseModifierToken(part))
+    .filter((entry) => entry && Number.isFinite(entry.value));
+}
+
+function serializeModifierGroupsForEditor(groups = []) {
+  const lines = [];
+  for (const group of Array.isArray(groups) ? groups : []) {
+    const options = Array.isArray(group?.options) ? group.options : [];
+    if (group?.type === "choice") {
+      const optionTexts = options.map((opt) => {
+        const mods = Array.isArray(opt?.modifiers) ? opt.modifiers.map((m) => _formatModifier(m)) : [];
+        return mods.join(", ");
+      }).filter(Boolean);
+      if (optionTexts.length) lines.push(`choice: ${optionTexts.join(" | ")}`);
+      continue;
+    }
+    const fixed = options[0];
+    const fixedMods = Array.isArray(fixed?.modifiers) ? fixed.modifiers.map((m) => _formatModifier(m)) : [];
+    if (fixedMods.length) lines.push(`fixed: ${fixedMods.join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
+function parseModifierGroupsFromEditor(rawText) {
+  const lines = String(rawText ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const groups = [];
+
+  for (const line of lines) {
+    const normalized = line.toLowerCase();
+    const isChoice = normalized.startsWith("choice:");
+    const source = line.replace(/^\s*(choice|fixed)\s*:\s*/i, "").trim();
+    if (!source) continue;
+
+    if (isChoice || source.includes("|")) {
+      const options = source.split("|")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .map((entry, index) => ({
+          label: entry,
+          modifiers: parseModifierList(entry),
+          id: `opt-${index + 1}`
+        }))
+        .filter((entry) => entry.modifiers.length > 0);
+      if (!options.length) continue;
+      groups.push({
+        id: foundry.utils.randomID(),
+        label: "Choice",
+        type: "choice",
+        options
+      });
+      continue;
+    }
+
+    const modifiers = parseModifierList(source);
+    if (!modifiers.length) continue;
+    groups.push({
+      id: foundry.utils.randomID(),
+      label: "Fixed",
+      type: "fixed",
+      options: [{ label: source, modifiers }]
+    });
+  }
+
+  return groups;
+}
+
+function serializeLifestyleVariantsForEditor(variants = []) {
+  const lines = [];
+  for (const variant of Array.isArray(variants) ? variants : []) {
+    const weight = Math.max(1, toNonNegativeWhole(variant?.weight, 1));
+    const label = String(variant?.label ?? "").trim();
+    const modifiers = Array.isArray(variant?.modifiers) ? variant.modifiers.map((m) => _formatModifier(m)).join(", ") : "";
+    const choiceGroups = Array.isArray(variant?.choiceGroups) ? variant.choiceGroups : [];
+    const choices = choiceGroups.map((group) => {
+      const opts = Array.isArray(group?.options)
+        ? group.options.map((opt) => {
+          const mods = Array.isArray(opt?.modifiers) ? opt.modifiers.map((m) => _formatModifier(m)).join(", ") : "";
+          return mods;
+        }).filter(Boolean)
+        : [];
+      return opts.join(" OR ");
+    }).filter(Boolean).join(" ; ");
+    const parts = [String(weight), label, modifiers, choices].map((part) => String(part ?? "").trim());
+    lines.push(parts.join(" | "));
+  }
+  return lines.join("\n");
+}
+
+function parseLifestyleVariantsFromEditor(rawText) {
+  const lines = String(rawText ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const variants = [];
+
+  for (const line of lines) {
+    const [rawWeight = "1", rawLabel = "", rawMods = "", rawChoices = ""] = line.split("|").map((part) => String(part ?? "").trim());
+    const weightValue = Math.max(1, toNonNegativeWhole(rawWeight, 1));
+    const modifiers = parseModifierList(rawMods);
+    const choiceGroups = [];
+
+    const choiceParts = String(rawChoices ?? "").split(";").map((part) => part.trim()).filter(Boolean);
+    for (const choicePart of choiceParts) {
+      const options = choicePart.split(/\s+or\s+/i)
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .map((entry) => ({
+          id: foundry.utils.randomID(),
+          label: entry,
+          modifiers: parseModifierList(entry)
+        }))
+        .filter((entry) => entry.modifiers.length > 0);
+      if (!options.length) continue;
+      choiceGroups.push({
+        id: foundry.utils.randomID(),
+        label: "Choice",
+        type: "choice",
+        options
+      });
+    }
+
+    variants.push({
+      id: foundry.utils.randomID(),
+      weight: weightValue,
+      rollMin: 1,
+      rollMax: 10,
+      label: rawLabel || "Variant",
+      modifiers,
+      choiceGroups
+    });
+  }
+
+  return variants;
+}
+
+// ── Upbringing Sheet ──────────────────────────────────────────────────────────
+
+class MythicUpbringingSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    classes: ["mythic-system", "sheet", "item", "upbringing"],
+    position: { width: 560, height: 480 },
+    window: { resizable: true },
+    form: { submitOnChange: true, closeOnSubmit: false }
+  }, { inplace: false });
+
+  static PARTS = {
+    sheet: { template: "systems/Halo-Mythic-Foundry-Updated/templates/item/upbringing-sheet.hbs" }
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    context.cssClass = this.options.classes.join(" ");
+    context.item = this.item;
+    context.editable = this.isEditable;
+    context.canEditFields = this.isEditable && Boolean(this.item.system?.editMode);
+    context.sys = normalizeUpbringingSystemData(this.item.system ?? {});
+    const ENV_LABELS = { city: "City", country: "Country", forest: "Forest/Jungle", town: "Town", wasteland: "Wasteland" };
+    context.allowedEnvsDisplay = context.sys.allowedEnvironments.length
+      ? context.sys.allowedEnvironments.map((k) => ENV_LABELS[k] ?? k).join(", ")
+      : "Any";
+    context.allowedEnvironmentsEditor = (Array.isArray(context.sys.allowedEnvironments) ? context.sys.allowedEnvironments : []).join(", ");
+    context.rulesText = serializeModifierGroupsForEditor(context.sys.modifierGroups);
+    context.modifierSummaryLines = context.sys.modifierGroups.map((group) => ({
+      label: group.label,
+      type: group.type,
+      options: group.options.map((opt) => ({
+        label: opt.label,
+        modifiers: opt.modifiers.map((m) => _formatModifier(m)).join(", ")
+      }))
+    }));
+    return context;
+  }
+
+  _prepareSubmitData(event, form, formData, updateData = {}) {
+    const submitData = super._prepareSubmitData(event, form, formData, updateData);
+    const rawAllowed = String(foundry.utils.getProperty(submitData, "mythic.allowedEnvironmentsEditor") ?? "");
+    const rawRules = String(foundry.utils.getProperty(submitData, "mythic.rulesText") ?? "");
+
+    const allowedEnvironments = rawAllowed
+      .split(",")
+      .map((entry) => String(entry ?? "").trim().toLowerCase())
+      .filter(Boolean)
+      .map((entry) => {
+        if (entry.includes("forest") || entry.includes("jungle")) return "forest";
+        if (entry.includes("wasteland")) return "wasteland";
+        if (entry.includes("country")) return "country";
+        if (entry.includes("town")) return "town";
+        if (entry.includes("city")) return "city";
+        return entry;
+      });
+
+    foundry.utils.setProperty(submitData, "system.allowedEnvironments", Array.from(new Set(allowedEnvironments)));
+    foundry.utils.setProperty(submitData, "system.modifierGroups", parseModifierGroupsFromEditor(rawRules));
+
+    if (submitData.mythic !== undefined) delete submitData.mythic;
+    foundry.utils.setProperty(
+      submitData,
+      "system",
+      normalizeUpbringingSystemData(foundry.utils.getProperty(submitData, "system") ?? {}, this.item.name ?? "")
+    );
+    return submitData;
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    if (!this.isEditable) return;
+    const toggleBtn = this.element?.querySelector(".mythic-toggle-edit-btn");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        await this.item.update({ "system.editMode": !Boolean(this.item.system?.editMode) });
+      });
+    }
+    const imgEl = this.element?.querySelector(".upbringing-sheet-icon");
+    if (!imgEl) return;
+    imgEl.style.cursor = "pointer";
+    imgEl.addEventListener("click", () => {
+      new FilePicker({ type: "image", current: this.item.img, callback: (path) => this.item.update({ img: path }) }).browse();
+    });
+  }
+}
+
+// ── Environment Sheet ─────────────────────────────────────────────────────────
+
+class MythicEnvironmentSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    classes: ["mythic-system", "sheet", "item", "environment"],
+    position: { width: 560, height: 420 },
+    window: { resizable: true },
+    form: { submitOnChange: true, closeOnSubmit: false }
+  }, { inplace: false });
+
+  static PARTS = {
+    sheet: { template: "systems/Halo-Mythic-Foundry-Updated/templates/item/environment-sheet.hbs" }
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    context.cssClass = this.options.classes.join(" ");
+    context.item = this.item;
+    context.editable = this.isEditable;
+    context.canEditFields = this.isEditable && Boolean(this.item.system?.editMode);
+    context.sys = normalizeEnvironmentSystemData(this.item.system ?? {});
+    context.rulesText = serializeModifierGroupsForEditor(context.sys.modifierGroups);
+    context.modifierSummaryLines = context.sys.modifierGroups.map((group) => ({
+      label: group.label,
+      type: group.type,
+      options: group.options.map((opt) => ({
+        label: opt.label,
+        modifiers: opt.modifiers.map((m) => _formatModifier(m)).join(", ")
+      }))
+    }));
+    return context;
+  }
+
+  _prepareSubmitData(event, form, formData, updateData = {}) {
+    const submitData = super._prepareSubmitData(event, form, formData, updateData);
+    const rawRules = String(foundry.utils.getProperty(submitData, "mythic.rulesText") ?? "");
+    foundry.utils.setProperty(submitData, "system.modifierGroups", parseModifierGroupsFromEditor(rawRules));
+    if (submitData.mythic !== undefined) delete submitData.mythic;
+    foundry.utils.setProperty(
+      submitData,
+      "system",
+      normalizeEnvironmentSystemData(foundry.utils.getProperty(submitData, "system") ?? {}, this.item.name ?? "")
+    );
+    return submitData;
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    if (!this.isEditable) return;
+    const toggleBtn = this.element?.querySelector(".mythic-toggle-edit-btn");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        await this.item.update({ "system.editMode": !Boolean(this.item.system?.editMode) });
+      });
+    }
+    const imgEl = this.element?.querySelector(".environment-sheet-icon");
+    if (!imgEl) return;
+    imgEl.style.cursor = "pointer";
+    imgEl.addEventListener("click", () => {
+      new FilePicker({ type: "image", current: this.item.img, callback: (path) => this.item.update({ img: path }) }).browse();
+    });
+  }
+}
+
+// ── Lifestyle Sheet ───────────────────────────────────────────────────────────
+
+class MythicLifestyleSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
+  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    classes: ["mythic-system", "sheet", "item", "lifestyle"],
+    position: { width: 580, height: 560 },
+    window: { resizable: true },
+    form: { submitOnChange: true, closeOnSubmit: false }
+  }, { inplace: false });
+
+  static PARTS = {
+    sheet: { template: "systems/Halo-Mythic-Foundry-Updated/templates/item/lifestyle-sheet.hbs" }
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    context.cssClass = this.options.classes.join(" ");
+    context.item = this.item;
+    context.editable = this.isEditable;
+    context.canEditFields = this.isEditable && Boolean(this.item.system?.editMode);
+    context.sys = normalizeLifestyleSystemData(this.item.system ?? {});
+    context.variantsText = serializeLifestyleVariantsForEditor(context.sys.variants);
+    context.variantRows = context.sys.variants.map((v) => ({
+      ...v,
+      weight: Math.max(1, toNonNegativeWhole(v.weight, 1)),
+      rangeLabel: v.rollMin === v.rollMax ? `${v.rollMin}` : `${v.rollMin}–${v.rollMax}`,
+      modifierDisplay: v.modifiers.map((m) => _formatModifier(m)).join(", "),
+      choiceLines: v.choiceGroups.map((cg) => ({
+        label: cg.label,
+        options: cg.options.map((opt) => ({
+          label: opt.label,
+          modifiers: opt.modifiers.map((m) => _formatModifier(m)).join(", ")
+        }))
+      }))
+    }));
+    return context;
+  }
+
+  _prepareSubmitData(event, form, formData, updateData = {}) {
+    const submitData = super._prepareSubmitData(event, form, formData, updateData);
+    const rawVariants = String(foundry.utils.getProperty(submitData, "mythic.variantsText") ?? "");
+    foundry.utils.setProperty(submitData, "system.variants", parseLifestyleVariantsFromEditor(rawVariants));
+    if (submitData.mythic !== undefined) delete submitData.mythic;
+    foundry.utils.setProperty(
+      submitData,
+      "system",
+      normalizeLifestyleSystemData(foundry.utils.getProperty(submitData, "system") ?? {}, this.item.name ?? "")
+    );
+    return submitData;
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    if (!this.isEditable) return;
+    const toggleBtn = this.element?.querySelector(".mythic-toggle-edit-btn");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        await this.item.update({ "system.editMode": !Boolean(this.item.system?.editMode) });
+      });
+    }
+    const imgEl = this.element?.querySelector(".lifestyle-sheet-icon");
+    if (!imgEl) return;
+    imgEl.style.cursor = "pointer";
+    imgEl.addEventListener("click", () => {
+      new FilePicker({ type: "image", current: this.item.img, callback: (path) => this.item.update({ img: path }) }).browse();
+    });
+  }
+}
+
+/** Helper: render a modifier object as a signed label string, e.g. "+3 STR" or "+2 Wounds". */
+function _formatModifier(m) {
+  const sign = m.value >= 0 ? "+" : "";
+  if (m.kind === "wound") return `${sign}${m.value} Wounds`;
+  const keyLabel = {
+    str: "STR", tou: "TOU", agi: "AGI", wfm: "WFM (Melee)", wfr: "WFR (Ranged)",
+    int: "INT", per: "PER", crg: "CRG", cha: "CHA", ldr: "LDR"
+  }[String(m.key ?? "").toLowerCase()] ?? String(m.key ?? m.kind ?? "?").toUpperCase();
+  return `${sign}${m.value} ${keyLabel}`;
+}
+
 class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
       classes: ["mythic-system", "sheet", "item", "soldier-type"],
@@ -8311,6 +9944,21 @@ Hooks.once("init", async () => {
     types: ["armorVariant"]
   });
 
+  ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicUpbringingSheet, {
+    makeDefault: true,
+    types: ["upbringing"]
+  });
+
+  ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicEnvironmentSheet, {
+    makeDefault: true,
+    types: ["environment"]
+  });
+
+  ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicLifestyleSheet, {
+    makeDefault: true,
+    types: ["lifestyle"]
+  });
+
   CONFIG.Actor.trackableAttributes = {
     character: {
       bar: [
@@ -8349,6 +9997,7 @@ Hooks.once("ready", async () => {
   game.mythic.patchCovenantPlasmaPistols = patchCovenantPlasmaPistolChargeCompendiums;
   game.mythic.importReferenceArmor = importReferenceArmor;
   game.mythic.importReferenceArmorVariants = importReferenceArmorVariants;
+  game.mythic.syncCreationPathItemIcons = syncCreationPathItemIcons;
   game.mythic.previewReferenceArmor = async () => {
     const rows = await loadReferenceArmorItems();
     return { total: rows.length };
@@ -8371,51 +10020,68 @@ Hooks.once("ready", async () => {
     void organizeEquipmentCompendiumFolders();
     void patchCovenantPlasmaPistolChargeCompendiums();
 
-    const educationPack = game.packs.get("Halo-Mythic-Foundry-Updated.educations");
-    if (educationPack) {
-      (async () => {
-        // getIndex() fetches the actual document count from disk — pack.size is
-        // unreliable before the index is loaded and always reads 0 on fresh load.
-        const index = await educationPack.getIndex();
-        if (index.size > 0) return;
+    const seedCompendiumIfEmpty = async ({ collection, label, buildItems }) => {
+      const pack = game.packs.get(collection);
+      if (!pack) return;
 
-        const wasLocked = educationPack.locked;
-        if (wasLocked) await educationPack.configure({ locked: false });
-        const itemsToCreate = MYTHIC_EDUCATION_DEFINITIONS.map(def => ({
-          name: def.name,
-          type: "education",
-          img: MYTHIC_EDUCATION_DEFAULT_ICON,
-          system: {
-            difficulty:   def.difficulty ?? "basic",
-            skills:       Array.isArray(def.skills) ? def.skills : [],
-            characteristic: "int",
-            costPlus5:    def.costPlus5  ?? 50,
-            costPlus10:   def.costPlus10 ?? 100,
-            restricted:   def.restricted ?? false,
-            category:     def.category   ?? "general",
-            description:  "",
-            tier:         "plus5",
-            modifier:     0
+      const index = await pack.getIndex();
+      if (index.size > 0) return;
+
+      const itemsToCreate = await buildItems();
+      if (!Array.isArray(itemsToCreate) || itemsToCreate.length < 1) return;
+
+      const wasLocked = Boolean(pack.locked);
+      let unlockedForSeed = false;
+
+      try {
+        if (wasLocked) {
+          await pack.configure({ locked: false });
+          unlockedForSeed = true;
+        }
+        await Item.createDocuments(itemsToCreate, { pack: pack.collection });
+        console.log(`[mythic-system] Seeded ${itemsToCreate.length} ${label} into compendium.`);
+      } catch (error) {
+        console.error(`[mythic-system] Failed seeding ${label} compendium ${collection}.`, error);
+      } finally {
+        if (wasLocked && unlockedForSeed) {
+          try {
+            await pack.configure({ locked: true });
+          } catch (lockError) {
+            console.error(`[mythic-system] Failed to relock compendium ${collection}.`, lockError);
           }
-        }));
-        await Item.createDocuments(itemsToCreate, { pack: educationPack.collection });
-        if (wasLocked) await educationPack.configure({ locked: true });
-        console.log(`[mythic-system] Seeded ${itemsToCreate.length} educations into compendium.`);
-      })();
-    }
+        }
+      }
+    };
 
-    const abilityPack = game.packs.get("Halo-Mythic-Foundry-Updated.abilities");
-    if (abilityPack) {
-      (async () => {
-        const index = await abilityPack.getIndex();
-        if (index.size > 0) return;
+    await seedCompendiumIfEmpty({
+      collection: "Halo-Mythic-Foundry-Updated.educations",
+      label: "educations",
+      buildItems: async () => MYTHIC_EDUCATION_DEFINITIONS.map((def) => ({
+        name: def.name,
+        type: "education",
+        img: MYTHIC_EDUCATION_DEFAULT_ICON,
+        system: {
+          difficulty: def.difficulty ?? "basic",
+          skills: Array.isArray(def.skills) ? def.skills : [],
+          characteristic: "int",
+          costPlus5: def.costPlus5 ?? 50,
+          costPlus10: def.costPlus10 ?? 100,
+          restricted: def.restricted ?? false,
+          category: def.category ?? "general",
+          description: "",
+          tier: "plus5",
+          modifier: 0
+        }
+      }))
+    });
 
+    await seedCompendiumIfEmpty({
+      collection: "Halo-Mythic-Foundry-Updated.abilities",
+      label: "abilities",
+      buildItems: async () => {
         const defs = await loadMythicAbilityDefinitions();
-        if (!defs.length) return;
-
-        const wasLocked = abilityPack.locked;
-        if (wasLocked) await abilityPack.configure({ locked: false });
-        const itemsToCreate = defs.map((def) => ({
+        if (!defs.length) return [];
+        return defs.map((def) => ({
           name: String(def.name ?? "Ability"),
           type: "ability",
           img: MYTHIC_ABILITY_DEFAULT_ICON,
@@ -8434,22 +10100,505 @@ Hooks.once("ready", async () => {
             notes: def.notes ?? ""
           })
         }));
-        await Item.createDocuments(itemsToCreate, { pack: abilityPack.collection });
-        if (wasLocked) await abilityPack.configure({ locked: true });
-        console.log(`[mythic-system] Seeded ${itemsToCreate.length} abilities into compendium.`);
-      })();
-    }
+      }
+    });
+
+    await seedCompendiumIfEmpty({
+      collection: "Halo-Mythic-Foundry-Updated.traits",
+      label: "traits",
+      buildItems: async () => {
+        const defs = await loadMythicTraitDefinitions();
+        if (!defs.length) return [];
+        return defs.map((def) => ({
+          name: String(def.name ?? "Trait"),
+          type: "trait",
+          img: MYTHIC_ABILITY_DEFAULT_ICON,
+          system: normalizeTraitSystemData({
+            shortDescription: def.shortDescription ?? "",
+            benefit: def.benefit ?? "",
+            category: def.category ?? "soldier-type",
+            grantOnly: def.grantOnly !== false,
+            tags: Array.isArray(def.tags) ? def.tags : [],
+            sourcePage: def.sourcePage ?? 1,
+            notes: def.notes ?? ""
+          }),
+          effects: buildTraitAutoEffects(def)
+        }));
+      }
+    });
+
+    await seedCompendiumIfEmpty({
+      collection: "Halo-Mythic-Foundry-Updated.upbringings",
+      label: "upbringings",
+      buildItems: async () => MYTHIC_UPBRINGING_DEFINITIONS.map((def) => ({
+        name: def.name,
+        type: "upbringing",
+        img: MYTHIC_UPBRINGING_DEFAULT_ICON,
+        system: normalizeUpbringingSystemData({
+          allowedEnvironments: def.allowedEnvironments ?? [],
+          modifierGroups: def.modifierGroups ?? []
+        })
+      }))
+    });
+
+    await seedCompendiumIfEmpty({
+      collection: "Halo-Mythic-Foundry-Updated.environments",
+      label: "environments",
+      buildItems: async () => MYTHIC_ENVIRONMENT_DEFINITIONS.map((def) => ({
+        name: def.name,
+        type: "environment",
+        img: MYTHIC_ENVIRONMENT_DEFAULT_ICON,
+        system: normalizeEnvironmentSystemData({
+          modifierGroups: def.modifierGroups ?? []
+        })
+      }))
+    });
+
+    await seedCompendiumIfEmpty({
+      collection: "Halo-Mythic-Foundry-Updated.lifestyles",
+      label: "lifestyles",
+      buildItems: async () => MYTHIC_LIFESTYLE_DEFINITIONS.map((def) => ({
+        name: def.name,
+        type: "lifestyle",
+        img: MYTHIC_LIFESTYLE_DEFAULT_ICON,
+        system: normalizeLifestyleSystemData({
+          variants: def.variants ?? []
+        })
+      }))
+    });
+
+    await syncCreationPathItemIcons();
   }
 });
 
 const MYTHIC_EDUCATION_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/education.png";
 const MYTHIC_ABILITY_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/ability.png";
+const MYTHIC_CREATION_PATHS_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/Upbringing Environment Lifestyle.png";
+const MYTHIC_UPBRINGING_DEFAULT_ICON = MYTHIC_CREATION_PATHS_DEFAULT_ICON;
+const MYTHIC_ENVIRONMENT_DEFAULT_ICON = MYTHIC_CREATION_PATHS_DEFAULT_ICON;
+const MYTHIC_LIFESTYLE_DEFAULT_ICON = MYTHIC_CREATION_PATHS_DEFAULT_ICON;
 const MYTHIC_RANGED_WEAPON_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/Ranged Weapons.png";
 const MYTHIC_MELEE_WEAPON_DEFAULT_ICON = "systems/Halo-Mythic-Foundry-Updated/assets/icons/Melee Weapons.png";
+
+async function syncCreationPathItemIcons() {
+  if (!game.user?.isGM) return { worldUpdated: 0, compendiumUpdated: 0 };
+
+  const targetTypes = new Set(["upbringing", "environment", "lifestyle"]);
+  let worldUpdated = 0;
+  let compendiumUpdated = 0;
+
+  // Update world items for the three creation-path item types.
+  for (const item of game.items ?? []) {
+    if (!targetTypes.has(String(item.type ?? ""))) continue;
+    if (String(item.img ?? "") === MYTHIC_CREATION_PATHS_DEFAULT_ICON) continue;
+    await item.update({ img: MYTHIC_CREATION_PATHS_DEFAULT_ICON });
+    worldUpdated += 1;
+  }
+
+  // Update compendium items and safely handle locked packs.
+  const packCollections = [
+    "Halo-Mythic-Foundry-Updated.upbringings",
+    "Halo-Mythic-Foundry-Updated.environments",
+    "Halo-Mythic-Foundry-Updated.lifestyles"
+  ];
+
+  for (const collection of packCollections) {
+    const pack = game.packs.get(collection);
+    if (!pack) continue;
+
+    const wasLocked = Boolean(pack.locked);
+    let unlockedForSync = false;
+
+    try {
+      if (wasLocked) {
+        await pack.configure({ locked: false });
+        unlockedForSync = true;
+      }
+
+      const docs = await pack.getDocuments();
+      for (const doc of docs) {
+        if (!targetTypes.has(String(doc.type ?? ""))) continue;
+        if (String(doc.img ?? "") === MYTHIC_CREATION_PATHS_DEFAULT_ICON) continue;
+        await doc.update({ img: MYTHIC_CREATION_PATHS_DEFAULT_ICON });
+        compendiumUpdated += 1;
+      }
+    } catch (error) {
+      console.error(`[mythic-system] Failed icon sync for ${collection}.`, error);
+    } finally {
+      if (wasLocked && unlockedForSync) {
+        try {
+          await pack.configure({ locked: true });
+        } catch (lockError) {
+          console.error(`[mythic-system] Failed to relock compendium ${collection} after icon sync.`, lockError);
+        }
+      }
+    }
+  }
+
+  if (worldUpdated > 0 || compendiumUpdated > 0) {
+    console.log(`[mythic-system] Synced creation-path item icons. World updated: ${worldUpdated}, compendium updated: ${compendiumUpdated}.`);
+  }
+
+  return { worldUpdated, compendiumUpdated };
+}
 
 // Sources considered official Mythic system content. Rows from other sources
 // (e.g. Star Wars, Mass Effect, 40K crossovers) are skipped during import.
 const MYTHIC_ALLOWED_WEAPON_SOURCES = Object.freeze(new Set(["mythic", "warzone"]));
+
+// ── Upbringing definitions ─────────────────────────────────────────────────────
+// Shorthand helpers used only inside these definitions:
+// { kind:"stat", key, value } = characteristic modifier
+// { kind:"wound", value }     = max-wound modifier (no key)
+// group type "fixed"  = all options apply together (no player choice needed within the group)
+// group type "choice" = player picks exactly one option from the group
+
+const MYTHIC_UPBRINGING_DEFINITIONS = [
+  {
+    name: "Aristocracy",
+    allowedEnvironments: [],
+    modifierGroups: [
+      { id: "up-ari-1", label: "+5 Intellect or Charisma", type: "choice", options: [
+        { label: "+5 Intellect",  modifiers: [{ kind: "stat", key: "int", value:  5 }] },
+        { label: "+5 Charisma",   modifiers: [{ kind: "stat", key: "cha", value:  5 }] }
+      ]},
+      { id: "up-ari-2", label: "-5 Leadership or Agility", type: "choice", options: [
+        { label: "-5 Leadership", modifiers: [{ kind: "stat", key: "ldr", value: -5 }] },
+        { label: "-5 Agility",    modifiers: [{ kind: "stat", key: "agi", value: -5 }] }
+      ]}
+    ]
+  },
+  {
+    name: "Commoner",
+    allowedEnvironments: [],
+    modifierGroups: []
+  },
+  {
+    name: "Farmer",
+    allowedEnvironments: ["town", "country"],
+    modifierGroups: [
+      { id: "up-far-1", label: "+3 Strength or Agility", type: "choice", options: [
+        { label: "+3 Strength", modifiers: [{ kind: "stat", key: "str", value:  3 }] },
+        { label: "+3 Agility",  modifiers: [{ kind: "stat", key: "agi", value:  3 }] }
+      ]},
+      { id: "up-far-2", label: "-3 Charisma or Courage", type: "choice", options: [
+        { label: "-3 Charisma", modifiers: [{ kind: "stat", key: "cha", value: -3 }] },
+        { label: "-3 Courage",  modifiers: [{ kind: "stat", key: "crg", value: -3 }] }
+      ]}
+    ]
+  },
+  {
+    name: "Fugitive",
+    allowedEnvironments: [],
+    modifierGroups: [
+      { id: "up-fug-1", label: "+3 Strength and +3 Toughness; -3 Leadership and -3 Charisma", type: "fixed", options: [
+        { label: "+3 STR, +3 TOU, -3 LDR, -3 CHA", modifiers: [
+          { kind: "stat", key: "str", value:  3 },
+          { kind: "stat", key: "tou", value:  3 },
+          { kind: "stat", key: "ldr", value: -3 },
+          { kind: "stat", key: "cha", value: -3 }
+        ]}
+      ]}
+    ]
+  },
+  {
+    name: "Laborer",
+    allowedEnvironments: [],
+    modifierGroups: [
+      { id: "up-lab-1", label: "+2 STR and +1 TOU  OR  +1 STR and +2 TOU", type: "choice", options: [
+        { label: "+2 STR, +1 TOU", modifiers: [{ kind: "stat", key: "str", value: 2 }, { kind: "stat", key: "tou", value: 1 }] },
+        { label: "+1 STR, +2 TOU", modifiers: [{ kind: "stat", key: "str", value: 1 }, { kind: "stat", key: "tou", value: 2 }] }
+      ]},
+      { id: "up-lab-2", label: "-3 Courage or Leadership", type: "choice", options: [
+        { label: "-3 Courage",    modifiers: [{ kind: "stat", key: "crg", value: -3 }] },
+        { label: "-3 Leadership", modifiers: [{ kind: "stat", key: "ldr", value: -3 }] }
+      ]}
+    ]
+  },
+  {
+    name: "Military",
+    allowedEnvironments: [],
+    modifierGroups: [
+      { id: "up-mil-1", label: "+3 Leadership or Courage", type: "choice", options: [
+        { label: "+3 Leadership", modifiers: [{ kind: "stat", key: "ldr", value:  3 }] },
+        { label: "+3 Courage",    modifiers: [{ kind: "stat", key: "crg", value:  3 }] }
+      ]},
+      { id: "up-mil-2", label: "-3 Charisma or Intellect", type: "choice", options: [
+        { label: "-3 Charisma",  modifiers: [{ kind: "stat", key: "cha", value: -3 }] },
+        { label: "-3 Intellect", modifiers: [{ kind: "stat", key: "int", value: -3 }] }
+      ]}
+    ]
+  },
+  {
+    name: "Nobility",
+    allowedEnvironments: [],
+    modifierGroups: [
+      { id: "up-nob-1", label: "+5 Charisma, +5 Leadership; -5 Perception, -5 Toughness", type: "fixed", options: [
+        { label: "+5 CHA, +5 LDR, -5 PER, -5 TOU", modifiers: [
+          { kind: "stat", key: "cha", value:  5 },
+          { kind: "stat", key: "ldr", value:  5 },
+          { kind: "stat", key: "per", value: -5 },
+          { kind: "stat", key: "tou", value: -5 }
+        ]}
+      ]}
+    ]
+  },
+  {
+    name: "Street Urchin",
+    allowedEnvironments: ["town", "city"],
+    modifierGroups: [
+      { id: "up-stu-1", label: "Gain +2 Wounds", type: "fixed", options: [
+        { label: "+2 Wounds", modifiers: [{ kind: "wound", value: 2 }] }
+      ]},
+      { id: "up-stu-2", label: "-1 Intellect or Strength", type: "choice", options: [
+        { label: "-1 Intellect", modifiers: [{ kind: "stat", key: "int", value: -1 }] },
+        { label: "-1 Strength",  modifiers: [{ kind: "stat", key: "str", value: -1 }] }
+      ]}
+    ]
+  },
+  {
+    name: "War Orphan",
+    allowedEnvironments: [],
+    modifierGroups: [
+      { id: "up-war-1", label: "+5 Courage or Strength", type: "choice", options: [
+        { label: "+5 Courage",   modifiers: [{ kind: "stat", key: "crg", value:  5 }] },
+        { label: "+5 Strength",  modifiers: [{ kind: "stat", key: "str", value:  5 }] }
+      ]},
+      { id: "up-war-2", label: "-5 Leadership or Charisma", type: "choice", options: [
+        { label: "-5 Leadership", modifiers: [{ kind: "stat", key: "ldr", value: -5 }] },
+        { label: "-5 Charisma",   modifiers: [{ kind: "stat", key: "cha", value: -5 }] }
+      ]}
+    ]
+  },
+  {
+    name: "Wastelander",
+    allowedEnvironments: ["forest", "wasteland"],
+    modifierGroups: [
+      { id: "up-was-1", label: "+5 Toughness or Perception", type: "choice", options: [
+        { label: "+5 Toughness",  modifiers: [{ kind: "stat", key: "tou", value:  5 }] },
+        { label: "+5 Perception", modifiers: [{ kind: "stat", key: "per", value:  5 }] }
+      ]},
+      { id: "up-was-2", label: "-5 Leadership or Intellect", type: "choice", options: [
+        { label: "-5 Leadership", modifiers: [{ kind: "stat", key: "ldr", value: -5 }] },
+        { label: "-5 Intellect",  modifiers: [{ kind: "stat", key: "int", value: -5 }] }
+      ]}
+    ]
+  }
+];
+
+// ── Environment definitions ────────────────────────────────────────────────────
+
+const MYTHIC_ENVIRONMENT_DEFINITIONS = [
+  {
+    name: "City",
+    modifierGroups: [
+      { id: "env-cty-1", label: "+5 Agility, Courage, or Perception", type: "choice", options: [
+        { label: "+5 Agility",    modifiers: [{ kind: "stat", key: "agi", value:  5 }] },
+        { label: "+5 Courage",    modifiers: [{ kind: "stat", key: "crg", value:  5 }] },
+        { label: "+5 Perception", modifiers: [{ kind: "stat", key: "per", value:  5 }] }
+      ]},
+      { id: "env-cty-2", label: "-5 Strength, Toughness, or Perception", type: "choice", options: [
+        { label: "-5 Strength",   modifiers: [{ kind: "stat", key: "str", value: -5 }] },
+        { label: "-5 Toughness",  modifiers: [{ kind: "stat", key: "tou", value: -5 }] },
+        { label: "-5 Perception", modifiers: [{ kind: "stat", key: "per", value: -5 }] }
+      ]}
+    ]
+  },
+  {
+    name: "Country",
+    modifierGroups: [
+      { id: "env-cou-1", label: "+5 Perception, Agility, or Strength", type: "choice", options: [
+        { label: "+5 Perception", modifiers: [{ kind: "stat", key: "per", value:  5 }] },
+        { label: "+5 Agility",    modifiers: [{ kind: "stat", key: "agi", value:  5 }] },
+        { label: "+5 Strength",   modifiers: [{ kind: "stat", key: "str", value:  5 }] }
+      ]},
+      { id: "env-cou-2", label: "-5 Charisma, Intellect, or Perception", type: "choice", options: [
+        { label: "-5 Charisma",   modifiers: [{ kind: "stat", key: "cha", value: -5 }] },
+        { label: "-5 Intellect",  modifiers: [{ kind: "stat", key: "int", value: -5 }] },
+        { label: "-5 Perception", modifiers: [{ kind: "stat", key: "per", value: -5 }] }
+      ]}
+    ]
+  },
+  {
+    name: "Forest/Jungle",
+    modifierGroups: [
+      { id: "env-for-1", label: "+5 Perception, Strength, or Toughness", type: "choice", options: [
+        { label: "+5 Perception", modifiers: [{ kind: "stat", key: "per", value:  5 }] },
+        { label: "+5 Strength",   modifiers: [{ kind: "stat", key: "str", value:  5 }] },
+        { label: "+5 Toughness",  modifiers: [{ kind: "stat", key: "tou", value:  5 }] }
+      ]},
+      { id: "env-for-2", label: "-5 Leadership, Intellect, or Charisma", type: "choice", options: [
+        { label: "-5 Leadership", modifiers: [{ kind: "stat", key: "ldr", value: -5 }] },
+        { label: "-5 Intellect",  modifiers: [{ kind: "stat", key: "int", value: -5 }] },
+        { label: "-5 Charisma",   modifiers: [{ kind: "stat", key: "cha", value: -5 }] }
+      ]}
+    ]
+  },
+  {
+    name: "Town",
+    modifierGroups: [
+      { id: "env-twn-1", label: "+5 Charisma, Leadership, or Perception", type: "choice", options: [
+        { label: "+5 Charisma",   modifiers: [{ kind: "stat", key: "cha", value:  5 }] },
+        { label: "+5 Leadership", modifiers: [{ kind: "stat", key: "ldr", value:  5 }] },
+        { label: "+5 Perception", modifiers: [{ kind: "stat", key: "per", value:  5 }] }
+      ]},
+      { id: "env-twn-2", label: "-5 Courage, Intellect, or Agility", type: "choice", options: [
+        { label: "-5 Courage",   modifiers: [{ kind: "stat", key: "crg", value: -5 }] },
+        { label: "-5 Intellect", modifiers: [{ kind: "stat", key: "int", value: -5 }] },
+        { label: "-5 Agility",   modifiers: [{ kind: "stat", key: "agi", value: -5 }] }
+      ]}
+    ]
+  },
+  {
+    name: "Wasteland",
+    modifierGroups: [
+      { id: "env-wst-1", label: "+5 Courage, Toughness, or Agility", type: "choice", options: [
+        { label: "+5 Courage",   modifiers: [{ kind: "stat", key: "crg", value:  5 }] },
+        { label: "+5 Toughness", modifiers: [{ kind: "stat", key: "tou", value:  5 }] },
+        { label: "+5 Agility",   modifiers: [{ kind: "stat", key: "agi", value:  5 }] }
+      ]},
+      { id: "env-wst-2", label: "-5 Charisma, Leadership, or Strength", type: "choice", options: [
+        { label: "-5 Charisma",   modifiers: [{ kind: "stat", key: "cha", value: -5 }] },
+        { label: "-5 Leadership", modifiers: [{ kind: "stat", key: "ldr", value: -5 }] },
+        { label: "-5 Strength",   modifiers: [{ kind: "stat", key: "str", value: -5 }] }
+      ]}
+    ]
+  }
+];
+
+// ── Lifestyle definitions ──────────────────────────────────────────────────────
+// choiceGroups within a variant = sub-choices the player must make (e.g. which WF characteristic).
+
+const MYTHIC_LIFESTYLE_DEFINITIONS = [
+  {
+    name: "Body Builder",
+    variants: [
+      { id: "bb-v1", rollMin: 1,  rollMax: 5,  label: "You worked out more than anything.",           modifiers: [{ kind:"stat",key:"str",value:3},{kind:"stat",key:"tou",value:3},{kind:"stat",key:"int",value:-3},{kind:"stat",key:"per",value:-3}], choiceGroups: [] },
+      { id: "bb-v2", rollMin: 6,  rollMax: 10, label: "You worked out alone a lot.",                  modifiers: [{ kind:"stat",key:"tou",value:3},{kind:"stat",key:"str",value:3},{kind:"stat",key:"cha",value:-3},{kind:"stat",key:"ldr",value:-3}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Fast Talker",
+    variants: [
+      { id: "ft-v1", rollMin: 1, rollMax: 5,  label: "You have learned the ways of getting what you want.", modifiers: [{ kind:"stat",key:"cha",value:2},{kind:"stat",key:"ldr",value:2},{kind:"stat",key:"str",value:-2},{kind:"stat",key:"tou",value:-2}], choiceGroups: [] },
+      { id: "ft-v2", rollMin: 6, rollMax: 9,  label: "You've learned to talk your way out of situations.",  modifiers: [{ kind:"stat",key:"cha",value:3},{kind:"stat",key:"str",value:-3}], choiceGroups: [] },
+      { id: "ft-v3", rollMin: 10,rollMax: 10, label: "You're better at talking than you are at listening.", modifiers: [{ kind:"stat",key:"cha",value:5},{kind:"stat",key:"per",value:-5}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Gamer or Gambler",
+    variants: [
+      { id: "gg-v1", rollMin: 1, rollMax: 5,  label: "You've gamed for a hobby.",                     modifiers: [{ kind:"stat",key:"per",value:3},{kind:"stat",key:"str",value:-3}], choiceGroups: [] },
+      { id: "gg-v2", rollMin: 6, rollMax: 10, label: "You play games with others for a living.",      modifiers: [{ kind:"stat",key:"cha",value:3},{kind:"stat",key:"str",value:-3}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Hunter",
+    variants: [
+      { id: "hun-v1", rollMin: 1, rollMax: 5,  label: "You've hunted for a living. +3 to chosen Warfare Characteristic.",  modifiers: [{ kind:"stat",key:"int",value:-3}], choiceGroups: [
+        { id: "hun-v1-wf", label: "+3 to chosen Warfare Characteristic", type: "choice", options: [
+          { label: "+3 Warfare Melee",  modifiers: [{ kind:"stat",key:"wfm",value:3}] },
+          { label: "+3 Warfare Ranged", modifiers: [{ kind:"stat",key:"wfr",value:3}] }
+        ]}
+      ]},
+      { id: "hun-v2", rollMin: 6, rollMax: 10, label: "You've hunted for sport. +3 to chosen Warfare Characteristic.", modifiers: [{ kind:"stat",key:"crg",value:-3}], choiceGroups: [
+        { id: "hun-v2-wf", label: "+3 to chosen Warfare Characteristic", type: "choice", options: [
+          { label: "+3 Warfare Melee",  modifiers: [{ kind:"stat",key:"wfm",value:3}] },
+          { label: "+3 Warfare Ranged", modifiers: [{ kind:"stat",key:"wfr",value:3}] }
+        ]}
+      ]}
+    ]
+  },
+  {
+    name: "Loner",
+    variants: [
+      { id: "lon-v1", rollMin: 1, rollMax: 5,  label: "You isolate yourself, learning you can only depend on your own actions.", modifiers: [{ kind:"stat",key:"cha",value:-3},{kind:"stat",key:"int",value:3}], choiceGroups: [] },
+      { id: "lon-v2", rollMin: 6, rollMax: 10, label: "You've become distrustful of others; you look out for yourself.",       modifiers: [{ kind:"stat",key:"cha",value:-3},{kind:"stat",key:"per",value:3}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Mercenary",
+    variants: [
+      { id: "mer-v1", rollMin: 1, rollMax: 3,  label: "You ran a Mercenary Team that took jobs for cash.",          modifiers: [{ kind:"stat",key:"ldr",value:3},{kind:"stat",key:"cha",value:-3}], choiceGroups: [] },
+      { id: "mer-v2", rollMin: 4, rollMax: 10, label: "You were a member of a Mercenary Team, which took jobs for cash.", modifiers: [{ kind:"stat",key:"ldr",value:-3},{kind:"stat",key:"crg",value:3}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Merchant",
+    variants: [
+      { id: "mrc-v1", rollMin: 1, rollMax: 4,  label: "You sold goods, using quick wit to talk people into sales.", modifiers: [{ kind:"stat",key:"cha",value:3},{kind:"stat",key:"ldr",value:-3}], choiceGroups: [] },
+      { id: "mrc-v2", rollMin: 5, rollMax: 10, label: "You ran a standard business of buying and selling.",        modifiers: [{ kind:"stat",key:"ldr",value:3},{kind:"stat",key:"cha",value:-3}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Patient",
+    variants: [
+      { id: "pat-v1", rollMin: 1,  rollMax: 6,  label: "You expect things to come to you, sometimes they do.",        modifiers: [{ kind:"stat",key:"per",value:2},{kind:"stat",key:"cha",value:-2}], choiceGroups: [] },
+      { id: "pat-v2", rollMin: 7,  rollMax: 9,  label: "Patience has taught you a lot.",                              modifiers: [{ kind:"stat",key:"int",value:3},{kind:"stat",key:"str",value:-2},{kind:"stat",key:"tou",value:-1}], choiceGroups: [] },
+      { id: "pat-v3", rollMin: 10, rollMax: 10, label: "You've learnt to deal with people through Patience.",         modifiers: [{ kind:"stat",key:"cha",value:3},{kind:"wound",value:-4}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Spiritual",
+    variants: [
+      { id: "spi-v1", rollMin: 1, rollMax: 5,  label: "You've grown with religion as a major impactor of your life.", modifiers: [{ kind:"stat",key:"str",value:-3},{kind:"stat",key:"crg",value:3}], choiceGroups: [] },
+      { id: "spi-v2", rollMin: 6, rollMax: 10, label: "You've taken religion as a way of helping others.",            modifiers: [{ kind:"stat",key:"ldr",value:3},{kind:"stat",key:"tou",value:-3}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Street Fighter",
+    variants: [
+      { id: "sf-v1", rollMin: 1, rollMax: 4,  label: "You win most of your fights.",  modifiers: [{ kind:"stat",key:"str",value:2},{kind:"stat",key:"tou",value:-2}], choiceGroups: [] },
+      { id: "sf-v2", rollMin: 5, rollMax: 8,  label: "You lose most of your fights.", modifiers: [{ kind:"stat",key:"str",value:-2},{kind:"stat",key:"tou",value:2}], choiceGroups: [] },
+      { id: "sf-v3", rollMin: 9, rollMax: 10, label: "Balanced fighter.",             modifiers: [{ kind:"stat",key:"str",value:1},{kind:"stat",key:"tou",value:1},{kind:"stat",key:"ldr",value:-2}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Wanderer",
+    variants: [
+      { id: "wan-v1", rollMin: 1, rollMax: 5,  label: "You've spent a lot of time running.", modifiers: [{ kind:"stat",key:"agi",value:3},{kind:"stat",key:"crg",value:-3}], choiceGroups: [] },
+      { id: "wan-v2", rollMin: 6, rollMax: 10, label: "You've faced your fears.",            modifiers: [{ kind:"stat",key:"agi",value:-3},{kind:"stat",key:"crg",value:3}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Weapon Training",
+    variants: [
+      { id: "wt-v1", rollMin: 1, rollMax: 5,  label: "You've learned to use weapons over anything else. +5 to selected Warfare, -5 to the other.", modifiers: [], choiceGroups: [
+        { id: "wt-v1-wf", label: "+5 to selected Warfare Characteristic, -5 to the other", type: "choice", options: [
+          { label: "+5 WFM, -5 WFR", modifiers: [{ kind:"stat",key:"wfm",value:5},{kind:"stat",key:"wfr",value:-5}] },
+          { label: "+5 WFR, -5 WFM", modifiers: [{ kind:"stat",key:"wfr",value:5},{kind:"stat",key:"wfm",value:-5}] }
+        ]}
+      ]},
+      { id: "wt-v2", rollMin: 6, rollMax: 10, label: "You care more about weapons than anything. +5 to selected Warfare, -5 Charisma.", modifiers: [{ kind:"stat",key:"cha",value:-5}], choiceGroups: [
+        { id: "wt-v2-wf", label: "+5 to selected Warfare Characteristic", type: "choice", options: [
+          { label: "+5 Warfare Melee",  modifiers: [{ kind:"stat",key:"wfm",value:5}] },
+          { label: "+5 Warfare Ranged", modifiers: [{ kind:"stat",key:"wfr",value:5}] }
+        ]}
+      ]}
+    ]
+  },
+  {
+    name: "Wild",
+    variants: [
+      { id: "wld-v1", rollMin: 1,  rollMax: 5,  label: "Took too many risks, taken many falls.",         modifiers: [{ kind:"stat",key:"str",value:-4},{kind:"stat",key:"tou",value:4}], choiceGroups: [] },
+      { id: "wld-v2", rollMin: 6,  rollMax: 9,  label: "Taken beatings, toughened up.",                   modifiers: [{ kind:"wound",value:2},{kind:"stat",key:"tou",value:-3}], choiceGroups: [] },
+      { id: "wld-v3", rollMin: 10, rollMax: 10, label: "Rushed through life and tough situations.",       modifiers: [{ kind:"stat",key:"agi",value:2},{kind:"stat",key:"per",value:-2}], choiceGroups: [] }
+    ]
+  },
+  {
+    name: "Wise Guy",
+    variants: [
+      { id: "wg-v1", rollMin: 1, rollMax: 4,  label: "You've taken to reading and use it to show up others.",                  modifiers: [{ kind:"stat",key:"int",value:3},{kind:"stat",key:"ldr",value:-3}], choiceGroups: [] },
+      { id: "wg-v2", rollMin: 5, rollMax: 9,  label: "Instead of talking your way out, you attempt to use your knowledge.",    modifiers: [{ kind:"stat",key:"int",value:2},{kind:"stat",key:"cha",value:-2}], choiceGroups: [] },
+      { id: "wg-v3", rollMin: 10,rollMax: 10, label: "You prefer more interesting ways of combat. +5 INT, -5 chosen Warfare.", modifiers: [{ kind:"stat",key:"int",value:5}], choiceGroups: [
+        { id: "wg-v3-wf", label: "-5 to chosen Warfare Characteristic", type: "choice", options: [
+          { label: "-5 Warfare Melee",  modifiers: [{ kind:"stat",key:"wfm",value:-5}] },
+          { label: "-5 Warfare Ranged", modifiers: [{ kind:"stat",key:"wfr",value:-5}] }
+        ]}
+      ]}
+    ]
+  }
+];
 
 Hooks.on("preCreateItem", (item, createData) => {
   const initialName = String(createData?.name ?? item?.name ?? "").trim();
@@ -8504,6 +10653,34 @@ Hooks.on("preCreateItem", (item, createData) => {
   if (item.type === "soldierType") {
     const normalized = normalizeSoldierTypeSystemData(createData.system ?? {}, initialName);
     foundry.utils.setProperty(createData, "system", normalized);
+    return;
+  }
+
+  if (item.type === "upbringing") {
+    foundry.utils.setProperty(createData, "system", normalizeUpbringingSystemData(createData.system ?? {}, initialName));
+    const currentImg = createData.img ?? item.img ?? "";
+    if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
+      foundry.utils.setProperty(createData, "img", MYTHIC_UPBRINGING_DEFAULT_ICON);
+    }
+    return;
+  }
+
+  if (item.type === "environment") {
+    foundry.utils.setProperty(createData, "system", normalizeEnvironmentSystemData(createData.system ?? {}, initialName));
+    const currentImg = createData.img ?? item.img ?? "";
+    if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
+      foundry.utils.setProperty(createData, "img", MYTHIC_ENVIRONMENT_DEFAULT_ICON);
+    }
+    return;
+  }
+
+  if (item.type === "lifestyle") {
+    foundry.utils.setProperty(createData, "system", normalizeLifestyleSystemData(createData.system ?? {}, initialName));
+    const currentImg = createData.img ?? item.img ?? "";
+    if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
+      foundry.utils.setProperty(createData, "img", MYTHIC_LIFESTYLE_DEFAULT_ICON);
+    }
+    return;
   }
 });
 
@@ -8536,6 +10713,19 @@ Hooks.on("preUpdateItem", (item, changes) => {
     }
     if (item.type === "soldierType") {
       changes.system = normalizeSoldierTypeSystemData(item.system ?? {}, nextName);
+      return;
+    }
+    if (item.type === "upbringing") {
+      changes.system = normalizeUpbringingSystemData(item.system ?? {}, nextName);
+      return;
+    }
+    if (item.type === "environment") {
+      changes.system = normalizeEnvironmentSystemData(item.system ?? {}, nextName);
+      return;
+    }
+    if (item.type === "lifestyle") {
+      changes.system = normalizeLifestyleSystemData(item.system ?? {}, nextName);
+      return;
     }
     return;
   }
@@ -8570,6 +10760,21 @@ Hooks.on("preUpdateItem", (item, changes) => {
 
   if (item.type === "soldierType") {
     changes.system = normalizeSoldierTypeSystemData(nextSystem, nextName);
+    return;
+  }
+
+  if (item.type === "upbringing") {
+    changes.system = normalizeUpbringingSystemData(nextSystem, nextName);
+    return;
+  }
+
+  if (item.type === "environment") {
+    changes.system = normalizeEnvironmentSystemData(nextSystem, nextName);
+    return;
+  }
+
+  if (item.type === "lifestyle") {
+    changes.system = normalizeLifestyleSystemData(nextSystem, nextName);
     return;
   }
 

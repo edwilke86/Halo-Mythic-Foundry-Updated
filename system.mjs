@@ -3521,8 +3521,21 @@ function normalizeSoldierTypeNameForMatch(name) {
     .trim();
 }
 
+function normalizeReferenceTextArtifacts(text) {
+  return String(text ?? "")
+    // Common mojibake sequences for smart quotes/apostrophes from UTF-8 text decoded as latin1
+    .replace(/â€œ|â€|â€|â€˜|â€™/g, " ")
+    // Standard smart quotes
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, " ")
+    // Replacement character and non-breaking spaces
+    .replace(/[\uFFFD\u00A0]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function isLikelySoldierTypeHeading(line) {
-  const text = String(line ?? "").trim();
+  const text = normalizeReferenceTextArtifacts(line);
   if (!text) return false;
   // Normalize smart punctuation and strip decorative quote marks seen in source PDFs.
   const normalized = text
@@ -3704,7 +3717,7 @@ function parseSoldierTypeCharacteristicAdvancements(lines) {
 function parseSoldierTypeBlocksFromText(text) {
   const allLines = String(text ?? "")
     .split(/\r?\n/)
-    .map((line) => String(line ?? "").replace(/\t/g, " ").trim());
+    .map((line) => normalizeReferenceTextArtifacts(String(line ?? "").replace(/\t/g, " ")));
 
   const starts = [];
   for (let i = 0; i < allLines.length; i += 1) {

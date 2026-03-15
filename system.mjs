@@ -4460,10 +4460,10 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const displayLabels = { str: "STR", tou: "TOU", agi: "AGI", wfr: "WFR", wfm: "WFM", int: "INT", per: "PER", crg: "CRG", cha: "CHA", ldr: "LDR" };
 
     // Read GM settings with safe fallback
-    let creationPointsSetting = "100";
+    let creationPointsSetting = "85";
     let statCap = 20;
     try {
-      creationPointsSetting = String(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY) ?? "100");
+      creationPointsSetting = String(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY) ?? "85");
       statCap = Math.max(0, Math.floor(Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY) ?? 20)));
     } catch (_) { /* settings not ready */ }
     if (!Number.isFinite(statCap)) statCap = 20;
@@ -5989,7 +5989,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     // Enforce creation points pool lock from system setting
     try {
-      const cpSetting = String(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY) ?? "100");
+      const cpSetting = String(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY) ?? "85");
       if (cpSetting === "85" || cpSetting === "100") {
         foundry.utils.setProperty(submitData, "system.charBuilder.creationPoints.pool", Number(cpSetting));
       }
@@ -6067,6 +6067,25 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (input.name.startsWith("system.characteristics.") || input.name.startsWith("system.mythic.characteristics.")) {
         const value = Number(input.value);
         input.value = Number.isFinite(value) ? String(Math.max(0, value)) : "0";
+      }
+
+      if (input.name.startsWith("system.charBuilder.creationPoints.")) {
+        const raw = String(input.value ?? "").trim();
+        let val = raw === "" ? 0 : Number(raw);
+        if (!Number.isFinite(val)) val = 0;
+        val = Math.max(0, Math.floor(val));
+
+        // Live cap clamp for UX; authoritative clamp remains in _prepareSubmitData.
+        let statCap = 20;
+        try {
+          statCap = Math.max(0, Math.floor(Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY) ?? 20)));
+        } catch (_) {
+          statCap = 20;
+        }
+        if (!Number.isFinite(statCap)) statCap = 20;
+        if (statCap > 0) val = Math.min(statCap, val);
+
+        input.value = String(val);
       }
 
       if (input.name.startsWith("system.combat.")) {
@@ -10887,16 +10906,16 @@ Hooks.once("init", async () => {
 
   game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY, {
     name: "Characteristics Builder: Creation Points Pool",
-    hint: "Default creation point budget for the Characteristics Builder. '85' and '100' lock all characters to that value; 'Custom' lets each actor set their own pool.",
+    hint: "Default creation point budget for the Characteristics Builder. '85' is standard play, '100' is high-power, and 'Custom' lets each actor set their own pool.",
     scope: "world",
     config: true,
     type: String,
     choices: {
-      "85":     "85 (Reduced)",
-      "100":    "100 (Standard)",
+      "85":     "85 (Standard)",
+      "100":    "100 (High Power)",
       "custom": "Custom (set per character)"
     },
-    default: "100"
+    default: "85"
   });
 
   game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY, {

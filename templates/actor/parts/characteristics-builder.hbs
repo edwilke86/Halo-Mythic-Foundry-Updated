@@ -131,7 +131,7 @@
           <td class="mythic-charbuilder-row-label">Advancements</td>
           {{#each mythicCharBuilder.advancementColumns as |col|}}
             <td>
-              {{#if ../../mythicCharBuilder.managed}}
+              {{#if ../mythicCharBuilder.managed}}
                 <select name="{{col.name}}" class="mythic-charbuilder-cell editable adv-select">
                   {{#each col.options as |opt|}}
                     <option value="{{opt.value}}"

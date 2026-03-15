@@ -364,6 +364,7 @@ const MYTHIC_SYNC_DEFAULT_SCOPE_BY_TYPE = Object.freeze({
 const MYTHIC_REFERENCE_RANGED_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Ranged Weps.csv";
 const MYTHIC_REFERENCE_MELEE_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Melee Weps.csv";
 const MYTHIC_REFERENCE_ARMOR_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Armor.csv";
+const MYTHIC_REFERENCE_EQUIPMENT_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - CR costing items.csv";
 
 function coerceSchemaVersion(value, fallback = 1) {
   const numeric = Number(value);
@@ -2854,6 +2855,7 @@ async function removeNonMythicCompendiumWeapons(options = {}) {
 // ─── Armor importer ───────────────────────────────────────────────────────────
 
 const MYTHIC_ALLOWED_ARMOR_SOURCES = Object.freeze(new Set(["mythic", "warzone"]));
+const MYTHIC_ALLOWED_EQUIPMENT_SOURCES = Object.freeze(new Set(["mythic"]));
 const MYTHIC_ARMOR_ROW_EXCLUSION_REGEX = /stink\s*machine|helldiver|secret\s*helldivers\s*test/i;
 
 function getArmorCompendiumDescriptor(itemData) {
@@ -3201,6 +3203,194 @@ async function importReferenceArmor(options = {}) {
   return { created, updated, skipped, mode: "split-compendiums", buckets: grouped.size };
 }
 
+function getEquipmentCompendiumDescriptor(itemData) {
+  const faction = classifyWeaponFactionBucket(itemData?.system?.faction);
+  const supported = new Set(["human", "covenant", "banished", "forerunner"]);
+  if (!supported.has(faction.key)) return null;
+
+  return {
+    key: faction.key,
+    name: `mythic-equipment-${faction.key}`,
+    label: `${faction.label} Equipment`
+  };
+}
+
+function parseReferenceEquipmentRows(rows) {
+  const headerIndex = findHeaderRowIndex(rows, "Equipment");
+  if (headerIndex < 0) return [];
+
+  const headerRow = rows[headerIndex];
+  const headerMap = buildHeaderMap(headerRow);
+  const parsed = [];
+
+  for (let i = headerIndex + 1; i < rows.length; i += 1) {
+    const row = rows[i] ?? [];
+    const name = getCell(row, headerMap, "Equipment");
+    if (!name || /^default$/i.test(name)) continue;
+
+    const source = getCell(row, headerMap, "Source").toLowerCase() || "mythic";
+    if (!MYTHIC_ALLOWED_EQUIPMENT_SOURCES.has(source)) continue;
+
+    const faction = getCell(row, headerMap, "faction");
+    const bucket = classifyWeaponFactionBucket(faction);
+    if (!["human", "covenant", "banished", "forerunner"].includes(bucket.key)) continue;
+
+    const type = getCell(row, headerMap, "Type");
+    const modType = getCell(row, headerMap, "Mod Type");
+    const damage = getCell(row, headerMap, "Damage");
+    const pierce = getCell(row, headerMap, "Pierce");
+    const uniqueFlag = getCell(row, headerMap, "[U]");
+    const description = getCell(row, headerMap, "Description");
+    const weightKg = parseNumericOrZero(getCell(row, headerMap, "Weight"));
+    const priceAmount = parseWholeOrZero(getCell(row, headerMap, "cR"));
+
+    const specialRules = [
+      type ? `Type: ${type}` : "",
+      modType ? `Mod Type: ${modType}` : "",
+      damage ? `Damage: ${damage}` : "",
+      pierce ? `Pierce: ${pierce}` : "",
+      uniqueFlag ? `Unique: ${uniqueFlag}` : ""
+    ].filter(Boolean).join("\n");
+
+    parsed.push({
+      name,
+      type: "gear",
+      img: "systems/Halo-Mythic-Foundry-Updated/assets/icons/Soldier Type.png",
+      system: normalizeGearSystemData({
+        itemClass: "other",
+        weaponClass: "other",
+        faction,
+        source,
+        category: type,
+        description,
+        specialRules,
+        attachments: modType,
+        damage: {
+          baseRollD5: 0,
+          baseRollD10: 0,
+          baseDamage: 0,
+          pierce: parseNumericOrZero(pierce)
+        },
+        price: {
+          amount: priceAmount,
+          currency: "cr"
+        },
+        weightKg,
+        sourceReference: {
+          table: "cr-costing-items",
+          rowNumber: i + 1
+        },
+        sync: {
+          sourceScope: source,
+          sourceCollection: "cr-costing-items",
+          contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
+          canonicalId: buildCanonicalItemId("gear", `${bucket.key}-${type}-${name}`)
+        }
+      }, name)
+    });
+  }
+
+  return parsed;
+}
+
+async function loadReferenceEquipmentItems() {
+  const resp = await fetch(MYTHIC_REFERENCE_EQUIPMENT_CSV);
+  if (!resp.ok) {
+    console.error(`[mythic-system] Could not fetch equipment CSV: ${resp.status} ${resp.statusText}`);
+    return [];
+  }
+  const text = await resp.text();
+  const rows = splitCsvText(text);
+  return parseReferenceEquipmentRows(rows);
+}
+
+async function importReferenceEquipment(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can import reference equipment data.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const rows = await loadReferenceEquipmentItems();
+  if (!rows.length) {
+    ui.notifications?.warn("No reference equipment rows were loaded from the CSV file.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const dryRun = options?.dryRun === true;
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+  const processedPacks = [];
+  const grouped = new Map();
+
+  for (const itemData of rows) {
+    const descriptor = getEquipmentCompendiumDescriptor(itemData);
+    if (!descriptor) {
+      skipped += 1;
+      continue;
+    }
+    if (!grouped.has(descriptor.key)) grouped.set(descriptor.key, { descriptor, items: [] });
+    grouped.get(descriptor.key).items.push(itemData);
+  }
+
+  for (const { descriptor, items } of grouped.values()) {
+    let pack;
+    try {
+      pack = await ensureReferenceWeaponsCompendium(descriptor.name, descriptor.label);
+    } catch (error) {
+      console.error("[mythic-system] Failed to prepare equipment compendium.", error);
+      ui.notifications?.error(`Could not prepare compendium ${descriptor.label}. See console.`);
+      continue;
+    }
+
+    const byCanonicalId = await buildCompendiumCanonicalMap(pack);
+    const createBatch = [];
+
+    for (const itemData of items) {
+      const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+      if (!canonicalId) {
+        skipped += 1;
+        continue;
+      }
+
+      const existing = byCanonicalId.get(canonicalId);
+      if (!existing) {
+        if (!dryRun) createBatch.push(itemData);
+        created += 1;
+        continue;
+      }
+
+      const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name);
+      nextSystem.sync.sourceCollection = descriptor.name;
+      const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+      const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+      if (foundry.utils.isEmpty(diff) && !nameChanged) {
+        skipped += 1;
+        continue;
+      }
+
+      if (!dryRun) {
+        await existing.update({ name: itemData.name, system: nextSystem });
+      }
+      updated += 1;
+    }
+
+    if (!dryRun && createBatch.length) {
+      await Item.createDocuments(createBatch, { pack: pack.collection });
+    }
+
+    processedPacks.push({ label: descriptor.label, created: createBatch.length });
+  }
+
+  if (!dryRun) {
+    ui.notifications?.info(`Equipment import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+    console.log("[mythic-system] Imported equipment compendium buckets:", processedPacks);
+    await organizeEquipmentCompendiumFolders();
+  }
+
+  return { created, updated, skipped, mode: "split-compendiums", buckets: grouped.size };
+}
+
 async function removeEmbeddedArmorVariants(options = {}) {
   if (!game.user?.isGM) {
     ui.notifications?.warn("Only a GM can remove embedded armor variants.");
@@ -3424,6 +3614,7 @@ async function organizeEquipmentCompendiumFolders(options = {}) {
     const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
     return name.startsWith("mythic-weapons-")
       || name.startsWith("mythic-armor-")
+      || name.startsWith("mythic-equipment-")
       || name.startsWith("mythic-armor-variants-")
       || name.startsWith("mythic-armor-variant-")
       || name.startsWith("mythic-armorvariant-");
@@ -3435,7 +3626,7 @@ async function organizeEquipmentCompendiumFolders(options = {}) {
   let skipped = 0;
   for (const pack of equipmentPacks) {
     const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
-    const match = /^mythic-(?:weapons|armor|armor-variants|armor-variant|armorvariant)-([a-z]+)(?:-|$)/.exec(name);
+    const match = /^mythic-(?:weapons|armor|equipment|armor-variants|armor-variant|armorvariant)-([a-z]+)(?:-|$)/.exec(name);
     const faction = match?.[1] ?? "";
 
     // Flood (and any unknown factions) stay ungrouped by request.
@@ -9997,6 +10188,7 @@ Hooks.once("ready", async () => {
   game.mythic.patchCovenantPlasmaPistols = patchCovenantPlasmaPistolChargeCompendiums;
   game.mythic.importReferenceArmor = importReferenceArmor;
   game.mythic.importReferenceArmorVariants = importReferenceArmorVariants;
+  game.mythic.importReferenceEquipment = importReferenceEquipment;
   game.mythic.syncCreationPathItemIcons = syncCreationPathItemIcons;
   game.mythic.previewReferenceArmor = async () => {
     const rows = await loadReferenceArmorItems();
@@ -10013,6 +10205,15 @@ Hooks.once("ready", async () => {
       ranged: rows.filter((entry) => entry.system?.weaponClass === "ranged").length,
       melee: rows.filter((entry) => entry.system?.weaponClass === "melee").length
     };
+  };
+  game.mythic.previewReferenceEquipment = async () => {
+    const rows = await loadReferenceEquipmentItems();
+    const byFaction = rows.reduce((acc, entry) => {
+      const bucket = classifyWeaponFactionBucket(entry.system?.faction).key;
+      acc[bucket] = (acc[bucket] ?? 0) + 1;
+      return acc;
+    }, {});
+    return { total: rows.length, byFaction };
   };
 
   // Seed compendium packs on first load (GM only)

@@ -86,7 +86,8 @@ const MYTHIC_ACTOR_PARTIAL_TEMPLATES = [
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/notes-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicles-tab.hbs",
-  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs"
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/characteristics-builder.hbs"
 ];
 
 // All canonical educations from the Halo Mythic rulebook (p.106)
@@ -1152,6 +1153,13 @@ function getCanonicalCharacterSystemData() {
       cha: 0,
       ldr: 0
     },
+    charBuilder: {
+      managed: false,
+      soldierTypeRow: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
+      creationPoints: { pool: 100, str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
+      advancements: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
+      misc: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 }
+    },
     mythic: {
       characteristics: {
         str: 0,
@@ -1569,6 +1577,32 @@ function normalizeCharacterSystemData(systemData) {
 
   merged.training = normalizeTrainingData(merged.training);
   merged.skills = normalizeSkillsData(merged.skills);
+
+  // charBuilder normalization
+  merged.charBuilder = merged.charBuilder && typeof merged.charBuilder === "object" ? merged.charBuilder : {};
+  merged.charBuilder.managed = Boolean(merged.charBuilder.managed);
+  for (const rowKey of ["soldierTypeRow", "creationPoints", "advancements", "misc"]) {
+    merged.charBuilder[rowKey] = merged.charBuilder[rowKey] && typeof merged.charBuilder[rowKey] === "object"
+      ? merged.charBuilder[rowKey] : {};
+    for (const statKey of MYTHIC_CHARACTERISTIC_KEYS) {
+      const v = Number(merged.charBuilder[rowKey][statKey] ?? 0);
+      merged.charBuilder[rowKey][statKey] = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
+    }
+  }
+  const rawPool = Number(merged.charBuilder.creationPoints?.pool ?? 100);
+  merged.charBuilder.creationPoints.pool = Number.isFinite(rawPool) ? Math.max(1, Math.floor(rawPool)) : 100;
+
+  // When managed, compute characteristics from builder rows (background added separately via creationPath)
+  if (merged.charBuilder.managed) {
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      const total = (merged.charBuilder.soldierTypeRow[key] ?? 0)
+        + (merged.charBuilder.creationPoints[key] ?? 0)
+        + (merged.charBuilder.advancements[key] ?? 0)
+        + (merged.charBuilder.misc[key] ?? 0);
+      merged.characteristics[key] = Math.max(0, Math.floor(total));
+    }
+  }
+
   merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ACTOR_SCHEMA_VERSION);
   return merged;
 }
@@ -4242,6 +4276,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicTraits = this._getTraitsViewData();
     context.mythicTraining = this._getTrainingViewData(normalizedSystem?.training);
     context.mythicHasBlurAbility = this.actor.items.some((i) => i.type === "ability" && String(i.name ?? "").toLowerCase() === "blur");
+    context.mythicCharBuilder = this._getCharBuilderViewData(normalizedSystem, creationPathOutcome);
     return context;
   }
 
@@ -4372,6 +4407,76 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       detailLines: [],
       pendingLines: [],
       hasPendingChoices: false
+    };
+  }
+
+  _getCharBuilderViewData(systemData, creationPathOutcome) {
+    const cb = normalizeCharacterSystemData(systemData).charBuilder;
+    // Display order for the table: WFR before WFM to match game convention
+    const displayKeys = ["str", "tou", "agi", "wfr", "wfm", "int", "per", "crg", "cha", "ldr"];
+    const displayLabels = { str: "STR", tou: "TOU", agi: "AGI", wfr: "WFR", wfm: "WFM", int: "INT", per: "PER", crg: "CRG", cha: "CHA", ldr: "LDR" };
+
+    const background = {};
+    const outcome = (creationPathOutcome && typeof creationPathOutcome === "object")
+      ? creationPathOutcome
+      : this._emptyCreationPathOutcome();
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      background[key] = Number(outcome.statBonuses?.[key] ?? 0);
+    }
+
+    // Advancement step options (0 to 100 in steps of 5)
+    const advancementStepOptions = [{ value: 0, label: "--" }];
+    for (let v = 5; v <= 100; v += 5) {
+      advancementStepOptions.push({ value: v, label: `+${v}` });
+    }
+
+    const poolUsed = MYTHIC_CHARACTERISTIC_KEYS.reduce((sum, k) => sum + (cb.creationPoints?.[k] ?? 0), 0);
+    const pool = cb.creationPoints?.pool ?? 100;
+
+    const totals = {};
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      totals[key] = Math.max(0,
+        (cb.soldierTypeRow?.[key] ?? 0)
+        + (cb.creationPoints?.[key] ?? 0)
+        + (background[key] ?? 0)
+        + (cb.advancements?.[key] ?? 0)
+        + (cb.misc?.[key] ?? 0)
+      );
+    }
+
+    // Pre-compute advancement columns with selected options
+    const advancementColumns = displayKeys.map((key) => {
+      const currentVal = Number(cb.advancements?.[key] ?? 0);
+      return {
+        key,
+        value: currentVal,
+        name: `system.charBuilder.advancements.${key}`,
+        options: advancementStepOptions.map((opt) => ({
+          value: opt.value,
+          label: opt.label,
+          selected: opt.value === currentVal
+        }))
+      };
+    });
+
+    const headerColumns = displayKeys.map((key) => ({ key, label: displayLabels[key] }));
+
+    return {
+      managed: cb.managed,
+      pool,
+      poolUsed,
+      poolRemaining: pool - poolUsed,
+      poolOverBudget: poolUsed > pool,
+      headerColumns,
+      displayKeys,
+      displayLabels,
+      soldierTypeRow: cb.soldierTypeRow,
+      creationPoints: cb.creationPoints,
+      background,
+      advancements: cb.advancements,
+      advancementColumns,
+      misc: cb.misc,
+      totals
     };
   }
 
@@ -5808,6 +5913,23 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       delete submitData.mythic;
     }
 
+    // If charBuilder is managed, compute characteristics totals from builder rows
+    const cbManaged = foundry.utils.getProperty(submitData, "system.charBuilder.managed");
+    if (cbManaged) {
+      const getBuilderStat = (row, key) => {
+        const val = foundry.utils.getProperty(submitData, `system.charBuilder.${row}.${key}`);
+        if (val !== undefined) return Math.max(0, Math.floor(Number(val) || 0));
+        return Math.max(0, Math.floor(Number(this.actor.system?.charBuilder?.[row]?.[key] ?? 0)));
+      };
+      for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+        const total = getBuilderStat("soldierTypeRow", key)
+          + getBuilderStat("creationPoints", key)
+          + getBuilderStat("advancements", key)
+          + getBuilderStat("misc", key);
+        foundry.utils.setProperty(submitData, `system.characteristics.${key}`, Math.max(0, Math.floor(total)));
+      }
+    }
+
     return submitData;
   }
 
@@ -6183,9 +6305,18 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    // Characteristics Builder: enable / disable
+    root.querySelector(".charbuilder-enable-btn")?.addEventListener("click", (event) => {
+      void this._onCharBuilderEnable(event);
+    });
+    root.querySelector(".charbuilder-disable-btn")?.addEventListener("click", (event) => {
+      void this._onCharBuilderDisable(event);
+    });
+
     root.querySelectorAll(".shields-recharge-btn").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onShieldsRecharge(event);
+
       });
     });
 
@@ -7552,43 +7683,41 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _promptSoldierTypeApplyMode(templateName, preview) {
-    return new Promise((resolve) => {
-      const dlg = new Dialog({
-        title: "Apply Soldier Type",
-        content: `
-          <div class="mythic-modal-body">
-            <p><strong>${foundry.utils.escapeHTML(templateName)}</strong> includes:</p>
-            <ul>
-              <li>${preview.headerFields} header fields</li>
-              <li>${preview.charFields} characteristics and ${preview.mythicFields} mythic traits</li>
-              <li>${preview.baseSkillPatches} base-skill patches, ${preview.customSkills} custom skills, and ${preview.skillChoices} skill choice rules</li>
-              <li>${preview.training} training grants, ${preview.specPacks} spec pack groups, and ${preview.equipmentPacks} equipment pack options</li>
-              <li>${preview.educations} educations, ${preview.abilities} abilities, and ${preview.traits} traits</li>
-            </ul>
-            <p>Overwrite replaces existing values. Merge fills blanks and adds package content.</p>
-          </div>
-        `,
-        buttons: {
-          overwrite: {
-            icon: '<i class="fas fa-file-import"></i>',
-            label: "Overwrite",
-            callback: () => resolve("overwrite")
-          },
-          merge: {
-            icon: '<i class="fas fa-code-merge"></i>',
-            label: "Merge",
-            callback: () => resolve("merge")
-          },
-          cancel: {
-            icon: '<i class="fas fa-times"></i>',
-            label: "Cancel",
-            callback: () => resolve(null)
-          }
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "Apply Soldier Type"
+      },
+      content: `
+        <div class="mythic-modal-body">
+          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong> includes:</p>
+          <ul>
+            <li>${preview.headerFields} header fields</li>
+            <li>${preview.charFields} characteristics and ${preview.mythicFields} mythic traits</li>
+            <li>${preview.baseSkillPatches} base-skill patches, ${preview.customSkills} custom skills, and ${preview.skillChoices} skill choice rules</li>
+            <li>${preview.training} training grants, ${preview.specPacks} spec pack groups, and ${preview.equipmentPacks} equipment pack options</li>
+            <li>${preview.educations} educations, ${preview.abilities} abilities, and ${preview.traits} traits</li>
+          </ul>
+          <p>Overwrite replaces existing values. Merge fills blanks and adds package content.</p>
+        </div>
+      `,
+      buttons: [
+        {
+          action: "overwrite",
+          icon: '<i class="fas fa-file-import"></i>',
+          label: "Overwrite"
         },
-        default: "merge",
-        close: () => resolve(null)
-      });
-      dlg.render(true);
+        {
+          action: "merge",
+          icon: '<i class="fas fa-code-merge"></i>',
+          label: "Merge"
+        },
+        {
+          action: "cancel",
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel"
+        }
+      ],
+      default: "merge"
     });
   }
 
@@ -8003,13 +8132,19 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
+    let soldierTypeCharApplied = false;
     for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
       const incoming = toNonNegativeWhole(templateSystem?.characteristics?.[key], 0);
       if (incoming <= 0) continue;
       const current = toNonNegativeWhole(actorSystem?.characteristics?.[key], 0);
       if (mode === "overwrite" || current <= 0) {
         setField(`system.characteristics.${key}`, incoming);
+        setField(`system.charBuilder.soldierTypeRow.${key}`, incoming);
+        soldierTypeCharApplied = true;
       }
+    }
+    if (soldierTypeCharApplied) {
+      setField("system.charBuilder.managed", true);
     }
 
     for (const key of ["str", "tou", "agi"]) {
@@ -8745,6 +8880,23 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this.actor.update({
       [`system.equipment.weaponState.${itemId}.fireMode`]: fireMode
     });
+  }
+
+  async _onCharBuilderEnable(event) {
+    event.preventDefault();
+    const actorSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+    const updateData = {};
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      const current = toNonNegativeWhole(actorSystem.characteristics?.[key], 0);
+      foundry.utils.setProperty(updateData, `system.charBuilder.creationPoints.${key}`, current);
+    }
+    foundry.utils.setProperty(updateData, "system.charBuilder.managed", true);
+    await this.actor.update(updateData);
+  }
+
+  async _onCharBuilderDisable(event) {
+    event.preventDefault();
+    await this.actor.update({ "system.charBuilder.managed": false });
   }
 
   async _onWoundsFullHeal(event) {

@@ -1,0 +1,160 @@
+{{!-- Characteristics Builder / Calculator --}}
+<section class="panel mythic-phase4-panel mythic-charbuilder-panel">
+  <div class="mythic-charbuilder-header">
+    <h2>Characteristics Builder</h2>
+    <div class="mythic-charbuilder-controls">
+      {{#if mythicCharBuilder.managed}}
+        <span class="mythic-charbuilder-status managed">Builder Active</span>
+        <button type="button" class="action-btn charbuilder-disable-btn" title="Disable managed mode — characteristics become manually editable again">Disable Builder</button>
+      {{else}}
+        <span class="mythic-charbuilder-status unmanaged">Manual Mode</span>
+        <button type="button" class="action-btn charbuilder-enable-btn" title="Enable Builder — current characteristic values become the Creation Points row">Enable Builder</button>
+      {{/if}}
+    </div>
+  </div>
+
+  {{#if mythicCharBuilder.managed}}
+    <div class="mythic-charbuilder-pool-bar">
+      <label class="mythic-charbuilder-pool-label">Creation Points Pool:
+        <input type="number" min="1" name="system.charBuilder.creationPoints.pool"
+               value="{{mythicCharBuilder.pool}}" class="mythic-charbuilder-pool-input" title="Total creation point budget" />
+      </label>
+      <span class="mythic-charbuilder-pool-used{{#if mythicCharBuilder.poolOverBudget}} over-budget{{/if}}">
+        Used: {{mythicCharBuilder.poolUsed}} / {{mythicCharBuilder.pool}}
+        {{#if mythicCharBuilder.poolOverBudget}}
+          ({{mythicCharBuilder.poolRemaining}} over budget!)
+        {{else}}
+          ({{mythicCharBuilder.poolRemaining}} remaining)
+        {{/if}}
+      </span>
+    </div>
+  {{/if}}
+
+  <div class="mythic-charbuilder-table-wrap">
+    <table class="mythic-charbuilder-table">
+      <thead>
+        <tr>
+          <th class="mythic-charbuilder-row-label">Source</th>
+          {{#each mythicCharBuilder.headerColumns as |col|}}
+            <th>{{col.label}}</th>
+          {{/each}}
+        </tr>
+      </thead>
+      <tbody>
+
+        {{!-- Soldier Type row --}}
+        <tr class="mythic-charbuilder-row row-soldiertype">
+          <td class="mythic-charbuilder-row-label">Soldier Type</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              {{#if ../mythicCharBuilder.managed}}
+                <input type="number" min="0"
+                       name="system.charBuilder.soldierTypeRow.{{statKey}}"
+                       value="{{lookup ../mythicCharBuilder.soldierTypeRow statKey}}"
+                       class="mythic-charbuilder-cell" />
+              {{else}}
+                <span class="mythic-charbuilder-cell-display">{{lookup ../mythicCharBuilder.soldierTypeRow statKey}}</span>
+              {{/if}}
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Creation Points row (editable when managed) --}}
+        <tr class="mythic-charbuilder-row row-creationpoints">
+          <td class="mythic-charbuilder-row-label">
+            Creation Points
+            {{#if mythicCharBuilder.managed}}<span class="mythic-charbuilder-pool-hint">({{mythicCharBuilder.pool}})</span>{{/if}}
+          </td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              {{#if ../mythicCharBuilder.managed}}
+                <input type="number" min="0"
+                       name="system.charBuilder.creationPoints.{{statKey}}"
+                       value="{{lookup ../mythicCharBuilder.creationPoints statKey}}"
+                       class="mythic-charbuilder-cell editable" />
+              {{else}}
+                <span class="mythic-charbuilder-cell-display muted">--</span>
+              {{/if}}
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Background row (auto from upbringing/environment/lifestyle) --}}
+        <tr class="mythic-charbuilder-row row-background">
+          <td class="mythic-charbuilder-row-label">Background</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              <span class="mythic-charbuilder-cell-display auto-value">{{lookup ../mythicCharBuilder.background statKey}}</span>
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Advancements row (dropdown per characteristic) --}}
+        <tr class="mythic-charbuilder-row row-advancements">
+          <td class="mythic-charbuilder-row-label">Advancements</td>
+          {{#each mythicCharBuilder.advancementColumns as |col|}}
+            <td>
+              {{#if ../../mythicCharBuilder.managed}}
+                <select name="{{col.name}}" class="mythic-charbuilder-cell editable adv-select">
+                  {{#each col.options as |opt|}}
+                    <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+                  {{/each}}
+                </select>
+              {{else}}
+                <span class="mythic-charbuilder-cell-display muted">--</span>
+              {{/if}}
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Medical row (placeholder — future auto-computed) --}}
+        <tr class="mythic-charbuilder-row row-medical">
+          <td class="mythic-charbuilder-row-label">Medical</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td><span class="mythic-charbuilder-cell-display">0</span></td>
+          {{/each}}
+        </tr>
+
+        {{!-- Penalties row (placeholder — future auto-computed) --}}
+        <tr class="mythic-charbuilder-row row-penalties">
+          <td class="mythic-charbuilder-row-label">Penalties</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td><span class="mythic-charbuilder-cell-display">(-0)</span></td>
+          {{/each}}
+        </tr>
+
+        {{!-- Other / Misc row (editable when managed) --}}
+        <tr class="mythic-charbuilder-row row-misc">
+          <td class="mythic-charbuilder-row-label">Other</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              {{#if ../mythicCharBuilder.managed}}
+                <input type="number"
+                       name="system.charBuilder.misc.{{statKey}}"
+                       value="{{lookup ../mythicCharBuilder.misc statKey}}"
+                       class="mythic-charbuilder-cell editable" />
+              {{else}}
+                <span class="mythic-charbuilder-cell-display muted">--</span>
+              {{/if}}
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Total row --}}
+        <tr class="mythic-charbuilder-row row-total">
+          <td class="mythic-charbuilder-row-label">Total</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              <span class="mythic-charbuilder-cell-display total-value">{{lookup ../mythicCharBuilder.totals statKey}}</span>
+            </td>
+          {{/each}}
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  {{#unless mythicCharBuilder.managed}}
+    <p class="mythic-charbuilder-hint">Enable the builder to use this table for structured characteristic management. Your current characteristic values will be copied into the Creation Points row.</p>
+  {{/unless}}
+</section>

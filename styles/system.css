@@ -3925,3 +3925,252 @@
   border-color: #ff7d73 !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
+
+/* ── Characteristics Builder ────────────────────────────────────────────── */
+.mythic-character-sheet .mythic-charbuilder-panel {
+  margin-bottom: 14px;
+}
+
+.mythic-character-sheet .mythic-charbuilder-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.mythic-character-sheet .mythic-charbuilder-header h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.mythic-character-sheet .mythic-charbuilder-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mythic-character-sheet .mythic-charbuilder-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mythic-character-sheet .mythic-charbuilder-status.managed {
+  background: rgba(52, 180, 90, 0.22);
+  color: #7ee89b;
+  border: 1px solid rgba(52, 180, 90, 0.45);
+}
+
+.mythic-character-sheet .mythic-charbuilder-status.unmanaged {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.mythic-character-sheet .mythic-charbuilder-pool-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.mythic-character-sheet .mythic-charbuilder-pool-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.mythic-character-sheet .mythic-charbuilder-pool-input {
+  width: 64px;
+  font-size: 12px;
+  padding: 2px 4px;
+  background: var(--mythic-input-bg);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: var(--mythic-text);
+  text-align: center;
+}
+
+.mythic-character-sheet .mythic-charbuilder-pool-used {
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+.mythic-character-sheet .mythic-charbuilder-pool-used.over-budget {
+  color: #ff7d7d;
+  opacity: 1;
+  font-weight: 700;
+}
+
+.mythic-character-sheet .mythic-charbuilder-table-wrap {
+  overflow-x: auto;
+}
+
+.mythic-character-sheet .mythic-charbuilder-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  min-width: 640px;
+}
+
+.mythic-character-sheet .mythic-charbuilder-table thead th {
+  background: var(--mythic-dark, #1a2b40);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 5px 4px;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mythic-character-sheet .mythic-charbuilder-table thead th.mythic-charbuilder-row-label {
+  text-align: left;
+  padding-left: 8px;
+  min-width: 120px;
+}
+
+.mythic-character-sheet .mythic-charbuilder-table tbody tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mythic-character-sheet .mythic-charbuilder-table tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.mythic-character-sheet .mythic-charbuilder-table tbody td {
+  padding: 3px 4px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
+}
+
+.mythic-character-sheet .mythic-charbuilder-row-label {
+  text-align: left !important;
+  padding-left: 8px !important;
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+  min-width: 110px;
+}
+
+.mythic-character-sheet .mythic-charbuilder-pool-hint {
+  font-size: 10px;
+  opacity: 0.65;
+  margin-left: 3px;
+}
+
+.mythic-character-sheet .mythic-charbuilder-cell {
+  width: 44px;
+  text-align: center;
+  font-size: 11px;
+  padding: 2px 2px;
+  background: var(--mythic-input-bg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  color: var(--mythic-text);
+}
+
+.mythic-character-sheet .mythic-charbuilder-cell.editable {
+  border-color: rgba(100, 160, 255, 0.35);
+  background: rgba(30, 50, 90, 0.4);
+}
+
+.mythic-character-sheet .mythic-charbuilder-cell.adv-select {
+  width: 56px;
+  padding: 1px 2px;
+  font-size: 11px;
+}
+
+.mythic-character-sheet .mythic-charbuilder-cell-display {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mythic-character-sheet .mythic-charbuilder-cell-display.muted {
+  opacity: 0.35;
+}
+
+.mythic-character-sheet .mythic-charbuilder-cell-display.auto-value {
+  color: #9ecfff;
+}
+
+.mythic-character-sheet .mythic-charbuilder-row.row-total {
+  background: rgba(74, 100, 140, 0.35) !important;
+}
+
+.mythic-character-sheet .mythic-charbuilder-row.row-total .mythic-charbuilder-row-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mythic-character-sheet .mythic-charbuilder-cell-display.total-value {
+  color: #e0e8ff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.mythic-character-sheet .mythic-charbuilder-row.row-soldiertype .mythic-charbuilder-cell {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mythic-character-sheet .mythic-charbuilder-row.row-creationpoints {
+  background: rgba(30, 60, 100, 0.25) !important;
+}
+
+.mythic-character-sheet .mythic-charbuilder-row.row-background .mythic-charbuilder-cell-display {
+  color: #9ecfff;
+}
+
+.mythic-character-sheet .mythic-charbuilder-hint {
+  font-size: 11px;
+  opacity: 0.55;
+  margin: 8px 0 0 0;
+  font-style: italic;
+}
+
+/* Main sheet locked-char badge */
+.mythic-character-sheet .mythic-char-strip-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.mythic-character-sheet .mythic-char-strip-header h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.mythic-character-sheet .mythic-char-strip-builder-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(52, 130, 200, 0.2);
+  color: #7ecbff;
+  border: 1px solid rgba(52, 130, 200, 0.4);
+  cursor: default;
+}
+
+.mythic-character-sheet .characteristic-block input[readonly] {
+  opacity: 0.85;
+  cursor: default;
+  border-color: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+

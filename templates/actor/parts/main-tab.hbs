@@ -1,65 +1,110 @@
 <div class="tab main" data-group="primary" data-tab="main">
   <section class="panel">
-    <h2>Characteristics</h2>
+    <div class="mythic-char-strip-header">
+      <h2>Characteristics</h2>
+      {{#if mythicCharBuilder.managed}}
+        <span class="mythic-char-strip-builder-badge" title="Characteristics are managed by the Builder (Settings tab)">Builder Managed</span>
+      {{/if}}
+    </div>
 
     <div class="characteristics-strip">
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="str" data-label="STR" title="Strength">STR</button>
-        <input name="system.characteristics.str" type="number" min="0" value="{{actor.system.characteristics.str}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.str" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'str'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.str" type="number" min="0" value="{{actor.system.characteristics.str}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "str"}}</div>
       </div>
 
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="tou" data-label="TOU" title="Toughness">TOU</button>
-        <input name="system.characteristics.tou" type="number" min="0" value="{{actor.system.characteristics.tou}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.tou" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'tou'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.tou" type="number" min="0" value="{{actor.system.characteristics.tou}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "tou"}}</div>
       </div>
 
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="agi" data-label="AGI" title="Agility">AGI</button>
-        <input name="system.characteristics.agi" type="number" min="0" value="{{actor.system.characteristics.agi}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.agi" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'agi'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.agi" type="number" min="0" value="{{actor.system.characteristics.agi}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "agi"}}</div>
       </div>
 
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="wfm" data-label="WFM" title="Warfare Melee">WFM</button>
-        <input name="system.characteristics.wfm" type="number" min="0" value="{{actor.system.characteristics.wfm}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.wfm" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'wfm'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.wfm" type="number" min="0" value="{{actor.system.characteristics.wfm}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "wfm"}}</div>
       </div>
 
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="wfr" data-label="WFR" title="Warfare Ranged">WFR</button>
-        <input name="system.characteristics.wfr" type="number" min="0" value="{{actor.system.characteristics.wfr}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.wfr" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'wfr'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.wfr" type="number" min="0" value="{{actor.system.characteristics.wfr}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "wfr"}}</div>
       </div>
 
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="int" data-label="INT" title="Intellect">INT</button>
-        <input name="system.characteristics.int" type="number" min="0" value="{{actor.system.characteristics.int}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.int" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'int'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.int" type="number" min="0" value="{{actor.system.characteristics.int}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "int"}}</div>
       </div>
 
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="per" data-label="PER" title="Perception">PER</button>
-        <input name="system.characteristics.per" type="number" min="0" value="{{actor.system.characteristics.per}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.per" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'per'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.per" type="number" min="0" value="{{actor.system.characteristics.per}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "per"}}</div>
       </div>
 
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="crg" data-label="CRG" title="Courage">CRG</button>
-        <input name="system.characteristics.crg" type="number" min="0" value="{{actor.system.characteristics.crg}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.crg" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'crg'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.crg" type="number" min="0" value="{{actor.system.characteristics.crg}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "crg"}}</div>
       </div>
 
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="cha" data-label="CHA" title="Charisma">CHA</button>
-        <input name="system.characteristics.cha" type="number" min="0" value="{{actor.system.characteristics.cha}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.cha" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'cha'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.cha" type="number" min="0" value="{{actor.system.characteristics.cha}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "cha"}}</div>
       </div>
 
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="ldr" data-label="LDR" title="Leadership">LDR</button>
-        <input name="system.characteristics.ldr" type="number" min="0" value="{{actor.system.characteristics.ldr}}" />
+        {{#if mythicCharBuilder.managed}}
+          <input name="system.characteristics.ldr" type="number" min="0" value="{{lookup mythicCharBuilder.totals 'ldr'}}" readonly title="Managed by Characteristics Builder" />
+        {{else}}
+          <input name="system.characteristics.ldr" type="number" min="0" value="{{actor.system.characteristics.ldr}}" />
+        {{/if}}
         <div class="characteristic-modifier">{{lookup mythicCharacteristicModifiers "ldr"}}</div>
       </div>
     </div>

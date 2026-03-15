@@ -1367,7 +1367,7 @@
 }
 
 .mythic-character-sheet .movement-ref-row input[type="number"] {
-  width: 56px;
+  width: 110px;
 }
 
 .mythic-character-sheet .gravity-input-row input[type="number"] {
@@ -3983,6 +3983,50 @@
   flex-wrap: wrap;
 }
 
+.mythic-character-sheet .mythic-charbuilder-pool-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.mythic-character-sheet .mythic-charbuilder-xp-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  background: rgba(255, 180, 50, 0.1);
+  border: 1px solid rgba(255, 180, 50, 0.25);
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mythic-character-sheet .mythic-charbuilder-xp-label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mythic-character-sheet .mythic-charbuilder-xp-total {
+  font-weight: 700;
+  color: #ffd580;
+  min-width: 40px;
+  text-align: right;
+}
+
+.mythic-character-sheet .mythic-charbuilder-pool-locked {
+  font-weight: 700;
+  color: #7ecbff;
+  font-size: 13px;
+  min-width: 32px;
+  text-align: center;
+}
+
+.mythic-character-sheet .over-budget-warn {
+  color: #ff7d7d;
+  font-weight: 700;
+}
+
 .mythic-character-sheet .mythic-charbuilder-pool-label {
   display: flex;
   align-items: center;
@@ -4131,6 +4175,12 @@
 }
 
 .mythic-character-sheet .mythic-charbuilder-row.row-background .mythic-charbuilder-cell-display {
+  color: #9ecfff;
+}
+
+.mythic-character-sheet .mythic-charbuilder-row.row-upbringing .mythic-charbuilder-cell-display,
+.mythic-character-sheet .mythic-charbuilder-row.row-environment .mythic-charbuilder-cell-display,
+.mythic-character-sheet .mythic-charbuilder-row.row-lifestyles .mythic-charbuilder-cell-display {
   color: #9ecfff;
 }
 

@@ -203,6 +203,18 @@ const MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY = "covenantPlasmaPistolCha
 const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
 const MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY = "ignoreBasicAmmoCounts";
 const MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY = "tokenBarVisibilityDefault";
+const MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY = "charBuilderCreationPoints";
+const MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY = "charBuilderStatCap";
+
+// Characteristic advancement tiers: value = stat bonus, xpStep = cost for that tier, xpCumulative = total purchase cost from scratch
+const MYTHIC_ADVANCEMENT_TIERS = [
+  { value: 0,  label: "None",         xpStep: 0,    xpCumulative: 0    },
+  { value: 5,  label: "Simple",       xpStep: 200,  xpCumulative: 200  },
+  { value: 10, label: "Rookie",       xpStep: 400,  xpCumulative: 600  },
+  { value: 15, label: "Intermediate", xpStep: 800,  xpCumulative: 1400 },
+  { value: 20, label: "Proficient",   xpStep: 1200, xpCumulative: 2600 },
+  { value: 25, label: "Mastery",      xpStep: 1600, xpCumulative: 4200 }
+];
 const MYTHIC_BIOGRAPHY_PREVIEW_FLAG_KEY = "biographyShowTokenPreview";
 const MYTHIC_CHARACTERISTIC_KEYS = ["str", "tou", "agi", "wfm", "wfr", "int", "per", "crg", "cha", "ldr"];
 
@@ -1158,7 +1170,8 @@ function getCanonicalCharacterSystemData() {
       soldierTypeRow: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
       creationPoints: { pool: 100, str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
       advancements: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
-      misc: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 }
+      misc: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
+      soldierTypeAdvancementsRow: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 }
     },
     mythic: {
       characteristics: {
@@ -1581,12 +1594,18 @@ function normalizeCharacterSystemData(systemData) {
   // charBuilder normalization
   merged.charBuilder = merged.charBuilder && typeof merged.charBuilder === "object" ? merged.charBuilder : {};
   merged.charBuilder.managed = Boolean(merged.charBuilder.managed);
-  for (const rowKey of ["soldierTypeRow", "creationPoints", "advancements", "misc"]) {
+  const _cbAdvValidValues = MYTHIC_ADVANCEMENT_TIERS.map((t) => t.value);
+  for (const rowKey of ["soldierTypeRow", "creationPoints", "advancements", "misc", "soldierTypeAdvancementsRow"]) {
     merged.charBuilder[rowKey] = merged.charBuilder[rowKey] && typeof merged.charBuilder[rowKey] === "object"
       ? merged.charBuilder[rowKey] : {};
     for (const statKey of MYTHIC_CHARACTERISTIC_KEYS) {
-      const v = Number(merged.charBuilder[rowKey][statKey] ?? 0);
-      merged.charBuilder[rowKey][statKey] = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
+      let v = Number(merged.charBuilder[rowKey][statKey] ?? 0);
+      v = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
+      // Advancement rows: clamp to valid tier values only
+      if (rowKey === "advancements" || rowKey === "soldierTypeAdvancementsRow") {
+        v = _cbAdvValidValues.includes(v) ? v : 0;
+      }
+      merged.charBuilder[rowKey][statKey] = v;
     }
   }
   const rawPool = Number(merged.charBuilder.creationPoints?.pool ?? 100);
@@ -2048,6 +2067,18 @@ function getCanonicalSoldierTypeSystemData() {
       cha: 0,
       ldr: 0
     },
+    characteristicAdvancements: {
+      str: 0,
+      tou: 0,
+      agi: 0,
+      wfm: 0,
+      wfr: 0,
+      int: 0,
+      per: 0,
+      crg: 0,
+      cha: 0,
+      ldr: 0
+    },
     mythic: {
       str: 0,
       tou: 0,
@@ -2153,6 +2184,14 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
   for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
     merged.characteristics[key] = toNonNegativeWhole(merged.characteristics?.[key], 0);
   }
+  merged.characteristicAdvancements = merged.characteristicAdvancements && typeof merged.characteristicAdvancements === "object"
+    ? merged.characteristicAdvancements : {};
+  const _advVals = MYTHIC_ADVANCEMENT_TIERS.map((t) => t.value);
+  for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+    const v = Math.max(0, Math.floor(Number(merged.characteristicAdvancements[key] ?? 0)));
+    merged.characteristicAdvancements[key] = _advVals.includes(v) ? v : 0;
+  }
+
   for (const key of ["str", "tou", "agi"]) {
     merged.mythic[key] = toNonNegativeWhole(merged.mythic?.[key], 0);
   }
@@ -4398,8 +4437,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _emptyCreationPathOutcome() {
+    const emptyBonuses = () => Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((key) => [key, 0]));
     return {
-      statBonuses: Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((key) => [key, 0])),
+      statBonuses: emptyBonuses(),
+      upbringingBonuses: emptyBonuses(),
+      environmentBonuses: emptyBonuses(),
+      lifestylesBonuses: emptyBonuses(),
       woundBonus: 0,
       appliedCount: 0,
       summaryPills: [],
@@ -4412,52 +4455,74 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _getCharBuilderViewData(systemData, creationPathOutcome) {
     const cb = normalizeCharacterSystemData(systemData).charBuilder;
-    // Display order for the table: WFR before WFM to match game convention
+    // Display order: WFR before WFM to match game convention
     const displayKeys = ["str", "tou", "agi", "wfr", "wfm", "int", "per", "crg", "cha", "ldr"];
     const displayLabels = { str: "STR", tou: "TOU", agi: "AGI", wfr: "WFR", wfm: "WFM", int: "INT", per: "PER", crg: "CRG", cha: "CHA", ldr: "LDR" };
 
-    const background = {};
+    // Read GM settings with safe fallback
+    let creationPointsSetting = "100";
+    let statCap = 20;
+    try {
+      creationPointsSetting = String(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY) ?? "100");
+      statCap = Math.max(0, Math.floor(Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY) ?? 20)));
+    } catch (_) { /* settings not ready */ }
+    if (!Number.isFinite(statCap)) statCap = 20;
+    const creationPointsSettingLocked = creationPointsSetting === "85" || creationPointsSetting === "100";
+    const pool = creationPointsSettingLocked ? Number(creationPointsSetting) : Math.max(1, cb.creationPoints?.pool ?? 100);
+
+    // Per-source background bonus rows from creation path outcome
     const outcome = (creationPathOutcome && typeof creationPathOutcome === "object")
       ? creationPathOutcome
       : this._emptyCreationPathOutcome();
-    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
-      background[key] = Number(outcome.statBonuses?.[key] ?? 0);
-    }
+    const upbringingRow = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((k) => [k, Number(outcome.upbringingBonuses?.[k] ?? 0)]));
+    const environmentRow = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((k) => [k, Number(outcome.environmentBonuses?.[k] ?? 0)]));
+    const lifestylesRow = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((k) => [k, Number(outcome.lifestylesBonuses?.[k] ?? 0)]));
 
-    // Advancement step options (0 to 100 in steps of 5)
-    const advancementStepOptions = [{ value: 0, label: "--" }];
-    for (let v = 5; v <= 100; v += 5) {
-      advancementStepOptions.push({ value: v, label: `+${v}` });
-    }
+    // Soldier type advancement minimums
+    const soldierTypeMins = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((k) => [k, Number(cb.soldierTypeAdvancementsRow?.[k] ?? 0)]));
 
-    const poolUsed = MYTHIC_CHARACTERISTIC_KEYS.reduce((sum, k) => sum + (cb.creationPoints?.[k] ?? 0), 0);
-    const pool = cb.creationPoints?.pool ?? 100;
+    const poolUsed = displayKeys.reduce((sum, k) => sum + (cb.creationPoints?.[k] ?? 0), 0);
 
+    // Advancement columns: named tiers, disable options below soldier type minimum
+    let advancementXpTotal = 0;
+    const advancementColumns = displayKeys.map((key) => {
+      const currentVal = Number(cb.advancements?.[key] ?? 0);
+      const minVal = soldierTypeMins[key] ?? 0;
+      // XP cost: sum steps from (firstPaidTier) to currentTier
+      const freeIdx = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === minVal);
+      const curIdx = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === currentVal);
+      const fi = freeIdx >= 0 ? freeIdx : 0;
+      const ci = curIdx >= 0 ? curIdx : 0;
+      let xpCost = 0;
+      for (let i = fi + 1; i <= ci; i++) xpCost += MYTHIC_ADVANCEMENT_TIERS[i].xpStep;
+      advancementXpTotal += xpCost;
+      return {
+        key,
+        value: currentVal,
+        xpCost,
+        name: `system.charBuilder.advancements.${key}`,
+        options: MYTHIC_ADVANCEMENT_TIERS.map((tier) => ({
+          value: tier.value,
+          label: tier.value > 0 ? `${tier.label} (+${tier.value})` : tier.label,
+          selected: tier.value === currentVal,
+          disabled: tier.value < minVal   // can't pick below soldier type free minimum
+        }))
+      };
+    });
+
+    // Totals include all rows
     const totals = {};
     for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
       totals[key] = Math.max(0,
         (cb.soldierTypeRow?.[key] ?? 0)
         + (cb.creationPoints?.[key] ?? 0)
-        + (background[key] ?? 0)
+        + (upbringingRow[key] ?? 0)
+        + (environmentRow[key] ?? 0)
+        + (lifestylesRow[key] ?? 0)
         + (cb.advancements?.[key] ?? 0)
         + (cb.misc?.[key] ?? 0)
       );
     }
-
-    // Pre-compute advancement columns with selected options
-    const advancementColumns = displayKeys.map((key) => {
-      const currentVal = Number(cb.advancements?.[key] ?? 0);
-      return {
-        key,
-        value: currentVal,
-        name: `system.charBuilder.advancements.${key}`,
-        options: advancementStepOptions.map((opt) => ({
-          value: opt.value,
-          label: opt.label,
-          selected: opt.value === currentVal
-        }))
-      };
-    });
 
     const headerColumns = displayKeys.map((key) => ({ key, label: displayLabels[key] }));
 
@@ -4467,14 +4532,20 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       poolUsed,
       poolRemaining: pool - poolUsed,
       poolOverBudget: poolUsed > pool,
+      creationPointsSettingLocked,
+      statCap,
       headerColumns,
       displayKeys,
       displayLabels,
       soldierTypeRow: cb.soldierTypeRow,
+      soldierTypeMins,
       creationPoints: cb.creationPoints,
-      background,
+      upbringingRow,
+      environmentRow,
+      lifestylesRow,
       advancements: cb.advancements,
       advancementColumns,
+      advancementXpTotal,
       misc: cb.misc,
       totals
     };
@@ -4532,10 +4603,13 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return { appliedModifiers, detailLines, pendingLines };
   }
 
-  _addCreationPathModifiersToOutcome(outcome, modifiers = []) {
+  _addCreationPathModifiersToOutcome(outcome, modifiers = [], perSourceMap = null) {
     for (const modifier of Array.isArray(modifiers) ? modifiers : []) {
       if (modifier.kind === "stat" && modifier.key && MYTHIC_CHARACTERISTIC_KEYS.includes(modifier.key)) {
         outcome.statBonuses[modifier.key] = Number(outcome.statBonuses[modifier.key] ?? 0) + Number(modifier.value ?? 0);
+        if (perSourceMap) {
+          perSourceMap[modifier.key] = Number(perSourceMap[modifier.key] ?? 0) + Number(modifier.value ?? 0);
+        }
       } else if (modifier.kind === "wound") {
         outcome.woundBonus += Number(modifier.value ?? 0);
       }
@@ -4564,7 +4638,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         creationPath.upbringingSelections,
         `Upbringing: ${selectedUpbringing.name}`
       );
-      this._addCreationPathModifiersToOutcome(outcome, resolved.appliedModifiers);
+      this._addCreationPathModifiersToOutcome(outcome, resolved.appliedModifiers, outcome.upbringingBonuses);
       outcome.detailLines.push(...resolved.detailLines);
       outcome.pendingLines.push(...resolved.pendingLines);
     }
@@ -4575,7 +4649,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         creationPath.environmentSelections,
         `Environment: ${selectedEnvironment.name}`
       );
-      this._addCreationPathModifiersToOutcome(outcome, resolved.appliedModifiers);
+      this._addCreationPathModifiersToOutcome(outcome, resolved.appliedModifiers, outcome.environmentBonuses);
       outcome.detailLines.push(...resolved.detailLines);
       outcome.pendingLines.push(...resolved.pendingLines);
     }
@@ -4599,7 +4673,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const normalizedBase = baseModifiers
         .map((entry) => ({ kind: String(entry?.kind ?? "").trim().toLowerCase(), key: String(entry?.key ?? "").trim().toLowerCase(), value: Number(entry?.value ?? 0), source: slotLabel }))
         .filter((entry) => Number.isFinite(entry.value) && entry.value !== 0 && (entry.kind === "wound" || (entry.kind === "stat" && MYTHIC_CHARACTERISTIC_KEYS.includes(entry.key))));
-      this._addCreationPathModifiersToOutcome(outcome, normalizedBase);
+      this._addCreationPathModifiersToOutcome(outcome, normalizedBase, outcome.lifestylesBonuses);
       outcome.detailLines.push(`${slotLabel}: ${String(resolvedVariant.label ?? "Variant")}`);
 
       const resolvedChoices = this._collectCreationPathGroupModifiers(
@@ -4607,7 +4681,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         slot.choiceSelections,
         slotLabel
       );
-      this._addCreationPathModifiersToOutcome(outcome, resolvedChoices.appliedModifiers);
+      this._addCreationPathModifiersToOutcome(outcome, resolvedChoices.appliedModifiers, outcome.lifestylesBonuses);
       outcome.detailLines.push(...resolvedChoices.detailLines);
       outcome.pendingLines.push(...resolvedChoices.pendingLines);
     }
@@ -5913,15 +5987,53 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       delete submitData.mythic;
     }
 
-    // If charBuilder is managed, compute characteristics totals from builder rows
+    // Enforce creation points pool lock from system setting
+    try {
+      const cpSetting = String(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY) ?? "100");
+      if (cpSetting === "85" || cpSetting === "100") {
+        foundry.utils.setProperty(submitData, "system.charBuilder.creationPoints.pool", Number(cpSetting));
+      }
+    } catch (_) { /* settings not ready */ }
+
+    // If charBuilder is managed, validate and compute characteristics totals
     const cbManaged = foundry.utils.getProperty(submitData, "system.charBuilder.managed");
     if (cbManaged) {
+      // Read stat cap setting
+      let statCap = 20;
+      try {
+        statCap = Math.max(0, Math.floor(Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY) ?? 20)));
+      } catch (_) { statCap = 20; }
+      if (!Number.isFinite(statCap)) statCap = 20;
+
+      const _advValidVals = MYTHIC_ADVANCEMENT_TIERS.map((t) => t.value);
+
       const getBuilderStat = (row, key) => {
         const val = foundry.utils.getProperty(submitData, `system.charBuilder.${row}.${key}`);
-        if (val !== undefined) return Math.max(0, Math.floor(Number(val) || 0));
-        return Math.max(0, Math.floor(Number(this.actor.system?.charBuilder?.[row]?.[key] ?? 0)));
+        let v = val !== undefined
+          ? Math.max(0, Math.floor(Number(val) || 0))
+          : Math.max(0, Math.floor(Number(this.actor.system?.charBuilder?.[row]?.[key] ?? 0)));
+        if (row === "creationPoints" && statCap > 0) v = Math.min(statCap, v);
+        if (row === "advancements") {
+          v = _advValidVals.includes(v) ? v : 0;
+          // Enforce soldier type advancement minimum
+          const minAdv = Math.max(0, Math.floor(Number(
+            foundry.utils.getProperty(submitData, `system.charBuilder.soldierTypeAdvancementsRow.${key}`)
+            ?? this.actor.system?.charBuilder?.soldierTypeAdvancementsRow?.[key] ?? 0
+          )));
+          const clampedMin = _advValidVals.includes(minAdv) ? minAdv : 0;
+          if (v < clampedMin) v = clampedMin;
+        }
+        return v;
       };
+
       for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+        // Write back capped/validated values
+        if (foundry.utils.getProperty(submitData, `system.charBuilder.creationPoints.${key}`) !== undefined) {
+          foundry.utils.setProperty(submitData, `system.charBuilder.creationPoints.${key}`, getBuilderStat("creationPoints", key));
+        }
+        if (foundry.utils.getProperty(submitData, `system.charBuilder.advancements.${key}`) !== undefined) {
+          foundry.utils.setProperty(submitData, `system.charBuilder.advancements.${key}`, getBuilderStat("advancements", key));
+        }
         const total = getBuilderStat("soldierTypeRow", key)
           + getBuilderStat("creationPoints", key)
           + getBuilderStat("advancements", key)
@@ -6305,12 +6417,15 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
-    // Characteristics Builder: enable / disable
+    // Characteristics Builder: enable / disable / finalize
     root.querySelector(".charbuilder-enable-btn")?.addEventListener("click", (event) => {
       void this._onCharBuilderEnable(event);
     });
     root.querySelector(".charbuilder-disable-btn")?.addEventListener("click", (event) => {
       void this._onCharBuilderDisable(event);
+    });
+    root.querySelector(".charbuilder-finalize-btn")?.addEventListener("click", (event) => {
+      void this._onCharBuilderFinalize(event);
     });
 
     root.querySelectorAll(".shields-recharge-btn").forEach((button) => {
@@ -8147,6 +8262,22 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       setField("system.charBuilder.managed", true);
     }
 
+    // Apply free characteristic advancements granted by soldier type
+    const _advValsTemplate = MYTHIC_ADVANCEMENT_TIERS.map((t) => t.value);
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      const freeAdvRaw = toNonNegativeWhole(templateSystem?.characteristicAdvancements?.[key], 0);
+      if (freeAdvRaw <= 0) continue;
+      const freeAdv = _advValsTemplate.includes(freeAdvRaw) ? freeAdvRaw : 0;
+      if (freeAdv <= 0) continue;
+      const currentMin = toNonNegativeWhole(actorSystem?.charBuilder?.soldierTypeAdvancementsRow?.[key], 0);
+      if (mode === "overwrite" || currentMin < freeAdv) {
+        setField(`system.charBuilder.soldierTypeAdvancementsRow.${key}`, freeAdv);
+        // Ensure the advancement row is at least the free minimum
+        const currentAdv = toNonNegativeWhole(actorSystem?.charBuilder?.advancements?.[key], 0);
+        if (currentAdv < freeAdv) setField(`system.charBuilder.advancements.${key}`, freeAdv);
+      }
+    }
+
     for (const key of ["str", "tou", "agi"]) {
       const incoming = toNonNegativeWhole(templateSystem?.mythic?.[key], 0);
       if (incoming <= 0) continue;
@@ -8897,6 +9028,44 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _onCharBuilderDisable(event) {
     event.preventDefault();
     await this.actor.update({ "system.charBuilder.managed": false });
+  }
+
+  async _onCharBuilderFinalize(event) {
+    event.preventDefault();
+    const actorSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+    const cb = actorSystem.charBuilder;
+
+    // Compute paid XP cost (free tiers from soldier type don't cost XP)
+    let totalXp = 0;
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      const currentVal = Number(cb.advancements?.[key] ?? 0);
+      const freeVal = Number(cb.soldierTypeAdvancementsRow?.[key] ?? 0);
+      const fi = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === freeVal);
+      const ci = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === currentVal);
+      const freeIdx = fi >= 0 ? fi : 0;
+      const curIdx = ci >= 0 ? ci : 0;
+      for (let i = freeIdx + 1; i <= curIdx; i++) totalXp += MYTHIC_ADVANCEMENT_TIERS[i].xpStep;
+    }
+
+    if (totalXp <= 0) {
+      ui.notifications?.info("No advancement XP to finalize.");
+      return;
+    }
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "Finalize Characteristic Advancements" },
+      content: `<p>Record <strong>${totalXp.toLocaleString()} XP</strong> spent on the selected Characteristic Advancements?</p><p>This will add ${totalXp.toLocaleString()} XP to your Spent XP on the Advancements tab.</p>`,
+      yes: { label: "Confirm & Record" },
+      no: { label: "Cancel" },
+      rejectClose: false,
+      modal: true
+    });
+
+    if (!confirmed) return;
+
+    const currentSpent = toNonNegativeWhole(actorSystem?.advancements?.xpSpent, 0);
+    await this.actor.update({ "system.advancements.xpSpent": currentSpent + totalXp });
+    ui.notifications?.info(`Recorded ${totalXp.toLocaleString()} XP spent on Characteristic Advancements.`);
   }
 
   async _onWoundsFullHeal(event) {
@@ -10714,6 +10883,29 @@ Hooks.once("init", async () => {
     onChange: () => {
       void applyMythicTokenDefaultsToWorld();
     }
+  });
+
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY, {
+    name: "Characteristics Builder: Creation Points Pool",
+    hint: "Default creation point budget for the Characteristics Builder. '85' and '100' lock all characters to that value; 'Custom' lets each actor set their own pool.",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      "85":     "85 (Reduced)",
+      "100":    "100 (Standard)",
+      "custom": "Custom (set per character)"
+    },
+    default: "100"
+  });
+
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY, {
+    name: "Characteristics Builder: Per-Stat Creation Points Cap",
+    hint: "Maximum creation points that can be spent on any single characteristic. Default is 20. Set to 0 to remove the cap entirely.",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 20
   });
 
   await foundry.applications.handlebars.loadTemplates(MYTHIC_ACTOR_PARTIAL_TEMPLATES);

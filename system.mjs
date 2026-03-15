@@ -365,6 +365,8 @@ const MYTHIC_REFERENCE_RANGED_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated
 const MYTHIC_REFERENCE_MELEE_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Melee Weps.csv";
 const MYTHIC_REFERENCE_ARMOR_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Armor.csv";
 const MYTHIC_REFERENCE_EQUIPMENT_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - CR costing items.csv";
+const MYTHIC_REFERENCE_HUMAN_SOLDIER_TYPES_TXT = "systems/Halo-Mythic-Foundry-Updated/rule references/Human Soldier Types.txt";
+const MYTHIC_REFERENCE_ALIEN_SOLDIER_TYPES_TXT = "systems/Halo-Mythic-Foundry-Updated/rule references/Alien Soldier Types.txt";
 
 function coerceSchemaVersion(value, fallback = 1) {
   const numeric = Number(value);
@@ -2026,6 +2028,7 @@ function getCanonicalSoldierTypeSystemData() {
     abilities: [],
     traits: [],
     educations: [],
+    specPacks: [],
     equipmentPacks: [],
     equipment: {
       credits: 0,
@@ -2035,6 +2038,19 @@ function getCanonicalSoldierTypeSystemData() {
       utilityLoadout: "",
       inventoryNotes: ""
     }
+  };
+}
+
+function normalizeSoldierTypeSpecPack(entry, index = 0) {
+  const optionsRaw = Array.isArray(entry?.options) ? entry.options : [];
+  const options = optionsRaw
+    .map((option, optionIndex) => normalizeSoldierTypeEquipmentPack(option, optionIndex))
+    .filter((option) => option.name || option.items.length || option.description);
+
+  return {
+    name: String(entry?.name ?? `Spec Pack ${index + 1}`).trim() || `Spec Pack ${index + 1}`,
+    description: String(entry?.description ?? "").trim(),
+    options
   };
 }
 
@@ -2168,6 +2184,19 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
   merged.equipmentPacks = rawEquipmentPacks
     .map((entry, index) => normalizeSoldierTypeEquipmentPack(entry, index))
     .filter((entry) => entry.name || entry.items.length || entry.description);
+
+  const rawSpecPacks = Array.isArray(merged.specPacks) ? merged.specPacks : [];
+  merged.specPacks = rawSpecPacks
+    .map((entry, index) => normalizeSoldierTypeSpecPack(entry, index))
+    .filter((entry) => entry.name || entry.options.length || entry.description);
+
+  if (!merged.specPacks.length && merged.equipmentPacks.length) {
+    merged.specPacks = [{
+      name: "Specialization Pack",
+      description: "Choose one option.",
+      options: merged.equipmentPacks.map((entry, index) => normalizeSoldierTypeEquipmentPack(entry, index))
+    }];
+  }
 
   merged.equipment.credits = toNonNegativeWhole(merged.equipment?.credits, 0);
   for (const key of ["primaryWeapon", "secondaryWeapon", "armorName", "utilityLoadout", "inventoryNotes"]) {
@@ -3401,6 +3430,319 @@ async function importReferenceEquipment(options = {}) {
   }
 
   return { created, updated, skipped, mode: "split-compendiums", buckets: grouped.size };
+}
+
+function titleCaseWords(text) {
+  return String(text ?? "")
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (match) => match.toUpperCase());
+}
+
+function isLikelySoldierTypeHeading(line) {
+  const text = String(line ?? "").trim();
+  if (!text) return false;
+  if (!/^[A-Z0-9'\-\/,() ]+$/.test(text)) return false;
+
+  const excluded = new Set([
+    "UNSC SOLDIER TYPES",
+    "COVENANT SOLDIER TYPES",
+    "BANISHED SOLDIER TYPES",
+    "FORERUNNER SOLDIER TYPES",
+    "TRAITS",
+    "CHARACTER CREATION",
+    "CHARACTERISTICS",
+    "PHYSICAL ATTRIBUTES",
+    "CHARACTERISTIC ADVANCEMENTS",
+    "SPECIALIZATION PACK",
+    "COMBAT TRAINING"
+  ]);
+  if (excluded.has(text)) return false;
+  if (/^\d+$/.test(text)) return false;
+  return true;
+}
+
+function parseSoldierTypeTraitsFromBlock(traitLines) {
+  const joined = traitLines
+    .map((line) => String(line ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+
+  const names = [];
+  const seen = new Set();
+  const regex = /([A-Za-z][A-Za-z0-9'\- ]{1,60}):/g;
+  let match;
+  while ((match = regex.exec(joined)) !== null) {
+    const name = String(match[1] ?? "").trim().replace(/\s+/g, " ");
+    if (!name) continue;
+    const marker = name.toLowerCase();
+    if (seen.has(marker)) continue;
+    seen.add(marker);
+    names.push(titleCaseWords(name));
+  }
+  return names;
+}
+
+function parseSoldierTypeEquipmentOptionsFromBlock(lines) {
+  const options = [];
+  let current = null;
+
+  const flushCurrent = () => {
+    if (!current) return;
+    const normalized = normalizeSoldierTypeEquipmentPack(current, options.length);
+    if (normalized.name || normalized.items.length || normalized.description) {
+      options.push(normalized);
+    }
+    current = null;
+  };
+
+  for (const rawLine of lines) {
+    const line = String(rawLine ?? "").trim();
+    if (!line) continue;
+
+    const equipHeading = /^(.*) EQUIPMENT$/i.exec(line);
+    if (equipHeading) {
+      flushCurrent();
+      current = {
+        name: titleCaseWords(String(equipHeading[1] ?? "").trim()),
+        description: "",
+        items: []
+      };
+      continue;
+    }
+
+    if (!current) continue;
+    if (/^(CHARACTER CREATION|CHARACTERISTICS|PHYSICAL ATTRIBUTES|CHARACTERISTIC ADVANCEMENTS|TRAITS|SPECIALIZATION PACK|COMBAT TRAINING)$/i.test(line)) {
+      continue;
+    }
+
+    const parts = line.split(/\s{2,}/).map((part) => String(part ?? "").trim()).filter(Boolean);
+    if (parts.length > 1) {
+      current.items.push(...parts);
+    } else {
+      current.items.push(line);
+    }
+  }
+
+  flushCurrent();
+  return options;
+}
+
+function parseSoldierTypeCharacteristics(lines) {
+  for (let i = 0; i < lines.length - 1; i += 1) {
+    const keyLine = String(lines[i] ?? "").trim();
+    if (!/STR\s+TOU\s+AGI\s+WFR\s+WFM\s+INT\s+PER\s+CRG\s+CHA\s+LDR/i.test(keyLine)) continue;
+    const valueLine = String(lines[i + 1] ?? "").trim();
+    const values = (valueLine.match(/\d+/g) ?? []).map((entry) => Number(entry));
+    if (values.length < 10) continue;
+    return {
+      str: toNonNegativeWhole(values[0], 0),
+      tou: toNonNegativeWhole(values[1], 0),
+      agi: toNonNegativeWhole(values[2], 0),
+      wfr: toNonNegativeWhole(values[3], 0),
+      wfm: toNonNegativeWhole(values[4], 0),
+      int: toNonNegativeWhole(values[5], 0),
+      per: toNonNegativeWhole(values[6], 0),
+      crg: toNonNegativeWhole(values[7], 0),
+      cha: toNonNegativeWhole(values[8], 0),
+      ldr: toNonNegativeWhole(values[9], 0)
+    };
+  }
+  return null;
+}
+
+function parseSoldierTypeBlocksFromText(text) {
+  const allLines = String(text ?? "")
+    .split(/\r?\n/)
+    .map((line) => String(line ?? "").replace(/\t/g, " ").trim());
+
+  const starts = [];
+  for (let i = 0; i < allLines.length; i += 1) {
+    const line = allLines[i];
+    if (!isLikelySoldierTypeHeading(line)) continue;
+
+    const lookahead = allLines.slice(i + 1, i + 7);
+    if (!lookahead.some((entry) => String(entry ?? "").trim() === "CHARACTER CREATION")) continue;
+    starts.push(i);
+  }
+
+  const blocks = [];
+  for (let index = 0; index < starts.length; index += 1) {
+    const start = starts[index];
+    const end = index + 1 < starts.length ? starts[index + 1] : allLines.length;
+    const heading = String(allLines[start] ?? "").trim();
+    const body = allLines.slice(start + 1, end);
+    if (!heading) continue;
+    blocks.push({ heading, body });
+  }
+  return blocks;
+}
+
+function parseReferenceSoldierTypeRowsFromText(text, sourceCollection) {
+  const blocks = parseSoldierTypeBlocksFromText(text);
+  const parsed = [];
+
+  for (const block of blocks) {
+    const heading = String(block.heading ?? "").trim();
+    const body = Array.isArray(block.body) ? block.body : [];
+    const quoteLine = body.find((line) => /^"|^\u201c/.test(String(line ?? "").trim())) ?? "";
+    const description = String(quoteLine ?? "").replace(/[\u201c\u201d"]/g, "").trim();
+
+    const characteristics = parseSoldierTypeCharacteristics(body) ?? {};
+
+    let traitStart = body.findIndex((line) => String(line ?? "").trim().toUpperCase() === "TRAITS");
+    if (traitStart < 0) traitStart = -1;
+
+    let traitEnd = body.length;
+    if (traitStart >= 0) {
+      for (let i = traitStart + 1; i < body.length; i += 1) {
+        const line = String(body[i] ?? "").trim();
+        if (/^(SPECIALIZATION PACK|COMBAT TRAINING)$/i.test(line) || /\bEQUIPMENT$/i.test(line)) {
+          traitEnd = i;
+          break;
+        }
+      }
+    }
+
+    const traitLines = traitStart >= 0 ? body.slice(traitStart + 1, traitEnd) : [];
+    const traitNames = parseSoldierTypeTraitsFromBlock(traitLines);
+    const equipmentOptions = parseSoldierTypeEquipmentOptionsFromBlock(body);
+
+    const specPacks = equipmentOptions.length
+      ? [{
+          name: "Specialization Pack",
+          description: "Choose one specialization option.",
+          options: equipmentOptions
+        }]
+      : [];
+
+    const itemName = String(heading ?? "").trim();
+    const soldierTypeData = normalizeSoldierTypeSystemData({
+      description,
+      header: {
+        soldierType: itemName
+      },
+      characteristics,
+      traits: traitNames,
+      equipmentPacks: equipmentOptions,
+      specPacks,
+      notes: "Imported from Mythic reference soldier type text.",
+      sync: {
+        sourceScope: "mythic",
+        sourceCollection: sourceCollection,
+        contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
+        canonicalId: buildCanonicalItemId("soldierType", itemName)
+      }
+    }, itemName);
+
+    parsed.push({
+      name: itemName,
+      type: "soldierType",
+      img: "systems/Halo-Mythic-Foundry-Updated/assets/icons/Soldier Type.png",
+      system: soldierTypeData
+    });
+  }
+
+  return parsed;
+}
+
+async function loadReferenceSoldierTypeItems() {
+  const sources = [
+    { path: MYTHIC_REFERENCE_HUMAN_SOLDIER_TYPES_TXT, key: "human-soldier-types" },
+    { path: MYTHIC_REFERENCE_ALIEN_SOLDIER_TYPES_TXT, key: "alien-soldier-types" }
+  ];
+
+  const allItems = [];
+  for (const source of sources) {
+    try {
+      const response = await fetch(source.path);
+      if (!response.ok) {
+        console.warn(`[mythic-system] Could not fetch ${source.path}: HTTP ${response.status}`);
+        continue;
+      }
+      const text = await response.text();
+      const parsed = parseReferenceSoldierTypeRowsFromText(text, source.key);
+      allItems.push(...parsed);
+    } catch (error) {
+      console.warn(`[mythic-system] Failed parsing reference soldier types ${source.path}`, error);
+    }
+  }
+
+  const dedupedByName = new Map();
+  for (const item of allItems) {
+    const marker = String(item?.name ?? "").trim().toLowerCase();
+    if (!marker) continue;
+    if (!dedupedByName.has(marker)) dedupedByName.set(marker, item);
+  }
+  return Array.from(dedupedByName.values());
+}
+
+async function importReferenceSoldierTypes(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can import reference soldier types.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const rows = await loadReferenceSoldierTypeItems();
+  if (!rows.length) {
+    ui.notifications?.warn("No reference soldier type rows were loaded from text files.");
+    return { created: 0, updated: 0, skipped: 0 };
+  }
+
+  const dryRun = options?.dryRun === true;
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  let pack;
+  try {
+    pack = await ensureReferenceWeaponsCompendium("mythic-soldier-types", "Mythic Soldier Types");
+  } catch (error) {
+    console.error("[mythic-system] Failed to prepare soldier type compendium.", error);
+    ui.notifications?.error("Could not prepare Soldier Types compendium. See console.");
+    return { created, updated, skipped };
+  }
+
+  const byCanonicalId = await buildCompendiumCanonicalMap(pack);
+  const createBatch = [];
+
+  for (const itemData of rows) {
+    const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+    if (!canonicalId) {
+      skipped += 1;
+      continue;
+    }
+
+    const existing = byCanonicalId.get(canonicalId);
+    if (!existing) {
+      if (!dryRun) createBatch.push(itemData);
+      created += 1;
+      continue;
+    }
+
+    const nextSystem = normalizeSoldierTypeSystemData(itemData.system ?? {}, itemData.name);
+    nextSystem.sync.sourceCollection = "mythic-soldier-types";
+    const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+    const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+    if (foundry.utils.isEmpty(diff) && !nameChanged) {
+      skipped += 1;
+      continue;
+    }
+
+    if (!dryRun) {
+      await existing.update({ name: itemData.name, system: nextSystem });
+    }
+    updated += 1;
+  }
+
+  if (!dryRun && createBatch.length) {
+    await Item.createDocuments(createBatch, { pack: pack.collection });
+  }
+
+  if (!dryRun) {
+    ui.notifications?.info(`Soldier type import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  }
+
+  return { created, updated, skipped };
 }
 
 async function removeEmbeddedArmorVariants(options = {}) {
@@ -7090,7 +7432,11 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const skillSelections = await this._promptSoldierTypeSkillChoices(itemData.name, templateSystem);
       if (skillSelections === null) return false;
 
-      const packChoice = await this._promptSoldierTypeEquipmentPackChoice(itemData.name, templateSystem.equipmentPacks ?? []);
+      const packChoice = await this._promptSoldierTypeSpecPackChoice(
+        itemData.name,
+        templateSystem.specPacks ?? [],
+        templateSystem.equipmentPacks ?? []
+      );
       if (packChoice === null) return false;
 
       const result = await this._applySoldierTypeTemplate(itemData.name, templateSystem, mode, skillSelections, packChoice);
@@ -7201,7 +7547,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const training = Array.isArray(templateSystem?.training) ? templateSystem.training.length : 0;
     const skillChoices = Array.isArray(templateSystem?.skillChoices) ? templateSystem.skillChoices.length : 0;
     const equipmentPacks = Array.isArray(templateSystem?.equipmentPacks) ? templateSystem.equipmentPacks.length : 0;
-    return { headerFields, charFields, mythicFields, baseSkillPatches, customSkills, educations, abilities, traits, training, skillChoices, equipmentPacks };
+    const specPacks = Array.isArray(templateSystem?.specPacks) ? templateSystem.specPacks.length : 0;
+    return { headerFields, charFields, mythicFields, baseSkillPatches, customSkills, educations, abilities, traits, training, skillChoices, equipmentPacks, specPacks };
   }
 
   _promptSoldierTypeApplyMode(templateName, preview) {
@@ -7215,7 +7562,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
               <li>${preview.headerFields} header fields</li>
               <li>${preview.charFields} characteristics and ${preview.mythicFields} mythic traits</li>
               <li>${preview.baseSkillPatches} base-skill patches, ${preview.customSkills} custom skills, and ${preview.skillChoices} skill choice rules</li>
-              <li>${preview.training} training grants and ${preview.equipmentPacks} equipment pack options</li>
+              <li>${preview.training} training grants, ${preview.specPacks} spec pack groups, and ${preview.equipmentPacks} equipment pack options</li>
               <li>${preview.educations} educations, ${preview.abilities} abilities, and ${preview.traits} traits</li>
             </ul>
             <p>Overwrite replaces existing values. Merge fills blanks and adds package content.</p>
@@ -7501,6 +7848,85 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  _promptSoldierTypeSpecPackChoice(templateName, specPacks, fallbackEquipmentPacks = []) {
+    const validSpecPacks = Array.isArray(specPacks)
+      ? specPacks
+        .map((entry, index) => normalizeSoldierTypeSpecPack(entry, index))
+        .filter((entry) => entry.name && entry.options.length)
+      : [];
+
+    if (!validSpecPacks.length) {
+      return this._promptSoldierTypeEquipmentPackChoice(templateName, fallbackEquipmentPacks);
+    }
+
+    return new Promise((resolve) => {
+      const flattened = [];
+      for (const specPack of validSpecPacks) {
+        for (const option of specPack.options) {
+          flattened.push({
+            specPackName: specPack.name,
+            specPackDescription: specPack.description,
+            option
+          });
+        }
+      }
+
+      if (flattened.length === 1) {
+        const only = flattened[0];
+        resolve({ ...only.option, _specPackName: only.specPackName });
+        return;
+      }
+
+      const rows = flattened.map((entry, index) => {
+        const optionName = foundry.utils.escapeHTML(String(entry.option?.name ?? `Option ${index + 1}`));
+        const specPackName = foundry.utils.escapeHTML(String(entry.specPackName ?? "Specialization Pack"));
+        const items = Array.isArray(entry.option?.items) && entry.option.items.length
+          ? `<br><small style="color:var(--mythic-muted,#aaa)">${foundry.utils.escapeHTML(entry.option.items.join(" | "))}</small>`
+          : "";
+        return `
+          <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;cursor:pointer">
+            <input type="radio" name="mythic-spec-pack-option" value="${index}" ${index === 0 ? "checked" : ""} style="margin-top:3px">
+            <span><strong>${specPackName}</strong> - ${optionName}${items}</span>
+          </label>
+        `;
+      }).join("");
+
+      const dlg = new Dialog({
+        title: "Choose Spec Pack Option",
+        content: `
+          <div class="mythic-modal-body">
+            <p>Choose a specialization option for <strong>${foundry.utils.escapeHTML(templateName)}</strong>:</p>
+            <fieldset style="padding:10px;border:1px solid rgba(255,255,255,0.18);border-radius:4px">${rows}</fieldset>
+          </div>
+        `,
+        buttons: {
+          apply: {
+            icon: '<i class="fas fa-check"></i>',
+            label: "Apply",
+            callback: (html) => {
+              const idx = parseInt(html.find("input[name='mythic-spec-pack-option']:checked").val() ?? "0", 10);
+              const selected = flattened[isNaN(idx) ? 0 : idx] ?? flattened[0];
+              resolve({ ...(selected?.option ?? {}), _specPackName: selected?.specPackName ?? "Specialization Pack" });
+            }
+          },
+          later: {
+            icon: '<i class="fas fa-clock"></i>',
+            label: "Choose Later",
+            callback: () => resolve({ skip: true })
+          },
+          cancel: {
+            icon: '<i class="fas fa-times"></i>',
+            label: "Cancel",
+            callback: () => resolve(null)
+          }
+        },
+        default: "apply",
+        close: () => resolve(null)
+      }, { classes: ["mythic-prompt"] });
+      dlg.render(true);
+    });
+  }
+
   _buildSoldierTypePendingChoicesText(templateName, templateSystem, trainingEntries = null, skillChoiceEntries = null, suppressEquipmentPacks = false) {
     const lines = [];
     const training = Array.isArray(trainingEntries)
@@ -7509,6 +7935,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const skillChoices = Array.isArray(skillChoiceEntries)
       ? skillChoiceEntries
       : (Array.isArray(templateSystem?.skillChoices) ? templateSystem.skillChoices : []);
+    const specPacks = Array.isArray(templateSystem?.specPacks) ? templateSystem.specPacks : [];
     const equipmentPacks = Array.isArray(templateSystem?.equipmentPacks) ? templateSystem.equipmentPacks : [];
 
     for (const entry of training) {
@@ -7525,6 +7952,16 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (!suppressEquipmentPacks) {
+      for (const specPack of specPacks) {
+        const specName = String(specPack?.name ?? "").trim() || "Specialization Pack";
+        const options = Array.isArray(specPack?.options) ? specPack.options : [];
+        for (const option of options) {
+          const items = Array.isArray(option?.items) && option.items.length ? ` (${option.items.join(", ")})` : "";
+          const desc = String(option?.description ?? "").trim();
+          lines.push(`Spec Pack Option: ${specName} -> ${String(option?.name ?? "").trim() || "Option"}${items}${desc ? ` - ${desc}` : ""}`);
+        }
+      }
+
       for (const pack of equipmentPacks) {
         const items = Array.isArray(pack?.items) && pack.items.length ? ` (${pack.items.join(", ")})` : "";
         const desc = String(pack?.description ?? "").trim();
@@ -7606,9 +8043,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? String(resolvedEquipmentPack.name ?? "").trim() || "Equipment Pack"
       : null;
     if (packApplied) {
+      const packGroup = String(resolvedEquipmentPack._specPackName ?? "").trim();
       const packItems = Array.isArray(resolvedEquipmentPack.items) ? resolvedEquipmentPack.items : [];
       const packDesc = String(resolvedEquipmentPack.description ?? "").trim();
-      const packHeader = `[Equipment Pack: ${packApplied}]`;
+      const packHeader = packGroup
+        ? `[Spec Pack: ${packGroup} | Option: ${packApplied}]`
+        : `[Equipment Pack: ${packApplied}]`;
       const packBody = packItems.length ? packItems.join(", ") : "(no items listed)";
       const packEntry = packDesc ? `${packHeader}\n${packBody}\n${packDesc}` : `${packHeader}\n${packBody}`;
       const currentInvNotes = String(
@@ -9943,6 +10383,7 @@ class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
     context.skillsBaseJson = JSON.stringify(sys.skills?.base ?? {}, null, 2);
     context.skillsCustomJson = JSON.stringify(sys.skills?.custom ?? [], null, 2);
     context.skillChoicesJson = JSON.stringify(sys.skillChoices ?? [], null, 2);
+    context.specPacksJson = JSON.stringify(sys.specPacks ?? [], null, 2);
     context.equipmentPacksJson = JSON.stringify(sys.equipmentPacks ?? [], null, 2);
     return context;
   }
@@ -10002,6 +10443,16 @@ class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
         foundry.utils.setProperty(submitData, "system.skillChoices", parsed);
       } catch (_error) {
         ui.notifications.warn("Invalid Skill Choices JSON. Keeping previous value.");
+      }
+    }
+
+    const specPacksJson = foundry.utils.getProperty(submitData, "mythic.specPacksJson");
+    if (specPacksJson !== undefined) {
+      try {
+        const parsed = JSON.parse(String(specPacksJson || "[]"));
+        foundry.utils.setProperty(submitData, "system.specPacks", parsed);
+      } catch (_error) {
+        ui.notifications.warn("Invalid Spec Pack JSON. Keeping previous value.");
       }
     }
 
@@ -10204,6 +10655,7 @@ Hooks.once("ready", async () => {
   game.mythic.importReferenceArmor = importReferenceArmor;
   game.mythic.importReferenceArmorVariants = importReferenceArmorVariants;
   game.mythic.importReferenceEquipment = importReferenceEquipment;
+  game.mythic.importReferenceSoldierTypes = importReferenceSoldierTypes;
   game.mythic.syncCreationPathItemIcons = syncCreationPathItemIcons;
   game.mythic.previewReferenceArmor = async () => {
     const rows = await loadReferenceArmorItems();
@@ -10236,6 +10688,14 @@ Hooks.once("ready", async () => {
       return acc;
     }, { ammo: 0, byFaction: {} });
     return { total: rows.length, ammo: summary.ammo, byFaction: summary.byFaction };
+  };
+  game.mythic.previewReferenceSoldierTypes = async () => {
+    const rows = await loadReferenceSoldierTypeItems();
+    return {
+      total: rows.length,
+      withTraits: rows.filter((entry) => Array.isArray(entry?.system?.traits) && entry.system.traits.length > 0).length,
+      withSpecPacks: rows.filter((entry) => Array.isArray(entry?.system?.specPacks) && entry.system.specPacks.length > 0).length
+    };
   };
 
   // Seed compendium packs on first load (GM only)

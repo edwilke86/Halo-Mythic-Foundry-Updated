@@ -134,6 +134,11 @@
     </div>
 
     <div class="ability-info-row ability-notes-row">
+      <label for="soldier-spec-packs">Spec Pack Choices JSON</label>
+      <textarea id="soldier-spec-packs" name="mythic.specPacksJson" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{specPacksJson}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
       <label for="soldier-equipment-packs">Equipment Pack Choices JSON</label>
       <textarea id="soldier-equipment-packs" name="mythic.equipmentPacksJson" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{equipmentPacksJson}}</textarea>
     </div>

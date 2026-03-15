@@ -193,8 +193,11 @@ const MYTHIC_SOLDIER_TYPE_SCHEMA_VERSION = 1;
 const MYTHIC_CONTENT_SYNC_VERSION = 1;
 const MYTHIC_WORLD_MIGRATION_VERSION = 5;
 const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
+const MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY = "covenantPlasmaPistolChargePatchVersion";
 const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
 const MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY = "ignoreBasicAmmoCounts";
+const MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY = "tokenBarVisibilityDefault";
+const MYTHIC_BIOGRAPHY_PREVIEW_FLAG_KEY = "biographyShowTokenPreview";
 const MYTHIC_CHARACTERISTIC_KEYS = ["str", "tou", "agi", "wfm", "wfr", "int", "per", "crg", "cha", "ldr"];
 
 // --- Hit Location Table (inverted roll → location) ---
@@ -261,16 +264,83 @@ function resolveHitLocation(attackRoll) {
 }
 
 function getFireModeToHitBonus(modeValue) {
-  const base = String(modeValue ?? "").toLowerCase().replace(/\s*\([^)]*\)/g, "").trim();
-  const MAP = {
-    "single": 0, "single-shot": 0, "single shot": 0,
-    "semi-auto": 10, "semi": 10,
-    "burst": 20, "burst-fire": 20,
-    "auto": 20, "automatic": 20, "full-auto": 20,
-    "sustained": 20,
-    "pump": 0, "charge": 0, "overheat": 0, "recharge": 0, "attack": 0
-  };
-  return MAP[base] ?? 0;
+  const profile = parseFireModeProfile(modeValue);
+  if (profile.kind === "semi") return 10;
+  if (profile.kind === "burst") return 10;
+  return 0;
+}
+
+function parseFireModeProfile(modeValue) {
+  const raw = String(modeValue ?? "single").trim();
+  const lower = raw.toLowerCase();
+  const countMatch = lower.match(/\((\d+)\)/);
+  const count = countMatch ? Math.max(1, Math.floor(Number(countMatch[1]))) : 1;
+
+  let kind = "single";
+  if (lower.includes("semi")) kind = "semi";
+  else if (lower.includes("burst")) kind = "burst";
+  else if (lower.includes("auto")) kind = "auto";
+  else if (lower.includes("sustained")) kind = "sustained";
+  else if (lower.includes("pump")) kind = "pump";
+  else if (lower.includes("flintlock")) kind = "flintlock";
+  else if (lower.includes("drawback")) kind = "drawback";
+  else if (lower.includes("charge")) kind = "charge";
+
+  return { raw, kind, count };
+}
+
+function getAttackIterationsForProfile(profile, actionType) {
+  const action = String(actionType ?? "single").toLowerCase();
+  if (action === "single") return 1;
+
+  const perHalf = Math.max(1, profile.count);
+  if (profile.kind === "flintlock") return action === "full" ? 1 : 0;
+  if (profile.kind === "charge" || profile.kind === "drawback") return 1;
+  if (profile.kind === "auto" || profile.kind === "sustained") {
+    return action === "full" ? perHalf : Math.max(1, Math.floor(perHalf / 2));
+  }
+  if (profile.kind === "burst") return action === "full" ? 2 : 1;
+  return action === "full" ? perHalf * 2 : perHalf;
+}
+
+function computeRangeModifier(rangeMeters, rangeClose, rangeMax, isMelee) {
+  if (!Number.isFinite(rangeMeters) || rangeMeters < 0) {
+    return {
+      band: "Unknown",
+      toHitMod: 0,
+      pierceFactor: 1,
+      canDealDamage: true
+    };
+  }
+
+  if (isMelee) {
+    if (rangeMeters <= 1) {
+      return { band: "Point Blank (Melee)", toHitMod: 10, pierceFactor: 1, canDealDamage: true };
+    }
+    return { band: "Melee Reach", toHitMod: 0, pierceFactor: 1, canDealDamage: true };
+  }
+
+  if (rangeMeters <= 3) {
+    return { band: "Point Blank", toHitMod: 20, pierceFactor: 1, canDealDamage: true };
+  }
+
+  if (rangeMeters < rangeClose) {
+    return { band: "Close", toHitMod: 5, pierceFactor: 1, canDealDamage: true };
+  }
+
+  if (rangeMeters <= rangeMax) {
+    return { band: "Optimal", toHitMod: 0, pierceFactor: 1, canDealDamage: true };
+  }
+
+  if (rangeMeters <= rangeMax * 2) {
+    return { band: "Long", toHitMod: -40, pierceFactor: 0.5, canDealDamage: true };
+  }
+
+  if (rangeMeters <= rangeMax * 3) {
+    return { band: "Extreme", toHitMod: -80, pierceFactor: 0, canDealDamage: true };
+  }
+
+  return { band: "Out of Range", toHitMod: -200, pierceFactor: 0, canDealDamage: false };
 }
 
 // Returns (target - roll) / 10; positive = success (DOS), negative = failure (DOF).
@@ -340,6 +410,91 @@ function getAmmoConfig() {
   }
 
   return result;
+}
+
+function getMythicTokenBarDisplayMode() {
+  const fallback = CONST.TOKEN_DISPLAY_MODES?.OWNER_HOVER ?? 20;
+  const selected = String(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY) ?? "owner-hover");
+  const modes = CONST.TOKEN_DISPLAY_MODES ?? {};
+  const mapping = {
+    "controlled": modes.CONTROL,
+    "owner-hover": modes.OWNER_HOVER,
+    "hover-anyone": modes.HOVER,
+    "always-owner": modes.OWNER,
+    "always-anyone": modes.ALWAYS
+  };
+  return mapping[selected] ?? fallback;
+}
+
+function getMythicTokenDefaultsForCharacter(systemData) {
+  const hasShields = toNonNegativeWhole(systemData?.combat?.shields?.integrity, 0) > 0;
+  const displayBars = hasShields
+    ? (CONST.TOKEN_DISPLAY_MODES?.ALWAYS ?? 50)
+    : getMythicTokenBarDisplayMode();
+
+  const defaults = {
+    bar1: { attribute: "combat.woundsBar" },
+    displayBars
+  };
+
+  defaults.bar2 = hasShields
+    ? { attribute: "combat.shieldsBar" }
+    : { attribute: null };
+
+  return defaults;
+}
+
+async function applyMythicTokenDefaultsToWorld() {
+  if (!game.user?.isGM) return;
+
+  const characterActors = game.actors?.filter((actor) => actor.type === "character") ?? [];
+  for (const actor of characterActors) {
+    const normalized = normalizeCharacterSystemData(actor.system ?? {});
+    const tokenDefaults = getMythicTokenDefaultsForCharacter(normalized);
+    const currentBar1 = String(actor.prototypeToken?.bar1?.attribute ?? "");
+    const currentBar2 = actor.prototypeToken?.bar2?.attribute ?? null;
+    const currentDisplayBars = Number(actor.prototypeToken?.displayBars ?? 0);
+
+    const needsUpdate = currentBar1 !== tokenDefaults.bar1.attribute
+      || currentBar2 !== tokenDefaults.bar2.attribute
+      || currentDisplayBars !== tokenDefaults.displayBars;
+
+    if (!needsUpdate) continue;
+    await actor.update({
+      "prototypeToken.bar1.attribute": tokenDefaults.bar1.attribute,
+      "prototypeToken.bar2.attribute": tokenDefaults.bar2.attribute,
+      "prototypeToken.displayBars": tokenDefaults.displayBars
+    });
+  }
+
+  const scenes = game.scenes?.contents ?? [];
+  for (const scene of scenes) {
+    const updates = [];
+    for (const token of scene.tokens.contents) {
+      const actor = token.actor;
+      if (!actor || actor.type !== "character") continue;
+      const normalized = normalizeCharacterSystemData(actor.system ?? {});
+      const tokenDefaults = getMythicTokenDefaultsForCharacter(normalized);
+      const currentBar1 = String(token.bar1?.attribute ?? "");
+      const currentBar2 = token.bar2?.attribute ?? null;
+      const currentDisplayBars = Number(token.displayBars ?? 0);
+      const needsUpdate = currentBar1 !== tokenDefaults.bar1.attribute
+        || currentBar2 !== tokenDefaults.bar2.attribute
+        || currentDisplayBars !== tokenDefaults.displayBars;
+      if (!needsUpdate) continue;
+
+      updates.push({
+        _id: token.id,
+        bar1: { attribute: tokenDefaults.bar1.attribute },
+        bar2: { attribute: tokenDefaults.bar2.attribute },
+        displayBars: tokenDefaults.displayBars
+      });
+    }
+
+    if (updates.length) {
+      await scene.updateEmbeddedDocuments("Token", updates);
+    }
+  }
 }
 
 function normalizeItemSyncData(syncData, itemType, itemName = "", options = {}) {
@@ -618,6 +773,101 @@ function computeCharacterDerivedValues(systemData = {}) {
   };
 }
 
+const MYTHIC_TOKEN_RULER_COLORS = Object.freeze({
+  half: 0x1fa34a,
+  full: 0x1b6fd1,
+  charge: 0xb38f00,
+  run: 0xc65a00,
+  sprint: 0xc62828
+});
+
+function getMythicMovementThresholds(token) {
+  const actor = token?.actor;
+  if (!actor || actor.type !== "character") return null;
+
+  const movement = computeCharacterDerivedValues(actor.system ?? {}).movement ?? {};
+  const half = Math.max(0, Number(movement.half) || 0);
+  const full = Math.max(half, Number(movement.full) || 0);
+  const charge = Math.max(full, Number(movement.charge) || 0);
+  const run = Math.max(charge, Number(movement.run) || 0);
+  const sprint = Math.max(run, Number(movement.sprint) || 0);
+
+  return { half, full, charge, run, sprint };
+}
+
+function getMythicRulerColorForDistance(distance, thresholds) {
+  const value = Number(distance);
+  if (!Number.isFinite(value) || !thresholds) return null;
+
+  if (value <= thresholds.half) return MYTHIC_TOKEN_RULER_COLORS.half;
+  if (value <= thresholds.full) return MYTHIC_TOKEN_RULER_COLORS.full;
+  if (value <= thresholds.charge) return MYTHIC_TOKEN_RULER_COLORS.charge;
+  if (value <= thresholds.run) return MYTHIC_TOKEN_RULER_COLORS.run;
+  return MYTHIC_TOKEN_RULER_COLORS.sprint;
+}
+
+function getMythicWaypointMeasurementDistance(waypoint, useTotalDistance = false) {
+  let target = waypoint;
+  if (useTotalDistance) {
+    while (target?.next) target = target.next;
+  }
+
+  const cost = Number(target?.measurement?.cost);
+  if (Number.isFinite(cost)) return cost;
+
+  const distance = Number(target?.measurement?.distance);
+  if (Number.isFinite(distance)) return distance;
+
+  return null;
+}
+
+class MythicTokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
+  _getSegmentStyle(waypoint) {
+    const style = super._getSegmentStyle(waypoint);
+    return this.#getMovementBandStyle(waypoint, style, { useTotalDistance: true, isGridHighlight: false });
+  }
+
+  _getGridHighlightStyle(waypoint, offset) {
+    const style = super._getGridHighlightStyle(waypoint, offset);
+    return this.#getMovementBandStyle(waypoint, style, { useTotalDistance: false, isGridHighlight: true });
+  }
+
+  #getMovementBandStyle(waypoint, style, { useTotalDistance = false, isGridHighlight = false } = {}) {
+    if (!style || style.alpha === 0) return style;
+
+    const thresholds = getMythicMovementThresholds(this.token);
+    if (!thresholds) return style;
+
+    const measuredDistance = getMythicWaypointMeasurementDistance(waypoint, useTotalDistance);
+    const color = getMythicRulerColorForDistance(measuredDistance, thresholds);
+    if (color == null) return style;
+
+    style.color = color;
+    style.alpha = isGridHighlight ? 0.55 : 1;
+    return style;
+  }
+}
+
+function installMythicTokenRuler() {
+  const tokenClass = CONFIG.Token?.objectClass ?? foundry.canvas.placeables.Token;
+  const tokenPrototype = tokenClass?.prototype;
+  if (!tokenPrototype || tokenPrototype._mythicTokenRulerInstalled) return;
+
+  const originalInitializeRuler = tokenPrototype._initializeRuler;
+  tokenPrototype._mythicTokenRulerInstalled = true;
+  tokenPrototype._initializeRuler = function (...args) {
+    try {
+      return new MythicTokenRuler(this);
+    } catch (error) {
+      console.error("[mythic-system] Failed to initialize MythicTokenRuler, falling back to core ruler.", error);
+      if (typeof originalInitializeRuler === "function") {
+        return originalInitializeRuler.apply(this, args);
+      }
+      return null;
+    }
+  };
+}
+
 async function runWorldSchemaMigration() {
   let actorMigrations = 0;
   let itemMigrations = 0;
@@ -816,6 +1066,7 @@ function getCanonicalCharacterSystemData() {
     },
     combat: {
       wounds: { current: 0, max: 0 },
+      woundsBar: { value: 0, max: 0 },
       fatigue: { current: 0, max: 0 },
       luck: { current: 0, max: 0 },
       supportPoints: { current: 0, max: 0 },
@@ -826,6 +1077,7 @@ function getCanonicalCharacterSystemData() {
         rechargeDelay: 0,
         rechargeRate: 0
       },
+      shieldsBar: { value: 0, max: 0 },
       dr: {
         armor: {
           head: 0,
@@ -836,7 +1088,13 @@ function getCanonicalCharacterSystemData() {
           rLeg: 0
         }
       },
-      reactions: { count: 0 }
+      reactions: { count: 0 },
+      targetSwitch: {
+        combatId: "",
+        round: 0,
+        lastTargetId: "",
+        switchCount: 0
+      }
     },
     gravity: 1.0,
     equipment: {
@@ -989,6 +1247,7 @@ function normalizeSkillsData(skills) {
 function normalizeCharacterSystemData(systemData) {
   const source = foundry.utils.deepClone(systemData ?? {});
   const defaults = getCanonicalCharacterSystemData();
+  const hadWoundsCurrent = foundry.utils.hasProperty(source, "combat.wounds.current");
 
   const merged = foundry.utils.mergeObject(defaults, source, {
     inplace: false,
@@ -1039,6 +1298,18 @@ function normalizeCharacterSystemData(systemData) {
   // Wounds Max = ((TOU modifier + Mythic TOU) * 2) + 40
   // Fatigue coma threshold = TOU modifier * 2
   merged.combat.wounds.max = clampWhole(derived.woundsMaximum);
+  if (!hadWoundsCurrent) {
+    merged.combat.wounds.current = merged.combat.wounds.max;
+  } else {
+    merged.combat.wounds.current = Math.min(clampWhole(merged.combat.wounds.current), merged.combat.wounds.max);
+  }
+  merged.combat.woundsBar ??= {};
+  merged.combat.woundsBar.value = merged.combat.wounds.current;
+  merged.combat.woundsBar.max = merged.combat.wounds.max;
+
+  merged.combat.shieldsBar ??= {};
+  merged.combat.shieldsBar.value = clampWhole(merged.combat.shields.current);
+  merged.combat.shieldsBar.max = clampWhole(merged.combat.shields.integrity);
   merged.combat.fatigue.max = clampWhole(derived.fatigueThreshold);
 
   merged.combat.dr ??= {};
@@ -1049,6 +1320,11 @@ function normalizeCharacterSystemData(systemData) {
 
   merged.combat.reactions ??= {};
   merged.combat.reactions.count = Math.max(0, Math.floor(Number(merged.combat.reactions?.count ?? 0)));
+  merged.combat.targetSwitch ??= {};
+  merged.combat.targetSwitch.combatId = String(merged.combat.targetSwitch?.combatId ?? "");
+  merged.combat.targetSwitch.round = Math.max(0, Math.floor(Number(merged.combat.targetSwitch?.round ?? 0)));
+  merged.combat.targetSwitch.lastTargetId = String(merged.combat.targetSwitch?.lastTargetId ?? "");
+  merged.combat.targetSwitch.switchCount = Math.max(0, Math.floor(Number(merged.combat.targetSwitch?.switchCount ?? 0)));
 
   const gravRaw = Number(merged.gravity ?? 1.0);
   merged.gravity = Number.isFinite(gravRaw) ? Math.max(0, Math.min(4, Math.round(gravRaw * 10) / 10)) : 1.0;
@@ -1098,7 +1374,9 @@ function normalizeCharacterSystemData(systemData) {
     };
     normalizedWeaponState[itemId] = {
       magazineCurrent: toNonNegativeWhole(state.magazineCurrent, 0),
+      chargeLevel: toNonNegativeWhole(state.chargeLevel, 0),
       scopeMode: String(state.scopeMode ?? "none").trim().toLowerCase() || "none",
+      fireMode: String(state.fireMode ?? "").trim().toLowerCase(),
       toHitModifier: toModifier(state.toHitModifier),
       damageModifier: toModifier(state.damageModifier)
     };
@@ -1630,6 +1908,11 @@ function normalizeGearSystemData(systemData, itemName = "") {
     ammoName: "",
     nicknames: [],
     fireModes: [],
+    charge: {
+      damagePerLevel: 0,
+      ammoPerLevel: 1,
+      maxLevel: 0
+    },
     damage: {
       baseRollD5: 0,
       baseRollD10: 0,
@@ -1704,6 +1987,9 @@ function normalizeGearSystemData(systemData, itemName = "") {
   merged.ammoName = String(merged.ammoName ?? "").trim();
   merged.nicknames = normalizeStringList(Array.isArray(merged.nicknames) ? merged.nicknames : parseList(merged.nicknames));
   merged.fireModes = normalizeStringList(Array.isArray(merged.fireModes) ? merged.fireModes : parseList(merged.fireModes));
+  merged.charge.damagePerLevel = toNonNegativeWhole(merged.charge?.damagePerLevel, 0);
+  merged.charge.ammoPerLevel = toNonNegativeWhole(merged.charge?.ammoPerLevel, 1);
+  merged.charge.maxLevel = toNonNegativeWhole(merged.charge?.maxLevel, 0);
 
   merged.damage.baseRollD5 = toNonNegativeWhole(merged.damage?.baseRollD5, 0);
   merged.damage.baseRollD10 = toNonNegativeWhole(merged.damage?.baseRollD10, 0);
@@ -2830,7 +3116,7 @@ async function organizeEquipmentCompendiumFolders(options = {}) {
     human: "Human Equipment",
     covenant: "Covenant Equipment",
     banished: "Banished Equipment",
-    forerunner: "Forerunner Equpment"
+    forerunner: "Forerunner Equipment"
   };
 
   const getCompendiumFolder = async (name) => {
@@ -2854,7 +3140,9 @@ async function organizeEquipmentCompendiumFolders(options = {}) {
     const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
     return name.startsWith("mythic-weapons-")
       || name.startsWith("mythic-armor-")
-      || name.startsWith("mythic-armor-variants-");
+      || name.startsWith("mythic-armor-variants-")
+      || name.startsWith("mythic-armor-variant-")
+      || name.startsWith("mythic-armorvariant-");
   });
 
   const compendiumConfiguration = foundry.utils.deepClone(game.settings.get("core", "compendiumConfiguration") ?? {});
@@ -2863,7 +3151,7 @@ async function organizeEquipmentCompendiumFolders(options = {}) {
   let skipped = 0;
   for (const pack of equipmentPacks) {
     const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
-    const match = /^mythic-(?:weapons|armor|armor-variants)-([a-z]+)(?:-|$)/.exec(name);
+    const match = /^mythic-(?:weapons|armor|armor-variants|armor-variant|armorvariant)-([a-z]+)(?:-|$)/.exec(name);
     const faction = match?.[1] ?? "";
 
     // Flood (and any unknown factions) stay ungrouped by request.
@@ -2904,6 +3192,128 @@ async function organizeEquipmentCompendiumFolders(options = {}) {
   );
 
   return { assigned, createdFolders, skipped, dryRun };
+}
+
+function mythicCanonicalItemName(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+async function patchCovenantPlasmaPistolChargeCompendiums(options = {}) {
+  if (!game.user?.isGM) {
+    return { skipped: true, reason: "not-gm" };
+  }
+
+  const dryRun = Boolean(options?.dryRun);
+  const force = Boolean(options?.force);
+  const currentVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY) ?? 0);
+  if (!force && currentVersion >= 1) {
+    return { skipped: true, reason: "already-patched", version: currentVersion };
+  }
+
+  const targets = [
+    { key: "eosmak", damagePerLevel: 5, ammoPerLevel: 5, maxLevel: 3 },
+    { key: "zoklada", damagePerLevel: 6, ammoPerLevel: 5, maxLevel: 3 }
+  ];
+
+  const packs = (game.packs ?? []).filter((pack) => {
+    const documentName = String(pack?.documentName ?? pack?.metadata?.type ?? "");
+    return documentName === "Item";
+  });
+
+  let updated = 0;
+  let removed = 0;
+  let packsTouched = 0;
+  let foundAnyTargets = false;
+
+  for (const pack of packs) {
+    const index = await pack.getIndex();
+    const hasTargetInIndex = [...index.values()].some((entry) => {
+      const nameKey = mythicCanonicalItemName(entry?.name ?? "");
+      return targets.some((target) => nameKey.includes(target.key));
+    });
+    if (!hasTargetInIndex) continue;
+
+    const wasLocked = Boolean(pack.locked);
+    if (wasLocked && !dryRun) {
+      await pack.configure({ locked: false });
+    }
+
+    try {
+      const docs = await pack.getDocuments();
+      const updates = [];
+      const deleteIds = [];
+
+      for (const doc of docs) {
+        if (doc.type !== "gear") continue;
+
+        const nameKey = mythicCanonicalItemName(doc.name ?? "");
+        const target = targets.find((entry) => nameKey.includes(entry.key));
+        if (!target) continue;
+
+        foundAnyTargets = true;
+        const isChargedShotDuplicate = nameKey.includes("chargedshot");
+        if (isChargedShotDuplicate) {
+          deleteIds.push(doc.id);
+          continue;
+        }
+
+        const currentSystem = normalizeGearSystemData(doc.system ?? {}, doc.name ?? "");
+        const nextSystem = foundry.utils.deepClone(currentSystem);
+        const existingModes = Array.isArray(nextSystem.fireModes) ? nextSystem.fireModes : [];
+        if (!existingModes.some((mode) => /charge|drawback/i.test(String(mode ?? "")))) {
+          existingModes.push(`charge(${target.maxLevel})`);
+        }
+
+        nextSystem.fireModes = existingModes;
+        nextSystem.charge = {
+          damagePerLevel: target.damagePerLevel,
+          ammoPerLevel: target.ammoPerLevel,
+          maxLevel: target.maxLevel
+        };
+
+        const diff = foundry.utils.diffObject(currentSystem, nextSystem);
+        if (!foundry.utils.isEmpty(diff)) {
+          updates.push({ _id: doc.id, system: nextSystem });
+        }
+      }
+
+      if (updates.length || deleteIds.length) {
+        packsTouched += 1;
+      }
+
+      if (!dryRun && updates.length) {
+        await Item.updateDocuments(updates, {
+          pack: pack.collection,
+          diff: false,
+          render: false
+        });
+      }
+
+      if (!dryRun && deleteIds.length) {
+        await Item.deleteDocuments(deleteIds, { pack: pack.collection });
+      }
+
+      updated += updates.length;
+      removed += deleteIds.length;
+    } finally {
+      if (wasLocked && !dryRun) {
+        await pack.configure({ locked: true });
+      }
+    }
+  }
+
+  if (!dryRun && foundAnyTargets) {
+    await game.settings.set("Halo-Mythic-Foundry-Updated", MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY, 1);
+  }
+
+  if (!dryRun && foundAnyTargets && (updated > 0 || removed > 0)) {
+    ui.notifications?.info(`[Mythic] Covenant plasma pistol patch applied: updated ${updated}, removed ${removed} duplicate charged-shot entries.`);
+  }
+
+  return { updated, removed, packsTouched, foundAnyTargets, dryRun };
 }
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -3028,6 +3438,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           img: item.img,
           itemClass: gear.itemClass,
           weaponClass: gear.weaponClass,
+          weaponType: String(gear.weaponType ?? "").trim(),
+          faction: String(gear.faction ?? "").trim(),
           ammoName: String(gear.ammoName ?? ""),
           fireModes: Array.isArray(gear.fireModes) ? gear.fireModes : [],
           rangeClose: toNonNegativeWhole(gear.range?.close, 0),
@@ -3038,6 +3450,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           damageD5: toNonNegativeWhole(gear.damage?.baseRollD5, 0),
           damageD10: toNonNegativeWhole(gear.damage?.baseRollD10, 0),
           damagePierce: Number(gear.damage?.pierce ?? 0),
+          specialRules: String(gear.specialRules ?? ""),
+          attachments: String(gear.attachments ?? ""),
+          description: String(gear.description ?? ""),
           source: gear.source,
           weightKg: Number(gear.weightKg ?? 0)
         };
@@ -3096,8 +3511,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const scopeOptions = {
       none: "No Scope",
       x2: "2x Scope",
-      x4: "4x Scope",
-      smart: "Smart-Link"
+      x4: "4x Scope"
     };
 
     const readyWeaponCards = equippedWeaponItems.map((item) => {
@@ -3110,13 +3524,39 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const magazineCurrent = isMelee
         ? 0
         : toNonNegativeWhole(state.magazineCurrent, fallbackMag);
-      const fireModes = Array.isArray(item.fireModes) && item.fireModes.length
+      const rawFireModes = Array.isArray(item.fireModes) && item.fireModes.length
         ? item.fireModes
-        : ["Attack"];
-      const attackModes = fireModes.map((mode, index) => ({
-        value: String(mode ?? "attack").trim().toLowerCase() || `attack-${index + 1}`,
-        label: String(mode ?? "Attack").trim() || "Attack"
+        : ["Single"];
+      const selectedFireModeValue = String(state.fireMode ?? "").trim().toLowerCase();
+      const fireModes = rawFireModes.map((mode, index) => {
+        const label = String(mode ?? "Single").trim() || "Single";
+        const value = label.toLowerCase() || `single-${index + 1}`;
+        return {
+          value,
+          label,
+          isSelected: selectedFireModeValue ? selectedFireModeValue === value : index === 0
+        };
+      });
+      const selectedFireModeLabel = fireModes.find((mode) => mode.isSelected)?.label ?? fireModes[0]?.label ?? "Single";
+      const selectedProfile = parseFireModeProfile(selectedFireModeLabel);
+      const halfActionAttackCount = Math.max(0, getAttackIterationsForProfile(selectedProfile, "half"));
+      const fullActionAttackCount = Math.max(0, getAttackIterationsForProfile(selectedProfile, "full"));
+      const hasChargeModeSelected = selectedProfile.kind === "charge" || selectedProfile.kind === "drawback";
+      const configuredChargeMax = toNonNegativeWhole(item.charge?.maxLevel, 0);
+      const chargeMaxLevel = hasChargeModeSelected
+        ? Math.max(1, configuredChargeMax || Math.max(1, selectedProfile.count))
+        : 0;
+      const rawChargeLevel = toNonNegativeWhole(state.chargeLevel, 0);
+      const chargeLevel = chargeMaxLevel > 0 ? Math.min(rawChargeLevel, chargeMaxLevel) : 0;
+      const chargeDamagePerLevel = toNonNegativeWhole(item.charge?.damagePerLevel, 0);
+      const chargeAmmoPerLevel = toNonNegativeWhole(item.charge?.ammoPerLevel, 1);
+      const chargePips = Array.from({ length: chargeMaxLevel }, (_, index) => ({
+        filled: index < chargeLevel,
+        level: index + 1
       }));
+      const smartText = `${item.specialRules ?? ""} ${item.attachments ?? ""} ${item.description ?? ""}`.toLowerCase();
+      const isSmartLinkCapable = /smart\s*-?\s*link/.test(smartText);
+      const trainingStatus = this._evaluateWeaponTrainingStatus(item, item.name ?? "");
 
       return {
         ...item,
@@ -3125,11 +3565,27 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         reach: Math.max(1, toNonNegativeWhole(item.rangeClose, 1)),
         magazineMax,
         magazineCurrent,
-        attackModes,
+        fireModes,
+        selectedFireMode: fireModes.find((mode) => mode.isSelected)?.value ?? fireModes[0]?.value ?? "single",
+        selectedFireModeLabel,
+        halfActionAttackCount,
+        fullActionAttackCount,
+        hasChargeModeSelected,
+        chargeLevel,
+        chargeMaxLevel,
+        chargeDamagePerLevel,
+        chargeAmmoPerLevel,
+        chargeDamageBonusPreview: chargeLevel * chargeDamagePerLevel,
+        chargePips,
         scopeMode: String(state.scopeMode ?? "none").trim().toLowerCase() || "none",
         toHitModifier: Number.isFinite(Number(state.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0,
         damageModifier: Number.isFinite(Number(state.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0,
         scopeOptions,
+        isSmartLinkCapable,
+        hasTrainingWarning: trainingStatus.hasAnyMismatch,
+        trainingWarningText: trainingStatus.warningText,
+        missingFactionTraining: trainingStatus.missingFactionTraining,
+        missingWeaponTraining: trainingStatus.missingWeaponTraining,
         ammoLabel: String(item.ammoName ?? "").trim() || "Ammo"
       };
     });
@@ -3567,6 +4023,157 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     tokenToggleButton?.classList.toggle("is-active", showToken);
   }
 
+  _getBiographyPreviewIsToken() {
+    const flagValue = this.actor.getFlag("Halo-Mythic-Foundry-Updated", MYTHIC_BIOGRAPHY_PREVIEW_FLAG_KEY);
+    if (flagValue === undefined || flagValue === null) {
+      return Boolean(this.actor.system?.settings?.automation?.preferTokenPreview);
+    }
+    return Boolean(flagValue);
+  }
+
+  async _setBiographyPreviewIsToken(showToken, root = null) {
+    this._showTokenPortrait = Boolean(showToken);
+    this._refreshPortraitTokenControls(root ?? (this.element?.querySelector(".mythic-character-sheet") ?? this.element));
+    await this.actor.setFlag("Halo-Mythic-Foundry-Updated", MYTHIC_BIOGRAPHY_PREVIEW_FLAG_KEY, this._showTokenPortrait);
+  }
+
+  _openActorImagePicker(targetPath) {
+    const current = String(foundry.utils.getProperty(this.actor, targetPath) ?? "");
+    const picker = new FilePicker({
+      type: "image",
+      current,
+      callback: async (path) => {
+        await this.actor.update({ [targetPath]: path });
+        const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+        this._refreshPortraitTokenControls(root);
+      }
+    });
+    picker.browse();
+  }
+
+  _dedupeHeaderControls(windowHeader) {
+    const controls = windowHeader?.querySelector(".window-controls, .window-actions, .header-actions, .header-buttons");
+    if (!controls) return;
+    const seen = new Set();
+    const actions = [...controls.querySelectorAll("a, button")];
+    for (const action of actions) {
+      const key = normalizeLookupText(
+        action.getAttribute("data-action")
+        || action.getAttribute("aria-label")
+        || action.getAttribute("title")
+        || action.textContent
+      );
+      if (!key) continue;
+      if (seen.has(key)) {
+        action.remove();
+        continue;
+      }
+      seen.add(key);
+    }
+  }
+
+  _findWeaponTrainingDefinition(rawWeaponType) {
+    const normalizedWeaponType = normalizeLookupText(rawWeaponType);
+    if (!normalizedWeaponType) return null;
+
+    const matchesDefinition = (definition) => {
+      const typeMatches = (definition.weaponTypes ?? []).some((entry) => {
+        const normalized = normalizeLookupText(entry);
+        return normalized && (normalized === normalizedWeaponType || normalizedWeaponType.includes(normalized));
+      });
+      if (typeMatches) return true;
+      return (definition.aliases ?? []).some((alias) => {
+        const normalized = normalizeLookupText(alias);
+        return normalized && (normalized === normalizedWeaponType || normalizedWeaponType.includes(normalized));
+      });
+    };
+
+    return MYTHIC_WEAPON_TRAINING_DEFINITIONS.find(matchesDefinition) ?? null;
+  }
+
+  _findFactionTrainingDefinition(rawFaction) {
+    const normalizedFaction = normalizeLookupText(rawFaction);
+    if (!normalizedFaction) return null;
+    return MYTHIC_FACTION_TRAINING_DEFINITIONS.find((definition) =>
+      (definition.aliases ?? []).some((alias) => {
+        const normalized = normalizeLookupText(alias);
+        return normalized && (normalizedFaction === normalized || normalizedFaction.includes(normalized));
+      })
+    ) ?? null;
+  }
+
+  _evaluateWeaponTrainingStatus(weaponSystemData = {}, fallbackName = "") {
+    const weaponTypeLabel = String(weaponSystemData?.weaponType ?? "").trim();
+    const factionLabel = String(weaponSystemData?.faction ?? "").trim();
+    const training = normalizeTrainingData(this.actor.system?.training ?? {});
+    const weaponDefinition = this._findWeaponTrainingDefinition(weaponTypeLabel || fallbackName);
+    const factionDefinition = this._findFactionTrainingDefinition(factionLabel);
+    const hasWeaponTraining = weaponDefinition ? Boolean(training.weapon?.[weaponDefinition.key]) : true;
+    const hasFactionTraining = factionDefinition ? Boolean(training.faction?.[factionDefinition.key]) : true;
+    const missingWeaponTraining = Boolean(weaponDefinition) && !hasWeaponTraining;
+    const missingFactionTraining = Boolean(factionDefinition) && !hasFactionTraining;
+
+    const warnings = [];
+    if (missingWeaponTraining && missingFactionTraining) {
+      warnings.push("Missing Faction & Weapon Type Training");
+    } else {
+      if (missingWeaponTraining) warnings.push(`Missing weapon training: ${weaponDefinition.label}`);
+      if (missingFactionTraining) warnings.push(`Missing faction training: ${factionDefinition.label}`);
+    }
+
+    return {
+      weaponTypeLabel,
+      factionLabel,
+      weaponDefinition,
+      factionDefinition,
+      hasWeaponTraining,
+      hasFactionTraining,
+      missingWeaponTraining,
+      missingFactionTraining,
+      hasAnyMismatch: missingWeaponTraining || missingFactionTraining,
+      warningText: warnings.join(" | ")
+    };
+  }
+
+  _confirmWeaponTrainingOverride(weaponName, trainingStatus) {
+    const warningRows = [];
+    if (trainingStatus?.missingWeaponTraining && trainingStatus.weaponDefinition) {
+      warningRows.push(`<li>No ${foundry.utils.escapeHTML(trainingStatus.weaponDefinition.label)} weapon training (-20 to hit).</li>`);
+    }
+    if (trainingStatus?.missingFactionTraining && trainingStatus.factionDefinition) {
+      warningRows.push(`<li>No ${foundry.utils.escapeHTML(trainingStatus.factionDefinition.label)} faction training (-20 to hit/damage tests with this weapon).</li>`);
+    }
+    const warningHtml = warningRows.length ? `<ul>${warningRows.join("")}</ul>` : "";
+
+    return new Promise((resolve) => {
+      new Dialog({
+        title: "Missing Weapon Proficiency",
+        content: `
+          <div class="mythic-modal-body">
+            <p><strong>${foundry.utils.escapeHTML(String(weaponName ?? "Weapon"))}</strong> is missing required training.</p>
+            ${warningHtml}
+            <p>Add this weapon anyway?</p>
+          </div>
+        `,
+        buttons: {
+          add: {
+            icon: '<i class="fas fa-check"></i>',
+            label: "Add Anyway",
+            callback: () => resolve(true)
+          },
+          cancel: {
+            icon: '<i class="fas fa-times"></i>',
+            label: "Do Not Add",
+            callback: () => resolve(false)
+          }
+        },
+        default: "cancel",
+        close: () => resolve(false),
+        render: (html) => this._applyMythicPromptClass(html)
+      }, { classes: ["mythic-prompt"] }).render(true);
+    });
+  }
+
   _normalizeNameForMatch(value) {
     return String(value ?? "")
       .toLowerCase()
@@ -3943,8 +4550,17 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       if (input.name.startsWith("system.combat.")) {
-        const value = Number(input.value);
-        input.value = Number.isFinite(value) ? String(Math.max(0, Math.floor(value))) : "0";
+        const raw = String(input.value ?? "").trim();
+        if (raw === "") {
+          const actorPath = input.name.startsWith("system.") ? input.name.slice("system.".length) : input.name;
+          const fallback = Number(foundry.utils.getProperty(this.actor.system ?? {}, actorPath));
+          if (Number.isFinite(fallback)) {
+            input.value = String(Math.max(0, Math.floor(fallback)));
+          }
+        } else {
+          const value = Number(raw);
+          input.value = Number.isFinite(value) ? String(Math.max(0, Math.floor(value))) : "0";
+        }
       }
 
       if (input.name === "system.gravity") {
@@ -3997,6 +4613,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         controls.style.alignItems = "center";
         controls.style.gap = "6px";
       }
+
+      this._dedupeHeaderControls(windowHeader);
     }
 
     const initialTab = this.tabGroups.primary ?? "main";
@@ -4225,9 +4843,27 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
-    root.querySelectorAll(".weapon-attack-btn[data-item-id][data-mode]").forEach((button) => {
+    root.querySelectorAll(".weapon-attack-btn[data-item-id][data-action]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onWeaponAttack(event);
+      });
+    });
+
+    root.querySelectorAll(".weapon-fire-mode-btn[data-item-id][data-fire-mode]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onWeaponFireModeToggle(event);
+      });
+    });
+
+    root.querySelectorAll(".weapon-charge-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onWeaponCharge(event);
+      });
+    });
+
+    root.querySelectorAll(".weapon-clear-charge-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onWeaponClearCharge(event);
       });
     });
 
@@ -4252,6 +4888,18 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".reaction-reset-btn").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onReactionReset(event);
+      });
+    });
+
+    root.querySelectorAll(".wounds-full-heal-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onWoundsFullHeal(event);
+      });
+    });
+
+    root.querySelectorAll(".shields-recharge-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onShieldsRecharge(event);
       });
     });
 
@@ -4307,8 +4955,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (portraitToggleButton) {
       portraitToggleButton.addEventListener("click", (event) => {
         event.preventDefault();
-        this._showTokenPortrait = false;
-        this._refreshPortraitTokenControls(root);
+        void this._setBiographyPreviewIsToken(false, root);
       });
     }
 
@@ -4316,12 +4963,25 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (tokenToggleButton) {
       tokenToggleButton.addEventListener("click", (event) => {
         event.preventDefault();
-        this._showTokenPortrait = true;
-        this._refreshPortraitTokenControls(root);
+        void this._setBiographyPreviewIsToken(true, root);
       });
     }
 
-    this._showTokenPortrait = Boolean(this.actor.system?.settings?.automation?.preferTokenPreview);
+    root.querySelectorAll(".portrait-upload-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openActorImagePicker("img");
+      });
+    });
+
+    root.querySelectorAll(".token-upload-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openActorImagePicker("prototypeToken.texture.src");
+      });
+    });
+
+    this._showTokenPortrait = this._getBiographyPreviewIsToken();
     this._refreshPortraitTokenControls(root);
   }
 
@@ -5071,6 +5731,21 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       itemData.system = normalizeTraitSystemData(itemData.system ?? {});
+      return this.actor.createEmbeddedDocuments("Item", [itemData]);
+    }
+
+    if (item.type === "gear") {
+      const itemData = item.toObject();
+      itemData.system = normalizeGearSystemData(itemData.system ?? {}, itemData.name ?? item.name ?? "");
+
+      if (itemData.system?.itemClass === "weapon") {
+        const trainingStatus = this._evaluateWeaponTrainingStatus(itemData.system, itemData.name ?? item.name ?? "");
+        if (trainingStatus.hasAnyMismatch) {
+          const addAnyway = await this._confirmWeaponTrainingOverride(itemData.name ?? item.name, trainingStatus);
+          if (!addAnyway) return false;
+        }
+      }
+
       return this.actor.createEmbeddedDocuments("Item", [itemData]);
     }
 
@@ -5993,14 +6668,31 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const nextWeaponIds = weaponIds.filter((id) => String(id) !== itemId);
     const nextArmorId = armorId === itemId ? "" : armorId;
     const nextWielded = wieldedWeaponId === itemId ? "" : wieldedWeaponId;
+    const nextWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    if (nextWeaponState && typeof nextWeaponState === "object") {
+      delete nextWeaponState[itemId];
+    }
 
     const updateData = {
       "system.equipment.carriedIds": nextCarried,
       "system.equipment.equipped.weaponIds": nextWeaponIds,
       "system.equipment.equipped.armorId": nextArmorId,
       "system.equipment.equipped.wieldedWeaponId": nextWielded,
-      [`system.equipment.weaponState.-=${itemId}`]: null
+      "system.equipment.weaponState": nextWeaponState
     };
+
+    if (!nextArmorId) {
+      updateData["system.combat.dr.armor.head"] = 0;
+      updateData["system.combat.dr.armor.chest"] = 0;
+      updateData["system.combat.dr.armor.lArm"] = 0;
+      updateData["system.combat.dr.armor.rArm"] = 0;
+      updateData["system.combat.dr.armor.lLeg"] = 0;
+      updateData["system.combat.dr.armor.rLeg"] = 0;
+      updateData["system.combat.shields.integrity"] = 0;
+      updateData["system.combat.shields.current"] = 0;
+      updateData["system.combat.shields.rechargeDelay"] = 0;
+      updateData["system.combat.shields.rechargeRate"] = 0;
+    }
 
     await this.actor.update(updateData);
 
@@ -6060,11 +6752,50 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    await this.actor.update({
+    const updateData = {
       "system.equipment.equipped.weaponIds": nextWeaponIds,
       "system.equipment.equipped.armorId": nextArmorId,
       "system.equipment.equipped.wieldedWeaponId": wieldedWeaponId
-    });
+    };
+
+    if (kind === "armor") {
+      if (nextArmorId) {
+        const equippedArmorItem = this.actor.items.get(nextArmorId);
+        if (equippedArmorItem?.type === "gear") {
+          const armorSystem = normalizeGearSystemData(equippedArmorItem.system ?? {}, equippedArmorItem.name ?? "");
+          const protection = armorSystem?.protection ?? {};
+          const shieldStats = armorSystem?.shields ?? {};
+          const shieldIntegrity = toNonNegativeWhole(shieldStats.integrity, 0);
+          const currentShield = toNonNegativeWhole(this.actor.system?.combat?.shields?.current, 0);
+
+          updateData["system.combat.dr.armor.head"] = toNonNegativeWhole(protection.head, 0);
+          updateData["system.combat.dr.armor.chest"] = toNonNegativeWhole(protection.chest, 0);
+          updateData["system.combat.dr.armor.lArm"] = toNonNegativeWhole(protection.arms, 0);
+          updateData["system.combat.dr.armor.rArm"] = toNonNegativeWhole(protection.arms, 0);
+          updateData["system.combat.dr.armor.lLeg"] = toNonNegativeWhole(protection.legs, 0);
+          updateData["system.combat.dr.armor.rLeg"] = toNonNegativeWhole(protection.legs, 0);
+          updateData["system.combat.shields.integrity"] = shieldIntegrity;
+          updateData["system.combat.shields.rechargeDelay"] = toNonNegativeWhole(shieldStats.delay, 0);
+          updateData["system.combat.shields.rechargeRate"] = toNonNegativeWhole(shieldStats.rechargeRate, 0);
+          updateData["system.combat.shields.current"] = currentShield > 0
+            ? Math.min(currentShield, shieldIntegrity)
+            : shieldIntegrity;
+        }
+      } else {
+        updateData["system.combat.dr.armor.head"] = 0;
+        updateData["system.combat.dr.armor.chest"] = 0;
+        updateData["system.combat.dr.armor.lArm"] = 0;
+        updateData["system.combat.dr.armor.rArm"] = 0;
+        updateData["system.combat.dr.armor.lLeg"] = 0;
+        updateData["system.combat.dr.armor.rLeg"] = 0;
+        updateData["system.combat.shields.integrity"] = 0;
+        updateData["system.combat.shields.current"] = 0;
+        updateData["system.combat.shields.rechargeDelay"] = 0;
+        updateData["system.combat.shields.rechargeRate"] = 0;
+      }
+    }
+
+    await this.actor.update(updateData);
   }
 
   async _onSetWieldedWeapon(event) {
@@ -6124,6 +6855,111 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     await this.actor.update({
       [`system.equipment.weaponState.${itemId}.${field}`]: value
+    });
+  }
+
+  async _onWeaponFireModeToggle(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    const fireMode = String(event.currentTarget?.dataset?.fireMode ?? "").trim().toLowerCase();
+    if (!itemId || !fireMode) return;
+
+    await this.actor.update({
+      [`system.equipment.weaponState.${itemId}.fireMode`]: fireMode
+    });
+  }
+
+  async _onWoundsFullHeal(event) {
+    event.preventDefault();
+    const maxWounds = toNonNegativeWhole(this.actor.system?.combat?.wounds?.max, 0);
+    await this.actor.update({ "system.combat.wounds.current": maxWounds });
+  }
+
+  async _onShieldsRecharge(event) {
+    event.preventDefault();
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const current = toNonNegativeWhole(normalized?.combat?.shields?.current, 0);
+    const maxIntegrity = toNonNegativeWhole(normalized?.combat?.shields?.integrity, 0);
+    const rechargeRate = toNonNegativeWhole(normalized?.combat?.shields?.rechargeRate, 0);
+
+    if (rechargeRate <= 0 || maxIntegrity <= 0) return;
+    const nextCurrent = Math.min(maxIntegrity, current + rechargeRate);
+    if (nextCurrent === current) return;
+
+    await this.actor.update({ "system.combat.shields.current": nextCurrent });
+  }
+
+  async _onWeaponCharge(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    if (!itemId) return;
+
+    const item = this.actor.items.get(itemId);
+    if (!item || item.type !== "gear") return;
+
+    const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    if (gear.weaponClass === "melee") {
+      ui.notifications.warn("Only ranged weapons can be charged.");
+      return;
+    }
+
+    const state = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
+    const availableFireModes = Array.isArray(gear.fireModes) && gear.fireModes.length ? gear.fireModes : ["Single"];
+    const selectedFireMode = String(state?.fireMode ?? "").trim().toLowerCase();
+    const modeLabel = availableFireModes.find((mode) => String(mode).trim().toLowerCase() === selectedFireMode)
+      ?? availableFireModes[0]
+      ?? "Single";
+    const modeProfile = parseFireModeProfile(modeLabel);
+    const isChargeMode = modeProfile.kind === "charge" || modeProfile.kind === "drawback";
+
+    if (!isChargeMode) {
+      ui.notifications.warn("Select a Charge/Drawback fire mode before charging.");
+      return;
+    }
+
+    const chargeMaxLevel = Math.max(1, toNonNegativeWhole(gear.charge?.maxLevel, 0) || Math.max(1, modeProfile.count));
+    const currentLevel = Math.min(toNonNegativeWhole(state?.chargeLevel, 0), chargeMaxLevel);
+    if (currentLevel >= chargeMaxLevel) {
+      ui.notifications.info(`${item.name} is already at full charge (${chargeMaxLevel}).`);
+      return;
+    }
+
+    const ammoConfig = getAmmoConfig();
+    const ammoPerLevel = toNonNegativeWhole(gear.charge?.ammoPerLevel, 1);
+    const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
+    const ammoCurrent = toNonNegativeWhole(state?.magazineCurrent, magazineMax);
+
+    const updateData = {
+      [`system.equipment.weaponState.${itemId}.chargeLevel`]: currentLevel + 1
+    };
+
+    if (!ammoConfig.ignoreBasicAmmoCounts && ammoPerLevel > 0) {
+      if (ammoCurrent < ammoPerLevel) {
+        ui.notifications.warn(`${item.name} needs ${ammoPerLevel} ammo to increase charge.`);
+        return;
+      }
+      updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = Math.max(0, ammoCurrent - ammoPerLevel);
+    }
+
+    await this.actor.update(updateData);
+  }
+
+  async _onWeaponClearCharge(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    if (!itemId) return;
+
+    const currentLevel = toNonNegativeWhole(this.actor.system?.equipment?.weaponState?.[itemId]?.chargeLevel, 0);
+    if (currentLevel <= 0) return;
+
+    await this.actor.update({
+      [`system.equipment.weaponState.${itemId}.chargeLevel`]: 0
     });
   }
 
@@ -6205,61 +7041,164 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
-    const mode = String(event.currentTarget?.dataset?.mode ?? "attack").trim();
+    const actionType = String(event.currentTarget?.dataset?.action ?? "single").trim().toLowerCase();
     if (!itemId) return;
 
     const item = this.actor.items.get(itemId);
     if (!item || item.type !== "gear") return;
 
     const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const wieldedWeaponId = String(this.actor.system?.equipment?.equipped?.wieldedWeaponId ?? "").trim();
+    if (wieldedWeaponId !== itemId) {
+      if (!this.isEditable) {
+        ui.notifications.warn(`${item.name} is not currently wielded.`);
+        return;
+      }
+
+      const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+      const proceed = await new Promise((resolve) => {
+        new Dialog({
+          title: "Weapon Not Wielded",
+          content: `<p><strong>${esc(item.name)}</strong> is not currently wielded.</p><p>Wield it now and continue this attack?</p>`,
+          buttons: {
+            yes: {
+              icon: '<i class="fas fa-hand-rock"></i>',
+              label: "Wield and Continue",
+              callback: () => resolve(true)
+            },
+            no: {
+              icon: '<i class="fas fa-times"></i>',
+              label: "Cancel",
+              callback: () => resolve(false)
+            }
+          },
+          default: "yes",
+          close: () => resolve(false),
+          render: (html) => this._applyMythicPromptClass(html)
+        }, { classes: ["mythic-prompt"] }).render(true);
+      });
+
+      if (!proceed) return;
+
+      await this.actor.update({
+        "system.equipment.equipped.wieldedWeaponId": itemId
+      });
+    }
+
     const state = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
     const toHitMod = Number.isFinite(Number(state?.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
     const damageModifier = Number.isFinite(Number(state?.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0;
+    const availableFireModes = Array.isArray(gear.fireModes) && gear.fireModes.length ? gear.fireModes : ["Single"];
+    const selectedFireMode = String(state?.fireMode ?? "").trim().toLowerCase();
+    const modeLabel = availableFireModes.find((m) => String(m).trim().toLowerCase() === selectedFireMode)
+      ?? availableFireModes[0]
+      ?? "Single";
+    const modeProfile = parseFireModeProfile(modeLabel);
     const isMelee = gear.weaponClass === "melee";
     const ammoConfig = getAmmoConfig();
     const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
     const ammoCurrent = toNonNegativeWhole(state?.magazineCurrent, magazineMax);
+    const isChargeMode = modeProfile.kind === "charge" || modeProfile.kind === "drawback";
+    const chargeDamagePerLevel = toNonNegativeWhole(gear.charge?.damagePerLevel, 0);
+    const chargeMaxLevel = isChargeMode
+      ? Math.max(1, toNonNegativeWhole(gear.charge?.maxLevel, 0) || Math.max(1, modeProfile.count))
+      : 0;
+    const storedChargeLevel = toNonNegativeWhole(state?.chargeLevel, 0);
+    const activeChargeLevel = chargeMaxLevel > 0 ? Math.min(storedChargeLevel, chargeMaxLevel) : 0;
+    const chargeDamageBonus = activeChargeLevel * chargeDamagePerLevel;
+    const isFullChargeShot = isChargeMode && chargeMaxLevel > 0 && activeChargeLevel >= chargeMaxLevel;
+    const trainingStatus = this._evaluateWeaponTrainingStatus(gear, item.name ?? "");
+    const factionTrainingPenalty = trainingStatus.missingFactionTraining ? -20 : 0;
+    const weaponTrainingPenalty = trainingStatus.missingWeaponTraining ? -20 : 0;
 
-    // Ammo consumption
-    const normalizedMode = mode.toLowerCase();
-    const consumedPerAttack = isMelee
-      ? 0
-      : (normalizedMode.includes("full") || normalizedMode.includes("auto") ? 5
-        : normalizedMode.includes("burst") ? 3 : 1);
+    const targets = [...(game.user.targets ?? [])].filter(Boolean);
+    const targetToken = targets[0] ?? null;
+    const targetName = targetToken?.document?.name ?? targetToken?.name ?? null;
+    const targetTokenIds = targets.map((token) => String(token.id ?? "")).filter(Boolean);
+    const targetActorIds = targets.map((token) => String(token.actor?.id ?? "")).filter(Boolean);
+    const weaponDisplayName = (Array.isArray(gear.nicknames) && gear.nicknames.length)
+      ? String(gear.nicknames[0] ?? "").trim() || item.name
+      : item.name;
+    const attackerToken = canvas?.tokens?.placeables?.find((token) => token?.actor?.id === this.actor.id) ?? null;
+    const distanceMeters = (attackerToken && targetToken && canvas?.grid?.measureDistance)
+      ? Number(canvas.grid.measureDistance(attackerToken.center, targetToken.center))
+      : NaN;
+
+    let targetSwitchPenalty = 0;
+    if (game.combat) {
+      const combatId = String(game.combat.id ?? "");
+      const round = Math.max(0, Number(game.combat.round ?? 0));
+      const currentTargetId = String(targetToken?.id ?? "");
+      const tracker = this.actor.system?.combat?.targetSwitch ?? {};
+      const isSameRound = String(tracker?.combatId ?? "") === combatId && Number(tracker?.round ?? -1) === round;
+      let switchCount = isSameRound ? Math.max(0, Number(tracker?.switchCount ?? 0)) : 0;
+      const lastTargetId = isSameRound ? String(tracker?.lastTargetId ?? "") : "";
+      if (currentTargetId && lastTargetId && currentTargetId !== lastTargetId) switchCount += 1;
+      targetSwitchPenalty = switchCount * -10;
+      await this.actor.update({
+        "system.combat.targetSwitch": {
+          combatId,
+          round,
+          lastTargetId: currentTargetId || lastTargetId,
+          switchCount
+        }
+      });
+    }
+
+    const rangeResult = computeRangeModifier(distanceMeters, toNonNegativeWhole(gear.range?.close, 0), toNonNegativeWhole(gear.range?.max, 0), isMelee);
+
+    if (actionType === "execution") {
+      if (!targetToken) {
+        ui.notifications.warn("Execution requires a target token.");
+        return;
+      }
+      if (!Number.isFinite(distanceMeters) || distanceMeters > (isMelee ? 1 : 3)) {
+        ui.notifications.warn(`Execution requires point-blank range (${isMelee ? "1m" : "3m"} or less).`);
+        return;
+      }
+    }
+
+    const rollIterations = actionType === "execution" ? 1 : getAttackIterationsForProfile(modeProfile, actionType);
+    if (rollIterations <= 0) {
+      ui.notifications.warn(`${modeLabel} cannot be used as a ${actionType} action.`);
+      return;
+    }
+
+    let ammoToConsume = 0;
+    if (!isMelee && actionType !== "execution") {
+      if (isChargeMode) ammoToConsume = activeChargeLevel > 0 ? 0 : 1;
+      else if (modeProfile.kind === "burst") ammoToConsume = rollIterations * Math.max(1, modeProfile.count);
+      else ammoToConsume = rollIterations;
+    }
+    if (!isMelee && actionType === "execution") ammoToConsume = 1;
 
     if (!isMelee && !ammoConfig.ignoreBasicAmmoCounts) {
-      if (ammoCurrent <= 0) {
+      if (ammoCurrent < ammoToConsume) {
         ui.notifications.warn(`${item.name} is empty. Reload required.`);
         return;
       }
       await this.actor.update({
-        [`system.equipment.weaponState.${itemId}.magazineCurrent`]: Math.max(0, ammoCurrent - consumedPerAttack)
+        [`system.equipment.weaponState.${itemId}.magazineCurrent`]: Math.max(0, ammoCurrent - ammoToConsume)
       });
     }
 
     const newAmmoCurrent = (!isMelee && !ammoConfig.ignoreBasicAmmoCounts)
-      ? Math.max(0, ammoCurrent - consumedPerAttack)
+      ? Math.max(0, ammoCurrent - ammoToConsume)
       : ammoCurrent;
 
     // Determine attack characteristic (WFR for ranged, WFM for melee)
     const characteristics = this.actor.system?.characteristics ?? {};
     const statKey = isMelee ? "wfm" : "wfr";
     const baseStat = toNonNegativeWhole(characteristics[statKey], 0);
-    const fireModeBonus = getFireModeToHitBonus(mode);
-    const effectiveTarget = baseStat + fireModeBonus + toHitMod;
+    const fireModeBonus = getFireModeToHitBonus(modeLabel);
+    const effectiveTarget = baseStat
+      + fireModeBonus
+      + toHitMod
+      + rangeResult.toHitMod
+      + targetSwitchPenalty
+      + factionTrainingPenalty
+      + weaponTrainingPenalty;
 
-    // Roll to hit (d100, lower is better)
-    const attackRoll = await new Roll("1d100").evaluate();
-    const rawRoll = attackRoll.total;
-    const isCritFail = rawRoll === 100;
-    const dosValue = computeAttackDOS(effectiveTarget, rawRoll);
-    const isSuccess = !isCritFail && dosValue >= 0;
-    const absDisplay = Math.abs(dosValue).toFixed(1);
-
-    // Hit location (invert roll digits; 100 = crit fail, 1 -> 10)
-    const hitLoc = resolveHitLocation(rawRoll);
-
-    // Damage roll
     const d10Count = toNonNegativeWhole(gear.damage?.baseRollD10, 0);
     const d5Count = toNonNegativeWhole(gear.damage?.baseRollD5, 0);
     const baseFlat = Number(gear.damage?.baseDamage ?? 0);
@@ -6269,74 +7208,194 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (d5Count > 0) damageParts.push(`${d5Count}d5`);
     if (flatTotal !== 0 || damageParts.length === 0) damageParts.push(String(flatTotal));
     const damageFormula = damageParts.join(" + ");
-    const damageRoll = await new Roll(damageFormula).evaluate();
-    const damageTotal = damageRoll.total;
-    // Special damage: any d10 showing a 10
-    const hasSpecialDamage = damageRoll.dice
-      .filter((d) => d.faces === 10)
-      .some((d) => d.results.some((r) => r.result === 10));
-    const damagePierce = Math.max(0, Number(gear.damage?.pierce ?? 0));
+    const damageDisplayParts = [];
+    if (d10Count > 0) damageDisplayParts.push(`${d10Count}d10`);
+    if (d5Count > 0) damageDisplayParts.push(`${d5Count}d5`);
+    const flatWithCharge = flatTotal + chargeDamageBonus;
+    if (flatWithCharge !== 0 || damageDisplayParts.length === 0) damageDisplayParts.push(String(flatWithCharge));
+    const damageFormulaDisplay = damageDisplayParts.join(" + ");
+    const basePierce = Math.max(0, Number(gear.damage?.pierce ?? 0));
+    const effectivePierce = Math.floor(basePierce * rangeResult.pierceFactor);
 
-    // Targeting info
-    const targets = [...(game.user.targets ?? [])];
-    const targetToken = targets[0] ?? null;
-    const targetName = targetToken?.document?.name ?? targetToken?.name ?? null;
+    const allRolls = [];
+    const attackRows = [];
+    const evasionRows = [];
+
+    const evaluateDamage = async () => {
+      if (actionType === "execution") {
+        const maxDamage = (d10Count * 10) + (d5Count * 5) + Math.max(0, flatTotal);
+        return {
+          total: maxDamage * 2,
+          hasSpecialDamage: true,
+          formula: `Execution max (${maxDamage}) x2`
+        };
+      }
+      const roll = await new Roll(damageFormula).evaluate();
+      allRolls.push(roll);
+      const totalWithCharge = Number(roll.total ?? 0) + chargeDamageBonus;
+      return {
+        total: totalWithCharge,
+        hasSpecialDamage: roll.dice
+          .filter((d) => d.faces === 10)
+          .some((d) => d.results.some((r) => r.result === 10))
+          || isFullChargeShot,
+        formula: damageFormulaDisplay
+      };
+    };
+
+    for (let i = 0; i < rollIterations; i += 1) {
+      const attackRoll = actionType === "execution" ? null : await new Roll("1d100").evaluate();
+      if (attackRoll) allRolls.push(attackRoll);
+
+      const rawRoll = attackRoll?.total ?? 1;
+      const isCritFail = attackRoll ? rawRoll === 100 : false;
+      const dosValue = actionType === "execution" ? 99 : computeAttackDOS(effectiveTarget, rawRoll);
+      const isSuccess = actionType === "execution" ? true : (!isCritFail && dosValue >= 0);
+      const hitLoc = actionType === "execution" ? { zone: "Execution", subZone: "Point Blank", drKey: "chest", locRoll: null } : resolveHitLocation(rawRoll);
+
+      let hitCount = 0;
+      if (isSuccess && rangeResult.canDealDamage) {
+        if (modeProfile.kind === "burst") hitCount = Math.max(1, modeProfile.count);
+        else if (modeProfile.kind === "sustained") hitCount = Math.max(1, modeProfile.count);
+        else hitCount = 1;
+      }
+
+      const damageInstances = [];
+      for (let shotIndex = 0; shotIndex < hitCount; shotIndex += 1) {
+        const dmg = await evaluateDamage();
+        damageInstances.push({
+          damageTotal: dmg.total,
+          damagePierce: effectivePierce,
+          hasSpecialDamage: dmg.hasSpecialDamage,
+          damageFormula: dmg.formula,
+          hitLoc
+        });
+      }
+
+      let wouldDamage = [];
+      if (rangeResult.canDealDamage) {
+        if (damageInstances.length) {
+          wouldDamage = damageInstances;
+        } else {
+          const wouldDamageResult = await evaluateDamage();
+          wouldDamage = [{
+            damageTotal: wouldDamageResult.total,
+            damagePierce: effectivePierce,
+            hasSpecialDamage: wouldDamageResult.hasSpecialDamage,
+            damageFormula: wouldDamageResult.formula,
+            hitLoc
+          }];
+        }
+      }
+
+      const row = {
+        index: i + 1,
+        rawRoll,
+        effectiveTarget,
+        dosValue,
+        isCritFail,
+        isSuccess,
+        hitLoc,
+        damageInstances,
+        wouldDamage
+      };
+      attackRows.push(row);
+
+      if (row.isSuccess && row.damageInstances.length) {
+        if (modeProfile.kind === "burst") {
+          const [first] = row.damageInstances;
+          evasionRows.push({
+            attackIndex: row.index,
+            repeatCount: row.damageInstances.length,
+            damageTotal: first.damageTotal,
+            damagePierce: first.damagePierce,
+            hitLoc: row.hitLoc,
+            hasSpecialDamage: row.damageInstances.some((entry) => entry.hasSpecialDamage)
+          });
+        } else {
+          for (const entry of row.damageInstances) {
+            evasionRows.push({
+              attackIndex: row.index,
+              repeatCount: 1,
+              damageTotal: entry.damageTotal,
+              damagePierce: entry.damagePierce,
+              hitLoc: row.hitLoc,
+              hasSpecialDamage: entry.hasSpecialDamage
+            });
+          }
+        }
+      }
+    }
 
     const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
     const signMod = (v) => v > 0 ? `+${v}` : v < 0 ? String(v) : "";
     const statLabel = statKey.toUpperCase();
 
-    // Build modifier note
     const modParts = [];
-    if (fireModeBonus !== 0) modParts.push(`${esc(mode.replace(/\s*\([^)]*\)/g, "").trim())} ${signMod(fireModeBonus)}`);
+    if (fireModeBonus !== 0) modParts.push(`${esc(modeLabel)} ${signMod(fireModeBonus)}`);
     if (toHitMod !== 0) modParts.push(`Wpn ${signMod(toHitMod)}`);
+    if (rangeResult.toHitMod !== 0) modParts.push(`Range ${rangeResult.band} ${signMod(rangeResult.toHitMod)}`);
+    if (targetSwitchPenalty !== 0) modParts.push(`Target Switch ${signMod(targetSwitchPenalty)}`);
+    if (factionTrainingPenalty !== 0) modParts.push(`Faction Training ${signMod(factionTrainingPenalty)}`);
+    if (weaponTrainingPenalty !== 0) modParts.push(`Weapon Training ${signMod(weaponTrainingPenalty)}`);
+    if (isChargeMode) modParts.push(`Charge ${activeChargeLevel}/${chargeMaxLevel} (${signMod(chargeDamageBonus)} dmg)`);
     const modNote = modParts.length ? ` <span class="mythic-stat-mods">(${modParts.join(", ")})</span>` : "";
 
-    // Hit location HTML
-    const locHtml = hitLoc
-      ? `<strong class="mythic-subloc">${esc(hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(hitLoc.zone)})</span>`
-      : `<em>—</em>`;
+    const rowHtml = attackRows.map((row) => {
+      const absDisplay = Math.abs(row.dosValue).toFixed(1);
+      const verdict = row.isCritFail
+        ? "Critical Failure"
+        : row.isSuccess
+          ? `${absDisplay} DOS`
+          : `${absDisplay} DOF`;
+      const verdictClass = row.isCritFail ? "crit-fail" : row.isSuccess ? "success" : "failure";
 
-    // Damage display
-    const dmgBreakdown = `<span class="mythic-roll-inline">${damageTotal}</span>`
-      + ` <span class="mythic-dice-formula">[${esc(damageFormula)}]</span>`
-      + `&ensp;Pierce <strong>${damagePierce}</strong>`
-      + (hasSpecialDamage ? ` <span class="mythic-special-dmg">&#9888; Special Damage!</span>` : "");
+      const successDetail = row.isSuccess && row.damageInstances.length
+        ? row.damageInstances.map((entry, idx) => {
+          const locHtml = row.hitLoc
+            ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
+            : `<em>-</em>`;
+          const damageTitle = esc(`Damage roll: ${entry.damageTotal} [${entry.damageFormula}]`);
+          return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Hit ${idx + 1}: <span class="mythic-roll-inline" title="${damageTitle}">${entry.damageTotal}</span> [${esc(entry.damageFormula)}], Pierce ${entry.damagePierce} @ ${locHtml}${entry.hasSpecialDamage ? ' <span class="mythic-special-dmg">&#9888; Special</span>' : ""}</div>`;
+        }).join("")
+        : "";
 
-    let resultHtml;
-    if (isCritFail) {
-      resultHtml = `<div class="mythic-attack-verdict crit-fail">Critical Failure &mdash; no effect.</div>`;
-    } else if (isSuccess) {
-      resultHtml = `<div class="mythic-attack-details success">
-        <div class="mythic-dmg-row">${dmgBreakdown}</div>
-        <div class="mythic-loc-row">Hit Location: ${locHtml}</div>
+      const attackRollTitle = esc(`Attack roll: ${row.rawRoll} [1d100]`);
+
+      return `<div class="mythic-attack-line">
+        <div class="mythic-attack-mainline">A${row.index}: ${actionType === "execution" ? "AUTO" : `<span class="mythic-roll-inline" title="${attackRollTitle}">${row.rawRoll}</span> vs <span class="mythic-roll-target" title="Effective target">${row.effectiveTarget}</span>`} <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span></div>
+        ${successDetail}
       </div>`;
-    } else {
-      resultHtml = `<details class="mythic-miss-details">
-        <summary>Miss &mdash; <span class="mythic-attack-verdict failure">${absDisplay} Degrees of Failure.</span> (click to reveal damage details)</summary>
-        <div class="mythic-attack-details">
-          <div class="mythic-dmg-row">Damage (not dealt): ${dmgBreakdown}</div>
-          <div class="mythic-loc-row">Would have hit: ${locHtml}</div>
-        </div>
-      </details>`;
-    }
+    }).join("");
+
+    const failedRows = attackRows.filter((row) => !row.isSuccess || row.isCritFail);
+    const failureDetails = failedRows.length
+      ? `<details class="mythic-miss-details"><summary>Reveal damage details for failures</summary>${failedRows.map((row) => {
+        const locHtml = row.hitLoc
+          ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
+          : `<em>-</em>`;
+        const would = row.wouldDamage?.[0] ?? null;
+        const wouldTitle = would ? esc(`Would deal: ${would.damageTotal} [${would.damageFormula}]`) : "";
+        return `<div class="mythic-attack-subline">A${row.index}: would hit ${locHtml}${would ? ` for <span class="mythic-roll-inline" title="${wouldTitle}">${would.damageTotal}</span> [${esc(would.damageFormula)}], Pierce ${would.damagePierce}` : ""}</div>`;
+      }).join("")}</details>`
+      : "";
+
+    const anySuccess = attackRows.some((row) => row.isSuccess && row.damageInstances.length);
 
     const ammoHtml = isMelee ? "" : ` <span class="mythic-ammo-note">(${newAmmoCurrent}/${magazineMax})</span>`;
+    const chargeReleaseNote = isChargeMode && activeChargeLevel > 0
+      ? ` <span class="mythic-charge-release-note">[Charge Release ${activeChargeLevel}/${chargeMaxLevel} ${isFullChargeShot ? "FULL " : ""}+${chargeDamageBonus} dmg]</span>`
+      : "";
 
     const content = `<div class="mythic-attack-card">
   <div class="mythic-attack-header">
-    <strong>${esc(this.actor.name)}</strong> fires <strong>${esc(item.name)}</strong>${targetName ? ` at <em>${esc(targetName)}</em>` : ""}${ammoHtml}
+      ${targets.length === 1 && targetName
+        ? `<strong>${esc(this.actor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>${ammoHtml}${chargeReleaseNote}`
+        : `<strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>${ammoHtml}${chargeReleaseNote}`}
   </div>
-  <div class="mythic-attack-roll-row">
-    <span class="mythic-roll-inline">${rawRoll}</span>
-    <span class="mythic-vs">vs</span>
-    <span class="mythic-roll-target">${effectiveTarget}</span>
-    <span class="mythic-stat-label">${statLabel} ${baseStat}${modNote}</span>
-    <span class="mythic-attack-verdict ${isCritFail ? "crit-fail" : isSuccess ? "success" : "failure"}">
-      ${isCritFail ? "Critical Failure" : isSuccess ? `${absDisplay} Degrees of Success!` : `${absDisplay} Degrees of Failure.`}
-    </span>
-  </div>
-  ${resultHtml}
+  <div class="mythic-stat-label">${statLabel} ${baseStat}${modNote} &mdash; ${esc(modeLabel)} (${esc(actionType)})</div>
+  ${rowHtml}
+  ${failureDetails}
   <hr class="mythic-card-hr">
 </div>`;
 
@@ -6345,34 +7404,51 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       attackerId: this.actor.id,
       attackerName: this.actor.name,
       weaponId: itemId,
-      weaponName: item.name,
-      mode,
-      rawRoll,
+      weaponName: weaponDisplayName,
+      mode: modeLabel,
+      actionType,
       effectiveTarget,
       statKey,
       baseStat,
       fireModeBonus,
       toHitMod,
-      isCritFail,
-      isSuccess,
-      dosValue,
-      hitLoc: hitLoc ?? null,
+      rangeBand: rangeResult.band,
+      rangeMod: rangeResult.toHitMod,
+      targetSwitchPenalty,
+      factionTrainingPenalty,
+      weaponTrainingPenalty,
+      chargeLevel: activeChargeLevel,
+      chargeMaxLevel,
+      chargeDamageBonus,
+      isCritFail: attackRows.some((row) => row.isCritFail),
+      isSuccess: anySuccess,
+      dosValue: attackRows.length ? Math.max(...attackRows.map((row) => Number(row.dosValue ?? 0))) : 0,
+      hitLoc: attackRows.find((row) => row.isSuccess)?.hitLoc ?? null,
       damageFormula,
-      damageTotal,
-      damagePierce,
-      hasSpecialDamage,
+      damageTotal: attackRows.find((row) => row.isSuccess)?.damageInstances?.[0]?.damageTotal ?? 0,
+      damagePierce: attackRows.find((row) => row.isSuccess)?.damageInstances?.[0]?.damagePierce ?? 0,
+      hasSpecialDamage: attackRows.some((row) => row.damageInstances?.some((entry) => entry.hasSpecialDamage)),
+      evasionRows,
       targetTokenId: targetToken?.id ?? null,
       targetActorId: targetToken?.actor?.id ?? null,
+      targetTokenIds,
+      targetActorIds,
       sceneId: canvas?.scene?.id ?? null
     };
 
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
       content,
-      rolls: [attackRoll, damageRoll],
+      rolls: allRolls,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER,
       flags: { "Halo-Mythic-Foundry-Updated": { attackData } }
     });
+
+    if (isChargeMode && activeChargeLevel > 0) {
+      await this.actor.update({
+        [`system.equipment.weaponState.${itemId}.chargeLevel`]: 0
+      });
+    }
   }
 
   async _onPostHandToHandAttack(event) {
@@ -6617,6 +7693,8 @@ class MythicItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
       context.isArmorItem = gear.itemClass === "armor";
       context.nicknamesDisplay = Array.isArray(gear.nicknames) ? gear.nicknames.join(", ") : "";
       context.fireModesDisplay = Array.isArray(gear.fireModes) ? gear.fireModes.join(", ") : "";
+      const fireModeText = context.fireModesDisplay.toLowerCase();
+      context.hasChargeMode = /charge|drawback/.test(fireModeText);
       context.readOnlySystem = JSON.stringify(gear, null, 2);
     }
 
@@ -7139,9 +8217,20 @@ class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 Hooks.once("init", async () => {
   console.log("[mythic-system] Initializing minimal system scaffold");
 
+  installMythicTokenRuler();
+
   game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_WORLD_MIGRATION_SETTING_KEY, {
     name: "Halo Mythic World Migration Version",
     hint: "Internal world migration marker used by the Halo Mythic system.",
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0
+  });
+
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY, {
+    name: "Covenant Plasma Pistol Charge Patch Version",
+    hint: "Internal marker for one-time Covenant plasma pistol compendium charge patching.",
     scope: "world",
     config: false,
     type: Number,
@@ -7164,6 +8253,25 @@ Hooks.once("init", async () => {
     config: true,
     type: Boolean,
     default: false
+  });
+
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY, {
+    name: "Default Token Bar Visibility",
+    hint: "Default bar visibility mode for character tokens. Characters with shields always force bars visible.",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      "controlled": "When Controlled",
+      "owner-hover": "Hovered by Owner",
+      "hover-anyone": "Hovered by Anyone",
+      "always-owner": "Always for Owner",
+      "always-anyone": "Always for Anyone"
+    },
+    default: "owner-hover",
+    onChange: () => {
+      void applyMythicTokenDefaultsToWorld();
+    }
   });
 
   await foundry.applications.handlebars.loadTemplates(MYTHIC_ACTOR_PARTIAL_TEMPLATES);
@@ -7205,15 +8313,27 @@ Hooks.once("init", async () => {
 
   CONFIG.Actor.trackableAttributes = {
     character: {
-      bar: [],
-      value: []
+      bar: [
+        "combat.woundsBar",
+        "combat.shieldsBar"
+      ],
+      value: [
+        "combat.wounds.current",
+        "combat.wounds.max",
+        "combat.shields.current",
+        "combat.shields.integrity"
+      ]
     }
   };
 });
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
   console.log("[mythic-system] Ready");
   void maybeRunWorldMigration();
+
+  if (game.user?.isGM) {
+    await applyMythicTokenDefaultsToWorld();
+  }
 
   game.mythic ??= {};
   game.mythic.importReferenceWeapons = importReferenceWeapons;
@@ -7226,6 +8346,7 @@ Hooks.once("ready", () => {
   game.mythic.removeExcludedArmorRowsFromCompendiums = removeExcludedArmorRowsFromCompendiums;
   game.mythic.cleanupLegacyWeaponCompendiums = cleanupLegacyWeaponCompendiums;
   game.mythic.organizeEquipmentCompendiumFolders = organizeEquipmentCompendiumFolders;
+  game.mythic.patchCovenantPlasmaPistols = patchCovenantPlasmaPistolChargeCompendiums;
   game.mythic.importReferenceArmor = importReferenceArmor;
   game.mythic.importReferenceArmorVariants = importReferenceArmorVariants;
   game.mythic.previewReferenceArmor = async () => {
@@ -7247,6 +8368,9 @@ Hooks.once("ready", () => {
 
   // Seed compendium packs on first load (GM only)
   if (game.user?.isGM) {
+    void organizeEquipmentCompendiumFolders();
+    void patchCovenantPlasmaPistolChargeCompendiums();
+
     const educationPack = game.packs.get("Halo-Mythic-Foundry-Updated.educations");
     if (educationPack) {
       (async () => {
@@ -7458,6 +8582,10 @@ Hooks.on("preCreateActor", (actor, createData) => {
   if (actor.type !== "character") return;
   const normalized = normalizeCharacterSystemData(createData.system ?? {});
   foundry.utils.setProperty(createData, "system", normalized);
+  const tokenDefaults = getMythicTokenDefaultsForCharacter(normalized);
+  foundry.utils.setProperty(createData, "prototypeToken.bar1.attribute", tokenDefaults.bar1.attribute);
+  foundry.utils.setProperty(createData, "prototypeToken.bar2.attribute", tokenDefaults.bar2.attribute);
+  foundry.utils.setProperty(createData, "prototypeToken.displayBars", tokenDefaults.displayBars);
   if (createData.name !== undefined) {
     foundry.utils.setProperty(createData, "prototypeToken.name", createData.name);
   }
@@ -7465,6 +8593,18 @@ Hooks.on("preCreateActor", (actor, createData) => {
 
 Hooks.on("preUpdateActor", (actor, changes) => {
   if (actor.type === "character" && changes.system !== undefined) {
+    const preserveNumericCombatPath = (path) => {
+      if (!foundry.utils.hasProperty(changes.system, path)) return;
+      const nextValue = foundry.utils.getProperty(changes.system, path);
+      const nextString = typeof nextValue === "string" ? nextValue.trim() : nextValue;
+      if (nextString !== "" && nextString !== null && nextString !== undefined) return;
+      const currentValue = foundry.utils.getProperty(actor.system ?? {}, path);
+      foundry.utils.setProperty(changes.system, path, currentValue);
+    };
+
+    preserveNumericCombatPath("combat.wounds.current");
+    preserveNumericCombatPath("combat.shields.current");
+
     const nextSystem = foundry.utils.mergeObject(foundry.utils.deepClone(actor.system ?? {}), changes.system ?? {}, {
       inplace: false,
       insertKeys: true,
@@ -7473,11 +8613,25 @@ Hooks.on("preUpdateActor", (actor, changes) => {
       recursive: true
     });
     changes.system = normalizeCharacterSystemData(nextSystem);
+    const tokenDefaults = getMythicTokenDefaultsForCharacter(changes.system);
+    foundry.utils.setProperty(changes, "prototypeToken.bar1.attribute", tokenDefaults.bar1.attribute);
+    foundry.utils.setProperty(changes, "prototypeToken.bar2.attribute", tokenDefaults.bar2.attribute);
+    foundry.utils.setProperty(changes, "prototypeToken.displayBars", tokenDefaults.displayBars);
   }
 
   if (changes.name !== undefined) {
     foundry.utils.setProperty(changes, "prototypeToken.name", changes.name);
   }
+});
+
+Hooks.on("preCreateToken", (tokenDocument, createData) => {
+  const actor = tokenDocument.actor ?? game.actors.get(String(createData.actorId ?? ""));
+  if (!actor || actor.type !== "character") return;
+  const systemData = normalizeCharacterSystemData(actor.system ?? {});
+  const tokenDefaults = getMythicTokenDefaultsForCharacter(systemData);
+  foundry.utils.setProperty(createData, "bar1.attribute", tokenDefaults.bar1.attribute);
+  foundry.utils.setProperty(createData, "bar2.attribute", tokenDefaults.bar2.attribute);
+  foundry.utils.setProperty(createData, "displayBars", tokenDefaults.displayBars);
 });
 
 // ============================================================
@@ -7496,8 +8650,9 @@ Hooks.on("updateCombat", async (combat, changed) => {
 //  CHAT MESSAGE: inject GM evasion panel on attack cards,
 //               wire apply-damage buttons on evasion result cards
 // ============================================================
-Hooks.on("renderChatMessage", (message, html) => {
-  const cardEl = html instanceof jQuery ? html[0] : html;
+Hooks.on("renderChatMessageHTML", (message, htmlElement) => {
+  // htmlElement is an HTMLElement (not jQuery) in v13+
+  const cardEl = htmlElement;
 
   // --- Attack card GM panel ---
   const attackData = message.getFlag("Halo-Mythic-Foundry-Updated", "attackData");
@@ -7507,7 +8662,7 @@ Hooks.on("renderChatMessage", (message, html) => {
     panel.classList.add("mythic-gm-attack-panel");
     const hasTarget = !!attackData.targetTokenId;
     const targetedRadio = hasTarget
-      ? `<label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="targeted" checked> Targeted Token</label>`
+      ? `<label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="targeted" checked> Targeted Token(s)</label>`
       : '';
     const selectedChecked = hasTarget ? '' : ' checked';
     panel.innerHTML = `
@@ -7530,7 +8685,12 @@ Hooks.on("renderChatMessage", (message, html) => {
   if (evasionResult && game.user.isGM) {
     cardEl.querySelectorAll(".mythic-apply-dmg-btn[data-actor-id]").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        await mythicApplyWoundDamage(btn.dataset.actorId, Number(btn.dataset.wounds ?? 0));
+        await mythicApplyWoundDamage(
+          btn.dataset.actorId,
+          Number(btn.dataset.wounds ?? 0),
+          btn.dataset.tokenId,
+          btn.dataset.sceneId
+        );
       });
     });
   }
@@ -7540,142 +8700,189 @@ Hooks.on("renderChatMessage", (message, html) => {
 //  EVASION ROLL — called by GM clicking "Roll Evasion" in chat
 // ============================================================
 async function mythicRollEvasion(messageId, targetMode, attackData) {
-  let targetActors = [];
+  let targetEntries = [];
 
   if (targetMode === "selected") {
-    targetActors = (canvas.tokens?.controlled ?? [])
-      .map((t) => t.actor)
-      .filter(Boolean);
+    targetEntries = (canvas.tokens?.controlled ?? [])
+      .map((token) => ({ token, actor: token?.actor }))
+      .filter((entry) => entry.actor);
   } else {
-    // Try original targeted token first, then fall back to GM's current targets
-    if (attackData.targetActorId) {
+    // Try original targeted token(s) first, then fall back to GM's current targets
+    const scene = game.scenes.get(attackData.sceneId ?? "") ?? canvas.scene;
+    const tokenIds = Array.isArray(attackData.targetTokenIds) && attackData.targetTokenIds.length
+      ? attackData.targetTokenIds
+      : [attackData.targetTokenId].filter(Boolean);
+    if (tokenIds.length) {
+      targetEntries = tokenIds
+        .map((tokenId) => {
+          const token = scene?.tokens?.get(String(tokenId ?? "")) ?? null;
+          return token?.actor ? { token, actor: token.actor } : null;
+        })
+        .filter(Boolean);
+    }
+    if (!targetEntries.length && attackData.targetActorId) {
       const scene = game.scenes.get(attackData.sceneId ?? "") ?? canvas.scene;
       const token = scene?.tokens?.get(attackData.targetTokenId ?? "");
-      if (token?.actor) targetActors = [token.actor];
+      if (token?.actor) targetEntries = [{ token, actor: token.actor }];
     }
-    if (!targetActors.length) {
-      targetActors = [...(game.user.targets ?? [])].map((t) => t.actor).filter(Boolean);
+    if (!targetEntries.length) {
+      targetEntries = [...(game.user.targets ?? [])]
+        .map((token) => ({ token, actor: token?.actor }))
+        .filter((entry) => entry.actor);
     }
-    if (!targetActors.length) {
+    if (!targetEntries.length) {
       ui.notifications.warn("No target found. Have the attacker target a token, or select one as GM.");
       return;
     }
   }
 
-  if (!targetActors.length) {
+  if (!targetEntries.length) {
     ui.notifications.warn("No tokens selected.");
     return;
   }
 
-  for (const targetActor of targetActors) {
-    // Build evasion target: AGI + skill tier bonus + skill modifier + reaction penalty
-    const skillsNorm = normalizeSkillsData(targetActor.system?.skills);
-    const evasionSkill = skillsNorm.base?.evasion ?? {};
-    const tierBonus = getSkillTierBonus(evasionSkill.tier ?? "untrained", evasionSkill.category ?? "basic");
-    const agiValue = toNonNegativeWhole(targetActor.system?.characteristics?.agi, 0);
-    const evasionMod = Number(evasionSkill.modifier ?? 0);
-    const reactionCount = Math.max(0, Math.floor(Number(targetActor.system?.combat?.reactions?.count ?? 0)));
-    const reactionPenalty = reactionCount * -10;
-    const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty);
+  const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
+  const attackDOS = Number(attackData.dosValue ?? 0);
+  const evasionRows = Array.isArray(attackData.evasionRows) && attackData.evasionRows.length
+    ? attackData.evasionRows
+    : (attackData.isSuccess ? [{
+      attackIndex: 1,
+      repeatCount: 1,
+      damageTotal: Number(attackData.damageTotal ?? 0),
+      damagePierce: Number(attackData.damagePierce ?? 0),
+      hitLoc: attackData.hitLoc ?? null,
+      hasSpecialDamage: Boolean(attackData.hasSpecialDamage)
+    }] : []);
 
-    // Increment target's reaction count (this reaction costs them)
-    const newReactionCount = reactionCount + 1;
-    await targetActor.update({ "system.combat.reactions.count": newReactionCount });
+  if (!evasionRows.length) {
+    ui.notifications.warn("No successful attack rows to evade.");
+    return;
+  }
 
-    // Roll evasion
-    const evasionRoll = await new Roll("1d100").evaluate();
-    const evasionResult = evasionRoll.total;
-    const evasionDOS = computeAttackDOS(evasionTarget, evasionResult);
-    const evasionSuccess = evasionDOS >= 0;
+  const messageRolls = [];
+  const sections = [];
+  const flagRows = [];
+  const formatDegree = (value) => `${Math.abs(Number(value ?? 0)).toFixed(1)} ${Number(value ?? 0) >= 0 ? "DOS" : "DOF"}`;
 
-    // Compare attacker DOS vs evader DOS
-    const attackDOS = Number(attackData.dosValue ?? 0);
-    // Evader succeeds only if evasion succeeded AND evader's DOS >= attacker's DOS
-    const isEvaded = evasionSuccess && evasionDOS >= attackDOS;
+  for (const targetEntry of targetEntries) {
+    const targetActor = targetEntry.actor;
+    const targetToken = targetEntry.token ?? null;
+    const targetDisplayName = targetToken?.name ?? targetActor.name;
+    const rows = [];
+    let reactionCount = Math.max(0, Math.floor(Number(targetActor.system?.combat?.reactions?.count ?? 0)));
 
-    const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
-    const signStr = (v) => v > 0 ? `+${v}` : v < 0 ? String(v) : "\xb10";
+    for (let i = 0; i < evasionRows.length; i += 1) {
+      const incoming = evasionRows[i];
+      const skillsNorm = normalizeSkillsData(targetActor.system?.skills);
+      const evasionSkill = skillsNorm.base?.evasion ?? {};
+      const tierBonus = getSkillTierBonus(evasionSkill.tier ?? "untrained", evasionSkill.category ?? "basic");
+      const agiValue = toNonNegativeWhole(targetActor.system?.characteristics?.agi, 0);
+      const evasionMod = Number(evasionSkill.modifier ?? 0);
+      const reactionPenalty = reactionCount * -10;
+      const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty);
 
-    // Compute wound damage if not evaded and attack was a hit
-    let woundDamage = 0;
-    let woundDamageHtml = "";
-    if (!isEvaded && attackData.isSuccess && attackData.hitLoc) {
-      const drKey = attackData.hitLoc.drKey;
-      const armorValue = toNonNegativeWhole(targetActor.system?.combat?.dr?.armor?.[drKey], 0);
-      const derivedTarget = computeCharacterDerivedValues(targetActor.system ?? {});
-      const touCombined = Math.max(0, Number(derivedTarget.touCombined ?? 0));
-      const totalDR = touCombined + armorValue;
-      const pierce = Number(attackData.damagePierce ?? 0);
-      const effectiveDR = Math.max(0, totalDR - pierce);
-      woundDamage = Math.max(0, Number(attackData.damageTotal ?? 0) - effectiveDR);
-      woundDamageHtml = `<div class="mythic-wound-calc">
-        Wound Dmg: <strong>${attackData.damageTotal}</strong> &minus; (DR <strong>${totalDR}</strong> &minus; Pierce <strong>${pierce}</strong>) = <strong class="mythic-wound-total">${woundDamage}</strong>
-        ${attackData.hasSpecialDamage ? '<span class="mythic-special-dmg">&#9888; Special Damage!</span>' : ""}
-      </div>
-      <button type="button" class="action-btn mythic-apply-dmg-btn"
-              data-actor-id="${esc(targetActor.id)}"
-              data-wounds="${woundDamage}">Apply ${woundDamage} Wounds to ${esc(targetActor.name)}</button>`;
+      const evasionRoll = await new Roll("1d100").evaluate();
+      messageRolls.push(evasionRoll);
+      const evasionResult = evasionRoll.total;
+      const evasionDOS = computeAttackDOS(evasionTarget, evasionResult);
+      const evasionSuccess = evasionDOS >= 0;
+      const isEvaded = evasionSuccess && evasionDOS >= attackDOS;
+
+      let woundDamage = 0;
+      if (!isEvaded && incoming.hitLoc) {
+        const drKey = incoming.hitLoc.drKey;
+        const armorValue = toNonNegativeWhole(targetActor.system?.combat?.dr?.armor?.[drKey], 0);
+        const derivedTarget = computeCharacterDerivedValues(targetActor.system ?? {});
+        const touCombined = Math.max(0, Number(derivedTarget.touCombined ?? 0));
+        const totalDR = touCombined + armorValue;
+        const pierce = Number(incoming.damagePierce ?? 0);
+        const effectiveDR = Math.max(0, totalDR - pierce);
+        woundDamage = Math.max(0, Number(incoming.damageTotal ?? 0) - effectiveDR);
+      }
+
+      const attackDegreeText = formatDegree(attackDOS);
+      const evasionDegreeText = formatDegree(evasionDOS);
+      const evasionRollTitle = esc(`Evasion roll: ${evasionResult} [1d100]`);
+      const line = `<div class="mythic-evasion-line">
+        <details class="mythic-evasion-detail-row">
+          <summary>
+            <span class="mythic-evasion-chevron">&#9656;</span>
+            A${incoming.attackIndex}: <strong>${evasionDegreeText}</strong> vs <strong>${attackDegreeText}</strong> Attack ${attackDOS >= 0 ? "DOS" : "DOF"} -
+            <span class="mythic-attack-verdict ${isEvaded ? "success" : "failure"}">${isEvaded ? "Attack Evaded" : "Attack Hits"}</span>
+          </summary>
+          <div class="mythic-evasion-roll-detail">Roll: <span class="mythic-roll-inline" title="${evasionRollTitle}">${evasionResult}</span> vs <span class="mythic-roll-target" title="Evasion target">${evasionTarget}</span></div>
+        </details>
+        ${!isEvaded ? `<button type="button" class="action-btn mythic-apply-dmg-btn" data-actor-id="${esc(targetActor.id)}" data-token-id="${esc(targetToken?.id ?? "")}" data-scene-id="${esc(attackData.sceneId ?? canvas?.scene?.id ?? "")}" data-wounds="${woundDamage}">Apply ${woundDamage}</button>` : ""}
+      </div>`;
+      rows.push(line);
+
+      flagRows.push({
+        targetActorId: targetActor.id,
+        targetTokenId: targetToken?.id ?? null,
+        evasionIndex: i + 1,
+        woundDamage,
+        isEvaded
+      });
+
+      reactionCount += 1;
     }
 
-    const evasionStatNote = `AGI ${agiValue}`
-      + (tierBonus !== 0 ? ` ${signStr(tierBonus)}` : "")
-      + (evasionMod !== 0 ? ` ${signStr(evasionMod)}` : "")
-      + (reactionPenalty !== 0 ? ` ${signStr(reactionPenalty)} reactions` : "");
+    await targetActor.update({ "system.combat.reactions.count": reactionCount });
+    sections.push(`<div class="mythic-evasion-target"><strong>${esc(targetDisplayName)}</strong>${rows.join("")}</div><hr class="mythic-card-hr">`);
+  }
 
-    const content = `<div class="mythic-evasion-card">
-  <div class="mythic-evasion-header">
-    <strong>${esc(targetActor.name)}</strong> attempts to evade
-    <span class="mythic-reaction-note">(Reaction ${newReactionCount}; cumulative penalty ${reactionPenalty})</span>
-  </div>
-  <div class="mythic-attack-roll-row">
-    <span class="mythic-roll-inline">${evasionResult}</span>
-    <span class="mythic-vs">vs</span>
-    <span class="mythic-roll-target">${evasionTarget}</span>
-    <span class="mythic-stat-label">${evasionStatNote}</span>
-    <span class="mythic-attack-verdict ${evasionSuccess ? "success" : "failure"}">
-      ${Math.abs(evasionDOS).toFixed(1)} Degrees of ${evasionSuccess ? "Success!" : "Failure."}
-    </span>
-  </div>
-  <div class="mythic-evasion-compare">
-    Attacker <strong>${Math.abs(attackDOS).toFixed(1)} DOS</strong> &mdash;
-    Evader <strong>${Math.abs(evasionDOS).toFixed(1)} ${evasionSuccess ? "DOS" : "DOF"}</strong>
-    &ensp;&rArr;&ensp;
-    <strong class="mythic-attack-verdict ${isEvaded ? "success" : "failure"}">${isEvaded ? "Attack EVADED!" : "Attack HITS!"}</strong>
-  </div>
-  ${!isEvaded && attackData.isSuccess ? woundDamageHtml : ""}
-  <hr class="mythic-card-hr">
-</div>`;
+  const content = `<div class="mythic-evasion-card">
+    <div class="mythic-evasion-header">${targetEntries.length > 1 ? "Multiple Characters attempt to evade" : `${esc(targetEntries[0].token?.name ?? targetEntries[0].actor.name)} attempts to evade`}</div>
+    ${sections.join("")}
+  </div>`;
 
-    await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({ actor: targetActor }),
-      content,
-      rolls: [evasionRoll],
-      type: CONST.CHAT_MESSAGE_STYLES.OTHER,
-      flags: {
-        "Halo-Mythic-Foundry-Updated": {
-          evasionResult: { targetActorId: targetActor.id, woundDamage, isEvaded }
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ actor: targetEntries[0].actor }),
+    content,
+    rolls: messageRolls,
+    type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+    flags: {
+      "Halo-Mythic-Foundry-Updated": {
+        evasionResult: {
+          rows: flagRows,
+          targetActorId: targetEntries[0]?.actor?.id ?? null,
+          woundDamage: 0,
+          isEvaded: false
         }
       }
-    });
-  }
+    }
+  });
 }
 
 // ============================================================
 //  APPLY WOUND DAMAGE — called when GM clicks "Apply Wounds"
 // ============================================================
-async function mythicApplyWoundDamage(actorId, damage) {
-  const actor = game.actors.get(actorId);
-  if (!actor) {
-    ui.notifications.warn("Target actor not found.");
+async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sceneId = null) {
+  let targetActor = null;
+  let targetName = "Target";
+
+  const scene = game.scenes.get(String(sceneId ?? "")) ?? canvas.scene;
+  const token = tokenId ? (scene?.tokens?.get(String(tokenId)) ?? null) : null;
+  if (token?.actor) {
+    targetActor = token.actor;
+    targetName = token.name || token.actor.name || targetName;
+  } else if (actorId) {
+    targetActor = game.actors.get(actorId);
+    targetName = targetActor?.name ?? targetName;
+  }
+
+  if (!targetActor) {
+    ui.notifications.warn("Target token/actor not found.");
     return;
   }
-  const currentWounds = Number(actor.system?.combat?.wounds?.current ?? 0);
-  const maxWounds = Number(actor.system?.combat?.wounds?.max ?? 9999);
+
+  const currentWounds = Number(targetActor.system?.combat?.wounds?.current ?? 0);
+  const maxWounds = Number(targetActor.system?.combat?.wounds?.max ?? 9999);
   const newWounds = Math.max(0, currentWounds - damage);
-  await actor.update({ "system.combat.wounds.current": newWounds });
+  await targetActor.update({ "system.combat.wounds.current": newWounds });
   await ChatMessage.create({
-    speaker: ChatMessage.getSpeaker({ actor }),
-    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(actor.name)}</strong> loses <strong>${damage}</strong> wounds (${currentWounds} \u2192 ${newWounds}).</div>`,
+    speaker: ChatMessage.getSpeaker({ actor: targetActor }),
+    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(targetName)}</strong> loses <strong>${damage}</strong> wounds (${currentWounds} \u2192 ${newWounds} / ${maxWounds}).</div>`,
     type: CONST.CHAT_MESSAGE_STYLES.OTHER
   });
 }

@@ -5,14 +5,20 @@
   "version": "0.1.0-alpha.1",
   "license": "SEE LICENSE and LICENSE.assets",
   "compatibility": {
-    "minimum": 12,
-    "verified": 13
+    "minimum": 13,
+    "verified": 13.351
   },
   "authors": [
     {
-      "name": "edwil"
+      "discord": "Neoshain",
+      "name": "Dallas Scott Wilke",
+      "url": "https://github.com/edwilke86"
     }
   ],
+  "grid": {
+    "units": "m",
+    "distance": 1
+  },
   "esmodules": [
     "system.mjs"
   ],
@@ -97,11 +103,8 @@
       }
     }
   ],
-  "grid": {
-    "distance": 5,
-    "units": "ft"
-  },
-  "primaryTokenAttribute": null,
-  "secondaryTokenAttribute": null,
+  
+  "primaryTokenAttribute": { "attribute": "system.combat.wounds" },
+  "secondaryTokenAttribute": { "attribute": "system.combat.shields" },
   "socket": false
 }

@@ -28,6 +28,8 @@ Current direction (next):
   - safe-apply preview/conflict handling scaffold
 - Keep Milestone 4 remaining P0 depth tasks as active backfill while Milestone 5 is underway
 - Treat Warzone content as in-scope for base system compendia and rules support (not deferred to a separate expansion module)
+- Add clickable resource/section labels (e.g., Luck title) that can post concise stat snapshots to chat; awaiting curated list of labels to enable
+- Add per-turn action economy tracking (free/half/full spent state + reset hooks) to gate actions like wield-and-attack based on remaining actions
 
 ## How to use this file
 

@@ -169,6 +169,23 @@
       <input id="gear-fire-modes" type="text" name="system.fireModes" value="{{fireModesDisplay}}" {{#unless canEditFields}}disabled{{/unless}} />
     </div>
 
+    {{#if hasChargeMode}}
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-charge-damage">Charge Damage / Level</label>
+        <input id="gear-charge-damage" type="number" min="0" step="1" name="system.charge.damagePerLevel" value="{{gear.charge.damagePerLevel}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-charge-ammo">Charge Ammo / Level</label>
+        <input id="gear-charge-ammo" type="number" min="0" step="1" name="system.charge.ammoPerLevel" value="{{gear.charge.ammoPerLevel}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-charge-max">Max Charge Level</label>
+        <input id="gear-charge-max" type="number" min="0" step="1" name="system.charge.maxLevel" value="{{gear.charge.maxLevel}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+    {{/if}}
+
     <div class="ability-info-row ability-notes-row">
       <label for="gear-special-rules">Special Rules</label>
       <textarea id="gear-special-rules" name="system.specialRules" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{gear.specialRules}}</textarea>

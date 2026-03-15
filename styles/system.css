@@ -1138,6 +1138,29 @@
   text-transform: capitalize;
   opacity: 0.8;
 }
+.mythic-character-sheet .mythic-ready-weapon-warning {
+  margin-bottom: 3px;
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 97, 97, 0.8);
+  background: rgba(96, 9, 9, 0.55);
+  color: #ffd6d6;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  border-radius: 3px;
+}
+.mythic-character-sheet .mythic-ready-weapon-flag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+  border-radius: 3px;
+}
 
 .mythic-character-sheet .mythic-ready-weapon-header-actions {
   display: inline-flex;
@@ -1149,6 +1172,38 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-charge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.mythic-character-sheet .mythic-charge-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mythic-character-sheet .mythic-charge-pip {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(189, 212, 243, 0.6);
+  background: rgba(24, 40, 61, 0.45);
+}
+
+.mythic-character-sheet .mythic-charge-pip.is-filled {
+  background: #d94f20;
+  border-color: #ffb08f;
+  box-shadow: 0 0 6px rgba(255, 117, 70, 0.65);
+}
+
+.mythic-character-sheet .mythic-charge-label {
+  font-size: 11px;
+  color: #d5e4fb;
 }
 
 .mythic-character-sheet .mythic-ready-weapon-row-inline {
@@ -1470,6 +1525,22 @@
   justify-content: center;
 }
 
+.mythic-character-sheet .mythic-mini-field > button.mythic-mini-action-label {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-bottom: none;
+  color: var(--mythic-text);
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
 .mythic-character-sheet .mythic-mini-field > input[type="number"] {
   width: 100%;
   margin: 0;
@@ -1682,10 +1753,14 @@
   font-family: 'Roboto Mono', monospace;
   font-size: 13px;
   font-weight: bold;
-  background: var(--mythic-input-bg);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 4px;
+  color: #f6f8ff;
+  letter-spacing: 0.02em;
   padding: 3px 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
 }
 
 .mythic-character-sheet .skills-col-roll.roll-skill {
@@ -1693,8 +1768,10 @@
 }
 
 .mythic-character-sheet .skills-col-roll.roll-skill:hover {
-  background: var(--mythic-hover);
-  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(255, 255, 255, 0.96);
+  color: #0a0b0f;
+  transform: translateY(-1px);
 }
 
 .mythic-character-sheet .skills-col-delete {
@@ -1818,19 +1895,25 @@
   font-family: 'Roboto Mono', monospace;
   font-size: 13px;
   font-weight: bold;
-  background: var(--mythic-input-bg);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 4px;
+  color: #f6f8ff;
+  letter-spacing: 0.02em;
   padding: 3px 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
+}
 
-  .mythic-character-sheet .edu-col-roll.roll-education {
-    cursor: pointer;
-  }
+.mythic-character-sheet .edu-col-roll.roll-education {
+  cursor: pointer;
+}
 
-  .mythic-character-sheet .edu-col-roll.roll-education:hover {
-    background: var(--mythic-hover);
-    border-color: rgba(255, 255, 255, 0.7);
-  }
+.mythic-character-sheet .edu-col-roll.roll-education:hover {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(255, 255, 255, 0.96);
+  color: #0a0b0f;
+  transform: translateY(-1px);
 }
 
 .mythic-character-sheet .edu-col-delete {
@@ -2608,6 +2691,12 @@
   color: #e8f0ff;
   min-width: 2.2ch;
   text-align: center;
+  cursor: help;
+}
+
+.mythic-charge-release-note {
+  color: #ffcf9b;
+  font-weight: 600;
 }
 
 .mythic-roll-target {
@@ -3117,9 +3206,276 @@
   border-color: rgba(255, 255, 255, 0.18) !important;
 }
 
-/* GM panel / evasion card buttons  ensure readable text in dark chat context */
+/* ============================================================
+   Button and toggle visual language
+   ============================================================ */
+.mythic-character-sheet button,
+.chat-message button,
+.chat-message .action-btn,
 .mythic-gm-attack-panel .action-btn,
-.mythic-evasion-card .mythic-apply-dmg-btn {
-  color: #e8f0ff;
-  font-weight: 600;
+.mythic-evasion-card .mythic-apply-dmg-btn,
+.mythic-character-sheet details > summary {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.58) !important;
+  text-shadow: none;
+}
+
+.mythic-character-sheet button:hover,
+.chat-message button:hover,
+.chat-message .action-btn:hover,
+.mythic-gm-attack-panel .action-btn:hover,
+.mythic-evasion-card .mythic-apply-dmg-btn:hover,
+.mythic-character-sheet details > summary:hover {
+  background: var(--mythic-hover) !important;
+  color: #ffffff !important;
+}
+
+/* Keep non-button label strips out of pure black/white for contrast of affordances */
+.mythic-character-sheet .mythic-mini-label,
+.mythic-character-sheet .movement-label,
+.mythic-character-sheet .mythic-phase4-stat > span,
+.mythic-character-sheet .characteristic-modifier {
+  background: #1f3552;
+  color: #dce8ff;
+}
+
+/* Unique toggle style: recessed when off, glow when active */
+.mythic-character-sheet .weapon-fire-mode-btn {
+  background: #1d2a3a !important;
+  color: #d3e2f8 !important;
+  border: 1px solid #456083 !important;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45);
+}
+
+.mythic-character-sheet .weapon-fire-mode-btn.is-active {
+  background: #21374f !important;
+  border-color: #7fb9ff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 0 8px rgba(127, 185, 255, 0.55);
+  color: #f0f6ff !important;
+}
+
+.mythic-character-sheet .mythic-toggle-row input[type="checkbox"],
+.mythic-character-sheet .mythic-equipment-toggle input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #5d769a;
+  border-radius: 4px;
+  background: #172534;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  position: relative;
+}
+
+.mythic-character-sheet .mythic-toggle-row input[type="checkbox"]:checked,
+.mythic-character-sheet .mythic-equipment-toggle input[type="checkbox"]:checked {
+  background: #1f3a57;
+  border-color: #92cbff;
+  box-shadow: 0 0 7px rgba(130, 200, 255, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.mythic-character-sheet .mythic-toggle-row input[type="checkbox"]:checked::after,
+.mythic-character-sheet .mythic-equipment-toggle input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #eaf4ff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.mythic-character-sheet .mythic-resource-actions {
+  margin-top: 6px;
+}
+
+.mythic-character-sheet .mythic-ready-weapon-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mythic-character-sheet .weapon-execution-btn {
+  margin-left: auto;
+  min-width: 34px;
+  padding: 0 8px;
+  letter-spacing: 0.03em;
+  position: relative;
+}
+
+.mythic-character-sheet .weapon-execution-btn::after {
+  content: attr(data-tooltip-text);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  white-space: nowrap;
+  background: rgba(15, 20, 26, 0.96);
+  color: #f2f6ff;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+.mythic-character-sheet .mythic-sheet-behavior-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.82);
+}
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition-delay: 0s;
+  z-index: 30;
+}
+
+.mythic-character-sheet .weapon-execution-btn:hover::after,
+.mythic-character-sheet .weapon-execution-btn:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.5s;
+}
+
+.mythic-character-sheet .mythic-smart-link-note {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  border: 1px solid rgba(126, 168, 216, 0.52);
+  background: rgba(35, 52, 77, 0.65);
+  color: #cddcf2;
+  font-size: 11px;
+  border-radius: 3px;
+}
+
+.mythic-attack-line,
+.mythic-evasion-line {
+  margin: 3px 0;
+}
+
+.mythic-attack-mainline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.mythic-attack-subline {
+  margin-left: 12px;
+  font-size: 0.8rem;
+}
+
+.mythic-evasion-target {
+  margin: 4px 0;
+}
+
+.mythic-evasion-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mythic-evasion-detail-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.mythic-evasion-detail-row > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mythic-evasion-detail-row > summary::marker,
+.mythic-evasion-detail-row > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mythic-evasion-chevron {
+  display: inline-block;
+  font-size: 0.66rem;
+  color: #9ab9dd;
+  transition: transform 0.12s ease;
+  margin-right: 2px;
+}
+
+.mythic-evasion-detail-row[open] .mythic-evasion-chevron {
+  transform: rotate(90deg);
+}
+
+.mythic-evasion-roll-detail {
+  margin: 3px 0 0 14px;
+  font-size: 0.78rem;
+  color: #9fb0c7;
+}
+
+.mythic-evasion-line .mythic-apply-dmg-btn {
+  margin-left: auto;
+  padding: 1px 7px;
+  min-height: 22px;
+  font-size: 0.72rem;
+  flex: 0 0 auto;
+}
+
+/* Non-button label/header strips should not use button black/white styling. */
+.mythic-character-sheet .mythic-resource-label,
+.mythic-character-sheet .mythic-mini-field > span,
+.mythic-character-sheet .mythic-dr-column-label,
+.mythic-character-sheet .mythic-dr-label,
+.mythic-character-sheet .mythic-skills-col-headers,
+.mythic-character-sheet .mythic-edu-col-headers,
+.mythic-character-sheet .mythic-ability-col-headers,
+.mythic-character-sheet .mythic-trait-col-headers,
+.mythic-character-sheet .mythic-mini-label,
+.mythic-character-sheet .movement-label,
+.mythic-character-sheet .mythic-phase4-stat > span,
+.mythic-character-sheet .characteristic-modifier {
+  background: #1f3552 !important;
+  color: #dce8ff !important;
+  border-color: rgba(156, 191, 233, 0.55) !important;
+}
+
+.mythic-character-sheet .movement-label.movement-label-half {
+  background: #0d5f28 !important;
+  color: #f4fff6 !important;
+  border-color: #5be38a !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.mythic-character-sheet .movement-label.movement-label-full {
+  background: #124d8c !important;
+  color: #f3f9ff !important;
+  border-color: #66b8ff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.mythic-character-sheet .movement-label.movement-label-charge {
+  background: #8c6a00 !important;
+  color: #fffbea !important;
+  border-color: #ffe266 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.mythic-character-sheet .movement-label.movement-label-run {
+  background: #9a4d00 !important;
+  color: #fff7ef !important;
+  border-color: #ffaf5e !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.mythic-character-sheet .movement-label.movement-label-sprint {
+  background: #8f1b16 !important;
+  color: #fff3f2 !important;
+  border-color: #ff7d73 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }

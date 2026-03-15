@@ -3511,10 +3511,28 @@ function titleCaseWords(text) {
     .replace(/\b([a-z])/g, (match) => match.toUpperCase());
 }
 
+function normalizeSoldierTypeNameForMatch(name) {
+  return String(name ?? "")
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, "")
+    .replace(/[^a-z0-9/ ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function isLikelySoldierTypeHeading(line) {
   const text = String(line ?? "").trim();
   if (!text) return false;
-  if (!/^[A-Z0-9'\-\/,() ]+$/.test(text)) return false;
+  // Normalize smart punctuation and strip decorative quote marks seen in source PDFs.
+  const normalized = text
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, "")
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return false;
+  if (!/^[A-Z0-9'\-\/,(). ]+$/.test(normalized)) return false;
 
   const excluded = new Set([
     "UNSC SOLDIER TYPES",
@@ -3529,8 +3547,8 @@ function isLikelySoldierTypeHeading(line) {
     "SPECIALIZATION PACK",
     "COMBAT TRAINING"
   ]);
-  if (excluded.has(text)) return false;
-  if (/^\d+$/.test(text)) return false;
+  if (excluded.has(normalized)) return false;
+  if (/^\d+$/.test(normalized)) return false;
   return true;
 }
 
@@ -3623,6 +3641,66 @@ function parseSoldierTypeCharacteristics(lines) {
   return null;
 }
 
+function parseSoldierTypeAdvancementValueToken(token) {
+  const text = String(token ?? "").trim();
+  if (!text || text === "--") return 0;
+  const match = text.match(/\+(\d+)/);
+  if (!match) return 0;
+  return toNonNegativeWhole(Number(match[1]), 0);
+}
+
+function parseSoldierTypeCharacteristicAdvancements(lines) {
+  const result = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((key) => [key, 0]));
+  const sectionStart = lines.findIndex((line) => String(line ?? "").trim().toUpperCase() === "CHARACTERISTIC ADVANCEMENTS");
+  if (sectionStart < 0) return result;
+
+  const stopHeaders = new Set([
+    "PHYSICAL ATTRIBUTES",
+    "TRAITS",
+    "BECOMING AN ODST",
+    "BECOMING AN ORION SOLDIER",
+    "SPECIALIZATION PACK",
+    "COMBAT TRAINING",
+    "CHARACTER CREATION"
+  ]);
+
+  for (let i = sectionStart + 1; i < lines.length - 1; i += 1) {
+    const keyLine = String(lines[i] ?? "").trim();
+    if (!keyLine) continue;
+    if (stopHeaders.has(keyLine.toUpperCase())) break;
+
+    const keyTokens = keyLine
+      .split(/\s+/)
+      .map((entry) => String(entry ?? "").trim().toLowerCase())
+      .filter((entry) => entry === "--" || MYTHIC_CHARACTERISTIC_KEYS.includes(entry));
+    if (!keyTokens.length || !keyTokens.some((entry) => entry !== "--")) continue;
+
+    const valueLine = String(lines[i + 1] ?? "").trim();
+    if (!valueLine) continue;
+    if (stopHeaders.has(valueLine.toUpperCase())) break;
+
+    const valueTokens = valueLine.match(/\+\d+(?:\s*[A-Za-z]+)?|--/g) ?? [];
+    if (!valueTokens.length) continue;
+
+    for (let col = 0; col < keyTokens.length && col < valueTokens.length; col += 1) {
+      const statKey = keyTokens[col];
+      if (statKey === "--" || !MYTHIC_CHARACTERISTIC_KEYS.includes(statKey)) continue;
+      const parsedValue = parseSoldierTypeAdvancementValueToken(valueTokens[col]);
+      if (!parsedValue) continue;
+      result[statKey] = Math.max(result[statKey], parsedValue);
+    }
+
+    i += 1;
+  }
+
+  const allowed = new Set(MYTHIC_ADVANCEMENT_TIERS.map((tier) => tier.value));
+  for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+    if (!allowed.has(result[key])) result[key] = 0;
+  }
+
+  return result;
+}
+
 function parseSoldierTypeBlocksFromText(text) {
   const allLines = String(text ?? "")
     .split(/\r?\n/)
@@ -3661,6 +3739,7 @@ function parseReferenceSoldierTypeRowsFromText(text, sourceCollection) {
     const description = String(quoteLine ?? "").replace(/[\u201c\u201d"]/g, "").trim();
 
     const characteristics = parseSoldierTypeCharacteristics(body) ?? {};
+    const characteristicAdvancements = parseSoldierTypeCharacteristicAdvancements(body) ?? {};
 
     let traitStart = body.findIndex((line) => String(line ?? "").trim().toUpperCase() === "TRAITS");
     if (traitStart < 0) traitStart = -1;
@@ -3695,6 +3774,7 @@ function parseReferenceSoldierTypeRowsFromText(text, sourceCollection) {
         soldierType: itemName
       },
       characteristics,
+      characteristicAdvancements,
       traits: traitNames,
       equipmentPacks: equipmentOptions,
       specPacks,
@@ -8243,6 +8323,29 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     let structuredTrainingApplied = 0;
     let skillChoicesApplied = 0;
 
+    let characteristicAdvancementSource = templateSystem?.characteristicAdvancements ?? {};
+    const hasCharacteristicAdvancements = MYTHIC_CHARACTERISTIC_KEYS
+      .some((key) => toNonNegativeWhole(characteristicAdvancementSource?.[key], 0) > 0);
+    if (!hasCharacteristicAdvancements) {
+      // Compatibility fallback: older imported soldier type entries may be missing characteristicAdvancements.
+      // Attempt to resolve from current reference-text parse by normalized name.
+      try {
+        const normalizedName = normalizeSoldierTypeNameForMatch(templateName);
+        if (normalizedName) {
+          const referenceRows = await loadReferenceSoldierTypeItems();
+          const matched = referenceRows.find((entry) => {
+            const entryName = normalizeSoldierTypeNameForMatch(entry?.name ?? "");
+            return entryName && entryName === normalizedName;
+          });
+          if (matched?.system?.characteristicAdvancements && typeof matched.system.characteristicAdvancements === "object") {
+            characteristicAdvancementSource = matched.system.characteristicAdvancements;
+          }
+        }
+      } catch (_error) {
+        // Silent fallback; apply continues with template-provided values.
+      }
+    }
+
     const setField = (path, value) => {
       foundry.utils.setProperty(updateData, path, value);
       fieldsUpdated += 1;
@@ -8284,7 +8387,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Apply free characteristic advancements granted by soldier type
     const _advValsTemplate = MYTHIC_ADVANCEMENT_TIERS.map((t) => t.value);
     for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
-      const freeAdvRaw = toNonNegativeWhole(templateSystem?.characteristicAdvancements?.[key], 0);
+      const freeAdvRaw = toNonNegativeWhole(characteristicAdvancementSource?.[key], 0);
       if (freeAdvRaw <= 0) continue;
       const freeAdv = _advValsTemplate.includes(freeAdvRaw) ? freeAdvRaw : 0;
       if (freeAdv <= 0) continue;

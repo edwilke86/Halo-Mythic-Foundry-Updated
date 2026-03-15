@@ -142,6 +142,7 @@ Implementation note:
 
 - [ ] P0 Build step-by-step Character Creation wizard UI
 - [ ] P0 Wizard flow stages:
+  - set starting/current XP first
   - identity basics
   - soldier type selection
   - race/upbringing/environment/lifestyle selection
@@ -152,6 +153,9 @@ Implementation note:
 - [ ] P1 Validation and rule gating between steps
 - [ ] P1 Save draft and resume creation later
 - [ ] P1 One-click export from wizard into final actor data
+- [ ] P0 Add world setting: New Character Experience mode (`fixed-by-gm` or `player-set`)
+- [ ] P0 Add world setting: default new-character XP value when `fixed-by-gm` is enabled
+- [ ] P0 Add world setting: XP edit permissions (`gm-only` or `player-can-edit-own`)
 
 ## Milestone 6: Macro and Chat Reference Tab (Your Requested Feature)
 

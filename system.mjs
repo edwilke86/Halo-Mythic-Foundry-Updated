@@ -3204,6 +3204,16 @@ async function importReferenceArmor(options = {}) {
 }
 
 function getEquipmentCompendiumDescriptor(itemData) {
+  const typeText = String(itemData?.system?.category ?? "").trim().toLowerCase();
+  const nameText = String(itemData?.name ?? "").trim().toLowerCase();
+  if (typeText.includes("ammo") || /\bammo\b|\bmag(?:azine)?s?\b/.test(nameText)) {
+    return {
+      key: "ammo",
+      name: "mythic-ammo",
+      label: "Mythic Ammo"
+    };
+  }
+
   const faction = classifyWeaponFactionBucket(itemData?.system?.faction);
   const supported = new Set(["human", "covenant", "banished", "forerunner"]);
   if (!supported.has(faction.key)) return null;
@@ -3233,9 +3243,11 @@ function parseReferenceEquipmentRows(rows) {
 
     const faction = getCell(row, headerMap, "faction");
     const bucket = classifyWeaponFactionBucket(faction);
-    if (!["human", "covenant", "banished", "forerunner"].includes(bucket.key)) continue;
-
     const type = getCell(row, headerMap, "Type");
+    const typeText = String(type ?? "").trim().toLowerCase();
+    const isAmmo = typeText.includes("ammo") || /\bammo\b|\bmag(?:azine)?s?\b/.test(String(name ?? "").toLowerCase());
+    if (!isAmmo && !["human", "covenant", "banished", "forerunner"].includes(bucket.key)) continue;
+
     const modType = getCell(row, headerMap, "Mod Type");
     const damage = getCell(row, headerMap, "Damage");
     const pierce = getCell(row, headerMap, "Pierce");
@@ -3284,7 +3296,7 @@ function parseReferenceEquipmentRows(rows) {
           sourceScope: source,
           sourceCollection: "cr-costing-items",
           contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
-          canonicalId: buildCanonicalItemId("gear", `${bucket.key}-${type}-${name}`)
+          canonicalId: buildCanonicalItemId("gear", `${isAmmo ? "ammo" : bucket.key}-${type}-${name}`)
         }
       }, name)
     });
@@ -3590,7 +3602,8 @@ async function organizeEquipmentCompendiumFolders(options = {}) {
     human: "Human Equipment",
     covenant: "Covenant Equipment",
     banished: "Banished Equipment",
-    forerunner: "Forerunner Equipment"
+    forerunner: "Forerunner Equipment",
+    shared: "Shared Equipment"
   };
 
   const getCompendiumFolder = async (name) => {
@@ -3615,6 +3628,7 @@ async function organizeEquipmentCompendiumFolders(options = {}) {
     return name.startsWith("mythic-weapons-")
       || name.startsWith("mythic-armor-")
       || name.startsWith("mythic-equipment-")
+      || name.startsWith("mythic-ammo")
       || name.startsWith("mythic-armor-variants-")
       || name.startsWith("mythic-armor-variant-")
       || name.startsWith("mythic-armorvariant-");
@@ -3626,8 +3640,9 @@ async function organizeEquipmentCompendiumFolders(options = {}) {
   let skipped = 0;
   for (const pack of equipmentPacks) {
     const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
+    const isSharedAmmo = name === "mythic-ammo";
     const match = /^mythic-(?:weapons|armor|equipment|armor-variants|armor-variant|armorvariant)-([a-z]+)(?:-|$)/.exec(name);
-    const faction = match?.[1] ?? "";
+    const faction = isSharedAmmo ? "shared" : (match?.[1] ?? "");
 
     // Flood (and any unknown factions) stay ungrouped by request.
     if (!Object.hasOwn(targetFolderByFaction, faction)) {
@@ -10208,12 +10223,19 @@ Hooks.once("ready", async () => {
   };
   game.mythic.previewReferenceEquipment = async () => {
     const rows = await loadReferenceEquipmentItems();
-    const byFaction = rows.reduce((acc, entry) => {
-      const bucket = classifyWeaponFactionBucket(entry.system?.faction).key;
-      acc[bucket] = (acc[bucket] ?? 0) + 1;
+    const summary = rows.reduce((acc, entry) => {
+      const typeText = String(entry.system?.category ?? "").trim().toLowerCase();
+      const nameText = String(entry.name ?? "").trim().toLowerCase();
+      const isAmmo = typeText.includes("ammo") || /\bammo\b|\bmag(?:azine)?s?\b/.test(nameText);
+      if (isAmmo) {
+        acc.ammo += 1;
+      } else {
+        const bucket = classifyWeaponFactionBucket(entry.system?.faction).key;
+        acc.byFaction[bucket] = (acc.byFaction[bucket] ?? 0) + 1;
+      }
       return acc;
-    }, {});
-    return { total: rows.length, byFaction };
+    }, { ammo: 0, byFaction: {} });
+    return { total: rows.length, ammo: summary.ammo, byFaction: summary.byFaction };
   };
 
   // Seed compendium packs on first load (GM only)

@@ -4,7 +4,8 @@
   },
   "TYPES": {
     "Actor": {
-      "character": "Character"
+      "character": "Character",
+      "group": "Group"
     },
     "Item": {
       "gear": "Gear",
@@ -13,5 +14,12 @@
       "soldierType": "Soldier Type",
       "trait": "Trait"
     }
+  },
+  "MYTHIC_GROUP": {
+    "GroupType": "Group Type",
+    "Description": "Description",
+    "LinkedMembers": "Linked Members",
+    "DropActors": "Drop PC actors or vehicles here to add them to the group.",
+    "GroupStats": "Group Stats"
   }
 }

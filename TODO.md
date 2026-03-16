@@ -96,6 +96,111 @@ Implementation note:
 
 ## Milestone 5: Compendium-Driven Character Building (Your Requested Features)
 
+### Character Creation and Advancement Tab Migration (2026-03-15)
+
+Implementation intent:
+
+- Consolidate all character setup into one location by renaming the current Advancements tab to Character Creation and Advancement.
+- Add two always-visible subtabs inside this main tab:
+  - Character Creation
+  - Advancement
+- All sections in Character Creation should be collapsible and start expanded during setup.
+
+Core migration tasks:
+
+- [ ] P0 Rename Advancements tab to Character Creation and Advancement
+- [ ] P0 Add internal subtab switcher with persistent state:
+  - Character Creation
+  - Advancement
+- [ ] P0 Move creation-related controls out of fragmented tabs into Character Creation flow
+- [ ] P0 Lock most Character Creation sections after finalize (with GM override controls)
+
+Character Creation ordered flow (single-page staged process):
+
+- [ ] P0 Starting XP stage:
+  - if world setting allows player-set XP, provide editable starting XP input
+  - if world setting is GM-fixed, show read-only starting XP
+  - this value drives affordability checks in all downstream creation stages
+- [ ] P0 Soldier Type stage:
+  - add button to open Soldier Type compendium
+  - select/apply Soldier Type in-flow (not by sheet drop as primary UX)
+  - enforce that Soldier Type has XP cost and is included in spend/remaining display
+- [ ] P0 Upbringing + Environment + Lifestyle stage
+- [ ] P0 Characteristics Builder stage:
+  - retain managed builder workflow
+  - show unmet-prerequisite warning for Soldier Type granted abilities (when currently unqualified)
+  - add post-builder recheck button to grant previously blocked Soldier Type abilities once prerequisites are met
+- [ ] P0 Specialization Pack stage:
+  - show prerequisite warnings in pack details at selection time
+  - keep limited-pack warning/ack behavior
+- [ ] P1 Outliers stage scaffold (placeholder for later full rules)
+- [ ] P0 Languages stage:
+  - one free language selected by GM
+  - paid languages cost 150 XP each
+  - enforce language count cap by Intellect Modifier
+  - include rules reference hint (p. 9)
+- [ ] P0 Equipment Packs stage:
+  - move Soldier Type equipment pack selection here (not in Soldier Type drop popup)
+  - only show packs valid for selected Soldier Type
+  - use specialization-style picker UX for pack selection
+  - write selected pack grants into a dedicated equipment/gear section on Equipment tab
+- [ ] P1 Rank and Support Points stage scaffold (placeholder for later full rules)
+- [ ] P0 Finalization stage:
+  - add Finalize Character Creation button
+  - display completion guidance that further XP spending happens in Advancement subtab
+
+Creation rule constraints (must preserve):
+
+- [ ] P0 Skill tier overlap rule:
+  - Soldier Type and Specialization skill training do not stack additively
+  - final tier is highest-wins between sources
+- [ ] P0 Ability overlap rule:
+  - duplicate ability grants from Specialization may be exchanged
+  - replacement must be equal-or-lower XP cost and still satisfy prerequisite checks
+
+Advancement subtab scope:
+
+- [ ] P0 Luck purchases:
+  - 1500 XP each, maximum total Luck 13
+- [ ] P0 Wound Upgrade purchases with tier chain enforcement:
+  - Iron 500
+  - Copper 750
+  - Bronze 1250
+  - Steel 2000
+  - Titanium 3000
+  - each tier grants +10 Wounds
+  - previous tier required before next tier
+- [ ] P0 Faction and Weapon Training purchases:
+  - move training purchasing UX here
+  - Soldier Type granted trainings auto-applied and locked checked
+- [ ] P0 Skills purchases:
+  - remove direct training-level selection as primary path on Skills tab
+  - purchase/confirm workflow from Advancement with XP affordability checks
+- [ ] P0 Ability purchases:
+  - move add/buy flow into Advancement
+  - support drag/drop and compendium-open button
+- [ ] P0 Education purchases:
+  - move add/buy flow into Advancement
+  - support drag/drop and compendium-open button
+- [ ] P0 Characteristic Advancements purchases:
+  - allow buying during Character Creation and later in Advancement
+  - always confirm XP cost and affordability before apply
+
+Data/locking behavior:
+
+- [ ] P0 Add creation state marker:
+  - in-progress vs finalized
+  - finalized timestamp and user id
+- [ ] P0 Section-level lock map after finalize (with GM unlock/reopen)
+- [ ] P0 Ensure header fields tied to controlled creation sources remain read-only where appropriate
+- [ ] P0 Add migration plan for existing actors to populate creation-state defaults safely
+
+UX/content notes:
+
+- [ ] P1 Add inline notes explaining why a grant is blocked and what stat/prereq is missing
+- [ ] P1 Add compact running XP ledger in Character Creation and Advancement views
+- [ ] P1 Add clear source badges (Soldier Type, Creation Path, Specialization, Purchased)
+
 ### Soldier Type drag-and-drop starter templates
 
 Implementation note:
@@ -153,6 +258,7 @@ Implementation note:
 - [ ] P1 Validation and rule gating between steps
 - [ ] P1 Save draft and resume creation later
 - [ ] P1 One-click export from wizard into final actor data
+- [ ] P1 Add specialization duplicate-ability replacement validation: when overlap grants replacement choice, enforce equal-or-lower XP and prerequisite checks in the selector flow.
 - [ ] P0 Add world setting: New Character Experience mode (`fixed-by-gm` or `player-set`)
 - [ ] P0 Add world setting: default new-character XP value when `fixed-by-gm` is enabled
 - [ ] P0 Add world setting: XP edit permissions (`gm-only` or `player-can-edit-own`)

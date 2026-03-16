@@ -19,6 +19,46 @@
     </div>
 
     <div class="mythic-phase4-card full-width">
+      <h3>Equipment Pack Selection</h3>
+      {{#if mythicEquipment.packSelection.hasSoldierType}}
+        <p class="ccadv-note">Available packs are filtered by Soldier Type: <strong>{{mythicEquipment.packSelection.soldierTypeName}}</strong>.</p>
+        {{#if mythicEquipment.packSelection.options.length}}
+          <label class="mythic-training-stack">
+            <span>Active Equipment Pack (mission loadout, free to change)</span>
+            <select name="mythic.equipmentPackSelection">
+              <option value="">(none)</option>
+              {{#each mythicEquipment.packSelection.options as |opt|}}
+                <option value="{{opt.value}}" data-group="{{opt.group}}" data-name="{{opt.name}}" data-description="{{opt.description}}" data-items="{{opt.itemsPipe}}"{{#if (eq ../mythicEquipment.packSelection.selectedValue opt.value)}} selected{{/if}}>{{opt.group}} - {{opt.name}}</option>
+              {{/each}}
+            </select>
+          </label>
+          <button type="button" class="action-btn equipment-pack-apply-btn">Apply Active Equipment Pack</button>
+        {{else}}
+          <p>No equipment pack options are defined on this Soldier Type.</p>
+        {{/if}}
+      {{else}}
+        <p>Select a Soldier Type first to unlock Equipment Pack options.</p>
+      {{/if}}
+
+      {{#if mythicEquipment.packSelection.selectedName}}
+        <div class="mythic-specialization-detail-block" style="margin-top:8px">
+          <h4>Current Active Equipment Pack</h4>
+          <p><strong>{{mythicEquipment.packSelection.selectedGroup}}</strong> - {{mythicEquipment.packSelection.selectedName}}</p>
+          {{#if mythicEquipment.packSelection.selectedDescription}}
+            <p>{{mythicEquipment.packSelection.selectedDescription}}</p>
+          {{/if}}
+          {{#if mythicEquipment.packSelection.selectedItems.length}}
+            <ul>
+              {{#each mythicEquipment.packSelection.selectedItems as |item|}}
+                <li>{{item}}</li>
+              {{/each}}
+            </ul>
+          {{/if}}
+        </div>
+      {{/if}}
+    </div>
+
+    <div class="mythic-phase4-card full-width">
       <h3>Weapons (Actor Items)</h3>
       {{#if mythicEquipment.weaponItems.length}}
         <div class="mythic-equipment-list">

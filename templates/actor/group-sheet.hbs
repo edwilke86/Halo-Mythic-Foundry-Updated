@@ -1,0 +1,41 @@
+<section class="mythic-group-sheet">
+  <header class="mythic-group-header">
+    <h1>{{actor.name}}</h1>
+    <div class="mythic-group-type-row">
+      <label>Group Type:
+        <select name="system.groupType">
+          {{#each mythicGroupTypeOptions as |opt|}}
+            <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+      </label>
+    </div>
+    <div class="mythic-group-description">
+      <label>Description:
+        <textarea name="system.description" rows="2">{{system.description}}</textarea>
+      </label>
+    </div>
+  </header>
+  <section class="mythic-group-linked-actors">
+    <h2>Linked Members</h2>
+    <div class="mythic-group-link-dropzone" title="Drag actors or vehicles here to link them to this group.">
+      <p>Drop PC actors or vehicles here to add them to the group.</p>
+    </div>
+    <ul class="mythic-group-members-list">
+      {{#each mythicGroupMembers as |member|}}
+        <li>
+          <span>{{member.name}} ({{member.type}})</span>
+          <button type="button" class="action-btn" data-remove-linked-actor="{{member.id}}">Remove</button>
+        </li>
+      {{/each}}
+    </ul>
+  </section>
+  <section class="mythic-group-stats">
+    <h2>Group Stats</h2>
+    <div class="mythic-group-stats-table">
+      <div>Average XP: {{mythicGroupStats.averageXp}}</div>
+      <div>Average CR: {{mythicGroupStats.averageCr}}</div>
+      <div>Average Luck: {{mythicGroupStats.averageLuck}}</div>
+    </div>
+  </section>
+</section>

@@ -1,152 +1,300 @@
 <div class="tab advancements" data-group="primary" data-tab="advancements">
-  <section class="panel mythic-phase4-panel">
-    <h2>Advancements</h2>
+  <div class="ccadv-subtabs" role="tablist" aria-label="Character Creation and Advancement sections">
+    <button type="button" class="action-btn ccadv-subtab-btn {{#if mythicCcAdv.isCreationActive}}is-active{{/if}}" data-subtab="creation" aria-selected="{{#if mythicCcAdv.isCreationActive}}true{{else}}false{{/if}}">Character Creation</button>
+    <button type="button" class="action-btn ccadv-subtab-btn {{#if mythicCcAdv.isAdvancementActive}}is-active{{/if}}" data-subtab="advancement" aria-selected="{{#if mythicCcAdv.isAdvancementActive}}true{{else}}false{{/if}}">Advancement</button>
+  </div>
 
-    <div class="mythic-phase4-card full-width creation-path-card">
-      <h3>Character Creation Path</h3>
-
-      <div class="creation-path-grid two-column">
-        <div class="creation-path-field">
-          <div class="creation-path-row">
-            <label>Upbringing</label>
-            <div class="creation-dropzone" data-kind="upbringing" title="Drag a Upbringing item here">
-              {{#if mythicAdvancements.creationPath.selectedUpbringingName}}
-                {{mythicAdvancements.creationPath.selectedUpbringingName}}
-              {{else}}
-                Drop Upbringing Here
-              {{/if}}
-            </div>
-            {{#if mythicAdvancements.creationPath.selectedUpbringingHasChoices}}
-              <button type="button" class="action-btn creation-upbringing-prompt-btn">Choices</button>
-            {{/if}}
-            <button type="button" class="action-btn creation-open-upbringings-btn">Compendium</button>
-            <button type="button" class="action-btn creation-clear-btn" data-kind="upbringing">Clear</button>
+  <div class="ccadv-content-scroll">
+    <div class="ccadv-panel {{#unless mythicCcAdv.isCreationActive}}is-hidden{{/unless}}" data-subtab-panel="creation">
+      <details class="ccadv-stage" data-collapse-key="ccadv-creation-starting-xp" open>
+        <summary>1. Starting XP</summary>
+        <div class="mythic-phase4-card full-width">
+          <div class="mythic-phase4-field-grid compact ccadv-starting-xp-row">
+            <div class="mythic-mini-field"><span>XP Earned</span><input type="number" min="0" name="system.advancements.xpEarned" value="{{mythicAdvancements.earned}}" {{#unless mythicCcAdv.canEditStartingXp}}readonly{{/unless}} /></div>
+            <div class="mythic-mini-field"><span>XP Spent</span><input type="number" min="0" name="system.advancements.xpSpent" value="{{mythicAdvancements.spent}}" {{#unless mythicCcAdv.canEditStartingXp}}readonly{{/unless}} /></div>
+            <div class="mythic-phase4-stat"><span>XP Available</span><strong>{{mythicAdvancements.available}}</strong></div>
           </div>
-          {{#if mythicAdvancements.creationPath.upbringingChoicePills.length}}
-            <div class="creation-path-meta">
-              {{#each mythicAdvancements.creationPath.upbringingChoicePills}}
-                <span class="creation-path-pill">{{this}}</span>
-              {{/each}}
-            </div>
-          {{/if}}
+          {{#unless mythicCcAdv.canEditStartingXp}}
+            <p class="ccadv-note">Starting XP is locked by world settings and is awarded by the GM. Ask a GM to enable player editing if needed.</p>
+          {{/unless}}
         </div>
+      </details>
 
-        <div class="creation-path-field">
-          <div class="creation-path-row">
-            <label>Environment</label>
-            <div class="creation-dropzone" data-kind="environment" title="Drag an Environment item here">
-              {{#if mythicAdvancements.creationPath.selectedEnvironmentName}}
-                {{mythicAdvancements.creationPath.selectedEnvironmentName}}
-              {{else}}
-                Drop Environment Here
-              {{/if}}
-            </div>
-            {{#if mythicAdvancements.creationPath.selectedEnvironmentHasChoices}}
-              <button type="button" class="action-btn creation-environment-prompt-btn">Choices</button>
-            {{/if}}
-            <button type="button" class="action-btn creation-open-environments-btn">Compendium</button>
-            <button type="button" class="action-btn creation-clear-btn" data-kind="environment">Clear</button>
-          </div>
-          <div class="creation-path-meta">
-            {{#each mythicAdvancements.creationPath.environmentMetaPills}}
-              <span class="creation-path-pill">{{this}}</span>
-            {{/each}}
-            {{#unless mythicAdvancements.creationPath.selectedEnvironmentIsAllowed}}
-              <span class="creation-path-pill warning">Invalid for upbringing</span>
-            {{/unless}}
+      <details class="ccadv-stage" data-collapse-key="ccadv-creation-soldier-type" open>
+        <summary>2. Soldier Type Selection</summary>
+        <div class="mythic-phase4-card full-width">
+          <div class="ccadv-soldier-type-row">
+            <div class="mythic-mini-field ccadv-soldier-type-field"><span>Current Soldier Type</span><input type="text" value="{{mythicHeader.values.soldierType}}" readonly /></div>
+            <button type="button" class="action-btn compendium-icon-btn creation-open-soldier-types-btn" title="Open Mythic Soldier Types compendium">
+              <i class="fas fa-book"></i> +
+            </button>
+            <p class="ccadv-note">Open the Soldier Types compendium and apply the selected Soldier Type during creation.</p>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div class="creation-path-lifestyles">
-        <div class="creation-path-lifestyle-header-row">
-          <h4>Lifestyles (up to 3)</h4>
-          <button type="button" class="action-btn creation-open-lifestyles-btn">Open Lifestyles Compendium</button>
-        </div>
+      <details class="ccadv-stage" data-collapse-key="ccadv-creation-path" open>
+        <summary>3. Upbringing / Environment / Lifestyle</summary>
+        <div class="mythic-phase4-card full-width creation-path-card">
+          <h3>Upbringing, Environment, and Lifestyles</h3>
 
-        {{#each mythicAdvancements.creationPath.lifestyles}}
-          <div class="creation-lifestyle-slot">
-            <div class="creation-path-row creation-path-row-lifestyle">
-              <label>Lifestyle {{slotNumber}}</label>
-              <div class="creation-dropzone" data-kind="lifestyle" data-slot-index="{{slotIndex}}" title="Drag a Lifestyle item here">
-                {{#if lifestyleName}}
-                  {{lifestyleName}}
-                {{else}}
-                  Drop Lifestyle Here
+          <div class="creation-path-grid two-column">
+            <div class="creation-path-field">
+              <div class="creation-path-row">
+                <label>Upbringing</label>
+                <div class="creation-dropzone" data-kind="upbringing" title="Drag a Upbringing item here">
+                  {{#if mythicAdvancements.creationPath.selectedUpbringingName}}
+                    {{mythicAdvancements.creationPath.selectedUpbringingName}}
+                  {{else}}
+                    Drop Upbringing Here
+                  {{/if}}
+                </div>
+                {{#if mythicAdvancements.creationPath.selectedUpbringingHasChoices}}
+                  <button type="button" class="action-btn creation-upbringing-prompt-btn">Choices</button>
                 {{/if}}
+                <button type="button" class="action-btn compendium-icon-btn creation-open-upbringings-btn" title="Open Upbringings compendium"><i class="fas fa-book"></i> +</button>
+                <button type="button" class="action-btn creation-clear-btn" data-kind="upbringing">Clear</button>
               </div>
-              <button type="button" class="action-btn creation-lifestyle-prompt-btn" data-slot-index="{{slotIndex}}">Variant</button>
-              {{#if hasVariantChoices}}
-                <button type="button" class="action-btn creation-lifestyle-choice-btn" data-slot-index="{{slotIndex}}">Choices</button>
+              {{#if mythicAdvancements.creationPath.upbringingChoicePills.length}}
+                <div class="creation-path-meta">
+                  {{#each mythicAdvancements.creationPath.upbringingChoicePills}}
+                    <span class="creation-path-pill">{{this}}</span>
+                  {{/each}}
+                </div>
               {{/if}}
-              <button type="button" class="action-btn creation-clear-btn" data-kind="lifestyle" data-slot-index="{{slotIndex}}">Clear</button>
             </div>
 
-            {{#if metaPills.length}}
+            <div class="creation-path-field">
+              <div class="creation-path-row">
+                <label>Environment</label>
+                <div class="creation-dropzone" data-kind="environment" title="Drag an Environment item here">
+                  {{#if mythicAdvancements.creationPath.selectedEnvironmentName}}
+                    {{mythicAdvancements.creationPath.selectedEnvironmentName}}
+                  {{else}}
+                    Drop Environment Here
+                  {{/if}}
+                </div>
+                {{#if mythicAdvancements.creationPath.selectedEnvironmentHasChoices}}
+                  <button type="button" class="action-btn creation-environment-prompt-btn">Choices</button>
+                {{/if}}
+                <button type="button" class="action-btn compendium-icon-btn creation-open-environments-btn" title="Open Environments compendium"><i class="fas fa-book"></i> +</button>
+                <button type="button" class="action-btn creation-clear-btn" data-kind="environment">Clear</button>
+              </div>
               <div class="creation-path-meta">
-                {{#each metaPills}}
+                {{#each mythicAdvancements.creationPath.environmentMetaPills}}
                   <span class="creation-path-pill">{{this}}</span>
                 {{/each}}
+                {{#unless mythicAdvancements.creationPath.selectedEnvironmentIsAllowed}}
+                  <span class="creation-path-pill warning">Invalid for upbringing</span>
+                {{/unless}}
               </div>
-            {{/if}}
+            </div>
           </div>
-        {{/each}}
-      </div>
 
-      <div class="creation-path-outcome-block">
-        <h4>Applied Outcome</h4>
-        {{#if mythicAdvancements.creationPath.outcome.netDeltaPills.length}}
-          <div class="creation-path-meta creation-path-meta-no-indent">
-            {{#each mythicAdvancements.creationPath.outcome.netDeltaPills}}
-              <span class="creation-path-pill">Net {{this}}</span>
+          <div class="creation-path-lifestyles">
+            <div class="creation-path-lifestyle-header-row">
+              <h4>Lifestyles (up to 3)</h4>
+              <button type="button" class="action-btn compendium-icon-btn creation-open-lifestyles-btn" title="Open Lifestyles compendium"><i class="fas fa-book"></i> +</button>
+            </div>
+
+            {{#each mythicAdvancements.creationPath.lifestyles}}
+              <div class="creation-lifestyle-slot">
+                <div class="creation-path-row creation-path-row-lifestyle">
+                  <label>Lifestyle {{slotNumber}}</label>
+                  <div class="creation-dropzone" data-kind="lifestyle" data-slot-index="{{slotIndex}}" title="Drag a Lifestyle item here">
+                    {{#if lifestyleName}}
+                      {{lifestyleName}}
+                    {{else}}
+                      Drop Lifestyle Here
+                    {{/if}}
+                  </div>
+                  <button type="button" class="action-btn creation-lifestyle-prompt-btn" data-slot-index="{{slotIndex}}">Variant</button>
+                  {{#if hasVariantChoices}}
+                    <button type="button" class="action-btn creation-lifestyle-choice-btn" data-slot-index="{{slotIndex}}">Choices</button>
+                  {{/if}}
+                  <button type="button" class="action-btn creation-clear-btn" data-kind="lifestyle" data-slot-index="{{slotIndex}}">Clear</button>
+                </div>
+
+                {{#if metaPills.length}}
+                  <div class="creation-path-meta">
+                    {{#each metaPills}}
+                      <span class="creation-path-pill">{{this}}</span>
+                    {{/each}}
+                  </div>
+                {{/if}}
+              </div>
             {{/each}}
           </div>
-        {{/if}}
-
-        {{#if mythicAdvancements.creationPath.outcome.appliedCount}}
-          <div class="creation-path-meta creation-path-meta-no-indent">
-            {{#each mythicAdvancements.creationPath.outcome.summaryPills}}
-              <span class="creation-path-pill">{{this}}</span>
-            {{/each}}
-          </div>
-        {{else}}
-          <div class="creation-path-meta creation-path-meta-no-indent">
-            <span class="creation-path-pill">No applied modifiers yet</span>
-          </div>
-        {{/if}}
-
-        {{#if mythicAdvancements.creationPath.outcome.pendingLines.length}}
-          <div class="creation-path-outcome-pending">
-            {{#if mythicAdvancements.creationPath.outcome.hasPendingChoices}}
-              <div class="creation-path-outcome-line creation-path-outcome-guard">Creation Path incomplete: pending choices block prerequisite-validated progression.</div>
-            {{/if}}
-            {{#each mythicAdvancements.creationPath.outcome.pendingLines}}
-              <div class="creation-path-outcome-line">{{this}}</div>
-            {{/each}}
-          </div>
-        {{/if}}
-      </div>
-    </div>
-
-    <div class="mythic-phase4-grid two-column">
-      <div class="mythic-phase4-card">
-        <h3>XP Summary</h3>
-        <div class="mythic-phase4-field-grid compact">
-          <div class="mythic-mini-field"><span>XP Earned</span><input type="number" min="0" name="system.advancements.xpEarned" value="{{mythicAdvancements.earned}}" /></div>
-          <div class="mythic-mini-field"><span>XP Spent</span><input type="number" min="0" name="system.advancements.xpSpent" value="{{mythicAdvancements.spent}}" /></div>
-          <div class="mythic-phase4-stat full"><span>XP Available</span><strong>{{mythicAdvancements.available}}</strong></div>
         </div>
-      </div>
+      </details>
 
-      <div class="mythic-phase4-card">
-        <h3>Unlocked Features</h3>
-        <textarea name="system.advancements.unlockedFeatures" rows="8">{{mythicSystem.advancements.unlockedFeatures}}</textarea>
-      </div>
+      <details class="ccadv-stage" data-collapse-key="ccadv-creation-characteristics" open>
+        <summary>4. Characteristics Builder</summary>
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/characteristics-builder.hbs"}}
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-creation-specialization" open>
+        <summary>5. Specialization Pack Selection</summary>
+        <div class="mythic-phase4-grid two-column">
+          <div class="mythic-phase4-card">
+            <h3>Selection</h3>
+            <label class="mythic-training-stack">
+              <span>Specialization Pack</span>
+              <select name="system.specialization.selectedKey" {{#unless mythicSpecialization.canChange}}disabled{{/unless}}>
+                <option value="">Select pack...</option>
+                {{#each mythicSpecialization.options as |opt|}}
+                  <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+                {{/each}}
+              </select>
+            </label>
+            <button type="button" class="action-btn specialization-confirm-btn" {{#unless mythicSpecialization.canChange}}disabled{{/unless}}>Confirm Specialization</button>
+            {{#if mythicSpecialization.confirmed}}
+              <p class="mythic-specialization-final-note">Finalized. Only a GM can change this selection.</p>
+            {{/if}}
+          </div>
+
+          <div class="mythic-phase4-card">
+            <h3>Pack Details</h3>
+            {{#if mythicSpecialization.selected}}
+              <div class="mythic-specialization-detail-block">
+                <div><strong>{{mythicSpecialization.selected.name}}</strong>{{#if mythicSpecialization.selected.limited}} <span class="mythic-specialization-limited-tag">Limited Pack</span>{{/if}}</div>
+                {{#if mythicSpecialization.selected.limitedDescription}}
+                  <p class="mythic-specialization-limited-description">{{mythicSpecialization.selected.limitedDescription}}</p>
+                  <label class="mythic-toggle-row">
+                    <input type="checkbox" name="system.specialization.limitedApprovalChecked" {{checked mythicSpecialization.limitedApprovalChecked}} {{#unless mythicSpecialization.canChange}}disabled{{/unless}} />
+                    GM and party approved this limited pack.
+                  </label>
+                {{/if}}
+                <h4>Abilities</h4>
+                <ul>
+                  {{#each mythicSpecialization.selected.abilities as |ability|}}
+                    <li>{{ability}}</li>
+                  {{/each}}
+                </ul>
+                <h4>Skill Training Grants</h4>
+                <ul>
+                  {{#each mythicSpecialization.selected.skillGrants as |grant|}}
+                    <li>{{grant.skillName}} ({{grant.tier}})</li>
+                  {{/each}}
+                </ul>
+                <p class="ccadv-note">Skill training overlaps are highest-wins and do not stack.</p>
+              </div>
+            {{else}}
+              <p>Select a Specialization Pack to preview its grants.</p>
+            {{/if}}
+          </div>
+        </div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-creation-outliers" open>
+        <summary>6. Outliers</summary>
+        <div class="mythic-phase4-card full-width ccadv-outliers-grid">
+          <div class="ccadv-outliers-list">
+            <h3>Available Outliers</h3>
+            <div class="ccadv-outliers-scroll">
+              {{#each mythicOutliers.options as |outlier|}}
+                <button type="button" class="action-btn outlier-select-btn {{#if outlier.selected}}is-active{{/if}}" data-outlier-key="{{outlier.key}}">{{outlier.name}}</button>
+              {{/each}}
+            </div>
+          </div>
+
+          <div class="ccadv-outliers-detail">
+            <h3>Description</h3>
+            {{#if mythicOutliers.selected}}
+              <h4>{{mythicOutliers.selected.name}}</h4>
+              <p class="ccadv-note">{{mythicOutliers.selected.description}}</p>
+            {{else}}
+              <p class="ccadv-note">Select an Outlier to view its rules text.</p>
+            {{/if}}
+          </div>
+
+          <div class="ccadv-outliers-purchased">
+            <button type="button" class="action-btn outlier-add-btn" {{#unless mythicOutliers.canPurchase}}disabled{{/unless}}>Add Selected Outlier (Burn 1 Luck)</button>
+            <p class="ccadv-note">Burned Luck from Outliers: <strong>{{mythicOutliers.burnedLuckCount}}</strong></p>
+            <div class="ccadv-outliers-scroll">
+              {{#if mythicOutliers.purchased.length}}
+                <ul>
+                  {{#each mythicOutliers.purchased as |entry|}}
+                    <li>#{{entry.index}} {{entry.name}}{{#if entry.choiceLabel}} ({{entry.choiceLabel}}){{/if}}</li>
+                  {{/each}}
+                </ul>
+              {{else}}
+                <p class="ccadv-note">No purchased Outliers yet.</p>
+              {{/if}}
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-creation-finalize" open>
+        <summary>Final Step: Finalize Character Creation</summary>
+        <div class="mythic-phase4-card full-width">
+          <div class="mythic-phase4-field-grid compact ccadv-starting-xp-row">
+            <div class="mythic-mini-field"><span>Total XP Earned</span><input type="number" value="{{mythicCreationFinalizeSummary.xpEarned}}" readonly /></div>
+            <div class="mythic-mini-field"><span>Total XP Spent</span><input type="number" value="{{mythicCreationFinalizeSummary.xpSpent}}" readonly /></div>
+            <div class="mythic-phase4-stat"><span>XP Remaining</span><strong>{{mythicCreationFinalizeSummary.xpAvailable}}</strong></div>
+          </div>
+          <p class="ccadv-note">Luck Summary: Burned from Outliers {{mythicCreationFinalizeSummary.burnedLuckCount}} | Current {{mythicCreationFinalizeSummary.luckCurrent}} / Max {{mythicCreationFinalizeSummary.luckMax}}</p>
+          <p class="ccadv-note">Finalize lock flow scaffold. After finalization, spend remaining XP in the Advancement subtab.</p>
+          <button type="button" class="action-btn" disabled>Finalize Character Creation (Coming Soon)</button>
+        </div>
+      </details>
     </div>
 
-    <div class="mythic-phase4-card full-width">
-      <h3>Spend Log</h3>
-      <textarea name="system.advancements.spendLog" rows="8">{{mythicSystem.advancements.spendLog}}</textarea>
+    <div class="ccadv-panel {{#unless mythicCcAdv.isAdvancementActive}}is-hidden{{/unless}}" data-subtab-panel="advancement">
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-abilities" open>
+        <summary>1. Purchase Abilities</summary>
+        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Ability purchase workflow will live here.</p></div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-skills" open>
+        <summary>2. Purchase Skill Trainings</summary>
+        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Skill training purchase workflow will live here.</p></div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-educations" open>
+        <summary>3. Education Purchases</summary>
+        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Education purchase workflow will live here.</p></div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-luck" open>
+        <summary>4. Purchase Luck</summary>
+        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Luck purchase workflow will live here.</p></div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-wounds" open>
+        <summary>5. Purchase Wound Upgrades</summary>
+        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Wound upgrade tier purchase workflow will live here.</p></div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-training" open>
+        <summary>6. Faction and Weapon Training</summary>
+        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Faction and weapon training purchases will live here.</p></div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-characteristics" open>
+        <summary>7. Characteristic Advancements</summary>
+        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Characteristic advancement purchases will live here.</p></div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-languages" open>
+        <summary>8. Languages</summary>
+        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Language purchase and cap logic will live here.</p></div>
+      </details>
+
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-rank-support" open>
+        <summary>9. Rank and Support Point Calculations</summary>
+        <div class="mythic-phase4-grid two-column">
+          <div class="mythic-phase4-card">
+            <h3>Unlocked Features</h3>
+            <textarea name="system.advancements.unlockedFeatures" rows="8">{{mythicSystem.advancements.unlockedFeatures}}</textarea>
+          </div>
+          <div class="mythic-phase4-card">
+            <h3>Spend Log</h3>
+            <textarea name="system.advancements.spendLog" rows="8">{{mythicSystem.advancements.spendLog}}</textarea>
+          </div>
+        </div>
+      </details>
     </div>
-  </section>
+  </div>
 </div>

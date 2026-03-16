@@ -2,7 +2,7 @@
   <section class="panel biography-tab">
     <h2>Biography</h2>
 
-    <details class="bio-section" open>
+    <details class="bio-section" data-collapse-key="bio-physical" open>
       <summary>Physical Description</summary>
       <div class="bio-grid">
         <div class="bio-portrait-panel">
@@ -56,7 +56,7 @@
       </div>
     </details>
 
-    <details class="bio-section" open>
+    <details class="bio-section" data-collapse-key="bio-history" open>
       <summary>History</summary>
 
       <div class="bio-row">
@@ -107,7 +107,7 @@
       </div>
     </details>
 
-    <details class="bio-section" open>
+    <details class="bio-section" data-collapse-key="bio-family" open>
       <summary>Family</summary>
       <div class="bio-repeating-list">
         {{#each mythicBiography.family as |entry index|}}
@@ -127,7 +127,7 @@
       </div>
     </details>
 
-    <details class="bio-section" open>
+    <details class="bio-section" data-collapse-key="bio-general" open>
       <summary>General Biography</summary>
       <div class="bio-repeating-list">
         {{#each mythicBiography.generalEntries as |entry index|}}

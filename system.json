@@ -39,6 +39,12 @@
           "biography.physical.generalDescription",
           "biography.physical.definingFeatures"
         ]
+      },
+      "Group": {
+        "label": "Group",
+        "htmlFields": [
+          "description"
+        ]
       }
     },
     "Item": {

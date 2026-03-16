@@ -118,15 +118,15 @@
         <div class="mythic-mini-strip">
           <div class="mythic-mini-block">
             <div class="mythic-mini-label">STR</div>
-            <input type="number" min="0" name="system.mythic.characteristics.str" value="{{mythicDerived.mythicCharacteristics.str}}" />
+            <input type="number" min="0" name="system.mythic.characteristics.str" value="{{mythicDerived.mythicCharacteristics.str}}" readonly title="Edit Mythic Characteristics from Character Creation or Advancement." />
           </div>
           <div class="mythic-mini-block">
             <div class="mythic-mini-label">TOU</div>
-            <input type="number" min="0" name="system.mythic.characteristics.tou" value="{{mythicDerived.mythicCharacteristics.tou}}" />
+            <input type="number" min="0" name="system.mythic.characteristics.tou" value="{{mythicDerived.mythicCharacteristics.tou}}" readonly title="Edit Mythic Characteristics from Character Creation or Advancement." />
           </div>
           <div class="mythic-mini-block">
             <div class="mythic-mini-label">AGI</div>
-            <input type="number" min="0" name="system.mythic.characteristics.agi" value="{{mythicDerived.mythicCharacteristics.agi}}" />
+            <input type="number" min="0" name="system.mythic.characteristics.agi" value="{{mythicDerived.mythicCharacteristics.agi}}" readonly title="Edit Mythic Characteristics from Character Creation or Advancement." />
           </div>
         </div>
       </details>
@@ -154,6 +154,8 @@
             <p><strong>Jump Bonus While Moving:</strong> Add +1 m leap distance for every 10 m moved this turn.</p>
             <p><strong>Swim Speed:</strong> {{mythicDerived.movement.swimSpeed}} m/turn (STR MOD, no Mythic).</p>
             <p><strong>Initiative Bonus:</strong> +{{mythicDerived.movement.initiativeBonus}} (Mythic AGI ÷ 2, min 1).</p>
+            <p><strong>Ruler Color Key:</strong> Half = green, Full = blue, Charge = yellow, Run = orange, Sprint = red. These colors match token movement banding while measuring.</p>
+            <p><strong>No Grid Maps:</strong> If the Scene grid type is set to No Grid, the ruler path line itself changes color by movement band, but no grid squares or hexes are highlighted.</p>
             <hr />
             <p><strong>Simple Climb:</strong> Hands-free = no test. Hurried or one-handed: −10 Test. Fail = no progress; 2+ DOF = fall.</p>
             <p><strong>Difficult Climb:</strong> Climb Test required. Abseiling/harnessing: +40 and doubles Climb Speed.</p>

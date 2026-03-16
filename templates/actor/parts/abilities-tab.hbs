@@ -8,6 +8,7 @@
         <div>Name</div>
         <div>Cost</div>
         <div>Action</div>
+        <div>Activation</div>
         <div>Description</div>
         <div></div>
       </div>
@@ -26,6 +27,15 @@
           </div>
           <div class="ability-col-cost">{{ability.cost}}</div>
           <div class="ability-col-action">{{ability.actionTypeLabel}}</div>
+          <div class="ability-col-activation">
+            {{#if ability.isActivatable}}
+              <button class="ability-activate-btn action-btn" type="button" data-item-id="{{ability.id}}" {{#unless ability.canActivate}}disabled{{/unless}}>Activate</button>
+              <button class="ability-cooldown-btn action-btn" type="button" data-item-id="{{ability.id}}" {{#unless ability.cooldownRemaining}}disabled{{/unless}}>Tick CD</button>
+              <div class="ability-activation-status">Uses {{ability.usesSpent}}{{#if ability.usesMax}}/{{ability.usesMax}}{{else}}/∞{{/if}} | CD {{ability.cooldownRemaining}}</div>
+            {{else}}
+              <div class="ability-activation-status">Passive</div>
+            {{/if}}
+          </div>
           <div class="ability-col-description" title="{{ability.shortDescription}}">{{ability.shortDescription}}</div>
           <div class="ability-col-delete">
             <button class="ability-remove-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Remove ability">
@@ -98,4 +108,21 @@
     </div>
     <p class="ccadv-note">Adding traits here is allowed, but XP is handled automatically only when purchased through the Advancement page.</p>
   </section>
+
+<section class="panel mythic-outliers-section" style="margin-top: 24px;">
+  <h2>Outliers <span style="font-size:0.9em;color:#888;font-weight:normal;">(Locked, set in Character Creation)</span></h2>
+  {{#if mythicOutliers.purchased.length}}
+    <ul class="mythic-outliers-list">
+      {{#each mythicOutliers.purchased as |outlier|}}
+        <li class="mythic-outlier-item">
+          <strong>{{outlier.name}}</strong>
+          {{#if outlier.choiceLabel}}<span style="color:#888">({{outlier.choiceLabel}})</span>{{/if}}
+          {{#if outlier.description}}<div class="mythic-outlier-desc">{{outlier.description}}</div>{{/if}}
+        </li>
+      {{/each}}
+    </ul>
+  {{else}}
+    <p class="mythic-outlier-empty">No outliers selected in Character Creation.</p>
+  {{/if}}
+</section>
 </div>

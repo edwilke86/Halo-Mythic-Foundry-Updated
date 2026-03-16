@@ -23,6 +23,21 @@
         <label>Recovery Notes</label>
         <textarea name="system.medical.recoveryNotes" rows="6">{{mythicSystem.medical.recoveryNotes}}</textarea>
       </div>
+
+      {{#if mythicGammaCompany.enabled}}
+      <div class="mythic-phase4-card">
+        <h3>Gamma Company</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-phase4-stat"><span>Smoother Drugs In Inventory</span><strong>{{mythicGammaCompany.smootherCount}}</strong></div>
+          <div class="mythic-phase4-stat"><span>Applications Used</span><strong>{{mythicGammaCompany.smootherApplications}}</strong></div>
+          <div class="mythic-phase4-stat full"><span>Last Applied</span><strong>{{mythicGammaCompany.lastAppliedDisplay}}</strong></div>
+        </div>
+        <button type="button" class="action-btn gamma-smoother-apply-btn" {{#unless mythicGammaCompany.canApply}}disabled{{/unless}}>Apply Smoother Drug</button>
+        {{#unless mythicGammaCompany.canApply}}
+          <p class="ccadv-note">Add at least one Smoother Drug gear item to inventory to enable application.</p>
+        {{/unless}}
+      </div>
+      {{/if}}
     </div>
   </section>
 </div>

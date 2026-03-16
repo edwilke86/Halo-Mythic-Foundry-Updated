@@ -303,19 +303,34 @@ const MYTHIC_TRAIT_SCHEMA_VERSION = 1;
 const MYTHIC_EDUCATION_SCHEMA_VERSION = 1;
 const MYTHIC_ARMOR_VARIANT_SCHEMA_VERSION = 1;
 const MYTHIC_SOLDIER_TYPE_SCHEMA_VERSION = 1;
+const MYTHIC_EQUIPMENT_PACK_SCHEMA_VERSION = 1;
 const MYTHIC_UPBRINGING_SCHEMA_VERSION = 1;
 const MYTHIC_ENVIRONMENT_SCHEMA_VERSION = 1;
 const MYTHIC_LIFESTYLE_SCHEMA_VERSION = 1;
 const MYTHIC_CONTENT_SYNC_VERSION = 1;
-const MYTHIC_WORLD_MIGRATION_VERSION = 5;
+const MYTHIC_WORLD_MIGRATION_VERSION = 6;
 const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
 const MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY = "covenantPlasmaPistolChargePatchVersion";
+const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION = 1;
+const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY = "compendiumCanonicalMigrationVersion";
 const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
 const MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY = "ignoreBasicAmmoCounts";
 const MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY = "tokenBarVisibilityDefault";
 const MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY = "charBuilderCreationPoints";
 const MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY = "charBuilderStatCap";
 const MYTHIC_CREATION_XP_PLAYER_EDIT_SETTING_KEY = "letPlayersHandleXp";
+const MYTHIC_CAMPAIGN_YEAR_SETTING_KEY = "campaignYear";
+const MYTHIC_MJOLNIR_ARMOR_LIST = Object.freeze([
+  { name: "SPI Mark I",      yearStart: 2531, yearEnd: 2537 },
+  { name: "SPI Mark II",     yearStart: 2537, yearEnd: null },
+  { name: "SPI Headhunter",  yearStart: 2537, yearEnd: null },
+  { name: "Black Body Suit", yearStart: 2500, yearEnd: 2525 },
+  { name: "Mjolnir Mark IV", yearStart: 2525, yearEnd: 2551 },
+  { name: "Mjolnir Mark V",  yearStart: 2551, yearEnd: 2552 },
+  { name: "Mjolnir Mark VI", yearStart: 2552, yearEnd: 2553 },
+  { name: "GEN II Mjolnir",  yearStart: 2553, yearEnd: 2559 },
+  { name: "GEN III Mjolnir", yearStart: 2559, yearEnd: null }
+]);
 
 // Characteristic advancement tiers: value = stat bonus, xpStep = cost for that tier, xpCumulative = total purchase cost from scratch
 const MYTHIC_ADVANCEMENT_TIERS = [
@@ -364,6 +379,27 @@ const MYTHIC_OUTLIER_DEFINITIONS = Object.freeze([
   { key: "vigorous", name: "Vigorous", description: "Double Natural Healing; taking this twice increases to triple.", maxPurchases: 2 }
 ]);
 
+const MYTHIC_DEFAULT_HEIGHT_RANGE_CM = Object.freeze({ min: 130, max: 200 });
+const MYTHIC_DEFAULT_WEIGHT_RANGE_KG = Object.freeze({ min: 45, max: 117 });
+const MYTHIC_CM_PER_INCH = 2.54;
+const MYTHIC_LBS_PER_KG = 2.2046226218;
+const MYTHIC_SIZE_CATEGORIES = Object.freeze([
+  { label: "Mini", minMeters: 0.1, maxMeters: 0.5 },
+  { label: "Small", minMeters: 0.51, maxMeters: 1.4 },
+  { label: "Normal", minMeters: 1.41, maxMeters: 2.0 },
+  { label: "Large", minMeters: 2.01, maxMeters: 3.0 },
+  { label: "Huge", minMeters: 3.01, maxMeters: 3.5 },
+  { label: "Hulking", minMeters: 3.51, maxMeters: 4.0 },
+  { label: "Giant", minMeters: 4.01, maxMeters: 4.5 },
+  { label: "Immense", minMeters: 4.51, maxMeters: 6.0 },
+  { label: "Massive", minMeters: 6.01, maxMeters: 10.0 },
+  { label: "Great", minMeters: 10.01, maxMeters: 40.0 },
+  { label: "Monumental", minMeters: 40.01, maxMeters: 120.0 },
+  { label: "Colossal", minMeters: 120.01, maxMeters: 500.0 },
+  { label: "Vast", minMeters: 500.01, maxMeters: 1000.0 },
+  { label: "Unscalable", minMeters: 1001.0, maxMeters: Number.POSITIVE_INFINITY }
+]);
+
 function getOutlierDefinitionByKey(key) {
   const marker = String(key ?? "").trim().toLowerCase();
   if (!marker) return null;
@@ -372,6 +408,226 @@ function getOutlierDefinitionByKey(key) {
 
 function getOutlierDefaultSelectionKey() {
   return MYTHIC_OUTLIER_DEFINITIONS[0]?.key ?? "";
+}
+
+function normalizeRangeObject(rangeValue, fallbackRange) {
+  const fallbackMin = Math.max(0, Number(fallbackRange?.min) || 0);
+  const fallbackMax = Math.max(fallbackMin, Number(fallbackRange?.max) || fallbackMin);
+  const minRaw = Number(rangeValue?.min);
+  const maxRaw = Number(rangeValue?.max);
+  const min = Number.isFinite(minRaw) ? Math.max(0, Math.round(minRaw)) : fallbackMin;
+  const maxCandidate = Number.isFinite(maxRaw) ? Math.round(maxRaw) : fallbackMax;
+  const max = Math.max(min, maxCandidate);
+  return { min, max };
+}
+
+function randomIntegerInclusive(minValue, maxValue) {
+  const min = Math.min(minValue, maxValue);
+  const max = Math.max(minValue, maxValue);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function normalizeImperialFeetInches(feet, inches) {
+  let ft = Math.max(0, Math.floor(Number(feet) || 0));
+  let inch = Math.max(0, Math.floor(Number(inches) || 0));
+  if (inch >= 12) {
+    ft += Math.floor(inch / 12);
+    inch = inch % 12;
+  }
+  return { feet: ft, inches: inch };
+}
+
+function parseImperialHeightInput(rawInput) {
+  const value = String(rawInput ?? "").trim().toLowerCase();
+  if (!value) return null;
+
+  const feetInchesMatch = value.match(/^(\d+)\s*(?:'|ft|feet|f)\s*(\d+)?\s*(?:"|in|inches|i)?\s*$/i);
+  if (feetInchesMatch) {
+    const feet = Number(feetInchesMatch[1]);
+    const inches = Number(feetInchesMatch[2] ?? 0);
+    return normalizeImperialFeetInches(feet, inches);
+  }
+
+  const inchesOnlyMatch = value.match(/^(\d+)\s*(?:"|in|inches)\s*$/i);
+  if (inchesOnlyMatch) {
+    return normalizeImperialFeetInches(0, Number(inchesOnlyMatch[1]));
+  }
+
+  return null;
+}
+
+function feetInchesToCentimeters(feet, inches) {
+  const normalized = normalizeImperialFeetInches(feet, inches);
+  const totalInches = (normalized.feet * 12) + normalized.inches;
+  return Math.max(0, Math.round(totalInches * MYTHIC_CM_PER_INCH));
+}
+
+function centimetersToFeetInches(heightCm) {
+  const cm = Math.max(0, Number(heightCm) || 0);
+  const totalInches = Math.round(cm / MYTHIC_CM_PER_INCH);
+  const feet = Math.floor(totalInches / 12);
+  const inches = totalInches % 12;
+  return normalizeImperialFeetInches(feet, inches);
+}
+
+function formatFeetInches(heightCm) {
+  const { feet, inches } = centimetersToFeetInches(heightCm);
+  return `${feet}' ${inches}"`;
+}
+
+function kilogramsToPounds(weightKg) {
+  const kg = Math.max(0, Number(weightKg) || 0);
+  return Math.round(kg * MYTHIC_LBS_PER_KG * 10) / 10;
+}
+
+function poundsToKilograms(weightLbs) {
+  const lbs = Math.max(0, Number(weightLbs) || 0);
+  return Math.round((lbs / MYTHIC_LBS_PER_KG) * 10) / 10;
+}
+
+function getSizeCategoryFromHeightCm(heightCm) {
+  const meters = Math.max(0, Number(heightCm) || 0) / 100;
+  for (const category of MYTHIC_SIZE_CATEGORIES) {
+    if (meters >= category.minMeters && meters <= category.maxMeters) return category.label;
+  }
+  return "Normal";
+}
+
+function getNextSizeCategoryLabel(currentLabel) {
+  const marker = String(currentLabel ?? "").trim().toLowerCase();
+  const index = MYTHIC_SIZE_CATEGORIES.findIndex((entry) => entry.label.toLowerCase() === marker);
+  if (index < 0) return null;
+  return MYTHIC_SIZE_CATEGORIES[index + 1]?.label ?? null;
+}
+
+function getSizeCategoryMinHeightCm(label) {
+  const marker = String(label ?? "").trim().toLowerCase();
+  const entry = MYTHIC_SIZE_CATEGORIES.find((candidate) => candidate.label.toLowerCase() === marker);
+  if (!entry) return 0;
+  return Math.ceil(entry.minMeters * 100);
+}
+
+function hasOutlierPurchase(systemData, outlierKey) {
+  const target = String(outlierKey ?? "").trim().toLowerCase();
+  if (!target) return false;
+  const purchases = Array.isArray(systemData?.advancements?.outliers?.purchases)
+    ? systemData.advancements.outliers.purchases
+    : [];
+  return purchases.some((entry) => String(entry?.key ?? "").trim().toLowerCase() === target);
+}
+
+function clampToRange(value, range) {
+  const min = Math.min(Number(range?.min) || 0, Number(range?.max) || 0);
+  const max = Math.max(Number(range?.min) || 0, Number(range?.max) || 0);
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return min;
+  return Math.min(max, Math.max(min, numeric));
+}
+
+function getBellCurveRandom() {
+  return (Math.random() + Math.random() + Math.random()) / 3;
+}
+
+function getUpperBiasRandom() {
+  const primary = 0.5 + (getBellCurveRandom() * 0.5);
+  const secondary = 0.5 + (Math.random() * 0.4);
+  return clampToRange((primary * 0.7) + (secondary * 0.3), { min: 0, max: 1 });
+}
+
+function getBiasedRatio(center, spread = 0.12) {
+  const c = clampToRange(Number(center) || 0.5, { min: 0, max: 1 });
+  const base = getBellCurveRandom();
+  const nudged = (base * 0.55) + (c * 0.45);
+  const jitter = (Math.random() - 0.5) * Math.max(0, Number(spread) || 0);
+  return clampToRange(nudged + jitter, { min: 0, max: 1 });
+}
+
+function generateHeightCm(heightRangeCm, options = {}) {
+  const range = normalizeRangeObject(heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
+  const span = Math.max(0, range.max - range.min);
+  const upperBias = Boolean(options?.upperBias);
+  const heightBias = String(options?.heightBias ?? "").trim().toLowerCase();
+  const biasCenter = {
+    short: 0.2,
+    average: 0.5,
+    tall: 0.8
+  }[heightBias];
+  const ratio = Number.isFinite(biasCenter)
+    ? getBiasedRatio(biasCenter)
+    : (upperBias ? getUpperBiasRandom() : getBellCurveRandom());
+  const value = range.min + (ratio * span);
+  return Math.round(clampToRange(value, range));
+}
+
+function generateWeightKgForHeight(heightCm, heightRangeCm, weightRangeKg, options = {}) {
+  const hRange = normalizeRangeObject(heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
+  const wRange = normalizeRangeObject(weightRangeKg, MYTHIC_DEFAULT_WEIGHT_RANGE_KG);
+  const safeHeight = clampToRange(heightCm, hRange);
+  const hSpan = Math.max(1, hRange.max - hRange.min);
+  const wSpan = Math.max(0.1, wRange.max - wRange.min);
+  const upperBias = Boolean(options?.upperBias);
+
+  const heightRatio = clampToRange((safeHeight - hRange.min) / hSpan, { min: 0, max: 1 });
+  const baselineFromRange = wRange.min + (heightRatio * wSpan);
+
+  const meters = Math.max(0.1, safeHeight / 100);
+  const bmiBase = upperBias ? 24.5 : 21.5;
+  const bmiVariance = upperBias ? 4.5 : 3.5;
+  const targetBmi = bmiBase + (getBellCurveRandom() * bmiVariance);
+  const baselineFromBmi = targetBmi * meters * meters;
+
+  const massBias = String(options?.massBias ?? "average").trim().toLowerCase();
+  const massShiftRatio = {
+    light: -0.18,
+    average: 0,
+    large: 0.18
+  }[massBias] ?? 0;
+
+  const blendedBaseline = (baselineFromRange * 0.65) + (baselineFromBmi * 0.35);
+  const varianceRatio = (getBellCurveRandom() - 0.5) * (upperBias ? 0.12 : 0.16);
+  const weighted = blendedBaseline + (massShiftRatio * wSpan) + (varianceRatio * wSpan);
+
+  const clamped = clampToRange(weighted, wRange);
+  return Math.round(clamped * 10) / 10;
+}
+
+function applyImposingOutlier(build) {
+  const baseHeight = Math.max(0, Math.round(Number(build?.heightCm) || 0));
+  const baseWeight = Math.max(0, Number(build?.weightKg) || 0);
+  const baseSize = String(build?.sizeLabel ?? getSizeCategoryFromHeightCm(baseHeight));
+
+  const boostPercent = randomIntegerInclusive(10, 20);
+  let boostedHeight = Math.max(0, Math.round(baseHeight * (1 + (boostPercent / 100))));
+  const boostedWeight = Math.max(0, Math.round(baseWeight * (1 + (boostPercent / 100)) * 10) / 10);
+
+  const nextSizeLabel = getNextSizeCategoryLabel(baseSize);
+  let finalSizeLabel = getSizeCategoryFromHeightCm(boostedHeight);
+  if (nextSizeLabel) {
+    const nextSizeMinHeight = getSizeCategoryMinHeightCm(nextSizeLabel);
+    boostedHeight = Math.max(boostedHeight, nextSizeMinHeight);
+    finalSizeLabel = nextSizeLabel;
+  }
+
+  return {
+    heightCm: boostedHeight,
+    weightKg: boostedWeight,
+    sizeLabel: finalSizeLabel,
+    imposingBoostPercent: boostPercent
+  };
+}
+
+function generateCharacterBuild(heightRangeCm, weightRangeKg, options = {}) {
+  const hRange = normalizeRangeObject(heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
+  const wRange = normalizeRangeObject(weightRangeKg, MYTHIC_DEFAULT_WEIGHT_RANGE_KG);
+  const upperBias = Boolean(options?.upperBias);
+  const imposingOutlier = Boolean(options?.imposingOutlier);
+
+  const heightCm = generateHeightCm(hRange, { upperBias });
+  const weightKg = generateWeightKgForHeight(heightCm, hRange, wRange, { upperBias });
+  const sizeLabel = getSizeCategoryFromHeightCm(heightCm);
+  const baseBuild = { heightCm, weightKg, sizeLabel };
+
+  return imposingOutlier ? applyImposingOutlier(baseBuild) : baseBuild;
 }
 
 function getSpecializationPackByKey(key) {
@@ -539,18 +795,21 @@ function computeAttackDOS(target, roll) {
 
 const MYTHIC_SYNC_DEFAULT_SCOPE_BY_TYPE = Object.freeze({
   gear: "mythic",
+  equipmentPack: "mythic",
   ability: "mythic",
   trait: "mythic",
   education: "mythic",
   armorVariant: "mythic",
-  soldierType: "mythic"
+  soldierType: "mythic",
+  upbringing: "mythic",
+  environment: "mythic",
+  lifestyle: "mythic"
 });
 const MYTHIC_REFERENCE_RANGED_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Ranged Weps.csv";
 const MYTHIC_REFERENCE_MELEE_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Melee Weps.csv";
 const MYTHIC_REFERENCE_ARMOR_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Armor.csv";
 const MYTHIC_REFERENCE_EQUIPMENT_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - CR costing items.csv";
-const MYTHIC_REFERENCE_HUMAN_SOLDIER_TYPES_TXT = "systems/Halo-Mythic-Foundry-Updated/rule references/Human Soldier Types.txt";
-const MYTHIC_REFERENCE_ALIEN_SOLDIER_TYPES_TXT = "systems/Halo-Mythic-Foundry-Updated/rule references/Alien Soldier Types.txt";
+const MYTHIC_REFERENCE_SOLDIER_TYPES_JSON = "systems/Halo-Mythic-Foundry-Updated/data/soldier-types.json";
 
 function coerceSchemaVersion(value, fallback = 1) {
   const numeric = Number(value);
@@ -584,6 +843,14 @@ function buildCanonicalItemId(itemType, itemName = "", sourcePage = null) {
   const numericPage = Number(sourcePage);
   const pagePart = Number.isFinite(numericPage) && numericPage > 0 ? `-p${Math.floor(numericPage)}` : "";
   return `${typePart}:${namePart}${pagePart}`;
+}
+
+function isPlaceholderCanonicalId(canonicalId, itemType = "") {
+  const canonical = String(canonicalId ?? "").trim().toLowerCase();
+  const typePrefix = toSlug(itemType) || "item";
+  if (!canonical) return true;
+  return canonical === `${typePrefix}:unnamed`
+    || new RegExp(`^${typePrefix}:unnamed(?:-p\\d+)?$`, "i").test(canonical);
 }
 
 function getAmmoConfig() {
@@ -696,9 +963,13 @@ function normalizeItemSyncData(syncData, itemType, itemName = "", options = {}) 
   const contentVersion = toNonNegativeWhole(source.contentVersion, MYTHIC_CONTENT_SYNC_VERSION);
   const hasSyncedVersion = Number.isFinite(Number(source.lastSyncedVersion));
   const canonicalDefault = buildCanonicalItemId(itemType, itemName, options.sourcePage);
+  const requestedCanonicalId = String(source.canonicalId ?? "").trim();
+  const canonicalId = requestedCanonicalId && !isPlaceholderCanonicalId(requestedCanonicalId, itemType)
+    ? requestedCanonicalId
+    : canonicalDefault;
 
   return {
-    canonicalId: String(source.canonicalId ?? canonicalDefault).trim() || canonicalDefault,
+    canonicalId,
     sourceScope,
     sourceCollection: String(source.sourceCollection ?? "").trim(),
     contentVersion,
@@ -834,14 +1105,30 @@ function normalizeTrainingData(trainingData) {
     recursive: true
   });
 
+  const coerceTrainingBoolean = (value) => {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value > 0;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (!normalized) return false;
+      if (["false", "0", "off", "no", "null", "undefined"].includes(normalized)) return false;
+      if (["true", "1", "on", "yes"].includes(normalized)) return true;
+      return false;
+    }
+    if (Array.isArray(value)) {
+      return value.some((entry) => coerceTrainingBoolean(entry));
+    }
+    return false;
+  };
+
   merged.weapon ??= {};
   for (const definition of MYTHIC_WEAPON_TRAINING_DEFINITIONS) {
-    merged.weapon[definition.key] = Boolean(merged.weapon?.[definition.key]);
+    merged.weapon[definition.key] = coerceTrainingBoolean(merged.weapon?.[definition.key]);
   }
 
   merged.faction ??= {};
   for (const definition of MYTHIC_FACTION_TRAINING_DEFINITIONS) {
-    merged.faction[definition.key] = Boolean(merged.faction?.[definition.key]);
+    merged.faction[definition.key] = coerceTrainingBoolean(merged.faction?.[definition.key]);
   }
 
   merged.vehicles = normalizeStringList(merged.vehicles);
@@ -879,6 +1166,32 @@ function parseTrainingGrant(rawEntry) {
   }
 
   return { bucket: "custom", value: label };
+}
+
+function extractStructuredTrainingLocks(trainingEntries = [], factionHint = "") {
+  const weaponKeys = new Set();
+  const factionKeys = new Set();
+  const sourceEntries = Array.isArray(trainingEntries) ? trainingEntries : [];
+  const allEntries = String(factionHint ?? "").trim()
+    ? [...sourceEntries, String(factionHint).trim()]
+    : [...sourceEntries];
+
+  for (const entry of allEntries) {
+    const parsed = parseTrainingGrant(entry);
+    if (!parsed) continue;
+    if (parsed.bucket === "weapon" && parsed.key) {
+      weaponKeys.add(parsed.key);
+      continue;
+    }
+    if (parsed.bucket === "faction" && parsed.key) {
+      factionKeys.add(parsed.key);
+    }
+  }
+
+  return {
+    weaponKeys: Array.from(weaponKeys),
+    factionKeys: Array.from(factionKeys)
+  };
 }
 
 function computeCharacteristicModifiers(characteristics = {}) {
@@ -938,8 +1251,28 @@ function computeCharacterDerivedValues(systemData = {}) {
     penalty60Max:        perception * 6
   };
 
-  const baseCarry = ((toNonNegativeNumber(characteristics.str, 0) + toNonNegativeNumber(characteristics.tou, 0)) / 2)
-    + (mythicStr * 10) + (mythicTou * 10);
+  const soldierTypeName = String(systemData?.header?.soldierType ?? "").trim().toLowerCase();
+  const isSpartanIISoldierType = soldierTypeName.includes("spartan ii") || soldierTypeName.includes("spartan 2");
+  const hasSpartanCarryWeight = systemData?.mythic?.spartanCarryWeight?.enabled === true || isSpartanIISoldierType;
+  const rawLegacyCarryMultiplier = Number(systemData?.mythic?.soldierTypeCarryMultiplier);
+  const fallbackCarryMultiplier = Number.isFinite(rawLegacyCarryMultiplier)
+    ? Math.max(0, rawLegacyCarryMultiplier)
+    : (hasSpartanCarryWeight ? 2 : 1);
+  const rawSoldierTypeStrMultiplier = Number(systemData?.mythic?.soldierTypeStrCarryMultiplier);
+  const rawSoldierTypeTouMultiplier = Number(systemData?.mythic?.soldierTypeTouCarryMultiplier);
+  const soldierTypeStrMultiplier = Number.isFinite(rawSoldierTypeStrMultiplier)
+    ? Math.max(0, rawSoldierTypeStrMultiplier)
+    : fallbackCarryMultiplier;
+  const soldierTypeTouMultiplier = Number.isFinite(rawSoldierTypeTouMultiplier)
+    ? Math.max(0, rawSoldierTypeTouMultiplier)
+    : fallbackCarryMultiplier;
+  const rawMiscCarryBonus = Number(systemData?.mythic?.miscCarryBonus);
+  const miscCarryBonus = Number.isFinite(rawMiscCarryBonus) ? rawMiscCarryBonus : 0;
+  const rawCarryStr = toNonNegativeNumber(characteristics.str, 0);
+  const rawCarryTou = toNonNegativeNumber(characteristics.tou, 0);
+  const baseCarry = (((rawCarryStr / 2) + (10 * mythicStr)) * soldierTypeStrMultiplier)
+    + (((rawCarryTou / 2) + (10 * mythicTou)) * soldierTypeTouMultiplier)
+    + miscCarryBonus;
   const gravCarry = isZeroG ? baseCarry : roundToOne(baseCarry / safeGravity);
 
   const carryingCapacity = {
@@ -1075,26 +1408,7 @@ async function runWorldSchemaMigration() {
   }
 
   for (const item of game.items ?? []) {
-    let normalized = null;
-    if (item.type === "ability") {
-      normalized = normalizeAbilitySystemData(item.system ?? {}, item.name ?? "");
-    } else if (item.type === "trait") {
-      normalized = normalizeTraitSystemData(item.system ?? {}, item.name ?? "");
-    } else if (item.type === "education") {
-      normalized = normalizeEducationSystemData(item.system ?? {}, item.name ?? "");
-    } else if (item.type === "armorVariant") {
-      normalized = normalizeArmorVariantSystemData(item.system ?? {}, item.name ?? "");
-    } else if (item.type === "soldierType") {
-      normalized = normalizeSoldierTypeSystemData(item.system ?? {}, item.name ?? "");
-    } else if (item.type === "gear") {
-      normalized = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
-    } else if (item.type === "upbringing") {
-      normalized = normalizeUpbringingSystemData(item.system ?? {}, item.name ?? "");
-    } else if (item.type === "environment") {
-      normalized = normalizeEnvironmentSystemData(item.system ?? {}, item.name ?? "");
-    } else if (item.type === "lifestyle") {
-      normalized = normalizeLifestyleSystemData(item.system ?? {}, item.name ?? "");
-    }
+    const normalized = normalizeSupportedItemSystemData(item.type, item.system ?? {}, item.name ?? "");
 
     if (!normalized) continue;
 
@@ -1110,6 +1424,268 @@ async function runWorldSchemaMigration() {
     itemMigrations,
     totalMigrations: actorMigrations + itemMigrations
   };
+}
+
+function isMythicOwnedItemPack(pack) {
+  if (!pack) return false;
+  const systemId = "Halo-Mythic-Foundry-Updated";
+  const collection = String(pack.collection ?? "").trim();
+  const packageName = String(pack.metadata?.packageName ?? "").trim();
+  const explicitSystem = String(pack.metadata?.system ?? "").trim();
+  const packageType = String(pack.metadata?.packageType ?? "").trim().toLowerCase();
+  return collection.startsWith(`${systemId}.`)
+    || explicitSystem === systemId
+    || (packageType === "system" && packageName === systemId);
+}
+
+function summarizeDuplicateCanonicalOwners(pack, canonicalOwners) {
+  const duplicates = [];
+  for (const [canonicalId, entries] of canonicalOwners.entries()) {
+    if (!Array.isArray(entries) || entries.length < 2) continue;
+    const normalizedEntries = entries.map((entry) => ({
+      id: String(entry?.id ?? "").trim(),
+      name: String(entry?.name ?? "").trim(),
+      uuid: String(entry?.uuid ?? "").trim()
+    }));
+    duplicates.push({
+      pack: pack.collection,
+      canonicalId,
+      names: normalizedEntries.map((entry) => entry.name || entry.id),
+      entries: normalizedEntries,
+      keepId: normalizedEntries[0]?.id ?? null,
+      dropIds: normalizedEntries.slice(1).map((entry) => entry.id).filter(Boolean)
+    });
+  }
+  return duplicates;
+}
+
+async function auditCompendiumCanonicalDuplicates(options = {}) {
+  if (!game.user?.isGM) {
+    return { skipped: true, reason: "not-gm", duplicates: [] };
+  }
+
+  const includeWorld = options?.includeWorld !== false;
+  const packs = Array.from(game.packs ?? []).filter((pack) => {
+    const documentName = String(pack?.documentName ?? pack?.metadata?.type ?? "").trim();
+    if (documentName !== "Item") return false;
+    if (!includeWorld && String(pack.metadata?.packageType ?? "").trim().toLowerCase() === "world") return false;
+    return isMythicOwnedItemPack(pack);
+  });
+
+  const duplicates = [];
+  for (const pack of packs) {
+    const docs = await pack.getDocuments();
+    const canonicalOwners = new Map();
+    for (const doc of docs) {
+      const normalized = normalizeSupportedItemSystemData(doc.type, doc.system ?? {}, doc.name ?? "");
+      if (!normalized) continue;
+      const canonicalId = String(normalized.sync?.canonicalId ?? "").trim();
+      if (!canonicalId) continue;
+
+      const seen = canonicalOwners.get(canonicalId) ?? [];
+      seen.push({ id: doc.id, name: doc.name, uuid: doc.uuid });
+      canonicalOwners.set(canonicalId, seen);
+    }
+    duplicates.push(...summarizeDuplicateCanonicalOwners(pack, canonicalOwners));
+  }
+
+  if (duplicates.length) {
+    console.warn("[mythic-system] Canonical duplicate audit found duplicates.", duplicates);
+  }
+
+  return {
+    duplicateCount: duplicates.length,
+    duplicates
+  };
+}
+
+async function dedupeCompendiumCanonicalDuplicates(options = {}) {
+  if (!game.user?.isGM) {
+    return { skipped: true, reason: "not-gm", deleted: 0, affectedPacks: 0, duplicates: [] };
+  }
+
+  const dryRun = options?.dryRun !== false;
+  const includeWorld = options?.includeWorld !== false;
+  const audit = await auditCompendiumCanonicalDuplicates({ includeWorld });
+  const duplicates = Array.isArray(audit?.duplicates) ? audit.duplicates : [];
+
+  if (!duplicates.length) {
+    return { deleted: 0, affectedPacks: 0, duplicates: [], dryRun };
+  }
+
+  const deletesByPack = new Map();
+  for (const duplicate of duplicates) {
+    const packKey = String(duplicate?.pack ?? "").trim();
+    const dropIds = Array.isArray(duplicate?.dropIds)
+      ? duplicate.dropIds.map((id) => String(id ?? "").trim()).filter(Boolean)
+      : [];
+    if (!packKey || !dropIds.length) continue;
+
+    const existing = deletesByPack.get(packKey) ?? new Set();
+    for (const id of dropIds) existing.add(id);
+    deletesByPack.set(packKey, existing);
+  }
+
+  let deleted = 0;
+  let affectedPacks = 0;
+  for (const [packKey, ids] of deletesByPack.entries()) {
+    const pack = game.packs.get(packKey);
+    if (!pack) continue;
+
+    const dropIds = Array.from(ids);
+    if (!dropIds.length) continue;
+    affectedPacks += 1;
+    deleted += dropIds.length;
+
+    if (dryRun) continue;
+
+    const wasLocked = Boolean(pack.locked);
+    if (wasLocked) {
+      await pack.configure({ locked: false });
+    }
+
+    try {
+      await Item.deleteDocuments(dropIds, { pack: pack.collection });
+    } finally {
+      if (wasLocked) {
+        await pack.configure({ locked: true });
+      }
+    }
+  }
+
+  const message = `[Mythic] ${dryRun ? "Would delete" : "Deleted"} ${deleted} duplicate compendium item(s) across ${affectedPacks} pack(s).`;
+  ui.notifications?.info(message);
+  console.log(`[mythic-system] ${message}`, { dryRun, duplicates });
+
+  return {
+    deleted,
+    affectedPacks,
+    duplicates,
+    dryRun
+  };
+}
+
+async function runCompendiumCanonicalMigration(options = {}) {
+  if (!game.user?.isGM) {
+    return { skipped: true, reason: "not-gm" };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const force = options?.force === true;
+  const currentVersion = coerceMigrationVersion(
+    game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY),
+    0
+  );
+
+  if (!force && currentVersion >= MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION) {
+    return { skipped: true, reason: "already-migrated", version: currentVersion, updated: 0, packsTouched: 0 };
+  }
+
+  const packs = Array.from(game.packs ?? []).filter((pack) => {
+    const documentName = String(pack?.documentName ?? pack?.metadata?.type ?? "").trim();
+    return documentName === "Item" && isMythicOwnedItemPack(pack);
+  });
+
+  let updated = 0;
+  let packsTouched = 0;
+  const duplicates = [];
+
+  for (const pack of packs) {
+    const wasLocked = Boolean(pack.locked);
+    if (wasLocked && !dryRun) {
+      await pack.configure({ locked: false });
+    }
+
+    try {
+      const docs = await pack.getDocuments();
+      const updates = [];
+      const canonicalOwners = new Map();
+
+      for (const doc of docs) {
+        const normalized = normalizeSupportedItemSystemData(doc.type, doc.system ?? {}, doc.name ?? "");
+        if (!normalized) continue;
+
+        const canonicalId = String(normalized.sync?.canonicalId ?? "").trim();
+        if (canonicalId) {
+          const seen = canonicalOwners.get(canonicalId) ?? [];
+          seen.push({ id: doc.id, name: doc.name, uuid: doc.uuid });
+          canonicalOwners.set(canonicalId, seen);
+        }
+
+        const diff = foundry.utils.diffObject(doc.system ?? {}, normalized);
+        if (foundry.utils.isEmpty(diff)) continue;
+
+        updates.push({ _id: doc.id, system: normalized });
+      }
+
+      duplicates.push(...summarizeDuplicateCanonicalOwners(pack, canonicalOwners));
+
+      if (updates.length) {
+        packsTouched += 1;
+        updated += updates.length;
+        if (!dryRun) {
+          await Item.updateDocuments(updates, {
+            pack: pack.collection,
+            diff: false,
+            render: false
+          });
+        }
+      }
+    } finally {
+      if (wasLocked && !dryRun) {
+        await pack.configure({ locked: true });
+      }
+    }
+  }
+
+  if (!dryRun) {
+    await game.settings.set(
+      "Halo-Mythic-Foundry-Updated",
+      MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY,
+      MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION
+    );
+  }
+
+  if (duplicates.length) {
+    console.warn("[mythic-system] Duplicate canonical IDs detected during compendium migration.", duplicates);
+  }
+
+  return {
+    updated,
+    packsTouched,
+    duplicates,
+    dryRun
+  };
+}
+
+async function maybeRunCompendiumCanonicalMigration() {
+  if (!game.user?.isGM) return;
+
+  const storedVersion = coerceMigrationVersion(
+    game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY),
+    0
+  );
+
+  if (storedVersion >= MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION) {
+    return;
+  }
+
+  ui.notifications?.info(
+    `Halo Mythic: backfilling compendium canonical IDs ${storedVersion} -> ${MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION}.`
+  );
+
+  try {
+    const result = await runCompendiumCanonicalMigration();
+    console.log(
+      `[mythic-system] Compendium canonical migration ${storedVersion} -> ${MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION} complete: ${result.updated} items across ${result.packsTouched} packs.`
+    );
+    ui.notifications?.info(
+      `Halo Mythic compendium canonical migration complete: ${result.updated} items updated across ${result.packsTouched} packs.`
+    );
+  } catch (error) {
+    console.error("[mythic-system] Compendium canonical migration failed.", error);
+    ui.notifications?.error("Halo Mythic compendium canonical migration failed. Check browser console for details.");
+  }
 }
 
 async function maybeRunWorldMigration() {
@@ -1349,6 +1925,39 @@ function getCanonicalCharacterSystemData() {
         str: 0,
         tou: 0,
         agi: 0
+      },
+      soldierTypeStrCarryMultiplier: 1,
+      soldierTypeTouCarryMultiplier: 1,
+      miscCarryBonus: 0,
+      requiredUpbringing: {
+        enabled: false,
+        upbringing: "",
+        removeOtherUpbringings: false,
+        notes: ""
+      },
+      mjolnirArmorSelection: {
+        enabled: false
+      },
+      spartanCarryWeight: {
+        enabled: false
+      },
+      allowedUpbringings: {
+        enabled: false,
+        upbringings: [],
+        removeOtherUpbringings: false,
+        notes: ""
+      },
+      gammaCompanyOption: {
+        enabled: false,
+        defaultSelected: false,
+        prompt: "",
+        grantAbility: "Adrenaline Rush"
+      },
+      ordinanceReady: {
+        enabled: false,
+        supportPointCost: 1,
+        maxUsesPerEncounter: 1,
+        notes: ""
       }
     },
     combat: {
@@ -1411,7 +2020,12 @@ function getCanonicalCharacterSystemData() {
     medical: {
       status: "",
       treatmentNotes: "",
-      recoveryNotes: ""
+      recoveryNotes: "",
+      gammaCompany: {
+        enabled: false,
+        smootherApplications: 0,
+        lastAppliedAt: ""
+      }
     },
     advancements: {
       xpEarned: 0,
@@ -1462,6 +2076,18 @@ function getCanonicalCharacterSystemData() {
     skills: buildCanonicalSkillsSchema(),
     biography: {
       physical: {
+        heightCm: 0,
+        heightImperial: "",
+        weightKg: 0,
+        weightLbs: 0,
+        heightRangeCm: {
+          min: MYTHIC_DEFAULT_HEIGHT_RANGE_CM.min,
+          max: MYTHIC_DEFAULT_HEIGHT_RANGE_CM.max
+        },
+        weightRangeKg: {
+          min: MYTHIC_DEFAULT_WEIGHT_RANGE_KG.min,
+          max: MYTHIC_DEFAULT_WEIGHT_RANGE_KG.max
+        },
         height: "",
         weight: "",
         age: "",
@@ -1582,6 +2208,14 @@ function normalizeCharacterSystemData(systemData) {
     const value = Number(merged.mythic.characteristics?.[key] ?? 0);
     merged.mythic.characteristics[key] = Number.isFinite(value) ? Math.max(0, value) : 0;
   }
+  const legacyCarryMultiplierRaw = Number(merged.mythic?.soldierTypeCarryMultiplier ?? 1);
+  const legacyCarryMultiplier = Number.isFinite(legacyCarryMultiplierRaw) ? Math.max(0, legacyCarryMultiplierRaw) : 1;
+  const strCarryMultiplierRaw = Number(merged.mythic?.soldierTypeStrCarryMultiplier ?? legacyCarryMultiplier);
+  merged.mythic.soldierTypeStrCarryMultiplier = Number.isFinite(strCarryMultiplierRaw) ? Math.max(0, strCarryMultiplierRaw) : 1;
+  const touCarryMultiplierRaw = Number(merged.mythic?.soldierTypeTouCarryMultiplier ?? legacyCarryMultiplier);
+  merged.mythic.soldierTypeTouCarryMultiplier = Number.isFinite(touCarryMultiplierRaw) ? Math.max(0, touCarryMultiplierRaw) : 1;
+  const miscCarryBonusRaw = Number(merged.mythic?.miscCarryBonus ?? 0);
+  merged.mythic.miscCarryBonus = Number.isFinite(miscCarryBonusRaw) ? miscCarryBonusRaw : 0;
 
   const derived = computeCharacterDerivedValues(merged);
 
@@ -1727,6 +2361,12 @@ function normalizeCharacterSystemData(systemData) {
   for (const key of ["status", "treatmentNotes", "recoveryNotes"]) {
     merged.medical[key] = String(merged.medical?.[key] ?? "");
   }
+  merged.medical.gammaCompany = (merged.medical?.gammaCompany && typeof merged.medical.gammaCompany === "object")
+    ? merged.medical.gammaCompany
+    : {};
+  merged.medical.gammaCompany.enabled = Boolean(merged.medical.gammaCompany?.enabled);
+  merged.medical.gammaCompany.smootherApplications = toNonNegativeWhole(merged.medical.gammaCompany?.smootherApplications, 0);
+  merged.medical.gammaCompany.lastAppliedAt = String(merged.medical.gammaCompany?.lastAppliedAt ?? "").trim();
 
   merged.advancements ??= {};
   merged.advancements.xpEarned = toNonNegativeWhole(merged.advancements.xpEarned, 0);
@@ -1798,6 +2438,50 @@ function normalizeCharacterSystemData(systemData) {
     merged.settings.automation[key] = Boolean(merged.settings.automation?.[key]);
   }
 
+  merged.biography ??= {};
+  merged.biography.physical ??= {};
+
+  const rawHeightCm = Number(merged.biography.physical.heightCm);
+  let normalizedHeightCm = Number.isFinite(rawHeightCm) ? Math.max(0, Math.round(rawHeightCm)) : 0;
+  if (normalizedHeightCm <= 0) {
+    const parsedHeight = parseImperialHeightInput(merged.biography.physical.heightImperial ?? merged.biography.physical.height ?? "");
+    if (parsedHeight) {
+      normalizedHeightCm = feetInchesToCentimeters(parsedHeight.feet, parsedHeight.inches);
+    }
+  }
+
+  const rawWeightKg = Number(merged.biography.physical.weightKg);
+  let normalizedWeightKg = Number.isFinite(rawWeightKg) ? Math.max(0, Math.round(rawWeightKg * 10) / 10) : 0;
+  if (normalizedWeightKg <= 0) {
+    const rawWeightLbs = Number(merged.biography.physical.weightLbs);
+    if (Number.isFinite(rawWeightLbs) && rawWeightLbs > 0) {
+      normalizedWeightKg = poundsToKilograms(rawWeightLbs);
+    }
+  }
+
+  merged.biography.physical.heightCm = normalizedHeightCm;
+  merged.biography.physical.heightImperial = normalizedHeightCm > 0 ? formatFeetInches(normalizedHeightCm) : "";
+  merged.biography.physical.weightKg = normalizedWeightKg;
+  merged.biography.physical.weightLbs = normalizedWeightKg > 0 ? kilogramsToPounds(normalizedWeightKg) : 0;
+  merged.biography.physical.heightRangeCm = normalizeRangeObject(
+    merged.biography.physical.heightRangeCm,
+    MYTHIC_DEFAULT_HEIGHT_RANGE_CM
+  );
+  merged.biography.physical.weightRangeKg = normalizeRangeObject(
+    merged.biography.physical.weightRangeKg,
+    MYTHIC_DEFAULT_WEIGHT_RANGE_KG
+  );
+  merged.biography.physical.height = normalizedHeightCm > 0
+    ? `${normalizedHeightCm} cm (${merged.biography.physical.heightImperial})`
+    : String(merged.biography.physical.height ?? "").trim();
+  merged.biography.physical.weight = normalizedWeightKg > 0
+    ? `${normalizedWeightKg} kg (${merged.biography.physical.weightLbs} lb)`
+    : String(merged.biography.physical.weight ?? "").trim();
+
+  if (normalizedHeightCm > 0) {
+    merged.header.buildSize = getSizeCategoryFromHeightCm(normalizedHeightCm);
+  }
+
   merged.training = normalizeTrainingData(merged.training);
   merged.skills = normalizeSkillsData(merged.skills);
 
@@ -1854,6 +2538,13 @@ function getCanonicalAbilitySystemData() {
     benefit: "",
     category: "general",
     actionType: "passive",
+    activation: {
+      enabled: false,
+      maxUsesPerEncounter: 0,
+      usesSpent: 0,
+      cooldownTurns: 0,
+      cooldownRemaining: 0
+    },
     frequency: "",
     repeatable: false,
     editMode: false,
@@ -1889,6 +2580,23 @@ function normalizeAbilitySystemData(systemData, itemName = "") {
   const actionType = String(merged.actionType ?? "passive").toLowerCase();
   const allowedActionTypes = new Set(["passive", "free", "reaction", "half", "full", "special"]);
   merged.actionType = allowedActionTypes.has(actionType) ? actionType : "passive";
+
+  const activationSource = merged?.activation && typeof merged.activation === "object"
+    ? merged.activation
+    : {};
+  merged.activation = {
+    enabled: Boolean(activationSource?.enabled),
+    maxUsesPerEncounter: toNonNegativeWhole(activationSource?.maxUsesPerEncounter, 0),
+    usesSpent: toNonNegativeWhole(activationSource?.usesSpent, 0),
+    cooldownTurns: toNonNegativeWhole(activationSource?.cooldownTurns, 0),
+    cooldownRemaining: toNonNegativeWhole(activationSource?.cooldownRemaining, 0)
+  };
+  if (merged.activation.maxUsesPerEncounter > 0) {
+    merged.activation.usesSpent = Math.min(merged.activation.usesSpent, merged.activation.maxUsesPerEncounter);
+  }
+  if (merged.activation.cooldownTurns > 0) {
+    merged.activation.cooldownRemaining = Math.min(merged.activation.cooldownRemaining, merged.activation.cooldownTurns);
+  }
 
   const pageRaw = Number(merged.sourcePage ?? 97);
   merged.sourcePage = Number.isFinite(pageRaw) ? Math.max(1, Math.floor(pageRaw)) : 97;
@@ -2148,7 +2856,8 @@ function getCanonicalUpbringingSystemData() {
     editMode: false,
     description: "",
     allowedEnvironments: [],  // empty = any; values: "city","country","forest","town","wasteland"
-    modifierGroups: []        // MythicModifierGroup[]
+    modifierGroups: [],       // MythicModifierGroup[]
+    sync: {}
   };
 }
 
@@ -2167,6 +2876,7 @@ function normalizeUpbringingSystemData(systemData, itemName = "") {
   merged.modifierGroups = Array.isArray(merged.modifierGroups)
     ? merged.modifierGroups.map(normalizeModifierGroup)
     : [];
+  merged.sync = normalizeItemSyncData(merged.sync, "upbringing", itemName);
   return merged;
 }
 
@@ -2177,7 +2887,8 @@ function getCanonicalEnvironmentSystemData() {
     schemaVersion: MYTHIC_ENVIRONMENT_SCHEMA_VERSION,
     editMode: false,
     description: "",
-    modifierGroups: []  // MythicModifierGroup[]
+    modifierGroups: [],  // MythicModifierGroup[]
+    sync: {}
   };
 }
 
@@ -2193,6 +2904,7 @@ function normalizeEnvironmentSystemData(systemData, itemName = "") {
   merged.modifierGroups = Array.isArray(merged.modifierGroups)
     ? merged.modifierGroups.map(normalizeModifierGroup)
     : [];
+  merged.sync = normalizeItemSyncData(merged.sync, "environment", itemName);
   return merged;
 }
 
@@ -2238,7 +2950,8 @@ function getCanonicalLifestyleSystemData() {
     schemaVersion: MYTHIC_LIFESTYLE_SCHEMA_VERSION,
     editMode: false,
     description: "",
-    variants: []  // MythicLifestyleVariant[]
+    variants: [],  // MythicLifestyleVariant[]
+    sync: {}
   };
 }
 
@@ -2254,7 +2967,21 @@ function normalizeLifestyleSystemData(systemData, itemName = "") {
   merged.variants = Array.isArray(merged.variants)
     ? merged.variants.map(normalizeLifestyleVariant)
     : [];
+  merged.sync = normalizeItemSyncData(merged.sync, "lifestyle", itemName);
   return merged;
+}
+
+function normalizeSupportedItemSystemData(itemType, systemData, itemName = "") {
+  if (itemType === "ability") return normalizeAbilitySystemData(systemData, itemName);
+  if (itemType === "trait") return normalizeTraitSystemData(systemData, itemName);
+  if (itemType === "education") return normalizeEducationSystemData(systemData, itemName);
+  if (itemType === "armorVariant") return normalizeArmorVariantSystemData(systemData, itemName);
+  if (itemType === "soldierType") return normalizeSoldierTypeSystemData(systemData, itemName);
+  if (itemType === "gear") return normalizeGearSystemData(systemData, itemName);
+  if (itemType === "upbringing") return normalizeUpbringingSystemData(systemData, itemName);
+  if (itemType === "environment") return normalizeEnvironmentSystemData(systemData, itemName);
+  if (itemType === "lifestyle") return normalizeLifestyleSystemData(systemData, itemName);
+  return null;
 }
 
 function getCanonicalSoldierTypeSystemData() {
@@ -2263,6 +2990,9 @@ function getCanonicalSoldierTypeSystemData() {
     editMode: false,
     description: "",
     notes: "",
+    creation: {
+      xpCost: 0
+    },
     header: {
       faction: "",
       soldierType: "",
@@ -2273,6 +3003,14 @@ function getCanonicalSoldierTypeSystemData() {
       upbringing: "",
       environment: "",
       lifestyle: ""
+    },
+    heightRangeCm: {
+      min: MYTHIC_DEFAULT_HEIGHT_RANGE_CM.min,
+      max: MYTHIC_DEFAULT_HEIGHT_RANGE_CM.max
+    },
+    weightRangeKg: {
+      min: MYTHIC_DEFAULT_WEIGHT_RANGE_KG.min,
+      max: MYTHIC_DEFAULT_WEIGHT_RANGE_KG.max
     },
     characteristics: {
       str: 0,
@@ -2312,6 +3050,61 @@ function getCanonicalSoldierTypeSystemData() {
     abilities: [],
     traits: [],
     educations: [],
+    educationChoices: [],
+    ruleFlags: {
+      airForceVehicleBenefit: false,
+      carryMultipliers: {
+        str: 1,
+        tou: 1
+      },
+      branchTransition: {
+        enabled: false,
+        advancementOnly: false,
+        appliesInCharacterCreation: true,
+        transitionGroup: "",
+        fromSoldierTypes: [],
+        notes: ""
+      },
+      orionAugmentation: {
+        enabled: false,
+        advancementOnly: false,
+        appliesInCharacterCreation: true,
+        transitionGroup: "",
+        fromSoldierTypes: [],
+        notes: ""
+      },
+      oniSectionOne: {
+        requiresGmApproval: false,
+        gmApprovalText: "",
+        rankScaffold: {
+          enabled: false,
+          startRank: "",
+          commandSpecializationAllowed: false,
+          notes: ""
+        },
+        supportScaffold: {
+          enabled: false,
+          bonusPerAward: 0,
+          grantAtCharacterCreation: false,
+          regenerates: true,
+          notes: ""
+        },
+        unscSupportCostScaffold: {
+          enabled: false,
+          infantryMultiplier: 1,
+          ordnanceMultiplier: 1,
+          notes: ""
+        }
+      },
+      smartAi: {
+        enabled: false,
+        coreIdentityLabel: "Cognitive Pattern",
+        notes: ""
+      },
+      spartanCarryWeight: {
+        enabled: false
+      }
+    },
     specPacks: [],
     equipmentPacks: [],
     equipment: {
@@ -2351,6 +3144,19 @@ function normalizeSoldierTypeSkillChoice(entry) {
   };
 }
 
+function normalizeSoldierTypeEducationChoice(entry) {
+  const count = toNonNegativeWhole(entry?.count, 0);
+  const tier = String(entry?.tier ?? "plus5").trim().toLowerCase();
+  const allowedTier = ["plus5", "plus10"].includes(tier) ? tier : "plus5";
+  return {
+    count,
+    tier: allowedTier,
+    label: String(entry?.label ?? "Educations of choice").trim() || "Educations of choice",
+    notes: String(entry?.notes ?? "").trim(),
+    source: String(entry?.source ?? "").trim()
+  };
+}
+
 function normalizeSoldierTypeEquipmentPack(entry, index = 0) {
   const items = Array.isArray(entry?.items)
     ? entry.items.map((value) => String(value ?? "").trim()).filter(Boolean)
@@ -2364,6 +3170,80 @@ function normalizeSoldierTypeEquipmentPack(entry, index = 0) {
     description: String(entry?.description ?? "").trim(),
     items
   };
+}
+
+function getCanonicalEquipmentPackSystemData() {
+  return {
+    schemaVersion: MYTHIC_EQUIPMENT_PACK_SCHEMA_VERSION,
+    packType: "equipment",
+    faction: "",
+    description: "",
+    tags: [],
+    // Canonical soldierType IDs this pack can be used by (shared packs can target many).
+    soldierTypes: [],
+    options: [],
+    sourceReference: {
+      table: "",
+      rowNumber: 0
+    },
+    sync: {}
+  };
+}
+
+function normalizeEquipmentPackOption(entry, index = 0) {
+  const optionName = String(entry?.name ?? entry?.label ?? `Option ${index + 1}`).trim() || `Option ${index + 1}`;
+  const items = Array.isArray(entry?.items)
+    ? entry.items
+    : String(entry?.items ?? "").split(/\r?\n|,/);
+  const choices = Array.isArray(entry?.choices)
+    ? entry.choices
+    : String(entry?.choices ?? "").split(/\r?\n|,/);
+
+  return {
+    key: String(entry?.key ?? "").trim(),
+    name: optionName,
+    description: String(entry?.description ?? "").trim(),
+    notes: String(entry?.notes ?? "").trim(),
+    items: normalizeStringList(items),
+    choices: normalizeStringList(choices)
+  };
+}
+
+function normalizeEquipmentPackSystemData(systemData, itemName = "") {
+  const source = foundry.utils.deepClone(systemData ?? {});
+  const defaults = getCanonicalEquipmentPackSystemData();
+  const merged = foundry.utils.mergeObject(defaults, source, {
+    inplace: false,
+    insertKeys: true,
+    insertValues: true,
+    overwrite: true,
+    recursive: true
+  });
+
+  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_EQUIPMENT_PACK_SCHEMA_VERSION);
+  merged.packType = String(merged.packType ?? "equipment").trim().toLowerCase() || "equipment";
+  merged.faction = String(merged.faction ?? "").trim();
+  merged.description = String(merged.description ?? "").trim();
+
+  const tagsSource = Array.isArray(merged.tags)
+    ? merged.tags
+    : String(merged.tags ?? "").split(/\r?\n|,/);
+  merged.tags = normalizeStringList(tagsSource);
+
+  const soldierTypeSource = Array.isArray(merged.soldierTypes)
+    ? merged.soldierTypes
+    : String(merged.soldierTypes ?? "").split(/\r?\n|,/);
+  merged.soldierTypes = normalizeStringList(soldierTypeSource);
+
+  const rawOptions = Array.isArray(merged.options) ? merged.options : [];
+  merged.options = rawOptions
+    .map((entry, index) => normalizeEquipmentPackOption(entry, index))
+    .filter((entry) => entry.name || entry.items.length || entry.choices.length || entry.description || entry.notes);
+
+  merged.sourceReference.table = String(merged.sourceReference?.table ?? "").trim();
+  merged.sourceReference.rowNumber = toNonNegativeWhole(merged.sourceReference?.rowNumber, 0);
+  merged.sync = normalizeItemSyncData(merged.sync, "equipmentPack", itemName);
+  return merged;
 }
 
 function normalizeSoldierTypeSkillPatch(entry) {
@@ -2399,6 +3279,9 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
   for (const key of ["faction", "soldierType", "rank", "specialisation", "race", "buildSize", "upbringing", "environment", "lifestyle"]) {
     merged.header[key] = String(merged.header?.[key] ?? "").trim();
   }
+
+  merged.heightRangeCm = normalizeRangeObject(merged.heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
+  merged.weightRangeKg = normalizeRangeObject(merged.weightRangeKg, MYTHIC_DEFAULT_WEIGHT_RANGE_KG);
 
   for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
     merged.characteristics[key] = toNonNegativeWhole(merged.characteristics?.[key], 0);
@@ -2448,6 +3331,11 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
     .map((entry) => normalizeSoldierTypeSkillChoice(entry))
     .filter((entry) => entry.count > 0);
 
+  const rawEducationChoices = Array.isArray(merged.educationChoices) ? merged.educationChoices : [];
+  merged.educationChoices = rawEducationChoices
+    .map((entry) => normalizeSoldierTypeEducationChoice(entry))
+    .filter((entry) => entry.count > 0);
+
   merged.training = Array.from(new Set(
     (Array.isArray(merged.training) ? merged.training : [])
       .map((entry) => String(entry ?? "").trim())
@@ -2471,6 +3359,134 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
       .map((entry) => String(entry ?? "").trim())
       .filter(Boolean)
   ));
+
+  const branchTransitionSource = merged?.ruleFlags?.branchTransition && typeof merged.ruleFlags.branchTransition === "object"
+    ? merged.ruleFlags.branchTransition
+    : {};
+  merged.ruleFlags = merged.ruleFlags && typeof merged.ruleFlags === "object" ? merged.ruleFlags : {};
+  merged.ruleFlags.airForceVehicleBenefit = Boolean(merged.ruleFlags?.airForceVehicleBenefit);
+  const carryMultipliersSource = (merged.ruleFlags?.carryMultipliers && typeof merged.ruleFlags.carryMultipliers === "object")
+    ? merged.ruleFlags.carryMultipliers
+    : {};
+  const legacyCarryMultiplierRaw = Number(merged.ruleFlags?.carryMultiplier ?? 1);
+  const legacyCarryMultiplier = Number.isFinite(legacyCarryMultiplierRaw) ? Math.max(0, legacyCarryMultiplierRaw) : 1;
+  const carryStrRaw = Number(carryMultipliersSource?.str ?? legacyCarryMultiplier);
+  const carryTouRaw = Number(carryMultipliersSource?.tou ?? legacyCarryMultiplier);
+  merged.ruleFlags.carryMultipliers = {
+    str: Number.isFinite(carryStrRaw) ? Math.max(0, carryStrRaw) : 1,
+    tou: Number.isFinite(carryTouRaw) ? Math.max(0, carryTouRaw) : 1
+  };
+  merged.ruleFlags.branchTransition = {
+    enabled: Boolean(branchTransitionSource?.enabled),
+    advancementOnly: Boolean(branchTransitionSource?.advancementOnly),
+    appliesInCharacterCreation: branchTransitionSource?.appliesInCharacterCreation === false ? false : true,
+    transitionGroup: String(branchTransitionSource?.transitionGroup ?? "").trim(),
+    fromSoldierTypes: normalizeStringList(Array.isArray(branchTransitionSource?.fromSoldierTypes) ? branchTransitionSource.fromSoldierTypes : []),
+    notes: String(branchTransitionSource?.notes ?? "").trim()
+  };
+  const orionAugmentationSource = merged?.ruleFlags?.orionAugmentation && typeof merged.ruleFlags.orionAugmentation === "object"
+    ? merged.ruleFlags.orionAugmentation
+    : {};
+  merged.ruleFlags.orionAugmentation = {
+    enabled: Boolean(orionAugmentationSource?.enabled),
+    advancementOnly: Boolean(orionAugmentationSource?.advancementOnly),
+    appliesInCharacterCreation: orionAugmentationSource?.appliesInCharacterCreation === false ? false : true,
+    transitionGroup: String(orionAugmentationSource?.transitionGroup ?? "").trim(),
+    fromSoldierTypes: normalizeStringList(Array.isArray(orionAugmentationSource?.fromSoldierTypes) ? orionAugmentationSource.fromSoldierTypes : []),
+    notes: String(orionAugmentationSource?.notes ?? "").trim()
+  };
+  const oniSectionOneSource = merged?.ruleFlags?.oniSectionOne && typeof merged.ruleFlags.oniSectionOne === "object"
+    ? merged.ruleFlags.oniSectionOne
+    : {};
+  const oniRankSource = oniSectionOneSource?.rankScaffold && typeof oniSectionOneSource.rankScaffold === "object"
+    ? oniSectionOneSource.rankScaffold
+    : {};
+  const oniSupportSource = oniSectionOneSource?.supportScaffold && typeof oniSectionOneSource.supportScaffold === "object"
+    ? oniSectionOneSource.supportScaffold
+    : {};
+  const oniCostSource = oniSectionOneSource?.unscSupportCostScaffold && typeof oniSectionOneSource.unscSupportCostScaffold === "object"
+    ? oniSectionOneSource.unscSupportCostScaffold
+    : {};
+  merged.ruleFlags.oniSectionOne = {
+    requiresGmApproval: Boolean(oniSectionOneSource?.requiresGmApproval),
+    gmApprovalText: String(oniSectionOneSource?.gmApprovalText ?? "").trim(),
+    rankScaffold: {
+      enabled: Boolean(oniRankSource?.enabled),
+      startRank: String(oniRankSource?.startRank ?? "").trim(),
+      commandSpecializationAllowed: Boolean(oniRankSource?.commandSpecializationAllowed),
+      notes: String(oniRankSource?.notes ?? "").trim()
+    },
+    supportScaffold: {
+      enabled: Boolean(oniSupportSource?.enabled),
+      bonusPerAward: toNonNegativeWhole(oniSupportSource?.bonusPerAward, 0),
+      grantAtCharacterCreation: Boolean(oniSupportSource?.grantAtCharacterCreation),
+      regenerates: oniSupportSource?.regenerates === false ? false : true,
+      notes: String(oniSupportSource?.notes ?? "").trim()
+    },
+    unscSupportCostScaffold: {
+      enabled: Boolean(oniCostSource?.enabled),
+      infantryMultiplier: Math.max(0, Number(oniCostSource?.infantryMultiplier ?? 1) || 1),
+      ordnanceMultiplier: Math.max(0, Number(oniCostSource?.ordnanceMultiplier ?? 1) || 1),
+      notes: String(oniCostSource?.notes ?? "").trim()
+    }
+  };
+  const smartAiSource = (merged?.ruleFlags?.smartAi && typeof merged.ruleFlags.smartAi === "object")
+    ? merged.ruleFlags.smartAi
+    : {};
+  merged.ruleFlags.smartAi = {
+    enabled: Boolean(smartAiSource?.enabled),
+    coreIdentityLabel: String(smartAiSource?.coreIdentityLabel ?? "Cognitive Pattern").trim() || "Cognitive Pattern",
+    notes: String(smartAiSource?.notes ?? "").trim()
+  };
+
+  const requiredUpbringingSource = merged?.ruleFlags?.requiredUpbringing && typeof merged.ruleFlags.requiredUpbringing === "object"
+    ? merged.ruleFlags.requiredUpbringing
+    : {};
+  merged.ruleFlags.requiredUpbringing = {
+    enabled: Boolean(requiredUpbringingSource?.enabled),
+    upbringing: String(requiredUpbringingSource?.upbringing ?? "").trim(),
+    removeOtherUpbringings: Boolean(requiredUpbringingSource?.removeOtherUpbringings),
+    notes: String(requiredUpbringingSource?.notes ?? "").trim()
+  };
+  const mjolnirArmorSelectionSource = merged?.ruleFlags?.mjolnirArmorSelection && typeof merged.ruleFlags.mjolnirArmorSelection === "object"
+    ? merged.ruleFlags.mjolnirArmorSelection
+    : {};
+  merged.ruleFlags.mjolnirArmorSelection = {
+    enabled: Boolean(mjolnirArmorSelectionSource?.enabled)
+  };
+  const spartanCarryWeightSource = (merged?.ruleFlags?.spartanCarryWeight && typeof merged.ruleFlags.spartanCarryWeight === "object")
+    ? merged.ruleFlags.spartanCarryWeight
+    : {};
+  merged.ruleFlags.spartanCarryWeight = {
+    enabled: Boolean(spartanCarryWeightSource?.enabled)
+  };
+  const allowedUpbringingsSource = (merged?.ruleFlags?.allowedUpbringings && typeof merged.ruleFlags.allowedUpbringings === "object")
+    ? merged.ruleFlags.allowedUpbringings
+    : {};
+  merged.ruleFlags.allowedUpbringings = {
+    enabled: Boolean(allowedUpbringingsSource?.enabled),
+    upbringings: normalizeStringList(Array.isArray(allowedUpbringingsSource?.upbringings) ? allowedUpbringingsSource.upbringings : []),
+    removeOtherUpbringings: Boolean(allowedUpbringingsSource?.removeOtherUpbringings),
+    notes: String(allowedUpbringingsSource?.notes ?? "").trim()
+  };
+  const gammaCompanyOptionSource = (merged?.ruleFlags?.gammaCompanyOption && typeof merged.ruleFlags.gammaCompanyOption === "object")
+    ? merged.ruleFlags.gammaCompanyOption
+    : {};
+  merged.ruleFlags.gammaCompanyOption = {
+    enabled: Boolean(gammaCompanyOptionSource?.enabled),
+    defaultSelected: Boolean(gammaCompanyOptionSource?.defaultSelected),
+    prompt: String(gammaCompanyOptionSource?.prompt ?? "").trim(),
+    grantAbility: String(gammaCompanyOptionSource?.grantAbility ?? "Adrenaline Rush").trim() || "Adrenaline Rush"
+  };
+  const ordinanceReadySource = (merged?.ruleFlags?.ordinanceReady && typeof merged.ruleFlags.ordinanceReady === "object")
+    ? merged.ruleFlags.ordinanceReady
+    : {};
+  merged.ruleFlags.ordinanceReady = {
+    enabled: Boolean(ordinanceReadySource?.enabled),
+    supportPointCost: toNonNegativeWhole(ordinanceReadySource?.supportPointCost, 1),
+    maxUsesPerEncounter: toNonNegativeWhole(ordinanceReadySource?.maxUsesPerEncounter, 1),
+    notes: String(ordinanceReadySource?.notes ?? "").trim()
+  };
 
   const rawEquipmentPacks = Array.isArray(merged.equipmentPacks) ? merged.equipmentPacks : [];
   merged.equipmentPacks = rawEquipmentPacks
@@ -2496,6 +3512,10 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
   }
 
   merged.sync = normalizeItemSyncData(merged.sync, "soldierType", itemName);
+
+  // Ensure creation xp cost is a non-negative whole number
+  merged.creation = merged.creation && typeof merged.creation === "object" ? merged.creation : { xpCost: 0 };
+  merged.creation.xpCost = toNonNegativeWhole(merged.creation?.xpCost, 0);
 
   return merged;
 }
@@ -3970,6 +4990,7 @@ function parseSoldierTypeCreationMetadata(lines, heading = "", sourceCollection 
   const metadata = {
     training: [],
     upbringing: "",
+    xpCost: 0,
     buildSize: "",
     faction: inferFactionLabelFromSoldierTypeHeading(heading),
     race: sourceCollection === "human-soldier-types" ? "Human" : ""
@@ -3997,6 +5018,13 @@ function parseSoldierTypeCreationMetadata(lines, heading = "", sourceCollection 
 
     if (upper.startsWith("SIZE ")) {
       metadata.buildSize = String(line.replace(/^SIZE\s+/i, "") ?? "").trim();
+      continue;
+    }
+
+    // Parse an optional experience/creation cost if present in the creation block
+    const xpMatch = line.match(/EXPERIENCE\s+COST\s*[:\-]?\s*(\d+)/i);
+    if (xpMatch) {
+      metadata.xpCost = Math.max(0, Number(xpMatch[1] ?? 0) || 0);
       continue;
     }
   }
@@ -4075,6 +5103,7 @@ function parseReferenceSoldierTypeRowsFromText(text, sourceCollection) {
     const itemName = String(heading ?? "").trim();
     const soldierTypeData = normalizeSoldierTypeSystemData({
       description,
+      creation: { xpCost: Number(creationMetadata.xpCost ?? 0) },
       header: {
         faction: String(creationMetadata.faction ?? "").trim(),
         soldierType: itemName,
@@ -4110,37 +5139,51 @@ function parseReferenceSoldierTypeRowsFromText(text, sourceCollection) {
 }
 
 async function loadReferenceSoldierTypeItems() {
-  const sources = [
-    { path: MYTHIC_REFERENCE_HUMAN_SOLDIER_TYPES_TXT, key: "human-soldier-types" },
-    { path: MYTHIC_REFERENCE_ALIEN_SOLDIER_TYPES_TXT, key: "alien-soldier-types" }
-  ];
-
-  const allItems = [];
-  for (const source of sources) {
-    try {
-      const response = await fetch(source.path);
-      if (!response.ok) {
-        console.warn(`[mythic-system] Could not fetch ${source.path}: HTTP ${response.status}`);
-        continue;
-      }
-      const text = await response.text();
-      const parsed = parseReferenceSoldierTypeRowsFromText(text, source.key);
-      allItems.push(...parsed);
-    } catch (error) {
-      console.warn(`[mythic-system] Failed parsing reference soldier types ${source.path}`, error);
+  try {
+    const response = await fetch(MYTHIC_REFERENCE_SOLDIER_TYPES_JSON);
+    if (!response.ok) {
+      console.warn(`[mythic-system] Could not fetch ${MYTHIC_REFERENCE_SOLDIER_TYPES_JSON}: HTTP ${response.status}`);
+      return [];
     }
-  }
 
-  const dedupedByName = new Map();
-  for (const item of allItems) {
-    const marker = String(item?.name ?? "").trim().toLowerCase();
-    if (!marker) continue;
-    if (!dedupedByName.has(marker)) dedupedByName.set(marker, item);
+    const payload = await response.json();
+    const rows = Array.isArray(payload) ? payload : [];
+    const dedupedByName = new Map();
+
+    for (const entry of rows) {
+      const itemName = String(entry?.name ?? "").trim();
+      if (!itemName) continue;
+
+      const normalized = normalizeSoldierTypeSystemData({
+        ...foundry.utils.deepClone(entry ?? {}),
+        sync: {
+          ...(entry?.sync ?? {}),
+          sourceScope: "mythic",
+          sourceCollection: "soldier-types-json",
+          contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
+          canonicalId: String(entry?.sync?.canonicalId ?? "").trim() || buildCanonicalItemId("soldierType", itemName)
+        }
+      }, itemName);
+
+      const marker = itemName.toLowerCase();
+      if (!dedupedByName.has(marker)) {
+        dedupedByName.set(marker, {
+          name: itemName,
+          type: "soldierType",
+          img: "systems/Halo-Mythic-Foundry-Updated/assets/icons/Soldier Type.png",
+          system: normalized
+        });
+      }
+    }
+
+    return Array.from(dedupedByName.values());
+  } catch (error) {
+    console.warn(`[mythic-system] Failed loading soldier types from ${MYTHIC_REFERENCE_SOLDIER_TYPES_JSON}`, error);
+    return [];
   }
-  return Array.from(dedupedByName.values());
 }
 
-async function importReferenceSoldierTypes(options = {}) {
+async function importSoldierTypesFromJson(options = {}) {
   if (!game.user?.isGM) {
     ui.notifications?.warn("Only a GM can import reference soldier types.");
     return { created: 0, updated: 0, skipped: 0 };
@@ -4148,7 +5191,7 @@ async function importReferenceSoldierTypes(options = {}) {
 
   const rows = await loadReferenceSoldierTypeItems();
   if (!rows.length) {
-    ui.notifications?.warn("No reference soldier type rows were loaded from text files.");
+    ui.notifications?.warn("No soldier type rows were loaded from soldier-types.json.");
     return { created: 0, updated: 0, skipped: 0 };
   }
 
@@ -4203,10 +5246,122 @@ async function importReferenceSoldierTypes(options = {}) {
   }
 
   if (!dryRun) {
-    ui.notifications?.info(`Soldier type import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+    ui.notifications?.info(`Soldier type JSON import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
   }
 
   return { created, updated, skipped };
+}
+
+async function refreshTraitsCompendium(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can refresh the Traits compendium.");
+    return { created: 0, updated: 0, skipped: 0, dryRun: true };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const defs = await loadMythicTraitDefinitions();
+  if (!defs.length) {
+    ui.notifications?.warn("No trait rows were loaded from traits.json.");
+    return { created: 0, updated: 0, skipped: 0, dryRun };
+  }
+
+  const pack = game.packs.get("Halo-Mythic-Foundry-Updated.traits");
+  if (!pack) {
+    ui.notifications?.error("Traits compendium was not found.");
+    return { created: 0, updated: 0, skipped: 0, dryRun };
+  }
+
+  const itemsToSync = defs.map((def) => ({
+    name: String(def.name ?? "Trait"),
+    type: "trait",
+    img: MYTHIC_ABILITY_DEFAULT_ICON,
+    system: normalizeTraitSystemData({
+      shortDescription: def.shortDescription ?? "",
+      benefit: def.benefit ?? "",
+      category: def.category ?? "soldier-type",
+      grantOnly: def.grantOnly !== false,
+      tags: Array.isArray(def.tags) ? def.tags : [],
+      sourcePage: def.sourcePage ?? 1,
+      notes: def.notes ?? "",
+      sync: {
+        sourceScope: "mythic",
+        sourceCollection: "traits-json",
+        contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
+        canonicalId: buildCanonicalItemId("trait", def.name ?? "Trait", def.sourcePage ?? 1)
+      }
+    }, String(def.name ?? "Trait")),
+    effects: buildTraitAutoEffects(def)
+  }));
+
+  const byCanonicalId = await buildCompendiumCanonicalMap(pack);
+  const createBatch = [];
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+  const wasLocked = Boolean(pack.locked);
+  let unlockedForRefresh = false;
+
+  try {
+    if (wasLocked && !dryRun) {
+      await pack.configure({ locked: false });
+      unlockedForRefresh = true;
+    }
+
+    for (const itemData of itemsToSync) {
+      const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+      if (!canonicalId) {
+        skipped += 1;
+        continue;
+      }
+
+      const existing = byCanonicalId.get(canonicalId);
+      if (!existing) {
+        if (!dryRun) createBatch.push(itemData);
+        created += 1;
+        continue;
+      }
+
+      const nextSystem = normalizeTraitSystemData(itemData.system ?? {}, itemData.name ?? "");
+      nextSystem.sync.sourceCollection = "traits-json";
+      const nextEffects = Array.isArray(itemData.effects) ? itemData.effects : [];
+      const currentEffects = Array.isArray(existing.effects) ? existing.effects.map((effect) => effect.toObject()) : [];
+      const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+      const effectsChanged = JSON.stringify(currentEffects) !== JSON.stringify(nextEffects);
+      const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+
+      if (foundry.utils.isEmpty(diff) && !effectsChanged && !nameChanged) {
+        skipped += 1;
+        continue;
+      }
+
+      if (!dryRun) {
+        await existing.update({
+          name: itemData.name,
+          system: nextSystem,
+          effects: nextEffects
+        }, { diff: false, recursive: false });
+      }
+      updated += 1;
+    }
+
+    if (!dryRun && createBatch.length) {
+      await Item.createDocuments(createBatch, { pack: pack.collection });
+    }
+  } finally {
+    if (wasLocked && unlockedForRefresh) {
+      try {
+        await pack.configure({ locked: true });
+      } catch (lockError) {
+        console.error(`[mythic-system] Failed to relock compendium ${pack.collection}.`, lockError);
+      }
+    }
+  }
+
+  if (!dryRun) {
+    ui.notifications?.info(`Traits compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  }
+
+  return { created, updated, skipped, dryRun };
 }
 
 async function removeEmbeddedArmorVariants(options = {}) {
@@ -4676,6 +5831,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicOutliers = this._getOutliersViewData(normalizedSystem, context.mythicCcAdv);
     context.mythicCreationFinalizeSummary = this._getCreationFinalizeSummaryViewData(normalizedSystem, context.mythicAdvancements, context.mythicOutliers);
     context.mythicEquipment = await this._getEquipmentViewData(effectiveSystem, derived);
+    context.mythicGammaCompany = this._getGammaCompanyViewData(normalizedSystem);
     context.mythicGravityValue = String(normalizedSystem?.gravity ?? 1.0);
     context.mythicSkills = this._getSkillsViewData(normalizedSystem?.skills, effectiveSystem?.characteristics);
     context.mythicFactionOptions = [
@@ -4710,7 +5866,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ];
     context.mythicAbilities = this._getAbilitiesViewData();
     context.mythicTraits = this._getTraitsViewData();
-    context.mythicTraining = this._getTrainingViewData(normalizedSystem?.training);
+    context.mythicTraining = await this._getTrainingViewData(normalizedSystem?.training, normalizedSystem);
+    context.mythicSoldierTypeScaffold = this._getSoldierTypeScaffoldViewData();
     context.mythicHasBlurAbility = this.actor.items.some((i) => i.type === "ability" && String(i.name ?? "").toLowerCase() === "blur");
     context.mythicCharBuilder = this._getCharBuilderViewData(normalizedSystem, creationPathOutcome);
     context.mythicHeader = await this._getHeaderViewData(normalizedSystem);
@@ -4738,6 +5895,24 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isCreationActive: active === "creation",
       isAdvancementActive: active === "advancement",
       canEditStartingXp
+    };
+  }
+
+  _getSoldierTypeScaffoldViewData() {
+    const rawFlags = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeRuleFlags");
+    const orionSource = rawFlags?.orionAugmentation && typeof rawFlags.orionAugmentation === "object"
+      ? rawFlags.orionAugmentation
+      : {};
+
+    return {
+      orionAugmentation: {
+        enabled: Boolean(orionSource?.enabled),
+        advancementOnly: Boolean(orionSource?.advancementOnly),
+        appliesInCharacterCreation: orionSource?.appliesInCharacterCreation === false ? false : true,
+        transitionGroup: String(orionSource?.transitionGroup ?? "").trim(),
+        fromSoldierTypes: normalizeStringList(Array.isArray(orionSource?.fromSoldierTypes) ? orionSource.fromSoldierTypes : []),
+        notes: String(orionSource?.notes ?? "").trim()
+      }
     };
   }
 
@@ -4776,10 +5951,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         || mythicLabels[choiceKey]
         || "";
       return {
+        listIndex: index,
         index: index + 1,
         key: entry.key,
         name,
-        choiceLabel
+        choiceLabel,
+        description: String(def?.description ?? "").trim()
       };
     });
 
@@ -4840,6 +6017,18 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const selectedUpbringing = upbringingDocs.find((doc) => doc.id === creationPath.upbringingItemId) ?? null;
     const selectedEnvironment = environmentDocs.find((doc) => doc.id === creationPath.environmentItemId) ?? null;
+    const requiredUpbringingFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing") ?? {};
+    const allowedUpbringingsFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings") ?? {};
+    const allowedUpbringingNames = Boolean(allowedUpbringingsFlag?.enabled)
+      ? normalizeStringList(Array.isArray(allowedUpbringingsFlag?.upbringings) ? allowedUpbringingsFlag.upbringings : [])
+      : [];
+    const requiredUpbringingEnabled = Boolean(requiredUpbringingFlag?.enabled);
+    const requiredUpbringingName = String(requiredUpbringingFlag?.upbringing ?? "").trim();
+    const upbringingRestrictionLabel = allowedUpbringingNames.length > 0
+      ? `Restricted To: ${allowedUpbringingNames.join(" / ")}`
+      : (requiredUpbringingEnabled && requiredUpbringingName
+        ? `Restricted To: ${requiredUpbringingName} Only`
+        : "");
     const upbringingChoiceState = this._buildCreationChoiceState(selectedUpbringing?.system?.modifierGroups, creationPath.upbringingSelections);
     const environmentChoiceState = this._buildCreationChoiceState(selectedEnvironment?.system?.modifierGroups, creationPath.environmentSelections);
     const allowedEnvironmentKeysRaw = Array.isArray(selectedUpbringing?.system?.allowedEnvironments)
@@ -4918,6 +6107,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         selectedUpbringingHasChoices: upbringingChoiceState.hasChoices,
         selectedEnvironmentHasChoices: environmentChoiceState.hasChoices,
         upbringingChoicePills: upbringingChoiceState.displayPills,
+        upbringingRestrictionLabel,
         environmentMetaPills,
         lifestyles: lifestyleSlots,
         hasEnvironmentRestriction,
@@ -4957,6 +6147,18 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _getSpecializationViewData(systemData) {
     const normalized = normalizeCharacterSystemData(systemData);
     const spec = normalized?.specialization ?? {};
+    const hasNoSpecializationPackTrait = this.actor.items.some((item) => (
+      item.type === "trait"
+      && String(item.name ?? "").trim().toLowerCase() === "no specialization pack"
+    ));
+    const soldierTypeRuleFlags = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeRuleFlags");
+    const smartAiFlag = soldierTypeRuleFlags?.smartAi && typeof soldierTypeRuleFlags.smartAi === "object"
+      ? soldierTypeRuleFlags.smartAi
+      : {};
+    const blockedByNoSpecializationPack = hasNoSpecializationPackTrait || Boolean(smartAiFlag?.enabled);
+    const blockedReason = blockedByNoSpecializationPack
+      ? "No Specialization Pack is granted by this Soldier Type."
+      : "";
     const selected = getSpecializationPackByKey(spec.selectedKey);
     const options = MYTHIC_SPECIALIZATION_PACKS.map((pack) => ({
       value: pack.key,
@@ -4972,7 +6174,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       limitedApprovalChecked: Boolean(spec.limitedApprovalChecked),
       options,
       selected,
-      canChange: !spec.confirmed || game.user?.isGM === true
+      canChange: (!spec.confirmed || game.user?.isGM === true) && !blockedByNoSpecializationPack,
+      isBlockedBySoldierType: blockedByNoSpecializationPack,
+      blockedReason
     };
   }
 
@@ -5051,7 +6255,23 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       locks.lifestyle = true;
     }
 
-    return { values, locks };
+    const soldierTypeRuleFlags = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeRuleFlags");
+    const smartAiFlag = soldierTypeRuleFlags?.smartAi && typeof soldierTypeRuleFlags.smartAi === "object"
+      ? soldierTypeRuleFlags.smartAi
+      : {};
+    const smartAiEnabled = Boolean(smartAiFlag?.enabled);
+    const coreIdentityLabel = String(smartAiFlag?.coreIdentityLabel ?? "Cognitive Pattern").trim() || "Cognitive Pattern";
+
+    return {
+      values,
+      locks,
+      smartAi: {
+        enabled: smartAiEnabled,
+        coreIdentityLabel,
+        profile: values.soldierType || "UNSC SMART AI",
+        status: "Operational"
+      }
+    };
   }
 
   _getCharBuilderViewData(systemData, creationPathOutcome) {
@@ -5761,6 +6981,29 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
   }
 
+  _getGammaCompanyViewData(systemData) {
+    const normalized = normalizeCharacterSystemData(systemData);
+    const gamma = normalized?.medical?.gammaCompany ?? {};
+    const smootherCount = (this.actor?.items ?? []).filter((item) => {
+      if (item.type !== "gear") return false;
+      const name = String(item.name ?? "").trim().toLowerCase();
+      return name.includes("smoother") && name.includes("drug");
+    }).length;
+    const lastAppliedRaw = String(gamma?.lastAppliedAt ?? "").trim();
+    const lastAppliedDate = lastAppliedRaw ? new Date(lastAppliedRaw) : null;
+    const lastAppliedDisplay = lastAppliedDate && Number.isFinite(lastAppliedDate.getTime())
+      ? lastAppliedDate.toLocaleString()
+      : "Never";
+
+    return {
+      enabled: Boolean(gamma?.enabled),
+      smootherCount,
+      smootherApplications: toNonNegativeWhole(gamma?.smootherApplications, 0),
+      lastAppliedDisplay,
+      canApply: this.isEditable && smootherCount > 0
+    };
+  }
+
   _getMythicDerivedData(systemData, precomputed = null) {
     const derived = precomputed ?? computeCharacterDerivedValues(systemData);
 
@@ -5928,8 +7171,35 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     biography.physical ??= {};
     biography.history ??= {};
 
-    biography.physical.height = biography.physical.height ?? header.height ?? "";
-    biography.physical.weight = biography.physical.weight ?? header.weight ?? "";
+    let heightCm = Number(biography.physical.heightCm ?? 0);
+    heightCm = Number.isFinite(heightCm) ? Math.max(0, Math.round(heightCm)) : 0;
+    if (heightCm <= 0) {
+      const parsed = parseImperialHeightInput(biography.physical.heightImperial ?? biography.physical.height ?? header.height ?? "");
+      if (parsed) heightCm = feetInchesToCentimeters(parsed.feet, parsed.inches);
+    }
+
+    let weightKg = Number(biography.physical.weightKg ?? 0);
+    weightKg = Number.isFinite(weightKg) ? Math.max(0, Math.round(weightKg * 10) / 10) : 0;
+    if (weightKg <= 0) {
+      const rawLbs = Number(biography.physical.weightLbs);
+      if (Number.isFinite(rawLbs) && rawLbs > 0) weightKg = poundsToKilograms(rawLbs);
+    }
+
+    const heightRangeCm = normalizeRangeObject(biography.physical.heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
+    const weightRangeKg = normalizeRangeObject(biography.physical.weightRangeKg, MYTHIC_DEFAULT_WEIGHT_RANGE_KG);
+
+    biography.physical.heightCm = heightCm;
+    biography.physical.heightImperial = heightCm > 0 ? formatFeetInches(heightCm) : "";
+    biography.physical.weightKg = weightKg;
+    biography.physical.weightLbs = weightKg > 0 ? kilogramsToPounds(weightKg) : 0;
+    biography.physical.heightRangeCm = heightRangeCm;
+    biography.physical.weightRangeKg = weightRangeKg;
+    biography.physical.height = heightCm > 0
+      ? `${heightCm} cm (${biography.physical.heightImperial})`
+      : (biography.physical.height ?? header.height ?? "");
+    biography.physical.weight = weightKg > 0
+      ? `${weightKg} kg (${biography.physical.weightLbs} lb)`
+      : (biography.physical.weight ?? header.weight ?? "");
     biography.physical.age = biography.physical.age ?? header.age ?? "";
     biography.physical.gender = header.gender ?? "";
     biography.physical.hair = biography.physical.hair ?? "";
@@ -5975,6 +7245,133 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       default:
         return { label: "", text: "" };
     }
+  }
+
+  async _onRandomizeBiographyBuild(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const bodyTypes = {
+      compact:    { label: "Compact", tooltip: "Short and light. Tight, efficient frame. Often quick and agile.", heightBias: "short",   massBias: "light" },
+      stocky:     { label: "Stocky", tooltip: "Short but solidly built. Dense muscle and a low center of gravity.", heightBias: "short",   massBias: "average" },
+      bulldog:    { label: "Bulldog", tooltip: "Short and very broad. Thick frame and powerful build.", heightBias: "short",   massBias: "large" },
+      lean:       { label: "Lean", tooltip: "Average height with a lighter build. Slim, quick, and agile.", heightBias: "average", massBias: "light" },
+      standard:   { label: "Standard", tooltip: "Average height and weight. Typical military physique.", heightBias: "average", massBias: "average" },
+      heavyset:   { label: "Heavyset", tooltip: "Average height with a larger frame. Often a veteran or naturally broad build.", heightBias: "average", massBias: "large" },
+      lanky:      { label: "Lanky", tooltip: "Tall and slender. Long limbs with lighter mass.", heightBias: "tall",    massBias: "light" },
+      athletic:   { label: "Athletic", tooltip: "Tall and well-proportioned. Strong, balanced combat physique.", heightBias: "tall",    massBias: "average" },
+      juggernaut: { label: "Juggernaut", tooltip: "Tall and heavily built. Large skeletal frame and significant muscle mass.", heightBias: "tall",    massBias: "large" }
+    };
+
+    const orderedKeys = [
+      "compact", "stocky", "bulldog",
+      "lean", "standard", "heavyset",
+      "lanky", "athletic", "juggernaut"
+    ];
+    const bodyGridButtons = orderedKeys.map((key) => {
+      const entry = bodyTypes[key];
+      return `<button type='button' class='mythic-body-type-btn' data-body-type='${key}' title='${foundry.utils.escapeHTML(entry.tooltip)}' style='padding:6px 8px;border:1px solid var(--mythic-table-bg, #4a648c);background:rgba(0,0,0,0.35);color:var(--mythic-text, #fff);border-radius:4px;cursor:pointer;font-weight:600;min-height:34px;'>${foundry.utils.escapeHTML(entry.label)}</button>`;
+    }).join("");
+    const splitButtons = bodyGridButtons.split("</button>").filter(Boolean).map((chunk) => `${chunk}</button>`);
+    const rowOne = splitButtons.slice(0, 3).join("");
+    const rowTwo = splitButtons.slice(3, 6).join("");
+    const rowThree = splitButtons.slice(6, 9).join("");
+
+    let selectedBodyTypeKey = null;
+    const dialogPromise = foundry.applications.api.DialogV2.wait({
+      window: { title: "Select Body Type" },
+      content: `
+        <div class='mythic-bodytype-dialog' data-mythic-bodytype-dialog='true' style='display:flex;flex-direction:column;gap:8px;'>
+          <p style='margin:0;'>Choose a <strong>Body Type</strong> before randomizing height and weight:</p>
+          <div style='display:grid;grid-template-columns:90px repeat(3,1fr);gap:6px;align-items:center;'>
+            <div></div>
+            <div style='text-align:center;font-weight:600;'>Light</div>
+            <div style='text-align:center;font-weight:600;'>Average</div>
+            <div style='text-align:center;font-weight:600;'>Large</div>
+            <div style='font-weight:600;'>Short</div>
+            ${rowOne}
+            <div style='font-weight:600;'>Average</div>
+            ${rowTwo}
+            <div style='font-weight:600;'>Tall</div>
+            ${rowThree}
+          </div>
+        </div>
+      `,
+      buttons: [
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+
+    const tryAttachBodyTypeClickHandlers = () => {
+      const dialogRoot = document.querySelector("[data-mythic-bodytype-dialog='true']");
+      if (!(dialogRoot instanceof HTMLElement)) return false;
+      const buttons = Array.from(dialogRoot.querySelectorAll(".mythic-body-type-btn[data-body-type]"));
+      if (!buttons.length) return false;
+      for (const button of buttons) {
+        button.addEventListener("click", (clickEvent) => {
+          clickEvent.preventDefault();
+          selectedBodyTypeKey = String(button.dataset.bodyType ?? "").trim().toLowerCase() || null;
+          const appRoot = dialogRoot.closest(".application");
+          const cancelButton = appRoot?.querySelector("button[data-action='cancel']");
+          if (cancelButton instanceof HTMLButtonElement) {
+            cancelButton.click();
+          }
+        }, { once: true });
+      }
+      return true;
+    };
+
+    let attachTimer = null;
+    if (!tryAttachBodyTypeClickHandlers()) {
+      attachTimer = window.setInterval(() => {
+        if (tryAttachBodyTypeClickHandlers() && attachTimer !== null) {
+          window.clearInterval(attachTimer);
+          attachTimer = null;
+        }
+      }, 25);
+    }
+
+    await dialogPromise;
+    if (attachTimer !== null) {
+      window.clearInterval(attachTimer);
+      attachTimer = null;
+    }
+    if (!selectedBodyTypeKey || !bodyTypes[selectedBodyTypeKey]) return;
+
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const physical = normalized?.biography?.physical ?? {};
+    const heightRange = normalizeRangeObject(physical.heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
+    const weightRange = normalizeRangeObject(physical.weightRangeKg, MYTHIC_DEFAULT_WEIGHT_RANGE_KG);
+    const hasImposingOutlier = hasOutlierPurchase(normalized, "imposing");
+
+    const selectedBodyType = bodyTypes[selectedBodyTypeKey];
+    const options = Object.assign({}, selectedBodyType, {
+      imposingOutlier: hasImposingOutlier,
+      upperBias: hasImposingOutlier || selectedBodyType.massBias === "large"
+    });
+    const build = generateCharacterBuild(heightRange, weightRange, options);
+    const heightCm = Math.max(0, Math.round(Number(build?.heightCm) || 0));
+    const weightKg = Math.max(0, Math.round((Number(build?.weightKg) || 0) * 10) / 10);
+    const sizeLabel = String(build?.sizeLabel ?? getSizeCategoryFromHeightCm(heightCm));
+
+    const updateData = {};
+    const imperial = formatFeetInches(heightCm);
+    const pounds = kilogramsToPounds(weightKg);
+    foundry.utils.setProperty(updateData, "system.biography.physical.heightCm", heightCm);
+    foundry.utils.setProperty(updateData, "system.biography.physical.heightImperial", imperial);
+    foundry.utils.setProperty(updateData, "system.biography.physical.height", `${heightCm} cm (${imperial})`);
+    foundry.utils.setProperty(updateData, "system.biography.physical.weightKg", weightKg);
+    foundry.utils.setProperty(updateData, "system.biography.physical.weightLbs", pounds);
+    foundry.utils.setProperty(updateData, "system.biography.physical.weight", `${weightKg} kg (${pounds} lb)`);
+    foundry.utils.setProperty(updateData, "system.header.buildSize", sizeLabel);
+
+    await this.actor.update(updateData);
   }
 
   _getCharacteristicModifiers(characteristics) {
@@ -6060,6 +7457,19 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .map((item) => {
         const sys = normalizeAbilitySystemData(item.system ?? {});
         const shortDescription = String(sys.shortDescription ?? "").trim();
+        const activation = sys.activation && typeof sys.activation === "object"
+          ? sys.activation
+          : {};
+        const isActivatable = String(sys.actionType ?? "passive") !== "passive";
+        const usesMax = toNonNegativeWhole(activation?.maxUsesPerEncounter, 0);
+        const usesSpent = usesMax > 0
+          ? Math.min(toNonNegativeWhole(activation?.usesSpent, 0), usesMax)
+          : toNonNegativeWhole(activation?.usesSpent, 0);
+        const cooldownTurns = toNonNegativeWhole(activation?.cooldownTurns, 0);
+        const cooldownRemaining = cooldownTurns > 0
+          ? Math.min(toNonNegativeWhole(activation?.cooldownRemaining, 0), cooldownTurns)
+          : toNonNegativeWhole(activation?.cooldownRemaining, 0);
+        const canActivate = isActivatable && cooldownRemaining <= 0 && (usesMax === 0 || usesSpent < usesMax);
         return {
           id: item.id,
           name: item.name,
@@ -6068,7 +7478,13 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           actionTypeLabel: actionLabel[String(sys.actionType ?? "passive")] ?? "Passive",
           prerequisiteText: String(sys.prerequisiteText ?? ""),
           shortDescription,
-          repeatable: Boolean(sys.repeatable)
+          repeatable: Boolean(sys.repeatable),
+          isActivatable,
+          canActivate,
+          usesMax,
+          usesSpent,
+          cooldownTurns,
+          cooldownRemaining
         };
       });
   }
@@ -6091,16 +7507,21 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
   }
 
-  _getTrainingViewData(trainingData) {
+  async _getTrainingViewData(trainingData, normalizedSystem = null) {
     const normalized = normalizeTrainingData(trainingData);
+    const lockData = await this._getAutoTrainingLockData(normalizedSystem);
+    const lockedWeaponKeys = new Set(lockData.weaponKeys);
+    const lockedFactionKeys = new Set(lockData.factionKeys);
     const weaponCategories = MYTHIC_WEAPON_TRAINING_DEFINITIONS.map((definition) => ({
       ...definition,
       checked: Boolean(normalized.weapon?.[definition.key]),
-      weaponTypesText: definition.weaponTypes.join(", ")
+      weaponTypesText: definition.weaponTypes.join(", "),
+      lockedBySoldierType: lockedWeaponKeys.has(definition.key)
     }));
     const factionCategories = MYTHIC_FACTION_TRAINING_DEFINITIONS.map((definition) => ({
       ...definition,
-      checked: Boolean(normalized.faction?.[definition.key])
+      checked: Boolean(normalized.faction?.[definition.key]),
+      lockedBySoldierType: lockedFactionKeys.has(definition.key)
     }));
 
     return {
@@ -6110,6 +7531,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       technologyText: normalized.technology.join("\n"),
       customText: normalized.custom.join("\n"),
       notes: normalized.notes,
+      lockSummary: {
+        hasLocks: lockData.weaponKeys.length > 0 || lockData.factionKeys.length > 0,
+        weaponCount: lockData.weaponKeys.length,
+        factionCount: lockData.factionKeys.length,
+        sourceLabel: lockData.sourceLabel
+      },
       summary: {
         weaponCount: weaponCategories.filter((entry) => entry.checked).length,
         factionCount: factionCategories.filter((entry) => entry.checked).length,
@@ -6118,6 +7545,59 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         customCount: normalized.custom.length
       }
     };
+  }
+
+  async _getAutoTrainingLockData(normalizedSystem = null) {
+    const actorSystem = normalizedSystem ?? normalizeCharacterSystemData(this.actor.system ?? {});
+    const soldierTypeName = String(actorSystem?.header?.soldierType ?? "").trim();
+    const empty = { weaponKeys: [], factionKeys: [], sourceLabel: "" };
+    if (!soldierTypeName) return empty;
+
+    const rawFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks");
+    const factionChoiceFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeFactionChoice");
+    const flaggedWeaponKeys = normalizeStringList(Array.isArray(rawFlag?.weaponKeys) ? rawFlag.weaponKeys : []);
+    const flaggedFactionKeys = normalizeStringList(Array.isArray(rawFlag?.factionKeys) ? rawFlag.factionKeys : []);
+    const isSameSoldierType = normalizeSoldierTypeNameForMatch(rawFlag?.soldierTypeName ?? "") === normalizeSoldierTypeNameForMatch(soldierTypeName);
+    const flaggedCanonicalId = String(rawFlag?.soldierTypeCanonicalId ?? "").trim().toLowerCase();
+    const actorCanonicalId = String(factionChoiceFlag?.soldierTypeCanonicalId ?? "").trim().toLowerCase();
+    const isSameCanonical = Boolean(flaggedCanonicalId && actorCanonicalId && flaggedCanonicalId === actorCanonicalId);
+    if ((isSameCanonical || isSameSoldierType) && (flaggedWeaponKeys.length || flaggedFactionKeys.length)) {
+      return {
+        weaponKeys: flaggedWeaponKeys,
+        factionKeys: flaggedFactionKeys,
+        sourceLabel: String(rawFlag?.soldierTypeName ?? soldierTypeName).trim() || soldierTypeName
+      };
+    }
+
+    try {
+      const normalizedSoldierTypeName = normalizeSoldierTypeNameForMatch(soldierTypeName);
+      if (!normalizedSoldierTypeName) return empty;
+
+      const rows = await loadReferenceSoldierTypeItems();
+      const matchedByCanonicalId = rows.find((entry) => {
+        const rowCanonical = String(entry?.system?.sync?.canonicalId ?? "").trim().toLowerCase();
+        return Boolean(rowCanonical && (rowCanonical === flaggedCanonicalId || rowCanonical === actorCanonicalId));
+      }) ?? null;
+      const matchedByName = rows.find((entry) => normalizeSoldierTypeNameForMatch(entry?.name ?? "") === normalizedSoldierTypeName) ?? null;
+      const matched = matchedByCanonicalId ?? matchedByName;
+      if (!matched) return empty;
+
+      const templateSystem = normalizeSoldierTypeSystemData(matched.system ?? {}, matched.name ?? soldierTypeName);
+      const derived = extractStructuredTrainingLocks(
+        Array.isArray(templateSystem?.training) ? templateSystem.training : [],
+        // Prefer the soldier-type template faction when deriving locks so human
+        // soldier-types (UNSC) yield the correct UNSC/faction lock even if the
+        // actor later chooses Insurrectionist or another faction.
+        String(templateSystem?.header?.faction ?? actorSystem?.header?.faction ?? "").trim()
+      );
+      return {
+        weaponKeys: derived.weaponKeys,
+        factionKeys: derived.factionKeys,
+        sourceLabel: String(matched.name ?? soldierTypeName).trim() || soldierTypeName
+      };
+    } catch (_err) {
+      return empty;
+    }
   }
 
   _rememberSheetScrollPosition(root = null) {
@@ -6371,18 +7851,33 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     // Explicit "X Ability" pattern.
     for (const match of text.matchAll(/([A-Za-z][A-Za-z0-9'()\-/ ]+?)\s+Ability\b/gi)) {
-      const name = String(match[1] ?? "").trim();
-      if (name) requiredNames.add(name);
+      const nameText = String(match[1] ?? "").trim();
+      if (nameText) requiredNames.add(nameText);
     }
 
     // Bare leading token pattern, e.g. "Disarm, Agility: 40".
-    for (const token of text.split(",")) {
+    for (const token of text.split(/[;,]/)) {
       const t = token.trim();
       if (!t || t.includes(":")) continue;
       if (/^or\b/i.test(t) || /^and\b/i.test(t)) continue;
       if (/^(strength|toughness|agility|intellect|perception|courage|charisma|leadership|warfare\s+melee|warfare\s+range|luck)\b/i.test(t)) continue;
+      if (/\btrait\b/i.test(t)) continue;
       if (/\bskill\b/i.test(t)) continue;
-      requiredNames.add(t.replace(/\bability\b/i, "").trim());
+      if (/\bwhile\b/i.test(t)) continue;
+      const cleaned = t.replace(/\bability\b/i, "").trim();
+      if (cleaned) requiredNames.add(cleaned);
+    }
+
+    return [...requiredNames].filter(Boolean);
+  }
+
+  _parseRequiredTraitNames(prereqText) {
+    const text = String(prereqText ?? "");
+    const requiredNames = new Set();
+
+    for (const match of text.matchAll(/([A-Za-z][A-Za-z0-9'()\-/ ]+?)\s+Trait\b/gi)) {
+      const nameText = String(match[1] ?? "").trim();
+      if (nameText) requiredNames.add(nameText);
     }
 
     return [...requiredNames].filter(Boolean);
@@ -6412,6 +7907,11 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         .filter((i) => i.type === "ability")
         .map((i) => this._normalizeNameForMatch(i.name))
     );
+    const ownedTraits = new Set(
+      this.actor.items
+        .filter((i) => i.type === "trait")
+        .map((i) => this._normalizeNameForMatch(i.name))
+    );
 
     const characteristicMap = {
       strength: "str",
@@ -6425,6 +7925,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "warfare melee": "wfm",
       "warfare range": "wfr"
     };
+    const statTokenPattern = "strength|toughness|agility|intellect|perception|courage|charisma|leadership|warfare\\s+melee|warfare\\s+range";
 
     const compareNumeric = (actual, qualifier, expected) => {
       if (!Number.isFinite(actual) || !Number.isFinite(expected)) return false;
@@ -6483,26 +7984,108 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     // Minimum characteristic requirements, e.g. "Strength: 50".
     if (prereqText.trim()) {
-      for (const match of prereqText.matchAll(/(strength|toughness|agility|intellect|perception|courage|charisma|leadership|warfare\s+melee|warfare\s+range)\s*:\s*(\d+)/gi)) {
+      let remainingCharacteristicText = prereqText;
+
+      // Pattern like "Courage: 45 or Leadership: 45".
+      const pairedOrRegex = new RegExp(`(${statTokenPattern})\\s*:\\s*(\\d+)\\s+or\\s+(${statTokenPattern})\\s*:\\s*(\\d+)`, "gi");
+      for (const match of prereqText.matchAll(pairedOrRegex)) {
+        const leftLabel = String(match[1] ?? "").toLowerCase().trim();
+        const leftRequired = Number(match[2] ?? Number.NaN);
+        const rightLabel = String(match[3] ?? "").toLowerCase().trim();
+        const rightRequired = Number(match[4] ?? Number.NaN);
+
+        const leftActual = Number(chars?.[characteristicMap[leftLabel]] ?? 0);
+        const rightActual = Number(chars?.[characteristicMap[rightLabel]] ?? 0);
+        const leftPass = Number.isFinite(leftRequired) && leftActual >= leftRequired;
+        const rightPass = Number.isFinite(rightRequired) && rightActual >= rightRequired;
+
+        if (!leftPass && !rightPass) {
+          reasons.push(`${leftLabel.replace(/\b\w/g, (c) => c.toUpperCase())} ${leftRequired}+ or ${rightLabel.replace(/\b\w/g, (c) => c.toUpperCase())} ${rightRequired}+ required`);
+        }
+
+        remainingCharacteristicText = remainingCharacteristicText.replace(String(match[0] ?? ""), " ");
+      }
+
+      // Pattern like "Agility or Intellect: 40".
+      const sharedThresholdOrRegex = new RegExp(`((?:${statTokenPattern})(?:\\s+or\\s+(?:${statTokenPattern}))+?)\\s*:\\s*(\\d+)`, "gi");
+      for (const match of remainingCharacteristicText.matchAll(sharedThresholdOrRegex)) {
+        const labels = String(match[1] ?? "")
+          .split(/\s+or\s+/i)
+          .map((entry) => entry.trim().toLowerCase())
+          .filter(Boolean);
+        const required = Number(match[2] ?? Number.NaN);
+        if (!labels.length || !Number.isFinite(required)) continue;
+
+        const passes = labels.some((label) => {
+          const key = characteristicMap[label];
+          const actual = Number(chars?.[key] ?? 0);
+          return actual >= required;
+        });
+
+        if (!passes) {
+          const labelDisplay = labels.map((entry) => entry.replace(/\b\w/g, (c) => c.toUpperCase())).join(" or ");
+          reasons.push(`${labelDisplay} ${required}+ required`);
+        }
+
+        remainingCharacteristicText = remainingCharacteristicText.replace(String(match[0] ?? ""), " ");
+      }
+
+      for (const match of remainingCharacteristicText.matchAll(new RegExp(`(${statTokenPattern})\\s*:\\s*(\\d+)`, "gi"))) {
         const label = String(match[1] ?? "").toLowerCase();
         const required = Number(match[2] ?? 0);
         const key = characteristicMap[label];
         const actual = Number(chars?.[key] ?? 0);
         if (Number.isFinite(required) && actual < required) {
-          reasons.push(`${label.replace(/\b\w/g, c => c.toUpperCase())} ${required}+ required`);
+          reasons.push(`${label.replace(/\b\w/g, (c) => c.toUpperCase())} ${required}+ required`);
         }
       }
 
-      // Minimum luck based on MAX luck, e.g. "Luck: 1+" or "Luck: 0-1".
-      for (const match of prereqText.matchAll(/luck\s*:\s*(\d+)(?:\s*-\s*\d+|\s*\+)?/gi)) {
-        const requiredMin = Number(match[1] ?? 0);
-        if (Number.isFinite(requiredMin) && luckMax < requiredMin) {
-          reasons.push(`Luck (max) ${requiredMin}+ required`);
+      // Luck requirements based on MAX luck.
+      for (const match of prereqText.matchAll(/luck\s*:\s*([^;,\n]+)/gi)) {
+        const expr = String(match[1] ?? "").trim().toLowerCase();
+        if (!expr) continue;
+
+        if (/\bor\b/i.test(expr)) {
+          const allowedValues = expr
+            .split(/\s+or\s+/i)
+            .map((entry) => Number(String(entry).replace(/[^0-9]/g, "")))
+            .filter((entry) => Number.isFinite(entry));
+          if (allowedValues.length > 0 && !allowedValues.includes(luckMax)) {
+            reasons.push(`Luck (max) ${allowedValues.join(" or ")} required`);
+          }
+          continue;
+        }
+
+        const rangeMatch = expr.match(/(\d+)\s*-\s*(\d+)/);
+        if (rangeMatch) {
+          const min = Number(rangeMatch[1]);
+          const max = Number(rangeMatch[2]);
+          if (luckMax < min || luckMax > max) {
+            reasons.push(`Luck (max) ${min}-${max} required`);
+          }
+          continue;
+        }
+
+        const minimumMatch = expr.match(/(\d+)\s*\+/);
+        if (minimumMatch) {
+          const requiredMin = Number(minimumMatch[1]);
+          if (Number.isFinite(requiredMin) && luckMax < requiredMin) {
+            reasons.push(`Luck (max) ${requiredMin}+ required`);
+          }
+          continue;
+        }
+
+        const exactMatch = expr.match(/^(\d+)$/);
+        if (exactMatch) {
+          const requiredExact = Number(exactMatch[1]);
+          if (Number.isFinite(requiredExact) && luckMax !== requiredExact) {
+            reasons.push(`Luck (max) ${requiredExact} required`);
+          }
         }
       }
 
       // Skill training requirements, e.g. "Pilot (Air): +10 Skill".
-      for (const match of prereqText.matchAll(/([A-Za-z][A-Za-z0-9()\-/ ]*?)\s*:\s*\+\s*(10|20)\s*Skill\b/gi)) {
+      for (const match of prereqText.matchAll(/([A-Za-z][A-Za-z0-9()\-/ ]*?)\s*:?\s*\+\s*(10|20)\s*Skill\b/gi)) {
         const skillName = String(match[1] ?? "").trim();
         const requiredBonus = Number(match[2] ?? 0);
         const actualBonus = this._getAbilitySkillBonusByName(skills, skillName);
@@ -6512,11 +8095,35 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       // Ability dependencies, e.g. "Cynical Ability", "Disarm, Agility: 40".
-      for (const abilityName of this._parseRequiredAbilityNames(prereqText)) {
-        const normalizedName = this._normalizeNameForMatch(abilityName);
-        if (!normalizedName) continue;
-        if (!ownedAbilities.has(normalizedName)) {
-          reasons.push(`Requires ability: ${abilityName}`);
+      for (const abilityRequirement of this._parseRequiredAbilityNames(prereqText)) {
+        const options = String(abilityRequirement ?? "")
+          .split(/\s+or\s+/i)
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+        if (!options.length) continue;
+
+        const hasAny = options.some((optionName) => {
+          const normalizedName = this._normalizeNameForMatch(optionName);
+          return normalizedName && ownedAbilities.has(normalizedName);
+        });
+        if (!hasAny) {
+          reasons.push(`Requires ability: ${options.join(" or ")}`);
+        }
+      }
+
+      for (const traitRequirement of this._parseRequiredTraitNames(prereqText)) {
+        const options = String(traitRequirement ?? "")
+          .split(/\s+or\s+/i)
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+        if (!options.length) continue;
+
+        const hasAny = options.some((optionName) => {
+          const normalizedName = this._normalizeNameForMatch(optionName);
+          return normalizedName && ownedTraits.has(normalizedName);
+        });
+        if (!hasAny) {
+          reasons.push(`Requires trait: ${options.join(" or ")}`);
         }
       }
     }
@@ -6633,6 +8240,50 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const syncedGender = String(submittedHeaderGender ?? submittedBioGender ?? actorHeaderGender ?? actorBioGender ?? "");
     foundry.utils.setProperty(submitData, "system.header.gender", syncedGender);
     foundry.utils.setProperty(submitData, "system.biography.physical.gender", syncedGender);
+
+    const submittedHeightCm = Number(foundry.utils.getProperty(submitData, "system.biography.physical.heightCm"));
+    const submittedHeightImperial = String(foundry.utils.getProperty(submitData, "system.biography.physical.heightImperial") ?? "").trim();
+    const actorHeightCm = Number(this.actor.system?.biography?.physical?.heightCm ?? 0);
+    let resolvedHeightCm = Number.isFinite(submittedHeightCm) ? Math.max(0, Math.round(submittedHeightCm)) : NaN;
+    if (!Number.isFinite(resolvedHeightCm) || resolvedHeightCm <= 0) {
+      const parsed = parseImperialHeightInput(submittedHeightImperial);
+      if (parsed) resolvedHeightCm = feetInchesToCentimeters(parsed.feet, parsed.inches);
+    }
+    if (!Number.isFinite(resolvedHeightCm)) {
+      resolvedHeightCm = Number.isFinite(actorHeightCm) ? Math.max(0, Math.round(actorHeightCm)) : 0;
+    }
+    const resolvedHeightImperial = resolvedHeightCm > 0 ? formatFeetInches(resolvedHeightCm) : "";
+    foundry.utils.setProperty(submitData, "system.biography.physical.heightCm", resolvedHeightCm);
+    foundry.utils.setProperty(submitData, "system.biography.physical.heightImperial", resolvedHeightImperial);
+    foundry.utils.setProperty(
+      submitData,
+      "system.biography.physical.height",
+      resolvedHeightCm > 0 ? `${resolvedHeightCm} cm (${resolvedHeightImperial})` : ""
+    );
+    if (resolvedHeightCm > 0) {
+      foundry.utils.setProperty(submitData, "system.header.buildSize", getSizeCategoryFromHeightCm(resolvedHeightCm));
+    }
+
+    const submittedWeightKg = Number(foundry.utils.getProperty(submitData, "system.biography.physical.weightKg"));
+    const submittedWeightLbs = Number(foundry.utils.getProperty(submitData, "system.biography.physical.weightLbs"));
+    const actorWeightKg = Number(this.actor.system?.biography?.physical?.weightKg ?? 0);
+    let resolvedWeightKg = Number.isFinite(submittedWeightKg) ? Math.max(0, Math.round(submittedWeightKg * 10) / 10) : NaN;
+    if (!Number.isFinite(resolvedWeightKg) || resolvedWeightKg <= 0) {
+      if (Number.isFinite(submittedWeightLbs) && submittedWeightLbs > 0) {
+        resolvedWeightKg = poundsToKilograms(submittedWeightLbs);
+      }
+    }
+    if (!Number.isFinite(resolvedWeightKg)) {
+      resolvedWeightKg = Number.isFinite(actorWeightKg) ? Math.max(0, Math.round(actorWeightKg * 10) / 10) : 0;
+    }
+    const resolvedWeightLbs = resolvedWeightKg > 0 ? kilogramsToPounds(resolvedWeightKg) : 0;
+    foundry.utils.setProperty(submitData, "system.biography.physical.weightKg", resolvedWeightKg);
+    foundry.utils.setProperty(submitData, "system.biography.physical.weightLbs", resolvedWeightLbs);
+    foundry.utils.setProperty(
+      submitData,
+      "system.biography.physical.weight",
+      resolvedWeightKg > 0 ? `${resolvedWeightKg} kg (${resolvedWeightLbs} lb)` : ""
+    );
 
     const trainingVehicleText = foundry.utils.getProperty(submitData, "mythic.trainingVehicleText");
     if (trainingVehicleText !== undefined) {
@@ -6752,6 +8403,48 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (peerInput instanceof HTMLInputElement) {
           peerInput.value = input.value;
         }
+      }
+
+      const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+      const setInputValue = (selector, value) => {
+        const element = root?.querySelector(selector);
+        if (element instanceof HTMLInputElement) {
+          element.value = String(value ?? "");
+        }
+      };
+
+      if (input.name === "system.biography.physical.heightCm") {
+        const heightCm = Number(input.value);
+        const resolvedCm = Number.isFinite(heightCm) ? Math.max(0, Math.round(heightCm)) : 0;
+        input.value = String(resolvedCm);
+        setInputValue("input[name='system.biography.physical.heightImperial']", resolvedCm > 0 ? formatFeetInches(resolvedCm) : "");
+        if (resolvedCm > 0) {
+          setInputValue("input[name='system.header.buildSize']", getSizeCategoryFromHeightCm(resolvedCm));
+        }
+      }
+
+      if (input.name === "system.biography.physical.heightImperial") {
+        const parsed = parseImperialHeightInput(input.value);
+        if (parsed) {
+          const heightCm = feetInchesToCentimeters(parsed.feet, parsed.inches);
+          input.value = formatFeetInches(heightCm);
+          setInputValue("input[name='system.biography.physical.heightCm']", heightCm);
+          setInputValue("input[name='system.header.buildSize']", getSizeCategoryFromHeightCm(heightCm));
+        }
+      }
+
+      if (input.name === "system.biography.physical.weightKg") {
+        const weightKg = Number(input.value);
+        const resolvedKg = Number.isFinite(weightKg) ? Math.max(0, Math.round(weightKg * 10) / 10) : 0;
+        input.value = String(resolvedKg);
+        setInputValue("input[name='system.biography.physical.weightLbs']", kilogramsToPounds(resolvedKg));
+      }
+
+      if (input.name === "system.biography.physical.weightLbs") {
+        const weightLbs = Number(input.value);
+        const resolvedLbs = Number.isFinite(weightLbs) ? Math.max(0, Math.round(weightLbs * 10) / 10) : 0;
+        input.value = String(resolvedLbs);
+        setInputValue("input[name='system.biography.physical.weightKg']", poundsToKilograms(resolvedLbs));
       }
     }
 
@@ -6955,6 +8648,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".bio-randomize-build").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRandomizeBiographyBuild(event);
+      });
+    });
+
     root.querySelectorAll(".roll-characteristic").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onRollCharacteristic(event);
@@ -7027,6 +8726,18 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".ability-post-btn[data-item-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onPostAbilityToChat(event);
+      });
+    });
+
+    root.querySelectorAll(".ability-activate-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onActivateAbility(event);
+      });
+    });
+
+    root.querySelectorAll(".ability-cooldown-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAbilityCooldownTick(event);
       });
     });
 
@@ -7158,6 +8869,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".gamma-smoother-apply-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onGammaSmootherApply(event);
+      });
+    });
+
     // Characteristics Builder: enable / disable / finalize
     root.querySelector(".charbuilder-enable-btn")?.addEventListener("click", (event) => {
       void this._onCharBuilderEnable(event);
@@ -7275,6 +8992,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".outlier-add-btn").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onAddOutlierPurchase(event);
+      });
+    });
+
+    root.querySelectorAll(".outlier-remove-btn[data-outlier-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRemoveOutlierPurchase(event);
       });
     });
 
@@ -7448,6 +9171,26 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       const resolvedId = await this._resolveCreationPathItemId("upbringing", dropped);
       if (!resolvedId) return;
+      const requiredUpbringingFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing") ?? {};
+      const allowedUpbringingsFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings") ?? {};
+      const requiredUpbringingEnabled = Boolean(requiredUpbringingFlag?.enabled);
+      const requiredUpbringingName = normalizeLookupText(requiredUpbringingFlag?.upbringing ?? "");
+      const allowedUpbringingNames = Boolean(allowedUpbringingsFlag?.enabled)
+        ? normalizeStringList(Array.isArray(allowedUpbringingsFlag?.upbringings) ? allowedUpbringingsFlag.upbringings : []).map((entry) => normalizeLookupText(entry)).filter(Boolean)
+        : [];
+      const droppedUpbringingName = normalizeLookupText(dropped?.name ?? "");
+      const isAllowedByList = allowedUpbringingNames.length > 0 ? allowedUpbringingNames.includes(droppedUpbringingName) : true;
+      const isAllowedByRequired = (requiredUpbringingEnabled && requiredUpbringingName)
+        ? droppedUpbringingName === requiredUpbringingName
+        : true;
+      if (!isAllowedByList || !isAllowedByRequired) {
+        await this._assignCreationUpbringing("");
+        const allowedLabel = allowedUpbringingNames.length > 0
+          ? normalizeStringList(Array.isArray(allowedUpbringingsFlag?.upbringings) ? allowedUpbringingsFlag.upbringings : []).join(" / ")
+          : String(requiredUpbringingFlag?.upbringing ?? "Military").trim();
+        ui.notifications?.warn(`This soldier type is restricted to ${allowedLabel} Upbringing only.`);
+        return;
+      }
       await this._assignCreationUpbringing(resolvedId);
       return;
     }
@@ -7647,7 +9390,33 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _assignCreationUpbringing(upbringingId) {
     const systemData = normalizeCharacterSystemData(this.actor.system);
     const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
-    creationPath.upbringingItemId = String(upbringingId ?? "").trim();
+    const requiredUpbringingFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing") ?? {};
+    const allowedUpbringingsFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings") ?? {};
+    const requiredUpbringingEnabled = Boolean(requiredUpbringingFlag?.enabled);
+    const requiredUpbringingName = normalizeLookupText(requiredUpbringingFlag?.upbringing ?? "");
+    const allowedUpbringingNames = Boolean(allowedUpbringingsFlag?.enabled)
+      ? normalizeStringList(Array.isArray(allowedUpbringingsFlag?.upbringings) ? allowedUpbringingsFlag.upbringings : []).map((entry) => normalizeLookupText(entry)).filter(Boolean)
+      : [];
+    const requestedUpbringingId = String(upbringingId ?? "").trim();
+
+    let selectedUpbringingFromRequest = null;
+    if (requestedUpbringingId) {
+      const requestedDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
+      selectedUpbringingFromRequest = requestedDocs.find((doc) => doc.id === requestedUpbringingId) ?? null;
+      const requestedName = normalizeLookupText(selectedUpbringingFromRequest?.name ?? "");
+      const isAllowedByList = allowedUpbringingNames.length > 0 ? allowedUpbringingNames.includes(requestedName) : true;
+      const isAllowedByRequired = (requiredUpbringingEnabled && requiredUpbringingName)
+        ? requestedName === requiredUpbringingName
+        : true;
+      if (!isAllowedByList || !isAllowedByRequired) {
+        creationPath.upbringingItemId = "";
+        creationPath.upbringingSelections = {};
+        await this.actor.update({ "system.advancements.creationPath": creationPath });
+        return;
+      }
+    }
+
+    creationPath.upbringingItemId = requestedUpbringingId;
     creationPath.upbringingSelections = {};
 
     const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
@@ -8252,11 +10021,239 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const skillSelections = await this._promptSoldierTypeSkillChoices(itemData.name, templateSystem);
       if (skillSelections === null) return false;
 
+      const educationSelections = await this._promptSoldierTypeEducationChoices(itemData.name, templateSystem);
+      if (educationSelections === null) return false;
+
+      const factionChoice = await this._promptSoldierTypeFactionChoice(itemData.name, templateSystem);
+      if (factionChoice === null) return false;
+
+      const resolvedTemplate = foundry.utils.deepClone(templateSystem ?? {});
+      if (String(factionChoice?.faction ?? "").trim()) {
+        resolvedTemplate.header = resolvedTemplate.header && typeof resolvedTemplate.header === "object"
+          ? resolvedTemplate.header
+          : {};
+        resolvedTemplate.header.faction = String(factionChoice.faction).trim();
+      }
+      const templateTraits = Array.isArray(resolvedTemplate.traits) ? resolvedTemplate.traits : [];
+      const grantedTraits = Array.isArray(factionChoice?.grantedTraits) ? factionChoice.grantedTraits : [];
+      resolvedTemplate.traits = normalizeStringList([...templateTraits, ...grantedTraits]);
+
+      const preRuleFlagsSource = (resolvedTemplate?.ruleFlags && typeof resolvedTemplate.ruleFlags === "object")
+        ? resolvedTemplate.ruleFlags
+        : {};
+      const oniSectionOnePreSource = (preRuleFlagsSource?.oniSectionOne && typeof preRuleFlagsSource.oniSectionOne === "object")
+        ? preRuleFlagsSource.oniSectionOne
+        : {};
+      if (oniSectionOnePreSource?.requiresGmApproval) {
+        const approvalText = String(
+          oniSectionOnePreSource?.gmApprovalText
+          ?? "This Soldier Type should only be taken with GM Approval. The GM is advised to treat it with caution, as revealing a Spy in the players ranks can lead to distrust and Dissension within the ranks."
+        ).trim();
+        const approved = await this._promptSoldierTypeGmApprovalNotice(itemData.name, approvalText);
+        if (!approved) return false;
+      }
+
       const mode = "overwrite";
-      const result = await this._applySoldierTypeTemplate(itemData.name, templateSystem, mode, skillSelections, null);
+      const result = await this._applySoldierTypeTemplate(itemData.name, resolvedTemplate, mode, skillSelections, null, educationSelections);
+
+      const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim() || buildCanonicalItemId("soldierType", itemData.name ?? "");
+      const selectedChoiceKey = String(factionChoice?.key ?? "").trim();
+      const isInsurrectionist = Boolean(factionChoice?.insurrectionist);
+      const templateRuleFlagsSource = (resolvedTemplate?.ruleFlags && typeof resolvedTemplate.ruleFlags === "object")
+        ? resolvedTemplate.ruleFlags
+        : {};
+      const branchTransitionSource = (templateRuleFlagsSource?.branchTransition && typeof templateRuleFlagsSource.branchTransition === "object")
+        ? templateRuleFlagsSource.branchTransition
+        : {};
+      const orionAugmentationSource = (templateRuleFlagsSource?.orionAugmentation && typeof templateRuleFlagsSource.orionAugmentation === "object")
+        ? templateRuleFlagsSource.orionAugmentation
+        : {};
+      const oniSectionOneSource = (templateRuleFlagsSource?.oniSectionOne && typeof templateRuleFlagsSource.oniSectionOne === "object")
+        ? templateRuleFlagsSource.oniSectionOne
+        : {};
+      const oniRankSource = (oniSectionOneSource?.rankScaffold && typeof oniSectionOneSource.rankScaffold === "object")
+        ? oniSectionOneSource.rankScaffold
+        : {};
+      const oniSupportSource = (oniSectionOneSource?.supportScaffold && typeof oniSectionOneSource.supportScaffold === "object")
+        ? oniSectionOneSource.supportScaffold
+        : {};
+      const oniCostSource = (oniSectionOneSource?.unscSupportCostScaffold && typeof oniSectionOneSource.unscSupportCostScaffold === "object")
+        ? oniSectionOneSource.unscSupportCostScaffold
+        : {};
+      const reqUpbrSource = (templateRuleFlagsSource?.requiredUpbringing && typeof templateRuleFlagsSource.requiredUpbringing === "object")
+        ? templateRuleFlagsSource.requiredUpbringing
+        : {};
+      const mjolnirSource = (templateRuleFlagsSource?.mjolnirArmorSelection && typeof templateRuleFlagsSource.mjolnirArmorSelection === "object")
+        ? templateRuleFlagsSource.mjolnirArmorSelection
+        : {};
+      const allowedUpbringingsSource = (templateRuleFlagsSource?.allowedUpbringings && typeof templateRuleFlagsSource.allowedUpbringings === "object")
+        ? templateRuleFlagsSource.allowedUpbringings
+        : {};
+      const gammaCompanySource = (templateRuleFlagsSource?.gammaCompanyOption && typeof templateRuleFlagsSource.gammaCompanyOption === "object")
+        ? templateRuleFlagsSource.gammaCompanyOption
+        : {};
+      const ordinanceReadySource = (templateRuleFlagsSource?.ordinanceReady && typeof templateRuleFlagsSource.ordinanceReady === "object")
+        ? templateRuleFlagsSource.ordinanceReady
+        : {};
+      const smartAiSource = (templateRuleFlagsSource?.smartAi && typeof templateRuleFlagsSource.smartAi === "object")
+        ? templateRuleFlagsSource.smartAi
+        : {};
+      const carryMultipliersSource = (templateRuleFlagsSource?.carryMultipliers && typeof templateRuleFlagsSource.carryMultipliers === "object")
+        ? templateRuleFlagsSource.carryMultipliers
+        : {};
+      const legacyCarryMultiplierRaw = Number(templateRuleFlagsSource?.carryMultiplier ?? 1);
+      const legacyCarryMultiplier = Number.isFinite(legacyCarryMultiplierRaw) ? Math.max(0, legacyCarryMultiplierRaw) : 1;
+      const carryStrRaw = Number(carryMultipliersSource?.str ?? legacyCarryMultiplier);
+      const carryTouRaw = Number(carryMultipliersSource?.tou ?? legacyCarryMultiplier);
+      const spartanCarryWeightSrc = (templateRuleFlagsSource?.spartanCarryWeight && typeof templateRuleFlagsSource.spartanCarryWeight === "object")
+        ? templateRuleFlagsSource.spartanCarryWeight
+        : {};
+      const templateRuleFlags = {
+        airForceVehicleBenefit: Boolean(templateRuleFlagsSource?.airForceVehicleBenefit),
+        carryMultipliers: {
+          str: Number.isFinite(carryStrRaw) ? Math.max(0, carryStrRaw) : 1,
+          tou: Number.isFinite(carryTouRaw) ? Math.max(0, carryTouRaw) : 1
+        },
+        branchTransition: {
+          enabled: Boolean(branchTransitionSource?.enabled),
+          advancementOnly: Boolean(branchTransitionSource?.advancementOnly),
+          appliesInCharacterCreation: branchTransitionSource?.appliesInCharacterCreation === false ? false : true,
+          transitionGroup: String(branchTransitionSource?.transitionGroup ?? "").trim(),
+          fromSoldierTypes: normalizeStringList(Array.isArray(branchTransitionSource?.fromSoldierTypes) ? branchTransitionSource.fromSoldierTypes : []),
+          notes: String(branchTransitionSource?.notes ?? "").trim()
+        },
+        orionAugmentation: {
+          enabled: Boolean(orionAugmentationSource?.enabled),
+          advancementOnly: Boolean(orionAugmentationSource?.advancementOnly),
+          appliesInCharacterCreation: orionAugmentationSource?.appliesInCharacterCreation === false ? false : true,
+          transitionGroup: String(orionAugmentationSource?.transitionGroup ?? "").trim(),
+          fromSoldierTypes: normalizeStringList(Array.isArray(orionAugmentationSource?.fromSoldierTypes) ? orionAugmentationSource.fromSoldierTypes : []),
+          notes: String(orionAugmentationSource?.notes ?? "").trim()
+        },
+        oniSectionOne: {
+          requiresGmApproval: Boolean(oniSectionOneSource?.requiresGmApproval),
+          gmApprovalText: String(oniSectionOneSource?.gmApprovalText ?? "").trim(),
+          rankScaffold: {
+            enabled: Boolean(oniRankSource?.enabled),
+            startRank: String(oniRankSource?.startRank ?? "").trim(),
+            commandSpecializationAllowed: Boolean(oniRankSource?.commandSpecializationAllowed),
+            notes: String(oniRankSource?.notes ?? "").trim()
+          },
+          supportScaffold: {
+            enabled: Boolean(oniSupportSource?.enabled),
+            bonusPerAward: toNonNegativeWhole(oniSupportSource?.bonusPerAward, 0),
+            grantAtCharacterCreation: Boolean(oniSupportSource?.grantAtCharacterCreation),
+            regenerates: oniSupportSource?.regenerates === false ? false : true,
+            notes: String(oniSupportSource?.notes ?? "").trim()
+          },
+          unscSupportCostScaffold: {
+            enabled: Boolean(oniCostSource?.enabled),
+            infantryMultiplier: Math.max(0, Number(oniCostSource?.infantryMultiplier ?? 1) || 1),
+            ordnanceMultiplier: Math.max(0, Number(oniCostSource?.ordnanceMultiplier ?? 1) || 1),
+            notes: String(oniCostSource?.notes ?? "").trim()
+          }
+        },
+        smartAi: {
+          enabled: Boolean(smartAiSource?.enabled),
+          coreIdentityLabel: String(smartAiSource?.coreIdentityLabel ?? "Cognitive Pattern").trim() || "Cognitive Pattern",
+          notes: String(smartAiSource?.notes ?? "").trim()
+        },
+        requiredUpbringing: {
+          enabled: Boolean(reqUpbrSource?.enabled),
+          upbringing: String(reqUpbrSource?.upbringing ?? "").trim(),
+          removeOtherUpbringings: Boolean(reqUpbrSource?.removeOtherUpbringings),
+          notes: String(reqUpbrSource?.notes ?? "").trim()
+        },
+        allowedUpbringings: {
+          enabled: Boolean(allowedUpbringingsSource?.enabled),
+          upbringings: normalizeStringList(Array.isArray(allowedUpbringingsSource?.upbringings) ? allowedUpbringingsSource.upbringings : []),
+          removeOtherUpbringings: Boolean(allowedUpbringingsSource?.removeOtherUpbringings),
+          notes: String(allowedUpbringingsSource?.notes ?? "").trim()
+        },
+        mjolnirArmorSelection: {
+          enabled: Boolean(mjolnirSource?.enabled)
+        },
+        spartanCarryWeight: {
+          enabled: Boolean(spartanCarryWeightSrc?.enabled)
+        },
+        gammaCompanyOption: {
+          enabled: Boolean(gammaCompanySource?.enabled),
+          defaultSelected: Boolean(gammaCompanySource?.defaultSelected),
+          prompt: String(gammaCompanySource?.prompt ?? "").trim(),
+          grantAbility: String(gammaCompanySource?.grantAbility ?? "Adrenaline Rush").trim() || "Adrenaline Rush"
+        },
+        ordinanceReady: {
+          enabled: Boolean(ordinanceReadySource?.enabled),
+          supportPointCost: toNonNegativeWhole(ordinanceReadySource?.supportPointCost, 1),
+          maxUsesPerEncounter: toNonNegativeWhole(ordinanceReadySource?.maxUsesPerEncounter, 1),
+          notes: String(ordinanceReadySource?.notes ?? "").trim()
+        }
+      };
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "insurrectionist", isInsurrectionist);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeRuleFlags", templateRuleFlags);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "airForceVehicleBenefit", templateRuleFlags.airForceVehicleBenefit);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeBranchTransition", templateRuleFlags.branchTransition);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeOrionAugmentation", templateRuleFlags.orionAugmentation);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "oniSectionOneScaffold", templateRuleFlags.oniSectionOne);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "ordinanceReadyScaffold", templateRuleFlags.ordinanceReady);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing", templateRuleFlags.requiredUpbringing);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings", templateRuleFlags.allowedUpbringings);
+      await this.actor.update({
+        "system.mythic.soldierTypeStrCarryMultiplier": Number(templateRuleFlags.carryMultipliers?.str ?? 1),
+        "system.mythic.soldierTypeTouCarryMultiplier": Number(templateRuleFlags.carryMultipliers?.tou ?? 1)
+      });
+      await this.actor.update({ "system.mythic.spartanCarryWeight.enabled": Boolean(templateRuleFlags.spartanCarryWeight?.enabled) });
+      // Handle upbringing restrictions: remove any non-matching upbringing items and lock future drops
+      const allowedUpbringingNames = templateRuleFlags.allowedUpbringings.enabled
+        ? normalizeStringList(templateRuleFlags.allowedUpbringings.upbringings).map((entry) => normalizeLookupText(entry)).filter(Boolean)
+        : [];
+      const requiredUpbringingName = normalizeLookupText(templateRuleFlags.requiredUpbringing?.upbringing ?? "");
+      const enforcedNames = allowedUpbringingNames.length > 0
+        ? allowedUpbringingNames
+        : (templateRuleFlags.requiredUpbringing.enabled && requiredUpbringingName ? [requiredUpbringingName] : []);
+      const shouldRemoveOtherUpbringings = (templateRuleFlags.allowedUpbringings.enabled && templateRuleFlags.allowedUpbringings.removeOtherUpbringings)
+        || (templateRuleFlags.requiredUpbringing.enabled && templateRuleFlags.requiredUpbringing.removeOtherUpbringings);
+      if (shouldRemoveOtherUpbringings && enforcedNames.length > 0) {
+        const allowedSet = new Set(enforcedNames);
+        const upbringingsToRemove = this.actor.items
+          .filter((i) => i.type === "upbringing" && !allowedSet.has(normalizeLookupText(i.name ?? "")))
+          .map((i) => i.id);
+        if (upbringingsToRemove.length) {
+          await this.actor.deleteEmbeddedDocuments("Item", upbringingsToRemove);
+        }
+      }
+      // Handle Mjolnir armor selection dialog
+      if (templateRuleFlags.mjolnirArmorSelection.enabled) {
+        await this._promptAndApplyMjolnirArmor();
+      }
+      // Optional Spartan III Gamma Company track
+      if (templateRuleFlags.gammaCompanyOption.enabled) {
+        const gammaEnabled = await this._promptGammaCompanySelection(templateRuleFlags.gammaCompanyOption);
+        await this._applyGammaCompanySelection(gammaEnabled, templateRuleFlags.gammaCompanyOption);
+      } else {
+        await this._applyGammaCompanySelection(false, templateRuleFlags.gammaCompanyOption);
+      }
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeFactionChoice", {
+        soldierTypeCanonicalId: canonicalId,
+        choiceKey: selectedChoiceKey,
+        faction: String(factionChoice?.faction ?? "").trim(),
+        insurrectionist: isInsurrectionist
+      });
+      const trainingLocks = extractStructuredTrainingLocks(
+        Array.isArray(resolvedTemplate?.training) ? resolvedTemplate.training : [],
+        String(resolvedTemplate?.header?.faction ?? "").trim()
+      );
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks", {
+        soldierTypeCanonicalId: canonicalId,
+        soldierTypeName: String(itemData?.name ?? "").trim(),
+        weaponKeys: trainingLocks.weaponKeys,
+        factionKeys: trainingLocks.factionKeys
+      });
+
       const packNote = result.packApplied ? `, equipment pack "${result.packApplied}"` : "";
+      const factionNote = String(factionChoice?.label ?? "").trim() ? `, faction "${String(factionChoice.label).trim()}"` : "";
       ui.notifications.info(
-        `Applied Soldier Type ${itemData.name} (overwrite). Updated ${result.fieldsUpdated} fields, added ${result.educationsAdded} educations, ${result.abilitiesAdded} abilities, ${result.trainingApplied} training grants, ${result.skillChoicesApplied} skill-choice updates${packNote}.`
+        `Applied Soldier Type ${itemData.name} (overwrite). Updated ${result.fieldsUpdated} fields, added ${result.educationsAdded} educations, ${result.abilitiesAdded} abilities, ${result.trainingApplied} training grants, ${result.skillChoicesApplied} skill-choice updates${packNote}${factionNote}.`
       );
       if (result.skippedAbilities.length) {
         console.warn("[mythic-system] Soldier Type abilities skipped:", result.skippedAbilities);
@@ -8267,20 +10264,10 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (item.type === "education") {
       const itemData = item.toObject();
 
-      // Faction education: "Faction X" → prompt for faction → "UNSC X"
-      if (itemData.name.startsWith("Faction ")) {
-        const suffix = itemData.name.slice("Faction ".length);
-        const factionName = await this._promptFactionName();
-        if (!factionName) return false; // user cancelled
-        itemData.name = `${factionName} ${suffix}`;
-      }
-
-      // Musical Training: prompt for instrument name
-      if (itemData.name.startsWith("Musical Training")) {
-        const instrument = await this._promptInstrumentName();
-        if (!instrument) return false; // user cancelled
-        itemData.name = `Musical Training (${instrument})`;
-      }
+      const educationMetadata = await this._promptEducationVariantMetadata(itemData.name);
+      if (educationMetadata === null) return false;
+      const resolvedEducationName = this._resolveEducationVariantName(itemData.name, educationMetadata);
+      if (resolvedEducationName) itemData.name = resolvedEducationName;
 
       // Duplicate check against the final resolved name
       const existing = this.actor.items.find(i => i.type === "education" && i.name === itemData.name);
@@ -8343,10 +10330,153 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return this.actor.createEmbeddedDocuments("Item", [itemData]);
     }
 
+    // Block upbringing drops that don't match the soldier type's required upbringing
+    if (item.type === "upbringing") {
+      const reqUpbr = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing");
+      if (reqUpbr?.enabled && reqUpbr?.upbringing) {
+        const requiredLower = String(reqUpbr.upbringing).trim().toLowerCase();
+        const droppingLower = String(item.name ?? "").trim().toLowerCase();
+        if (droppingLower !== requiredLower) {
+          ui.notifications.warn(`This Spartan requires the "${String(reqUpbr.upbringing).trim()}" Upbringing. Other upbringings cannot be applied.`);
+          return false;
+        }
+      }
+    }
+
     if (typeof super._onDropItem === "function") {
       return super._onDropItem(event, data);
     }
     return false;
+  }
+
+  _normalizeSoldierTypeFactionChoiceConfig(templateSystem) {
+    const source = templateSystem?.factionChoice;
+    if (!source || typeof source !== "object") return null;
+    if (source.enabled === false) return null;
+
+    const rawChoices = Array.isArray(source.choices) ? source.choices : [];
+    const choices = rawChoices
+      .map((entry, index) => {
+        const key = String(entry?.key ?? `choice-${index + 1}`).trim().toLowerCase();
+        const label = String(entry?.label ?? key).trim();
+        const faction = String(entry?.faction ?? "").trim();
+        if (!key || !label || !faction) return null;
+        return {
+          key,
+          label,
+          faction,
+          insurrectionist: Boolean(entry?.insurrectionist),
+          grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : [])
+        };
+      })
+      .filter(Boolean);
+
+    if (!choices.length) return null;
+
+    const requestedDefault = String(source.defaultKey ?? "").trim().toLowerCase();
+    const fallbackDefault = choices.some((entry) => entry.key === "unsc") ? "unsc" : choices[0].key;
+    const defaultKey = choices.some((entry) => entry.key === requestedDefault) ? requestedDefault : fallbackDefault;
+
+    return {
+      prompt: String(source.prompt ?? "Choose faction for this Soldier Type.").trim() || "Choose faction for this Soldier Type.",
+      defaultKey,
+      choices
+    };
+  }
+
+  _promptSoldierTypeFactionChoice(templateName, templateSystem) {
+    const config = this._normalizeSoldierTypeFactionChoiceConfig(templateSystem);
+    if (!config) {
+      const fallbackFaction = String(templateSystem?.header?.faction ?? "").trim();
+      return Promise.resolve({
+        key: "default",
+        label: fallbackFaction || "Default",
+        faction: fallbackFaction,
+        insurrectionist: false,
+        grantedTraits: []
+      });
+    }
+
+    const optionsHtml = config.choices
+      .map((entry) => {
+        const selected = entry.key === config.defaultKey ? " selected" : "";
+        return `<option value="${foundry.utils.escapeHTML(entry.key)}"${selected}>${foundry.utils.escapeHTML(entry.label)}</option>`;
+      })
+      .join("");
+
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "Soldier Type Faction"
+      },
+      content: `
+        <form>
+          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong></p>
+          <p>${foundry.utils.escapeHTML(config.prompt)}</p>
+          <div class="form-group">
+            <label>Faction</label>
+            <select id="mythic-soldier-type-faction-choice">${optionsHtml}</select>
+          </div>
+        </form>
+      `,
+      buttons: [
+        {
+          action: "confirm",
+          label: "Confirm",
+          callback: () => {
+            const selectedKey = String(document.getElementById("mythic-soldier-type-faction-choice")?.value ?? "").trim().toLowerCase();
+            const selected = config.choices.find((entry) => entry.key === selectedKey)
+              ?? config.choices.find((entry) => entry.key === config.defaultKey)
+              ?? config.choices[0];
+            return selected
+              ? {
+                key: selected.key,
+                label: selected.label,
+                faction: selected.faction,
+                insurrectionist: Boolean(selected.insurrectionist),
+                grantedTraits: Array.isArray(selected.grantedTraits) ? selected.grantedTraits : []
+              }
+              : null;
+          }
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  }
+
+  _promptSoldierTypeGmApprovalNotice(templateName, approvalText) {
+    const message = String(approvalText ?? "").trim() || "This Soldier Type should only be taken with GM Approval.";
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "GM Approval Required"
+      },
+      content: `
+        <div class="mythic-modal-body">
+          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong></p>
+          <p>${foundry.utils.escapeHTML(message)}</p>
+          <p>Continue applying this Soldier Type?</p>
+        </div>
+      `,
+      buttons: [
+        {
+          action: "continue",
+          label: "Continue",
+          callback: () => true
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => false
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
   }
 
   _buildSoldierTypePreview(templateSystem) {
@@ -8394,6 +10524,170 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (!Array.isArray(next.skillChoices) || !next.skillChoices.length) {
         next.skillChoices = Array.isArray(ref.skillChoices) ? foundry.utils.deepClone(ref.skillChoices) : [];
       }
+      // Always merge reference traits so stale compendium entries get new traits automatically.
+      if (!Array.isArray(next.educationChoices) || !next.educationChoices.length) {
+        next.educationChoices = Array.isArray(ref.educationChoices) ? foundry.utils.deepClone(ref.educationChoices) : [];
+      }
+      // Always merge reference traits so stale compendium entries get new traits automatically.
+      const nextTraits = Array.isArray(next.traits) ? next.traits : [];
+      const refTraits = Array.isArray(ref.traits) ? ref.traits : [];
+      next.traits = normalizeStringList([...nextTraits, ...refTraits]);
+      // Preserve reference rule flags for forward-compatible soldier-type behaviors.
+      const nextRuleFlags = (next?.ruleFlags && typeof next.ruleFlags === "object") ? next.ruleFlags : {};
+      const refRuleFlags = (ref?.ruleFlags && typeof ref.ruleFlags === "object") ? ref.ruleFlags : {};
+      const nextBranchTransition = (nextRuleFlags?.branchTransition && typeof nextRuleFlags.branchTransition === "object")
+        ? nextRuleFlags.branchTransition
+        : {};
+      const refBranchTransition = (refRuleFlags?.branchTransition && typeof refRuleFlags.branchTransition === "object")
+        ? refRuleFlags.branchTransition
+        : {};
+      const nextOniSectionOne = (nextRuleFlags?.oniSectionOne && typeof nextRuleFlags.oniSectionOne === "object")
+        ? nextRuleFlags.oniSectionOne
+        : {};
+      const refOniSectionOne = (refRuleFlags?.oniSectionOne && typeof refRuleFlags.oniSectionOne === "object")
+        ? refRuleFlags.oniSectionOne
+        : {};
+      const nextOniRank = (nextOniSectionOne?.rankScaffold && typeof nextOniSectionOne.rankScaffold === "object")
+        ? nextOniSectionOne.rankScaffold
+        : {};
+      const refOniRank = (refOniSectionOne?.rankScaffold && typeof refOniSectionOne.rankScaffold === "object")
+        ? refOniSectionOne.rankScaffold
+        : {};
+      const nextOniSupport = (nextOniSectionOne?.supportScaffold && typeof nextOniSectionOne.supportScaffold === "object")
+        ? nextOniSectionOne.supportScaffold
+        : {};
+      const refOniSupport = (refOniSectionOne?.supportScaffold && typeof refOniSectionOne.supportScaffold === "object")
+        ? refOniSectionOne.supportScaffold
+        : {};
+      const nextOniCost = (nextOniSectionOne?.unscSupportCostScaffold && typeof nextOniSectionOne.unscSupportCostScaffold === "object")
+        ? nextOniSectionOne.unscSupportCostScaffold
+        : {};
+      const refOniCost = (refOniSectionOne?.unscSupportCostScaffold && typeof refOniSectionOne.unscSupportCostScaffold === "object")
+        ? refOniSectionOne.unscSupportCostScaffold
+        : {};
+      const nextCarryMultipliers = (nextRuleFlags?.carryMultipliers && typeof nextRuleFlags.carryMultipliers === "object")
+        ? nextRuleFlags.carryMultipliers
+        : {};
+      const refCarryMultipliers = (refRuleFlags?.carryMultipliers && typeof refRuleFlags.carryMultipliers === "object")
+        ? refRuleFlags.carryMultipliers
+        : {};
+      const nextAllowedUpbringings = (nextRuleFlags?.allowedUpbringings && typeof nextRuleFlags.allowedUpbringings === "object")
+        ? nextRuleFlags.allowedUpbringings
+        : {};
+      const refAllowedUpbringings = (refRuleFlags?.allowedUpbringings && typeof refRuleFlags.allowedUpbringings === "object")
+        ? refRuleFlags.allowedUpbringings
+        : {};
+      const nextGammaCompanyOption = (nextRuleFlags?.gammaCompanyOption && typeof nextRuleFlags.gammaCompanyOption === "object")
+        ? nextRuleFlags.gammaCompanyOption
+        : {};
+      const refGammaCompanyOption = (refRuleFlags?.gammaCompanyOption && typeof refRuleFlags.gammaCompanyOption === "object")
+        ? refRuleFlags.gammaCompanyOption
+        : {};
+      const nextOrdinanceReady = (nextRuleFlags?.ordinanceReady && typeof nextRuleFlags.ordinanceReady === "object")
+        ? nextRuleFlags.ordinanceReady
+        : {};
+      const refOrdinanceReady = (refRuleFlags?.ordinanceReady && typeof refRuleFlags.ordinanceReady === "object")
+        ? refRuleFlags.ordinanceReady
+        : {};
+      const nextSmartAi = (nextRuleFlags?.smartAi && typeof nextRuleFlags.smartAi === "object")
+        ? nextRuleFlags.smartAi
+        : {};
+      const refSmartAi = (refRuleFlags?.smartAi && typeof refRuleFlags.smartAi === "object")
+        ? refRuleFlags.smartAi
+        : {};
+      const nextLegacyCarryMultiplier = Number(nextRuleFlags?.carryMultiplier ?? 1);
+      const refLegacyCarryMultiplier = Number(refRuleFlags?.carryMultiplier ?? 1);
+      const mergedLegacyCarryMultiplier = Number.isFinite(nextLegacyCarryMultiplier)
+        ? Math.max(0, nextLegacyCarryMultiplier)
+        : (Number.isFinite(refLegacyCarryMultiplier) ? Math.max(0, refLegacyCarryMultiplier) : 1);
+      next.ruleFlags = {
+        ...nextRuleFlags,
+        airForceVehicleBenefit: Boolean(nextRuleFlags.airForceVehicleBenefit || refRuleFlags.airForceVehicleBenefit),
+        carryMultipliers: {
+          str: Math.max(
+            0,
+            Number(nextCarryMultipliers?.str ?? refCarryMultipliers?.str ?? mergedLegacyCarryMultiplier) || mergedLegacyCarryMultiplier
+          ),
+          tou: Math.max(
+            0,
+            Number(nextCarryMultipliers?.tou ?? refCarryMultipliers?.tou ?? mergedLegacyCarryMultiplier) || mergedLegacyCarryMultiplier
+          )
+        },
+        allowedUpbringings: {
+          enabled: Boolean(nextAllowedUpbringings?.enabled || refAllowedUpbringings?.enabled),
+          upbringings: normalizeStringList([
+            ...(Array.isArray(nextAllowedUpbringings?.upbringings) ? nextAllowedUpbringings.upbringings : []),
+            ...(Array.isArray(refAllowedUpbringings?.upbringings) ? refAllowedUpbringings.upbringings : [])
+          ]),
+          removeOtherUpbringings: Boolean(nextAllowedUpbringings?.removeOtherUpbringings || refAllowedUpbringings?.removeOtherUpbringings),
+          notes: String(nextAllowedUpbringings?.notes ?? refAllowedUpbringings?.notes ?? "").trim()
+        },
+        gammaCompanyOption: {
+          enabled: Boolean(nextGammaCompanyOption?.enabled || refGammaCompanyOption?.enabled),
+          defaultSelected: Boolean(nextGammaCompanyOption?.defaultSelected || refGammaCompanyOption?.defaultSelected),
+          prompt: String(nextGammaCompanyOption?.prompt ?? refGammaCompanyOption?.prompt ?? "").trim(),
+          grantAbility: String(nextGammaCompanyOption?.grantAbility ?? refGammaCompanyOption?.grantAbility ?? "Adrenaline Rush").trim() || "Adrenaline Rush"
+        },
+        ordinanceReady: {
+          enabled: Boolean(nextOrdinanceReady?.enabled || refOrdinanceReady?.enabled),
+          supportPointCost: Math.max(
+            0,
+            toNonNegativeWhole(nextOrdinanceReady?.supportPointCost, toNonNegativeWhole(refOrdinanceReady?.supportPointCost, 1))
+          ),
+          maxUsesPerEncounter: Math.max(
+            0,
+            toNonNegativeWhole(nextOrdinanceReady?.maxUsesPerEncounter, toNonNegativeWhole(refOrdinanceReady?.maxUsesPerEncounter, 1))
+          ),
+          notes: String(nextOrdinanceReady?.notes ?? refOrdinanceReady?.notes ?? "").trim()
+        },
+        smartAi: {
+          enabled: Boolean(nextSmartAi?.enabled || refSmartAi?.enabled),
+          coreIdentityLabel: String(nextSmartAi?.coreIdentityLabel ?? refSmartAi?.coreIdentityLabel ?? "Cognitive Pattern").trim() || "Cognitive Pattern",
+          notes: String(nextSmartAi?.notes ?? refSmartAi?.notes ?? "").trim()
+        },
+        branchTransition: {
+          enabled: Boolean(nextBranchTransition?.enabled || refBranchTransition?.enabled),
+          advancementOnly: Boolean(nextBranchTransition?.advancementOnly || refBranchTransition?.advancementOnly),
+          appliesInCharacterCreation: (nextBranchTransition?.appliesInCharacterCreation === false || refBranchTransition?.appliesInCharacterCreation === false)
+            ? false
+            : true,
+          transitionGroup: String(nextBranchTransition?.transitionGroup ?? refBranchTransition?.transitionGroup ?? "").trim(),
+          fromSoldierTypes: normalizeStringList([
+            ...(Array.isArray(nextBranchTransition?.fromSoldierTypes) ? nextBranchTransition.fromSoldierTypes : []),
+            ...(Array.isArray(refBranchTransition?.fromSoldierTypes) ? refBranchTransition.fromSoldierTypes : [])
+          ]),
+          notes: String(nextBranchTransition?.notes ?? refBranchTransition?.notes ?? "").trim()
+        },
+        oniSectionOne: {
+          requiresGmApproval: Boolean(nextOniSectionOne?.requiresGmApproval || refOniSectionOne?.requiresGmApproval),
+          gmApprovalText: String(nextOniSectionOne?.gmApprovalText ?? refOniSectionOne?.gmApprovalText ?? "").trim(),
+          rankScaffold: {
+            enabled: Boolean(nextOniRank?.enabled || refOniRank?.enabled),
+            startRank: String(nextOniRank?.startRank ?? refOniRank?.startRank ?? "").trim(),
+            commandSpecializationAllowed: Boolean(nextOniRank?.commandSpecializationAllowed || refOniRank?.commandSpecializationAllowed),
+            notes: String(nextOniRank?.notes ?? refOniRank?.notes ?? "").trim()
+          },
+          supportScaffold: {
+            enabled: Boolean(nextOniSupport?.enabled || refOniSupport?.enabled),
+            bonusPerAward: Math.max(toNonNegativeWhole(nextOniSupport?.bonusPerAward, 0), toNonNegativeWhole(refOniSupport?.bonusPerAward, 0)),
+            grantAtCharacterCreation: Boolean(nextOniSupport?.grantAtCharacterCreation || refOniSupport?.grantAtCharacterCreation),
+            regenerates: (nextOniSupport?.regenerates === false || refOniSupport?.regenerates === false) ? false : true,
+            notes: String(nextOniSupport?.notes ?? refOniSupport?.notes ?? "").trim()
+          },
+          unscSupportCostScaffold: {
+            enabled: Boolean(nextOniCost?.enabled || refOniCost?.enabled),
+            infantryMultiplier: Math.min(
+              Math.max(0, Number(nextOniCost?.infantryMultiplier ?? 1) || 1),
+              Math.max(0, Number(refOniCost?.infantryMultiplier ?? 1) || 1)
+            ),
+            ordnanceMultiplier: Math.min(
+              Math.max(0, Number(nextOniCost?.ordnanceMultiplier ?? 1) || 1),
+              Math.max(0, Number(refOniCost?.ordnanceMultiplier ?? 1) || 1)
+            ),
+            notes: String(nextOniCost?.notes ?? refOniCost?.notes ?? "").trim()
+          }
+        }
+      };
       return normalizeSoldierTypeSystemData(next, templateName);
     } catch (_error) {
       return base;
@@ -8437,6 +10731,180 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ],
       default: "merge"
     });
+  }
+
+  async _promptAndApplyMjolnirArmor() {
+    const campaignYear = game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CAMPAIGN_YEAR_SETTING_KEY) || 0;
+
+    const available = MYTHIC_MJOLNIR_ARMOR_LIST.filter(armor => {
+      if (!campaignYear) return true;
+      if (campaignYear < armor.yearStart) return false;
+      if (armor.yearEnd !== null && campaignYear > armor.yearEnd) return false;
+      return true;
+    });
+
+    if (!available.length) {
+      ui.notifications.warn("No Mjolnir armor is available for the current campaign year. Set the Campaign Year in System Settings, or set it to 0 to allow all armors.");
+      return;
+    }
+
+    const yearNote = campaignYear
+      ? `<p><strong>Campaign Year:</strong> ${campaignYear}</p>`
+      : `<p><em>No campaign year set — all armor types are available.</em></p>`;
+
+    const optionsHtml = available.map(a => {
+      const range = a.yearEnd !== null ? `${a.yearStart}–${a.yearEnd}` : `${a.yearStart}+`;
+      return `<option value="${foundry.utils.escapeHTML(a.name)}">${foundry.utils.escapeHTML(a.name)} (${range})</option>`;
+    }).join("");
+
+    const content = `
+      <div class="mythic-modal-body">
+        ${yearNote}
+        <p>Select the Mjolnir armor this Spartan will begin with:</p>
+        <div class="form-group">
+          <label for="mjolnir-armor-choice">Armor</label>
+          <select id="mjolnir-armor-choice" name="armorChoice">${optionsHtml}</select>
+        </div>
+        <p class="hint">The selected armor will be added to the inventory as Carried and Equipped. You can change it later from the inventory tab.</p>
+      </div>`;
+
+    const chosenName = await foundry.applications.api.DialogV2.prompt({
+      window: { title: "Choose Spartan Armor" },
+      content,
+      ok: {
+        label: "Confirm",
+        callback: (_event, _button, dialogApp) => {
+          const dialogElement = dialogApp?.element instanceof HTMLElement
+            ? dialogApp.element
+            : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+          const select = dialogElement?.querySelector('[name="armorChoice"]')
+            ?? document.getElementById("mjolnir-armor-choice");
+          return select instanceof HTMLSelectElement ? String(select.value ?? "").trim() : null;
+        }
+      }
+    }).catch(() => null);
+
+    if (!chosenName) return;
+
+    // Search all Item packs for a gear item matching this name
+    let armorItemData = null;
+    for (const candidatePack of game.packs) {
+      if (candidatePack.documentName !== "Item") continue;
+      try {
+        const index = await candidatePack.getIndex();
+        const entry = index.find(e => String(e?.name ?? "").toLowerCase() === chosenName.toLowerCase());
+        if (entry?._id) {
+          const doc = await candidatePack.getDocument(entry._id);
+          const obj = doc?.toObject?.() ?? null;
+          if (obj && obj.type === "gear") {
+            armorItemData = obj;
+            break;
+          }
+        }
+      } catch (_err) {
+        // skip packs that fail to load
+      }
+    }
+
+    if (!armorItemData) {
+      ui.notifications.warn(`Could not find "${chosenName}" in any compendium. Add it manually from your armor compendium and equip it.`);
+      return;
+    }
+
+    armorItemData.system = normalizeGearSystemData(armorItemData.system ?? {}, armorItemData.name ?? chosenName);
+    const created = await this.actor.createEmbeddedDocuments("Item", [armorItemData]);
+    const newItem = created?.[0];
+    if (!newItem?.id) return;
+
+    const newId = newItem.id;
+    const currentCarried = Array.isArray(this.actor.system?.equipment?.carriedIds)
+      ? this.actor.system.equipment.carriedIds
+      : [];
+    await this.actor.update({
+      "system.equipment.carriedIds": Array.from(new Set([...currentCarried, newId])),
+      "system.equipment.equipped.armorId": newId
+    });
+    ui.notifications.info(`Equipped "${chosenName}" as Spartan armor.`);
+  }
+
+  async _promptGammaCompanySelection(gammaOption = {}) {
+    const defaultSelected = Boolean(gammaOption?.defaultSelected);
+    const promptText = String(gammaOption?.prompt ?? "").trim()
+      || "Choose whether this Spartan III is Gamma Company (requires Smoother Drugs in play).";
+
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "Spartan III - Gamma Company"
+      },
+      content: `
+        <div class="mythic-modal-body">
+          <p>${foundry.utils.escapeHTML(promptText)}</p>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+            <input id="mythic-gamma-company-enabled" type="checkbox" ${defaultSelected ? "checked" : ""} />
+            Enable Gamma Company rules for this character
+          </label>
+        </div>
+      `,
+      buttons: [
+        {
+          action: "apply",
+          label: "Apply",
+          default: true,
+          callback: () => Boolean(document.getElementById("mythic-gamma-company-enabled")?.checked)
+        },
+        {
+          action: "cancel",
+          label: "Skip",
+          callback: () => false
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+
+    return Boolean(result);
+  }
+
+  async _applyGammaCompanySelection(enabled, gammaOption = {}) {
+    const nextEnabled = Boolean(enabled);
+    const current = normalizeCharacterSystemData(this.actor.system ?? {});
+    const applications = toNonNegativeWhole(current?.medical?.gammaCompany?.smootherApplications, 0);
+    const lastAppliedAt = String(current?.medical?.gammaCompany?.lastAppliedAt ?? "").trim();
+
+    await this.actor.update({
+      "system.medical.gammaCompany.enabled": nextEnabled,
+      "system.medical.gammaCompany.smootherApplications": applications,
+      "system.medical.gammaCompany.lastAppliedAt": lastAppliedAt
+    });
+
+    await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "spartanGammaCompany", {
+      enabled: nextEnabled,
+      grantAbility: String(gammaOption?.grantAbility ?? "Adrenaline Rush").trim() || "Adrenaline Rush"
+    });
+
+    if (!nextEnabled) return;
+
+    const abilityName = String(gammaOption?.grantAbility ?? "Adrenaline Rush").trim() || "Adrenaline Rush";
+    const hasAbility = this.actor.items.some((entry) => entry.type === "ability" && String(entry.name ?? "").trim().toLowerCase() === abilityName.toLowerCase());
+    if (hasAbility) return;
+
+    let abilityData = await this._importCompendiumItemDataByName("Halo-Mythic-Foundry-Updated.abilities", abilityName);
+    if (!abilityData) {
+      abilityData = {
+        name: abilityName,
+        type: "ability",
+        img: MYTHIC_ABILITY_DEFAULT_ICON,
+        system: normalizeAbilitySystemData({
+          shortDescription: "Granted by Spartan III Gamma Company selection.",
+          benefit: "Granted by Spartan III Gamma Company selection.",
+          category: "general"
+        })
+      };
+    }
+
+    abilityData.system = normalizeAbilitySystemData(abilityData.system ?? {});
+    await this.actor.createEmbeddedDocuments("Item", [abilityData]);
+    ui.notifications.info(`Gamma Company enabled: granted ability "${abilityName}".`);
   }
 
   async _importCompendiumItemDataByName(packCollection, itemName) {
@@ -8837,6 +11305,328 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  async _promptSoldierTypeEducationChoices(templateName, templateSystem) {
+    const rules = Array.isArray(templateSystem?.educationChoices) ? templateSystem.educationChoices : [];
+    if (!rules.length) return Promise.resolve([]);
+
+    const dialogBodySelector = ".mythic-st-edu-choice-dialog";
+    const getDialogBody = () => document.querySelector(dialogBodySelector);
+    const factionOptions = this._getFactionPromptChoices();
+    const factionOptionMarkup = factionOptions
+      .map((entry) => `<option value="${foundry.utils.escapeHTML(entry.value)}">${foundry.utils.escapeHTML(entry.label)}</option>`)
+      .join("");
+
+    // Load all education names from the compendium
+    let allEducationNames = [];
+    try {
+      const pack = game.packs.get("Halo-Mythic-Foundry-Updated.educations");
+      if (pack) {
+        const index = await pack.getIndex();
+        allEducationNames = index
+          .map((entry) => String(entry?.name ?? "").trim())
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b));
+      }
+    } catch (_err) { /* silent */ }
+
+    if (!allEducationNames.length) {
+      ui.notifications?.warn("No educations found in the compendium to satisfy Soldier Type education choices.");
+      return Promise.resolve([]);
+    }
+
+    const tierLabel = (tier) => tier === "plus10" ? "+10" : "+5";
+    const createRowMarkup = (ruleIndex, rowIndex, educationName) => {
+      const cleanEducationName = String(educationName ?? "").trim();
+      const isFactionEducation = this._isFactionEducationName(cleanEducationName);
+      const isInstrumentEducation = this._isInstrumentEducationName(cleanEducationName);
+      const safeBaseName = foundry.utils.escapeHTML(cleanEducationName);
+      const displayLabel = foundry.utils.escapeHTML(this._getEducationChoiceDisplayLabel(cleanEducationName));
+      const extraMarkup = isFactionEducation
+        ? `
+          <div data-edu-config="faction" style="display:none;margin:6px 0 0 22px;gap:6px;align-items:center;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span>Faction</span>
+              <select data-edu-faction-select style="min-width:220px">
+                ${factionOptionMarkup}
+              </select>
+            </label>
+            <label data-edu-faction-other-wrap style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+              <span>Custom</span>
+              <input type="text" data-edu-faction-other placeholder="Enter faction name..." />
+            </label>
+          </div>
+        `
+        : isInstrumentEducation
+          ? `
+            <div data-edu-config="instrument" style="display:none;margin:6px 0 0 22px;gap:6px;align-items:center;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <span>Instrument</span>
+                <input type="text" data-edu-instrument-input placeholder="e.g. Theremin" />
+              </label>
+            </div>
+          `
+          : "";
+
+      return `
+        <div class="mythic-st-edu-row" data-rule-index="${ruleIndex}" data-row-index="${rowIndex}" data-edu-base-name="${safeBaseName}" data-edu-repeatable="${isFactionEducation || isInstrumentEducation ? "true" : "false"}" style="margin:2px 0">
+          <label style="display:block">
+            <input type="checkbox" name="mythic-st-edu-choice-${ruleIndex}" value="${safeBaseName}" data-rule-index="${ruleIndex}" data-row-index="${rowIndex}" />
+            ${displayLabel}
+          </label>
+          ${extraMarkup}
+        </div>
+      `;
+    };
+
+    const blocks = rules.map((rule, ruleIndex) => {
+      const source = String(rule?.source ?? "").trim();
+      const notes = String(rule?.notes ?? "").trim();
+      const label = String(rule?.label ?? "Educations of choice").trim() || "Educations of choice";
+      const count = Math.max(1, toNonNegativeWhole(rule?.count, 1));
+      const checkboxRows = allEducationNames.map((eduName, eduIndex) => createRowMarkup(ruleIndex, eduIndex, eduName)).join("");
+
+      return `
+        <fieldset data-edu-rule-index="${ruleIndex}" data-edu-rule-count="${count}" data-edu-tier="${foundry.utils.escapeHTML(String(rule?.tier ?? "plus5"))}" data-edu-label="${foundry.utils.escapeHTML(label)}" data-edu-source="${foundry.utils.escapeHTML(source)}" data-edu-notes="${foundry.utils.escapeHTML(notes)}" style="margin:0 0 10px 0;padding:8px;border:1px solid rgba(255,255,255,0.18)">
+          <legend style="padding:0 6px">${foundry.utils.escapeHTML(label)}</legend>
+          <p style="margin:0 0 8px 0">Choose exactly ${count} at <strong>${tierLabel(rule?.tier)}</strong>${source ? ` — ${foundry.utils.escapeHTML(source)}` : ""}${notes ? ` — ${foundry.utils.escapeHTML(notes)}` : ""}</p>
+          <p data-edu-count-status="${ruleIndex}" style="margin:0 0 8px 0;font-size:11px;opacity:0.9">0/${count} selected</p>
+          <div data-edu-rule-container="${ruleIndex}" style="max-height:240px;overflow:auto;border:1px solid rgba(255,255,255,0.12);padding:6px;border-radius:4px;background:rgba(0,0,0,0.15)">
+            ${checkboxRows}
+          </div>
+        </fieldset>
+      `;
+    }).join("");
+
+    const isSelectionValid = (dialogBody) => {
+      if (!(dialogBody instanceof HTMLElement)) return false;
+      return rules.every((_rule, ruleIndex) => {
+        const required = Math.max(1, toNonNegativeWhole(rules[ruleIndex]?.count, 1));
+        const checked = Array.from(dialogBody.querySelectorAll(`input[name='mythic-st-edu-choice-${ruleIndex}']:checked`));
+        if (checked.length !== required) return false;
+        return checked.every((box) => {
+          const row = box.closest(".mythic-st-edu-row");
+          if (!(row instanceof HTMLElement)) return false;
+          const baseName = String(row.dataset.eduBaseName ?? "").trim();
+          if (this._isFactionEducationName(baseName)) {
+            const select = row.querySelector("[data-edu-faction-select]");
+            const other = row.querySelector("[data-edu-faction-other]");
+            const value = String(select?.value ?? "").trim();
+            return value && (value !== "__other__" || Boolean(String(other?.value ?? "").trim()));
+          }
+          if (this._isInstrumentEducationName(baseName)) {
+            const input = row.querySelector("[data-edu-instrument-input]");
+            return Boolean(String(input?.value ?? "").trim());
+          }
+          return true;
+        });
+      });
+    };
+
+    const toggleFactionOtherVisibility = (row) => {
+      if (!(row instanceof HTMLElement)) return;
+      const select = row.querySelector("[data-edu-faction-select]");
+      const otherWrap = row.querySelector("[data-edu-faction-other-wrap]");
+      if (otherWrap instanceof HTMLElement) {
+        otherWrap.style.display = String(select?.value ?? "") === "__other__" ? "flex" : "none";
+      }
+    };
+
+    const ensureRepeatableRows = (dialogBody, ruleIndex, baseName) => {
+      if (!(dialogBody instanceof HTMLElement)) return;
+      const container = dialogBody.querySelector(`[data-edu-rule-container='${ruleIndex}']`);
+      if (!(container instanceof HTMLElement)) return;
+
+      const matchingRows = Array.from(container.querySelectorAll(".mythic-st-edu-row"))
+        .filter((row) => String(row.dataset.eduBaseName ?? "").trim() === baseName);
+      const checkedRows = matchingRows.filter((row) => row.querySelector("input[type='checkbox']")?.checked);
+      const blankRows = matchingRows.filter((row) => !row.querySelector("input[type='checkbox']")?.checked);
+
+      if (checkedRows.length > 0 && blankRows.length === 0) {
+        const nextRowIndex = container.querySelectorAll(".mythic-st-edu-row").length;
+        const lastMatchingRow = matchingRows[matchingRows.length - 1] ?? null;
+        if (lastMatchingRow instanceof HTMLElement) {
+          lastMatchingRow.insertAdjacentHTML("afterend", createRowMarkup(ruleIndex, nextRowIndex, baseName));
+        } else {
+          container.insertAdjacentHTML("beforeend", createRowMarkup(ruleIndex, nextRowIndex, baseName));
+        }
+      }
+
+      const refreshedBlankRows = Array.from(container.querySelectorAll(".mythic-st-edu-row"))
+        .filter((row) => String(row.dataset.eduBaseName ?? "").trim() === baseName)
+        .filter((row) => !row.querySelector("input[type='checkbox']")?.checked);
+      while (refreshedBlankRows.length > 1) {
+        const rowToRemove = refreshedBlankRows.pop();
+        rowToRemove?.remove();
+      }
+    };
+
+    const bindEducationRowEvents = (dialogBody) => {
+      if (!(dialogBody instanceof HTMLElement)) return;
+      dialogBody.querySelectorAll(".mythic-st-edu-row").forEach((row) => {
+        if (!(row instanceof HTMLElement) || row.dataset.eduBound === "true") return;
+        row.dataset.eduBound = "true";
+
+        const checkbox = row.querySelector("input[type='checkbox']");
+        const factionConfig = row.querySelector("[data-edu-config='faction']");
+        const instrumentConfig = row.querySelector("[data-edu-config='instrument']");
+        const factionSelect = row.querySelector("[data-edu-faction-select]");
+        const factionOther = row.querySelector("[data-edu-faction-other]");
+        const instrumentInput = row.querySelector("[data-edu-instrument-input]");
+
+        const refreshRowState = () => {
+          const isChecked = Boolean(checkbox?.checked);
+          if (factionConfig instanceof HTMLElement) {
+            factionConfig.style.display = isChecked ? "flex" : "none";
+            toggleFactionOtherVisibility(row);
+          }
+          if (instrumentConfig instanceof HTMLElement) {
+            instrumentConfig.style.display = isChecked ? "flex" : "none";
+          }
+
+          if (row.dataset.eduRepeatable === "true") {
+            ensureRepeatableRows(dialogBody, Number(row.dataset.ruleIndex ?? 0), String(row.dataset.eduBaseName ?? "").trim());
+            bindEducationRowEvents(dialogBody);
+          }
+
+          refreshState(dialogBody);
+        };
+
+        checkbox?.addEventListener("change", refreshRowState);
+        factionSelect?.addEventListener("change", () => {
+          toggleFactionOtherVisibility(row);
+          refreshState(dialogBody);
+        });
+        factionOther?.addEventListener("input", () => refreshState(dialogBody));
+        instrumentInput?.addEventListener("input", () => refreshState(dialogBody));
+        refreshRowState();
+      });
+    };
+
+    const refreshState = (dialogBody) => {
+      if (!(dialogBody instanceof HTMLElement)) return;
+      for (let ruleIndex = 0; ruleIndex < rules.length; ruleIndex += 1) {
+        const required = Math.max(1, toNonNegativeWhole(rules[ruleIndex]?.count, 1));
+        const selected = dialogBody.querySelectorAll(`input[name='mythic-st-edu-choice-${ruleIndex}']:checked`).length;
+        const status = dialogBody.querySelector(`[data-edu-count-status='${ruleIndex}']`);
+        if (status) {
+          status.textContent = `${selected}/${required} selected`;
+          status.style.color = selected === required ? "rgba(140, 255, 170, 0.95)" : "rgba(255, 185, 120, 0.95)";
+        }
+      }
+      const dialogApp = dialogBody.closest(".application, .window-app, .app") ?? dialogBody.parentElement;
+      const applyButton = dialogApp?.querySelector("button[data-action='apply-edu']");
+      if (applyButton instanceof HTMLButtonElement) {
+        const canApply = isSelectionValid(dialogBody);
+        applyButton.disabled = !canApply;
+        applyButton.title = canApply ? "" : "Select exactly the required number of educations in each group.";
+      }
+    };
+
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "Resolve Soldier Type Education Choices"
+      },
+      content: `
+        <div class="mythic-modal-body mythic-st-edu-choice-dialog">
+          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong> includes education-choice grants.</p>
+          <div style="max-height:65vh;overflow:auto;padding-right:4px">${blocks}</div>
+        </div>
+      `,
+      render: (_event, dialog) => {
+        const dialogElement = dialog?.element instanceof HTMLElement
+          ? dialog.element
+          : (dialog?.element?.[0] instanceof HTMLElement ? dialog.element[0] : null);
+        const dialogBody = dialogElement?.querySelector(dialogBodySelector) ?? getDialogBody();
+        if (!(dialogBody instanceof HTMLElement)) return;
+
+        bindEducationRowEvents(dialogBody);
+        refreshState(dialogBody);
+      },
+      buttons: [
+        {
+          action: "apply-edu",
+          label: "Apply Choices",
+          callback: () => {
+            const selections = [];
+            const dialogBody = getDialogBody();
+            for (let ruleIndex = 0; ruleIndex < rules.length; ruleIndex += 1) {
+              const rule = rules[ruleIndex] ?? {};
+              const count = Math.max(1, toNonNegativeWhole(rule?.count, 1));
+              const checked = Array.from((dialogBody ?? document).querySelectorAll(`input[name='mythic-st-edu-choice-${ruleIndex}']:checked`));
+              if (checked.length !== count) {
+                ui.notifications?.warn(`Education group ${ruleIndex + 1} requires exactly ${count} selections.`);
+                return false;
+              }
+              const seen = new Set();
+              const fieldset = (dialogBody ?? document).querySelector(`[data-edu-rule-index='${ruleIndex}']`);
+              for (const box of checked) {
+                const row = box.closest(".mythic-st-edu-row");
+                const educationBaseName = String(row?.dataset.eduBaseName ?? box.value ?? "").trim();
+                const metadata = {};
+
+                if (this._isFactionEducationName(educationBaseName)) {
+                  const factionSelect = row?.querySelector("[data-edu-faction-select]");
+                  const factionOther = row?.querySelector("[data-edu-faction-other]");
+                  const selectedFaction = String(factionSelect?.value ?? "").trim();
+                  if (!selectedFaction) {
+                    ui.notifications?.warn(`Choose a faction for ${this._getEducationChoiceDisplayLabel(educationBaseName)}.`);
+                    return false;
+                  }
+                  metadata.faction = selectedFaction === "__other__"
+                    ? String(factionOther?.value ?? "").trim()
+                    : selectedFaction;
+                  if (!metadata.faction) {
+                    ui.notifications?.warn(`Enter a custom faction for ${this._getEducationChoiceDisplayLabel(educationBaseName)}.`);
+                    return false;
+                  }
+                }
+
+                if (this._isInstrumentEducationName(educationBaseName)) {
+                  metadata.instrument = String(row?.querySelector("[data-edu-instrument-input]")?.value ?? "").trim();
+                  if (!metadata.instrument) {
+                    ui.notifications?.warn(`Enter an instrument for ${this._getEducationChoiceDisplayLabel(educationBaseName)}.`);
+                    return false;
+                  }
+                }
+
+                const eduName = this._resolveEducationVariantName(educationBaseName, metadata);
+                if (!eduName) {
+                  ui.notifications?.warn(`Could not resolve a final name for ${this._getEducationChoiceDisplayLabel(educationBaseName)}.`);
+                  return false;
+                }
+
+                const marker = eduName.toLowerCase();
+                if (marker && seen.has(marker)) {
+                  ui.notifications?.warn("Duplicate resolved education selected in the same choice group.");
+                  return false;
+                }
+                if (marker) seen.add(marker);
+                selections.push({
+                  ruleIndex,
+                  educationBaseName,
+                  educationName: eduName,
+                  tier: String(fieldset?.getAttribute("data-edu-tier") ?? rule?.tier ?? "plus5"),
+                  label: String(fieldset?.getAttribute("data-edu-label") ?? rule?.label ?? "Educations of choice"),
+                  source: String(fieldset?.getAttribute("data-edu-source") ?? rule?.source ?? ""),
+                  notes: String(fieldset?.getAttribute("data-edu-notes") ?? rule?.notes ?? ""),
+                  metadata
+                });
+              }
+            }
+            return selections;
+          }
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  }
+
   _promptSoldierTypeEquipmentPackChoice(templateName, packs) {
     const validPacks = Array.isArray(packs) ? packs.filter((p) => String(p?.name ?? "").trim()) : [];
     if (!validPacks.length) return Promise.resolve({ skip: true });
@@ -8986,7 +11776,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return [`[Soldier Type Pending Grants: ${templateName}]`, ...lines].join("\n");
   }
 
-  async _applySoldierTypeTemplate(templateName, templateSystem, mode = "merge", resolvedSkillChoices = [], resolvedEquipmentPack = null) {
+  async _applySoldierTypeTemplate(templateName, templateSystem, mode = "merge", resolvedSkillChoices = [], resolvedEquipmentPack = null, resolvedEducationChoices = []) {
     const actorSystem = normalizeCharacterSystemData(this.actor.system ?? {});
     const updateData = {};
     let fieldsUpdated = 0;
@@ -9068,6 +11858,13 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         setField(`system.header.${key}`, incoming);
       }
     }
+
+    const incomingHeightRange = normalizeRangeObject(templateSystem?.heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
+    const incomingWeightRange = normalizeRangeObject(templateSystem?.weightRangeKg, MYTHIC_DEFAULT_WEIGHT_RANGE_KG);
+    setField("system.biography.physical.heightRangeCm.min", incomingHeightRange.min);
+    setField("system.biography.physical.heightRangeCm.max", incomingHeightRange.max);
+    setField("system.biography.physical.weightRangeKg.min", incomingWeightRange.min);
+    setField("system.biography.physical.weightRangeKg.max", incomingWeightRange.max);
 
     let soldierTypeCharApplied = false;
     for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
@@ -9313,6 +12110,21 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.actor.update(updateData);
     }
 
+    // If this template defines a soldier-type creation XP cost and the actor is
+    // currently in character-creation (charBuilder.managed), overwrite the
+    // actor's recorded xpSpent to reflect the soldier-type creation cost.
+    try {
+      const actorSystemAfter = normalizeCharacterSystemData(this.actor.system ?? {});
+      const isInCharBuilder = Boolean(actorSystemAfter?.charBuilder?.managed);
+      const templateXpCost = toNonNegativeWhole(templateSystem?.creation?.xpCost ?? 0, 0);
+      if (isInCharBuilder && templateXpCost > 0) {
+        // Overwrite xpSpent with the soldier-type creation cost
+        await this.actor.update({ "system.advancements.xpSpent": templateXpCost });
+      }
+    } catch (_err) {
+      // Non-fatal; do not block application for XP update failures
+    }
+
     const skippedAbilities = [];
     let educationsAdded = 0;
     let abilitiesAdded = 0;
@@ -9335,6 +12147,37 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       itemData.system = normalizeEducationSystemData(itemData.system ?? {});
+      await this.actor.createEmbeddedDocuments("Item", [itemData]);
+      educationsAdded += 1;
+    }
+
+    // Apply chosen educations from the education-choice dialog
+    const chosenEducationEntries = Array.isArray(resolvedEducationChoices) ? resolvedEducationChoices : [];
+    for (const choiceEntry of chosenEducationEntries) {
+      const educationName = String(choiceEntry?.educationName ?? "").trim();
+      if (!educationName) continue;
+
+      const exists = this.actor.items.some((entry) => entry.type === "education" && entry.name === educationName);
+      if (exists) continue;
+
+      const baseEducationName = String(choiceEntry?.educationBaseName ?? educationName).trim() || educationName;
+      let itemData = await this._importCompendiumItemDataByName("Halo-Mythic-Foundry-Updated.educations", baseEducationName);
+      if (!itemData && baseEducationName !== educationName) {
+        itemData = await this._importCompendiumItemDataByName("Halo-Mythic-Foundry-Updated.educations", educationName);
+      }
+      if (!itemData) {
+        itemData = {
+          name: educationName,
+          type: "education",
+          img: MYTHIC_EDUCATION_DEFAULT_ICON,
+          system: normalizeEducationSystemData({})
+        };
+      }
+
+      // Apply the tier from the choice rule (e.g. plus5 or plus10)
+      const choiceTier = String(choiceEntry?.tier ?? "plus5").toLowerCase();
+      itemData.name = educationName;
+      itemData.system = normalizeEducationSystemData({ ...(itemData.system ?? {}), tier: choiceTier });
       await this.actor.createEmbeddedDocuments("Item", [itemData]);
       educationsAdded += 1;
     }
@@ -9409,8 +12252,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
   }
 
-  _promptFactionName() {
-    const factions = [
+  _getFactionPromptChoices() {
+    return [
       { value: "UNSC",       label: "United Nations Space Command (UNSC)" },
       { value: "ONI",        label: "Office of Naval Intelligence (ONI)" },
       { value: "URF",        label: "Insurrection / United Rebel Front (URF)" },
@@ -9420,6 +12263,55 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       { value: "Forerunner", label: "Forerunner" },
       { value: "__other__",  label: "Other (type below)..." }
     ];
+  }
+
+  _isFactionEducationName(educationName) {
+    return String(educationName ?? "").trim().startsWith("Faction ");
+  }
+
+  _isInstrumentEducationName(educationName) {
+    return String(educationName ?? "").trim().startsWith("Musical Training");
+  }
+
+  _getEducationChoiceDisplayLabel(educationName) {
+    const cleanName = String(educationName ?? "").trim();
+    if (this._isInstrumentEducationName(cleanName)) return "Musical Training";
+    return cleanName;
+  }
+
+  _resolveEducationVariantName(baseEducationName, metadata = {}) {
+    const cleanBaseName = String(baseEducationName ?? "").trim();
+    if (!cleanBaseName) return "";
+
+    if (this._isFactionEducationName(cleanBaseName)) {
+      const suffix = cleanBaseName.slice("Faction ".length).trim();
+      const factionName = String(metadata?.faction ?? "").trim();
+      return factionName && suffix ? `${factionName} ${suffix}` : "";
+    }
+
+    if (this._isInstrumentEducationName(cleanBaseName)) {
+      const instrument = String(metadata?.instrument ?? "").trim();
+      return instrument ? `Musical Training (${instrument})` : "";
+    }
+
+    return cleanBaseName;
+  }
+
+  async _promptEducationVariantMetadata(baseEducationName) {
+    const cleanBaseName = String(baseEducationName ?? "").trim();
+    if (this._isFactionEducationName(cleanBaseName)) {
+      const factionName = await this._promptFactionName();
+      return factionName ? { faction: factionName } : null;
+    }
+    if (this._isInstrumentEducationName(cleanBaseName)) {
+      const instrument = await this._promptInstrumentName();
+      return instrument ? { instrument } : null;
+    }
+    return {};
+  }
+
+  _promptFactionName() {
+    const factions = this._getFactionPromptChoices();
     const opts = factions.map(f => `<option value="${f.value}">${f.label}</option>`).join("");
     return foundry.applications.api.DialogV2.wait({
       window: {
@@ -9549,6 +12441,79 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       content,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
     });
+  }
+
+  async _onActivateAbility(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    if (!itemId) return;
+    const item = this.actor.items.get(itemId);
+    if (!item || item.type !== "ability") return;
+
+    const sys = normalizeAbilitySystemData(item.system ?? {});
+    if (String(sys.actionType ?? "passive") === "passive") {
+      ui.notifications?.warn("Passive abilities cannot be manually activated.");
+      return;
+    }
+
+    const activation = sys.activation && typeof sys.activation === "object" ? sys.activation : {};
+    const usesMax = toNonNegativeWhole(activation?.maxUsesPerEncounter, 0);
+    const usesSpent = usesMax > 0
+      ? Math.min(toNonNegativeWhole(activation?.usesSpent, 0), usesMax)
+      : toNonNegativeWhole(activation?.usesSpent, 0);
+    const cooldownTurns = toNonNegativeWhole(activation?.cooldownTurns, 0);
+    const cooldownRemaining = cooldownTurns > 0
+      ? Math.min(toNonNegativeWhole(activation?.cooldownRemaining, 0), cooldownTurns)
+      : toNonNegativeWhole(activation?.cooldownRemaining, 0);
+
+    if (cooldownRemaining > 0) {
+      ui.notifications?.warn(`${item.name} is on cooldown (${cooldownRemaining} remaining).`);
+      return;
+    }
+    if (usesMax > 0 && usesSpent >= usesMax) {
+      ui.notifications?.warn(`${item.name} has no uses remaining this encounter.`);
+      return;
+    }
+
+    const nextUsesSpent = usesMax > 0 ? Math.min(usesMax, usesSpent + 1) : usesSpent;
+    const nextCooldownRemaining = cooldownTurns > 0 ? cooldownTurns : 0;
+
+    await item.update({
+      "system.activation.enabled": true,
+      "system.activation.usesSpent": nextUsesSpent,
+      "system.activation.cooldownRemaining": nextCooldownRemaining
+    });
+
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const usesText = usesMax > 0 ? `${nextUsesSpent}/${usesMax}` : "Unlimited";
+    const cooldownText = nextCooldownRemaining > 0 ? `${nextCooldownRemaining} turn(s)` : "Ready";
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content: `<p><strong>${esc(this.actor.name)}</strong> activates <strong>${esc(item.name)}</strong>. Uses: ${esc(usesText)} | Cooldown: ${esc(cooldownText)}</p>`,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _onAbilityCooldownTick(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    if (!itemId) return;
+    const item = this.actor.items.get(itemId);
+    if (!item || item.type !== "ability") return;
+
+    const sys = normalizeAbilitySystemData(item.system ?? {});
+    const activation = sys.activation && typeof sys.activation === "object" ? sys.activation : {};
+    const cooldownRemaining = toNonNegativeWhole(activation?.cooldownRemaining, 0);
+    if (cooldownRemaining <= 0) {
+      ui.notifications?.info(`${item.name} is already ready.`);
+      return;
+    }
+
+    await item.update({ "system.activation.cooldownRemaining": Math.max(0, cooldownRemaining - 1) });
   }
 
   async _onPostTraitToChat(event) {
@@ -10044,6 +13009,91 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ui.notifications?.info(`Purchased Outlier: ${outlierLabel}. Burned 1 Luck.`);
   }
 
+  async _onRemoveOutlierPurchase(event) {
+    event.preventDefault();
+    const ccAdv = this._getCharacterCreationAdvancementViewData();
+    if (!ccAdv.isCreationActive) {
+      ui.notifications?.warn("Outliers can only be removed during Character Creation.");
+      return;
+    }
+
+    const button = event.currentTarget;
+    const index = Number(button?.dataset?.outlierIndex);
+    if (!Number.isInteger(index) || index < 0) return;
+
+    const systemData = normalizeCharacterSystemData(this.actor.system ?? {});
+    const purchases = Array.isArray(systemData?.advancements?.outliers?.purchases)
+      ? foundry.utils.deepClone(systemData.advancements.outliers.purchases)
+      : [];
+    if (index >= purchases.length) return;
+
+    const removed = purchases[index] ?? null;
+    const definition = getOutlierDefinitionByKey(removed?.key);
+    if (!removed || !definition) return;
+
+    const removedLabel = String(removed?.choiceLabel ?? "").trim()
+      ? `${definition.name} (${String(removed.choiceLabel).trim()})`
+      : definition.name;
+
+    const confirm = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "Remove Outlier" },
+      content: `<p>Remove <strong>${foundry.utils.escapeHTML(removedLabel)}</strong>?</p><p>This restores 1 Luck and reverses its direct bonuses.</p>`,
+      yes: { label: "Remove" },
+      no: { label: "Cancel" },
+      rejectClose: false,
+      modal: true
+    });
+    if (!confirm) return;
+
+    const nextPurchases = purchases.filter((_, i) => i !== index);
+    const luckCurrent = toNonNegativeWhole(systemData?.combat?.luck?.current, 0);
+    const luckMax = toNonNegativeWhole(systemData?.combat?.luck?.max, 0);
+
+    const updateData = {
+      "system.advancements.outliers.purchases": nextPurchases,
+      "system.combat.luck.current": luckCurrent + 1,
+      "system.combat.luck.max": luckMax + 1
+    };
+
+    const choiceKey = String(removed?.choice ?? "").trim().toLowerCase();
+    if (definition.key === "advocate") {
+      const supportCurrent = toNonNegativeWhole(systemData?.combat?.supportPoints?.current, 0);
+      const supportMax = toNonNegativeWhole(systemData?.combat?.supportPoints?.max, 0);
+      const nextSupportMax = Math.max(0, supportMax - 2);
+      updateData["system.combat.supportPoints.max"] = nextSupportMax;
+      updateData["system.combat.supportPoints.current"] = Math.min(nextSupportMax, Math.max(0, supportCurrent - 2));
+    } else if (definition.key === "aptitude" && choiceKey) {
+      const current = toNonNegativeWhole(systemData?.charBuilder?.misc?.[choiceKey], 0);
+      updateData[`system.charBuilder.misc.${choiceKey}`] = Math.max(0, current - 5);
+    } else if (definition.key === "forte" && choiceKey) {
+      const current = toNonNegativeWhole(systemData?.mythic?.characteristics?.[choiceKey], 0);
+      updateData[`system.mythic.characteristics.${choiceKey}`] = Math.max(0, current - 1);
+    } else if (definition.key === "imposing") {
+      const strCurrent = toNonNegativeWhole(systemData?.charBuilder?.misc?.str, 0);
+      const touCurrent = toNonNegativeWhole(systemData?.charBuilder?.misc?.tou, 0);
+      updateData["system.charBuilder.misc.str"] = Math.max(0, strCurrent - 3);
+      updateData["system.charBuilder.misc.tou"] = Math.max(0, touCurrent - 3);
+    } else if (definition.key === "robust") {
+      const woundsMax = toNonNegativeWhole(systemData?.combat?.wounds?.max, 0);
+      const woundsCurrent = toNonNegativeWhole(systemData?.combat?.wounds?.current, 0);
+      const nextWoundsMax = Math.max(0, woundsMax - 18);
+      updateData["system.combat.wounds.max"] = nextWoundsMax;
+      updateData["system.combat.wounds.current"] = Math.min(nextWoundsMax, Math.max(0, woundsCurrent - 18));
+    }
+
+    const unlockedFeatures = String(systemData?.advancements?.unlockedFeatures ?? "").trim();
+    const spendLog = String(systemData?.advancements?.spendLog ?? "").trim();
+    updateData["system.advancements.unlockedFeatures"] = unlockedFeatures
+      ? `${unlockedFeatures}\nOutlier Removed: ${removedLabel}`
+      : `Outlier Removed: ${removedLabel}`;
+    updateData["system.advancements.spendLog"] = spendLog
+      ? `${spendLog}\nOutlier Removed: ${removedLabel} (Luck Restored +1 Max/+1 Current)`
+      : `Outlier Removed: ${removedLabel} (Luck Restored +1 Max/+1 Current)`;
+
+    await this.actor.update(updateData);
+    ui.notifications?.info(`Removed Outlier: ${removedLabel}. Restored 1 Luck.`);
+  }
+
   async _onApplyEquipmentPackSelection(event) {
     event.preventDefault();
     const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
@@ -10089,6 +13139,11 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onSpecializationConfirm(event) {
     event.preventDefault();
+    const specializationView = this._getSpecializationViewData(this.actor.system ?? {});
+    if (specializationView?.isBlockedBySoldierType) {
+      ui.notifications?.warn(specializationView.blockedReason || "Specialization is unavailable for this Soldier Type.");
+      return;
+    }
     const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
     const selectedInput = root?.querySelector("select[name='system.specialization.selectedKey']");
     const limitedAckInput = root?.querySelector("input[name='system.specialization.limitedApprovalChecked']");
@@ -10205,6 +13260,45 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
     const maxWounds = toNonNegativeWhole(this.actor.system?.combat?.wounds?.max, 0);
     await this.actor.update({ "system.combat.wounds.current": maxWounds });
+  }
+
+  async _onGammaSmootherApply(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const gammaEnabled = Boolean(normalized?.medical?.gammaCompany?.enabled);
+    if (!gammaEnabled) {
+      ui.notifications?.warn("Gamma Company is not enabled for this character.");
+      return;
+    }
+
+    const smootherItem = this.actor.items.find((item) => {
+      if (item.type !== "gear") return false;
+      const name = String(item.name ?? "").trim().toLowerCase();
+      return name.includes("smoother") && name.includes("drug");
+    });
+
+    if (!smootherItem) {
+      ui.notifications?.warn("No Smoother Drug item found in inventory.");
+      return;
+    }
+
+    const currentCount = toNonNegativeWhole(smootherItem.system?.price?.amount, 0);
+    if (currentCount <= 0) {
+      ui.notifications?.warn("Smoother Drug count is already 0.");
+      return;
+    }
+
+    await smootherItem.update({ "system.price.amount": currentCount - 1 });
+
+    const currentApplications = toNonNegativeWhole(normalized?.medical?.gammaCompany?.smootherApplications, 0);
+    await this.actor.update({
+      "system.medical.gammaCompany.smootherApplications": currentApplications + 1,
+      "system.medical.gammaCompany.lastAppliedAt": new Date().toISOString()
+    });
+
+    ui.notifications?.info("Applied one Smoother Drug (Gamma Company).");
   }
 
   async _onShieldsRecharge(event) {
@@ -12139,6 +15233,15 @@ Hooks.once("init", async () => {
     default: 0
   });
 
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY, {
+    name: "Compendium Canonical Migration Version",
+    hint: "Internal marker for one-time compendium canonical ID backfill.",
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0
+  });
+
   game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY, {
     name: "Ignore Basic Ammo Weight",
     hint: "If enabled, standard ammunition weight is ignored in inventory/encumbrance workflows.",
@@ -12197,6 +15300,15 @@ Hooks.once("init", async () => {
     config: true,
     type: Number,
     default: 20
+  });
+
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_CAMPAIGN_YEAR_SETTING_KEY, {
+    name: "Campaign Year",
+    hint: "The in-game year of the campaign (e.g. 2552). Used to filter Mjolnir armor availability when applying the Spartan II soldier type. Set to 0 (or leave blank) for no year restriction — all armors will be available.",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0
   });
 
   // Removed duplicate per-request: use single "Let Players Handle XP" setting instead
@@ -12279,6 +15391,7 @@ Hooks.once("ready", async () => {
   void maybeRunWorldMigration();
 
   if (game.user?.isGM) {
+    await maybeRunCompendiumCanonicalMigration();
     await applyMythicTokenDefaultsToWorld();
   }
 
@@ -12297,7 +15410,13 @@ Hooks.once("ready", async () => {
   game.mythic.importReferenceArmor = importReferenceArmor;
   game.mythic.importReferenceArmorVariants = importReferenceArmorVariants;
   game.mythic.importReferenceEquipment = importReferenceEquipment;
-  game.mythic.importReferenceSoldierTypes = importReferenceSoldierTypes;
+  game.mythic.importSoldierTypesFromJson = importSoldierTypesFromJson;
+  game.mythic.refreshTraitsCompendium = refreshTraitsCompendium;
+  game.mythic.getCanonicalEquipmentPackSchemaData = getCanonicalEquipmentPackSystemData;
+  game.mythic.normalizeEquipmentPackSchemaData = normalizeEquipmentPackSystemData;
+  game.mythic.backfillCompendiumCanonicalIds = runCompendiumCanonicalMigration;
+  game.mythic.auditCompendiumCanonicalDuplicates = auditCompendiumCanonicalDuplicates;
+  game.mythic.dedupeCompendiumCanonicalDuplicates = dedupeCompendiumCanonicalDuplicates;
   game.mythic.syncCreationPathItemIcons = syncCreationPathItemIcons;
   game.mythic.previewReferenceArmor = async () => {
     const rows = await loadReferenceArmorItems();

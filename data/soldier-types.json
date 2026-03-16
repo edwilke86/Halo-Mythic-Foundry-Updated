@@ -1,83 +1,1212 @@
 [
-  {
-    "name": "ONI Operative",
-    "description": "Field intelligence specialist with social and technical support skills.",
-    "notes": "Use as a merge template for existing characters or overwrite for fresh builds.",
-    "header": {
-      "soldierType": "ONI Operative",
-      "specialisation": "Intelligence",
-      "rank": "Field Agent"
-    },
-    "characteristics": {
-      "int": 45,
-      "per": 40,
-      "cha": 35,
-      "agi": 30
-    },
-    "mythic": {
-      "str": 0,
-      "tou": 0,
-      "agi": 1
-    },
-    "skills": {
-      "base": {
-        "technology": { "tier": "trained", "modifier": 0, "selectedCharacteristic": "int" },
-        "investigation": { "tier": "plus10", "modifier": 0, "selectedCharacteristic": "int" },
-        "deception": { "tier": "trained", "modifier": 5, "selectedCharacteristic": "cha" },
-        "appeal": { "tier": "trained", "modifier": 0, "selectedCharacteristic": "cha" }
-      },
-      "custom": []
-    },
-    "skillChoices": [
-      {
-        "count": 2,
-        "tier": "plus10",
-        "label": "skills of choice",
-        "notes": "Select during character creation",
-        "source": "Soldier Type Trait"
-      }
-    ],
-    "training": [
-      "Basic",
-      "Infantry",
-      "ONI field procedures"
-    ],
-    "educations": [
-      "Military Command"
-    ],
-    "abilities": [
-      "Linguist"
-    ],
-    "traits": [
-      "Resistant"
-    ],
-    "equipmentPacks": [
-      {
-        "name": "ONI Infiltration Kit",
-        "description": "Light covert field loadout",
-        "items": [
-          "Suppressed SMG",
-          "Comms kit",
-          "Lock override tool"
-        ]
-      },
-      {
-        "name": "ONI Analyst Kit",
-        "description": "Technical and intel support loadout",
-        "items": [
-          "Data pad",
-          "Signal scanner",
-          "Backup sidearm"
-        ]
-      }
-    ],
-    "equipment": {
-      "credits": 100,
-      "primaryWeapon": "M6 Sidearm",
-      "secondaryWeapon": "Suppressed SMG",
-      "armorName": "Light Tactical Armor",
-      "utilityLoadout": "Comms kit, lock override tool",
-      "inventoryNotes": "Issued by ONI quartermaster"
-    }
-  }
+	{
+		"name": "UNSC or Insurrectionist Army Soldier",
+		"description": "Earth or beyond, we'll fight for the soil under our boots.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "Army Soldier",
+			"race": "Human",
+			"rank": "Trooper",
+			"upbringing": "Any"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"UNSC"
+		],
+		"creation": {
+			"xpCost": 1800
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 25,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"str": 5,
+			"wfr": 5,
+			"per": 5,
+			"crg": 10,
+			"tou": 0,
+			"agi": 0,
+			"wfm": 0,
+			"int": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"skillChoices": [
+			{
+				"count": 2,
+				"tier": "plus10",
+				"label": "Skills of choice",
+				"notes": "The character begins with 2 skills of their choosing at +10 at character creation.",
+				"source": "Skill Training"
+			}
+		],
+		"traits": [
+			"Squad Up (UNSC)"
+		],
+		"notes": "Insurrectionist option: if chosen, any item without the [I] tag costs 25% more. Insurrectionists gain all weapon and vehicle modifications at half cR price.",
+		"factionChoice": {
+			"enabled": true,
+			"prompt": "Choose this soldier's allegiance. UNSC is the default.",
+			"defaultKey": "unsc",
+			"choices": [
+				{
+					"key": "unsc",
+					"label": "UNSC (default)",
+					"faction": "United Nations Space Command",
+					"insurrectionist": false
+				},
+				{
+					"key": "insurrectionist",
+					"label": "Insurrectionist",
+					"faction": "Insurrection / United Rebel Front",
+					"insurrectionist": true,
+					"grantedTraits": [
+						"Insurrectionist"
+					]
+				}
+			]
+		},
+		"sync": {
+			"canonicalId": "soldierType:unsc-or-insurrectionist-army-soldier"
+		}
+	},
+	{
+		"name": "Colonial Militiaman",
+		"description": "We won't be getting reinforcements for another week. Too bad for them, that means this'll only be a fair fight for a short time.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "Militiaman",
+			"race": "Human",
+			"upbringing": "Any",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"UNSC"
+		],
+		"creation": {
+			"xpCost": 1400
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 25,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"str": 5,
+			"tou": 5,
+			"wfr": 5,
+			"agi": 0,
+			"wfm": 0,
+			"int": 0,
+			"per": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"skillChoices": [
+			{
+				"count": 2,
+				"tier": "plus10",
+				"label": "Skills of choice",
+				"notes": "The Militiaman begins with two skills of their choosing at +10 at character creation.",
+				"source": "Skill Training"
+			}
+		],
+		"traits": [
+			"Squad Up (UNSC)"
+		],
+		"notes": "Physical attributes: 130 centimeters (4'3 ft.) - 200 centimeters (6'6 ft.), 45 kilograms (100 lb.) - 117 kilograms (260 lb.). Insurrectionist option: if chosen, any item without the [I] tag costs 25% more. Insurrectionists gain all weapon and vehicle modifications at half cR price.",
+		"factionChoice": {
+			"enabled": true,
+			"prompt": "Choose this militiaman's allegiance. UNSC is the default.",
+			"defaultKey": "unsc",
+			"choices": [
+				{
+					"key": "unsc",
+					"label": "UNSC (default)",
+					"faction": "United Nations Space Command",
+					"insurrectionist": false
+				},
+				{
+					"key": "insurrectionist",
+					"label": "Insurrectionist",
+					"faction": "Insurrection / United Rebel Front",
+					"insurrectionist": true,
+					"grantedTraits": [
+						"Insurrectionist"
+					]
+				}
+			]
+		},
+		"sync": {
+			"canonicalId": "soldierType:colonial-militiaman"
+		}
+	},
+	{
+		"name": "UNSC or Insurrectionist Marine Soldier",
+		"description": "We're best of the best, and we'll prove it to anyone who disagrees.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "Marine Soldier",
+			"race": "Human",
+			"upbringing": "Any",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"UNSC"
+		],
+		"creation": {
+			"xpCost": 1800
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 25,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"str": 5,
+			"agi": 5,
+			"wfr": 10,
+			"per": 5,
+			"tou": 0,
+			"wfm": 0,
+			"int": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"skillChoices": [
+			{
+				"count": 4,
+				"tier": "trained",
+				"label": "Skills of choice",
+				"notes": "The Marine begins with four skills of their choosing at Trained at character creation.",
+				"source": "Skill Training"
+			}
+		],
+		"traits": [
+			"Squad Up (UNSC)"
+		],
+		"notes": "Physical attributes: 130 centimeters (4'3 ft.) - 200 centimeters (6'6 ft.), 45 kilograms (100 lb.) - 117 kilograms (260 lb.). Insurrectionist option: if chosen, any item without the [I] tag costs 25% more. Insurrectionists gain all weapon and vehicle modifications at half cR price.",
+		"factionChoice": {
+			"enabled": true,
+			"prompt": "Choose this marine's allegiance. UNSC is the default.",
+			"defaultKey": "unsc",
+			"choices": [
+				{
+					"key": "unsc",
+					"label": "UNSC (default)",
+					"faction": "United Nations Space Command",
+					"insurrectionist": false
+				},
+				{
+					"key": "insurrectionist",
+					"label": "Insurrectionist",
+					"faction": "Insurrection / United Rebel Front",
+					"insurrectionist": true,
+					"grantedTraits": [
+						"Insurrectionist"
+					]
+				}
+			]
+		},
+		"sync": {
+			"canonicalId": "soldierType:unsc-or-insurrectionist-marine-soldier"
+		}
+	},
+	{
+		"name": "UNSC or Insurrectionist Air Force Soldier",
+		"description": "Just remember, boys. We're the apex predators.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "Air Force Soldier",
+			"race": "Human",
+			"upbringing": "Any",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"UNSC"
+		],
+		"creation": {
+			"xpCost": 2000
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 25,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"agi": 10,
+			"wfr": 5,
+			"per": 10,
+			"str": 0,
+			"tou": 0,
+			"wfm": 0,
+			"int": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"skillChoices": [
+			{
+				"count": 3,
+				"tier": "trained",
+				"label": "Skills of choice",
+				"notes": "The Air Force Soldier begins with three skills of their choosing at Trained at character creation.",
+				"source": "Skill Training"
+			}
+		],
+		"traits": [
+			"Vehicle",
+			"Squad Up (UNSC)"
+		],
+		"notes": "Vehicle: The Air Force Soldier may purchase any UNSC Military Vehicle at one third its listed cR price; this vehicle is added to starting equipment and cannot be sold or traded. Between missions, the character may swap to another vehicle by paying one third of the new vehicle cost. The vehicle is considered the party's vehicle, not solely the Air Force pilot's. Physical attributes: 130 centimeters (4'3 ft.) - 200 centimeters (6'6 ft.), 45 kilograms (100 lb.) - 117 kilograms (260 lb.). Insurrectionist option: if chosen, any item without the [I] tag costs 25% more. Insurrectionists gain all weapon and vehicle modifications at half cR price.",
+		"ruleFlags": {
+			"airForceVehicleBenefit": true
+		},
+		"factionChoice": {
+			"enabled": true,
+			"prompt": "Choose this air force soldier's allegiance. UNSC is the default.",
+			"defaultKey": "unsc",
+			"choices": [
+				{
+					"key": "unsc",
+					"label": "UNSC (default)",
+					"faction": "United Nations Space Command",
+					"insurrectionist": false
+				},
+				{
+					"key": "insurrectionist",
+					"label": "Insurrectionist",
+					"faction": "Insurrection / United Rebel Front",
+					"insurrectionist": true,
+					"grantedTraits": [
+						"Insurrectionist"
+					]
+				}
+			]
+		},
+		"sync": {
+			"canonicalId": "soldierType:unsc-or-insurrectionist-air-force-soldier"
+		}
+	},
+	{
+		"name": "UNSC or Insurrectionist Navy Technician",
+		"description": "I can do it blindfolded, sir.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "Navy Technician",
+			"race": "Human",
+			"upbringing": "Any",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"UNSC"
+		],
+		"creation": {
+			"xpCost": 1550
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 25,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"per": 10,
+			"int": 10,
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"wfr": 0,
+			"wfm": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"skillChoices": [
+			{
+				"count": 3,
+				"tier": "trained",
+				"label": "Skills of choice",
+				"notes": "The Navy Technician begins with three Skills of their choosing at Trained at Character Creation.",
+				"source": "Skill Training"
+			}
+		],
+		"educationChoices": [
+			{
+				"count": 3,
+				"tier": "plus5",
+				"label": "Educations of choice",
+				"notes": "The Navy Technician begins with 3 +5 Educations at Character Creation.",
+				"source": "Educated"
+			}
+		],
+		"traits": [
+			"Squad Up (UNSC)"
+		],
+		"notes": "Physical attributes: 130 centimeters (4'3 ft.) - 200 centimeters (6'6 ft.), 45 kilograms (100 lb.) - 117 kilograms (260 lb.). Insurrectionist option: if chosen, any item without the [I] tag costs 25% more. Insurrectionists gain all weapon and vehicle modifications at half cR price.",
+		"factionChoice": {
+			"enabled": true,
+			"prompt": "Choose this navy technician's allegiance. UNSC is the default.",
+			"defaultKey": "unsc",
+			"choices": [
+				{
+					"key": "unsc",
+					"label": "UNSC (default)",
+					"faction": "United Nations Space Command",
+					"insurrectionist": false
+				},
+				{
+					"key": "insurrectionist",
+					"label": "Insurrectionist",
+					"faction": "Insurrection / United Rebel Front",
+					"insurrectionist": true,
+					"grantedTraits": [
+						"Insurrectionist"
+					]
+				}
+			]
+		},
+		"sync": {
+			"canonicalId": "soldierType:unsc-or-insurrectionist-navy-technician"
+		}
+	},
+	{
+		"name": "UNSC MARINE CORPS ORBITAL DROP SHOCK TROOPERS (ODST)",
+		"description": "Feet first into hell.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "ODST",
+			"race": "Human",
+			"upbringing": "Any",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"UNSC"
+		],
+		"creation": {
+			"xpCost": 2600
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 25,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"str": 5,
+			"tou": 5,
+			"agi": 5,
+			"wfr": 10,
+			"per": 5,
+			"crg": 5,
+			"wfm": 0,
+			"int": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"skillChoices": [
+			{
+				"count": 3,
+				"tier": "plus10",
+				"label": "Skills of choice",
+				"notes": "The ODST begins with three skills of their choosing at +10 at character creation.",
+				"source": "Skill Training"
+			}
+		],
+		"traits": [
+			"Squad Up (UNSC)"
+		],
+		"ruleFlags": {
+			"branchTransition": {
+				"enabled": true,
+				"advancementOnly": true,
+				"appliesInCharacterCreation": false,
+				"transitionGroup": "military-branch",
+				"fromSoldierTypes": [
+					"Civilian"
+				],
+				"notes": "Scaffold only: Becoming an ODST is deferred to Advancement flow; do not enforce during character creation."
+			}
+		},
+		"notes": "Character creation import intentionally ignores the 'Becoming an ODST' rules section for now. This will be handled later via Advancement flow. Physical attributes: 130 centimeters (4'3 ft.) - 200 centimeters (6'6 ft.), 45 kilograms (100 lb.) - 117 kilograms (260 lb.).",
+		"sync": {
+			"canonicalId": "soldierType:odst"
+		}
+	},
+	{
+		"name": "UNSC/ONI SECTION I OPERATIVE",
+		"description": "<\\ CLEARANCE: Classified [Level [redacted] and above]",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "ONI Section I Operative",
+			"race": "Human",
+			"upbringing": "Any",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"UNSC"
+		],
+		"creation": {
+			"xpCost": 2300
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 25,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"int": 5,
+			"per": 5,
+			"cha": 5,
+			"ldr": 10,
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"wfr": 0,
+			"wfm": 0,
+			"crg": 0
+		},
+		"traits": [
+			"Hidden",
+			"Rank (ONI Operative)",
+			"Support",
+			"Squad Up (UNSC)",
+			"Section I Extra Information"
+		],
+		"ruleFlags": {
+			"oniSectionOne": {
+				"requiresGmApproval": true,
+				"gmApprovalText": "This Soldier Type should only be taken with GM Approval. The GM is advised to treat it with caution, as revealing a Spy in the players ranks can lead to distrust and Dissension within the ranks.",
+				"rankScaffold": {
+					"enabled": true,
+					"startRank": "O-1",
+					"commandSpecializationAllowed": true,
+					"notes": "Scaffold only: rank mechanics are not automated yet."
+				},
+				"supportScaffold": {
+					"enabled": true,
+					"bonusPerAward": 1,
+					"grantAtCharacterCreation": true,
+					"regenerates": false,
+					"notes": "Scaffold only: apply +1 extra Support Point at character creation and mission rewards."
+				},
+				"unscSupportCostScaffold": {
+					"enabled": true,
+					"infantryMultiplier": 0.5,
+					"ordnanceMultiplier": 0.25,
+					"notes": "Scaffold only: ONI Section I discounted UNSC support costs."
+				}
+			}
+		},
+		"notes": "Approval is handled as a GM-approval prompt, not an applied trait item.",
+		"factionChoice": {
+			"enabled": true,
+			"prompt": "Choose this Section I Operative's affiliation. UNSC is default; ONI is available.",
+			"defaultKey": "unsc",
+			"choices": [
+				{
+					"key": "unsc",
+					"label": "UNSC (default)",
+					"faction": "United Nations Space Command",
+					"insurrectionist": false
+				},
+				{
+					"key": "oni",
+					"label": "ONI",
+					"faction": "Office of Naval Intelligence",
+					"insurrectionist": false
+				}
+			]
+		},
+		"sync": {
+			"canonicalId": "soldierType:unsc-oni-section-i-operative"
+		}
+	},
+	{
+		"name": "UNSC ORION PROJECT AUGMENTED SOLDIER (SPARTAN 1/1.1)",
+		"description": "You were the best of the best, and we made you better.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "ORION Soldier (Spartan 1/1.1)",
+			"race": "Human",
+			"upbringing": "Any",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"Advanced",
+			"UNSC"
+		],
+		"creation": {
+			"xpCost": 5800
+		},
+		"characteristics": {
+			"str": 35,
+			"tou": 40,
+			"agi": 35,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 40,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"wfm": 5,
+			"wfr": 10,
+			"per": 5,
+			"ldr": 5,
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"int": 0,
+			"crg": 0,
+			"cha": 0
+		},
+		"mythic": {
+			"str": 2,
+			"tou": 3,
+			"agi": 1
+		},
+		"skillChoices": [
+			{
+				"count": 6,
+				"tier": "trained",
+				"label": "Skills of choice",
+				"notes": "The ORION Soldier begins with six skills of their choosing at Trained at character creation.",
+				"source": "Skill Training"
+			}
+		],
+		"traits": [
+			"Resistant",
+			"Squad Up (UNSC)"
+		],
+		"ruleFlags": {
+			"orionAugmentation": {
+				"enabled": true,
+				"advancementOnly": true,
+				"appliesInCharacterCreation": false,
+				"transitionGroup": "augmentation-program",
+				"fromSoldierTypes": [
+					"Civilian",
+					"Army Soldier",
+					"Marine Soldier",
+					"Air Force Soldier",
+					"Navy Technician",
+					"Militiaman"
+				],
+				"notes": "Scaffold only: Becoming an ORION Soldier is deferred to Advancement flow; do not enforce during character creation. Automation for Resistant and ORION augmentation effects will be implemented later."
+			}
+		},
+		"notes": "Character creation import intentionally ignores the 'Becoming an ORION Soldier' rules section for now. This will be handled later via Advancement flow.",
+		"sync": {
+			"canonicalId": "soldierType:orion-spartan-1-1"
+		}
+	},
+	{
+		"name": "UNSC/ONI SPARTAN II AUGMENTED SOLDIER",
+		"description": "You have been called upon to serve, you will be trained... and you will become the best we can make of you. You will be the protectors of Earth and all her colonies.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "Spartan II",
+			"race": "Human",
+			"rank": "Petty Officer Second Class",
+			"upbringing": "Military",
+			"buildSize": "Large"
+		},
+		"heightRangeCm": {
+			"min": 193,
+			"max": 226
+		},
+		"weightRangeKg": {
+			"min": 172,
+			"max": 181
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"Heavy",
+			"Advanced",
+			"Launcher",
+			"Long Range",
+			"Ordnance",
+			"Cannon",
+			"Melee",
+			"UNSC",
+			"Covenant",
+			"Forerunner"
+		],
+		"creation": {
+			"xpCost": 11700
+		},
+		"characteristics": {
+			"str": 50,
+			"tou": 45,
+			"agi": 50,
+			"wfr": 40,
+			"wfm": 40,
+			"int": 25,
+			"per": 35,
+			"crg": 40,
+			"cha": 25,
+			"ldr": 30
+		},
+		"characteristicAdvancements": {
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"wfm": 0,
+			"wfr": 0,
+			"int": 0,
+			"per": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"mythic": {
+			"str": 5,
+			"tou": 4,
+			"agi": 3
+		},
+		"skillChoices": [
+			{
+				"count": 4,
+				"tier": "plus10",
+				"label": "Skills of choice",
+				"notes": "The Spartan gains four Skills at +10 at Character Creation.",
+				"source": "Skill Training"
+			}
+		],
+		"abilities": [
+			"Emotionally Broken"
+		],
+		"traits": [
+			"Rank (Spartan II)",
+			"Carbide Ceramic Ossification",
+			"Occipital Capillary Reversal",
+			"Superconducting Fibrication of Neural Dendrites",
+			"Carry Weight (Spartan II)",
+			"Squad Up (Spartan)"
+		],
+		"ruleFlags": {
+			"carryMultipliers": {
+				"str": 2,
+				"tou": 2
+			},
+			"requiredUpbringing": {
+				"enabled": true,
+				"upbringing": "Military",
+				"removeOtherUpbringings": true,
+				"notes": "Spartan IIs are required to take the Military Upbringing. Any existing non-Military upbringing is removed when this soldier type is applied."
+			},
+			"mjolnirArmorSelection": {
+				"enabled": true
+			},
+			"spartanCarryWeight": {
+				"enabled": true
+			}
+		},
+		"notes": "Weapons Expert: Full training in all weapon types and factions granted automatically. Broken: Emotionally Broken ability granted automatically; Fast Foot is not automated at this time. Augmented: Carbide Ceramic Ossification, Occipital Capillary Reversal, and Superconducting Fibrication of Neural Dendrites traits granted automatically. Mjolnir armor selection is prompted during character creation and filtered by campaign year.",
+		"factionChoice": {
+			"enabled": true,
+			"prompt": "Choose this Spartan's command affiliation.",
+			"defaultKey": "unsc",
+			"choices": [
+				{
+					"key": "unsc",
+					"label": "UNSC (default)",
+					"faction": "United Nations Space Command",
+					"insurrectionist": false
+				},
+				{
+					"key": "oni",
+					"label": "ONI",
+					"faction": "Office of Naval Intelligence",
+					"insurrectionist": false
+				}
+			]
+		},
+		"sync": {
+			"canonicalId": "soldierType:spartan-ii"
+		}
+	},
+	{
+		"name": "UNSC/ONI SPARTAN III AUGMENTED SOLDIER",
+		"description": "The UNSC's cost-effective Spartan initiative. Spartan IIIs are numerous, mission-focused supersoldiers with near-equivalent augmentation performance.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "Spartan III",
+			"race": "Human",
+			"rank": "Petty Officer Third Class",
+			"upbringing": "Military",
+			"buildSize": "Large"
+		},
+		"heightRangeCm": {
+			"min": 188,
+			"max": 224
+		},
+		"weightRangeKg": {
+			"min": 160,
+			"max": 182
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"Heavy",
+			"Advanced",
+			"Launcher",
+			"Long Range",
+			"Ordnance",
+			"Cannon",
+			"Melee",
+			"UNSC",
+			"Covenant",
+			"Forerunner"
+		],
+		"creation": {
+			"xpCost": 11450
+		},
+		"characteristics": {
+			"str": 45,
+			"tou": 45,
+			"agi": 50,
+			"wfr": 40,
+			"wfm": 40,
+			"int": 25,
+			"per": 30,
+			"crg": 40,
+			"cha": 20,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"wfm": 0,
+			"wfr": 0,
+			"int": 0,
+			"per": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"mythic": {
+			"str": 5,
+			"tou": 4,
+			"agi": 3
+		},
+		"skillChoices": [
+			{
+				"count": 4,
+				"tier": "plus10",
+				"label": "Skills of choice",
+				"notes": "The Spartan gains four Skills at +10 at Character Creation.",
+				"source": "Skill Training"
+			}
+		],
+		"abilities": [
+			"Fast Foot"
+		],
+		"traits": [
+			"Carbide Ceramic Ossification",
+			"Occipital Capillary Reversal",
+			"Superconducting Fibrication of Neural Dendrites",
+			"Carry Weight (Spartan II)",
+			"Squad Up (Spartan)"
+		],
+		"ruleFlags": {
+			"carryMultipliers": {
+				"str": 2,
+				"tou": 2
+			},
+			"allowedUpbringings": {
+				"enabled": true,
+				"upbringings": [
+					"Military",
+					"War-Orphan"
+				],
+				"removeOtherUpbringings": true,
+				"notes": "Spartan IIIs can use Military or War-Orphan upbringing only. Any other upbringing is removed when this soldier type is applied."
+			},
+			"mjolnirArmorSelection": {
+				"enabled": true
+			},
+			"spartanCarryWeight": {
+				"enabled": true
+			},
+			"gammaCompanyOption": {
+				"enabled": true,
+				"defaultSelected": false,
+				"prompt": "Enable optional Spartan III Gamma Company rules?",
+				"grantAbility": "Adrenaline Rush"
+			}
+		},
+		"notes": "Weapons Expert: Full weapon/faction training granted automatically. Fast Foot granted at character creation. Spartan II augmentation traits and Squad Up (Spartan) are granted automatically. Mjolnir armor selection is prompted during character creation and filtered by campaign year. Optional Gamma Company grants Adrenaline Rush and enables Smoother Drug usage tracking in Medical.",
+		"factionChoice": {
+			"enabled": true,
+			"prompt": "Choose this Spartan's command affiliation.",
+			"defaultKey": "unsc",
+			"choices": [
+				{
+					"key": "unsc",
+					"label": "UNSC (default)",
+					"faction": "United Nations Space Command",
+					"insurrectionist": false
+				},
+				{
+					"key": "oni",
+					"label": "ONI",
+					"faction": "Office of Naval Intelligence",
+					"insurrectionist": false
+				}
+			]
+		},
+		"sync": {
+			"canonicalId": "soldierType:spartan-iii"
+		}
+	},
+	{
+		"name": "UNSC SPARTAN IV AUGMENTED SOLDIER",
+		"description": "You are Spartans now. You stand side by side with your Spartan brothers and sisters.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "Spartan IV",
+			"race": "Human",
+			"rank": "Petty Officer Second Class",
+			"upbringing": "",
+			"buildSize": "Large"
+		},
+		"heightRangeCm": {
+			"min": 175,
+			"max": 226
+		},
+		"weightRangeKg": {
+			"min": 82,
+			"max": 181
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"Heavy",
+			"Advanced",
+			"Launcher",
+			"Long Range",
+			"Ordnance",
+			"Cannon",
+			"Melee",
+			"UNSC",
+			"Covenant",
+			"Forerunner"
+		],
+		"creation": {
+			"xpCost": 11200
+		},
+		"characteristics": {
+			"str": 45,
+			"tou": 45,
+			"agi": 40,
+			"wfr": 40,
+			"wfm": 35,
+			"int": 25,
+			"per": 35,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 35
+		},
+		"characteristicAdvancements": {
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"wfm": 0,
+			"wfr": 0,
+			"int": 0,
+			"per": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"mythic": {
+			"str": 5,
+			"tou": 4,
+			"agi": 3
+		},
+		"skillChoices": [
+			{
+				"count": 4,
+				"tier": "plus10",
+				"label": "Skills of choice",
+				"notes": "The Spartan gains four Skills at +10 at Character Creation.",
+				"source": "Skill Training"
+			}
+		],
+		"abilities": [
+			"Fast Foot"
+		],
+		"traits": [
+			"Carbide Ceramic Ossification",
+			"Occipital Capillary Reversal",
+			"Superconducting Fibrication of Neural Dendrites",
+			"Carry Weight (Spartan II)",
+			"Ordnance Ready",
+			"Squad Up (Spartan IV)"
+		],
+		"ruleFlags": {
+			"carryMultipliers": {
+				"str": 2,
+				"tou": 2
+			},
+			"mjolnirArmorSelection": {
+				"enabled": true
+			},
+			"spartanCarryWeight": {
+				"enabled": true
+			},
+			"ordinanceReady": {
+				"enabled": true,
+				"supportPointCost": 1,
+				"maxUsesPerEncounter": 1,
+				"notes": "Scaffold only for now; no automatic combat mechanic is applied yet."
+			}
+		},
+		"notes": "Weapons Expert: Full weapon/faction training granted automatically. Fast Foot granted at character creation. Spartan augmentation traits are granted automatically. Ordinance Ready is granted as a non-mechanical scaffold trait. Mjolnir armor selection is prompted during character creation and filtered by campaign year.",
+		"factionChoice": {
+			"enabled": false,
+			"prompt": "Choose this Spartan's command affiliation.",
+			"defaultKey": "unsc",
+			"choices": [
+				{
+					"key": "unsc",
+					"label": "UNSC (default)",
+					"faction": "United Nations Space Command",
+					"insurrectionist": false
+				},
+				{
+					"key": "oni",
+					"label": "ONI",
+					"faction": "Office of Naval Intelligence",
+					"insurrectionist": false
+				}
+			]
+		},
+		"sync": {
+			"canonicalId": "soldierType:spartan-iv"
+		}
+	},
+	{
+		"name": "UNSC SMART AI",
+		"description": "You're not just a soldier — you're a thinking weapon. Every battlefield calculation runs through you in microseconds.",
+		"header": {
+			"faction": "United Nations Space Command",
+			"soldierType": "Smart AI",
+			"race": "Human",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"UNSC"
+		],
+		"creation": {
+			"xpCost": 5050
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 40,
+			"wfm": 25,
+			"int": 50,
+			"per": 50,
+			"crg": 35,
+			"cha": 35,
+			"ldr": 35
+		},
+		"characteristicAdvancements": {
+			"int": 15,
+			"per": 15,
+			"ldr": 10,
+			"crg": 5,
+			"wfr": 5,
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"wfm": 0,
+			"cha": 0
+		},
+		"skillChoices": [
+			{
+				"count": 4,
+				"tier": "plus10",
+				"label": "Skills of choice",
+				"notes": "The Smart AI begins with 4 skills of their choosing at +10 at character creation.",
+				"source": "Cognitive Architecture"
+			}
+		],
+		"traits": [
+			"GM Approval",
+			"Stationed",
+			"No Specialization Pack",
+			"AI Combat",
+			"Language Matrix",
+			"Lifespan",
+			"Connectivity",
+			"Memory Reconstruction"
+		],
+		"abilities": [
+			"Shield Sapping",
+			"Acceleration",
+			"Reflex Assistance",
+			"Targeting",
+			"Spotting"
+		],
+		"ruleFlags": {
+			"smartAi": {
+				"enabled": true,
+				"coreIdentityLabel": "Cognitive Pattern",
+				"notes": "Smart AI bodyless restrictions and host/station requirements apply. No Specialization Pack is enforced — specialization selection is disabled for this soldier type."
+			}
+		},
+		"notes": "Smart AIs are non-corporeal intelligences operating through hardware interfaces and host platforms. They cannot select a Specialization Pack. Interface abilities refresh each encounter and are tracked with uses and cooldown.",
+		"sync": {
+			"canonicalId": "soldierType:unsc-smart-ai"
+		}
+	}
 ]

@@ -1,7 +1,7 @@
 [
     {
         "name":  "Approval",
-        "shortDescription":  "This Soldier Type should only be taken with GM Approval. The GM is advised to treat it with caution, as revealing a Spy in the players ranks can lead to distrust and Dissension",
+        "shortDescription":  "Requires GM approval. Use with care—revealing a Spy can damage party trust.",
         "benefit":  "This Soldier Type should only be taken with GM Approval. The GM is advised to treat it with caution, as revealing a Spy in the players ranks can lead to distrust and Dissension within the ranks.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -13,7 +13,7 @@
     },
     {
         "name":  "Armor Choice",
-        "shortDescription":  "Yonhet will take Kig-Yar and Human Armor when choosing Armor.",
+        "shortDescription":  "May choose Kig-Yar or Human Armor.",
         "benefit":  "Yonhet will take Kig-Yar and Human Armor when choosing Armor.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -25,7 +25,7 @@
     },
     {
         "name":  "Augmented",
-        "shortDescription":  "The Spartan gains all Spartan II Augmentation Traits at Character Creation.",
+        "shortDescription":  "Starts with all Spartan II Augmentation Traits.",
         "benefit":  "The Spartan gains all Spartan II Augmentation Traits at Character Creation.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -37,7 +37,7 @@
     },
     {
         "name":  "Auto-Translation",
-        "shortDescription":  "Soldiers have auto-translation devices that are built into them. This allows them to speak, write, and understand any Languages theyhave heard before.",
+        "shortDescription":  "Built-in translator; can speak, write, and understand any language heard before.",
         "benefit":  "Soldiers have auto-translation devices that are built into them. This allows them to speak, write, and understand any Languages theyhave heard before.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -49,7 +49,7 @@
     },
     {
         "name":  "Banished Armory",
-        "shortDescription":  "The Combat Trained Gasgira is no longer limited to what Armory they can purchase from and are no longer forced to pay triple the amount for the Banished and Covenant Armory.",
+        "shortDescription":  "Unrestricted armory access; no triple-price penalty for Banished or Covenant gear.",
         "benefit":  "The Combat Trained Gasgira is no longer limited to what Armory they can purchase from and are no longer forced to pay triple the amount for the Banished and Covenant Armory.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -61,7 +61,7 @@
     },
     {
         "name":  "BOND BROTHER",
-        "shortDescription":  "Mgalekgolo are commonly found in pairs. This gives two players the ability to become Bond Brother Mgalekgolo. At any point, a Bond Brother is incapacitated or killed, the other may",
+        "shortDescription":  "Paired with another Mgalekgolo player. If a Bond Brother is incapacitated or killed, the other may temporarily gain the Berserker Trait for 6 hours.",
         "benefit":  "Mgalekgolo are commonly found in pairs. This gives two players the ability to become Bond Brother Mgalekgolo. At any point, a Bond Brother is incapacitated or killed, the other may temporarily gain the Berserker Trait for 6 hours.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -73,7 +73,7 @@
     },
     {
         "name":  "Broken",
-        "shortDescription":  "The Spartan begins with the Emotionally Broken Ability and the Fast Foot Ability at Character Creation.",
+        "shortDescription":  "Starts with the Emotionally Broken and Fast Foot abilities.",
         "benefit":  "The Spartan begins with the Emotionally Broken Ability and the Fast Foot Ability at Character Creation.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -85,7 +85,7 @@
     },
     {
         "name":  "Brotherhood",
-        "shortDescription":  "Slugmen can have upto 4 Bond Brothers, instead of 2.",
+        "shortDescription":  "Can have up to 4 Bond Brothers instead of the normal 2.",
         "benefit":  "Slugmen can have upto 4 Bond Brothers, instead of 2.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -96,9 +96,57 @@
         "notes":  ""
     },
     {
+        "name":  "Carbide Ceramic Ossification",
+        "shortDescription":  "Bones cannot break under normal conditions; only extreme force (e.g., a Scarab stepping on a Spartan) can fracture them.",
+        "benefit":  "The Character cannot break any bones unless an absurd amount of force is used, such as a Scarab stepping onto a Spartan's leg. All Spartan IIs, IIIs, and IVs are given this Augmentation.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Carry Weight",
-        "shortDescription":  "The Spartan doubles their Strength and Toughness Characteristic when figuringCarryWeight.",
-        "benefit":  "The Spartan doubles their Strength and Toughness Characteristic when figuringCarryWeight.",
+        "shortDescription":  "Doubles STR and TOU when calculating carry weight.",
+        "benefit":  "The Spartan doubles their Strength and Toughness Characteristic when figuring Carry Weight.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Carry Weight (Spartan II)",
+        "shortDescription":  "Doubles STR and TOU when calculating carry weight.",
+        "benefit":  "The Spartan doubles their Strength and Toughness Characteristic when figuring Carry Weight.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Occipital Capillary Reversal",
+        "shortDescription":  "Heightened Perception; halves sight-based Darkness and Brightness Penalties.",
+        "benefit":  "This Augmentation gives the Spartan a heightened Perception and halves all Penalties to Darkness and Brightness sight-based Penalties. All Spartan IIs, IIIs, and IVs are given this Augmentation.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Superconducting Fibrication of Neural Dendrites",
+        "shortDescription":  "Reflexes heightened ~300%; grants Mythic Agility. First Evasion per Round does not impose a Penalty on the next Evasion.",
+        "benefit":  "This heightens the reflexes of a Spartan by upwards of 300% and gives the Spartan their Mythic Agility. Spartans have been known to have increased memory and creativity as a side-effect of this Augmentation. This Augmentation allows the Spartan's first Evasion taken in a Round to not give a Penalty to the next Evasion taken. All Spartan IIs, IIIs, and IVs are given this Augmentation.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -109,7 +157,7 @@
     },
     {
         "name":  "Charge Forward",
-        "shortDescription":  "Mgalekgolo add +3 to their Agility Modifier when discoveringCharge and Run Movement Distances.",
+        "shortDescription":  "+3 AGL Modifier when calculating Charge and Run movement distances.",
         "benefit":  "Mgalekgolo add +3 to their Agility Modifier when discoveringCharge and Run Movement Distances.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -122,7 +170,7 @@
     },
     {
         "name":  "Chemical Boosters",
-        "shortDescription":  "The Chemical Boosters built into the Prelate Armor gives the Character a +2 to each Mythic Characteristic for 5 Rounds. The Character may keep activating the Booster when it runs o",
+        "shortDescription":  "+2 to all Mythic Characteristics for 5 rounds; consecutive uses add +1 Fatigue unless a 10-round cooldown is observed.",
         "benefit":  "The Chemical Boosters built into the Prelate Armor gives the Character a +2 to each Mythic Characteristic for 5 Rounds. The Character may keep activating the Booster when it runs out, but each consecutive use will add +1 Fatigue. To avoid gaining the Fatigue, the Character must wait 1 minute (10 Rounds) before use.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -135,7 +183,7 @@
     },
     {
         "name":  "CLAWS",
-        "shortDescription":  "The Mgalekgolo have large claws on each arm. Due to this, they lack the dexterity needed for precision movement and delicate actions. When attempting to throw items, grab onto smal",
+        "shortDescription":  "-20 penalty to precision actions like throwing, grabbing small objects, or other delicate tasks.",
         "benefit":  "The Mgalekgolo have large claws on each arm. Due to this, they lack the dexterity needed for precision movement and delicate actions. When attempting to throw items, grab onto small objects, or any other action a GM would suggest being difficult, are given a -20 Penalty.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -148,7 +196,7 @@
     },
     {
         "name":  "Constraint Field",
-        "shortDescription":  "The Constraint Field allows the Cavalier to levitate and constrain Characters and objects. The Constraint Field can carry up to 600 KG of Weight and reach out 6 Meters. Characters",
+        "shortDescription":  "Levitate and restrain targets up to 600KG within 6m; constrained targets become Helpless. User limited to Half Move while active; 10 Full Action cooldown.",
         "benefit":  "The Constraint Field allows the Cavalier to levitate and constrain Characters and objects. The Constraint Field can carry up to 600 KG of Weight and reach out 6 Meters. Characters caught in the Constraint Field are considered as Helpless and can only take speech actions. The Cavalier can only make Half Move and Speech Actions while the Constraint Field is active, it takes 10 Full Actions to use again.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -160,7 +208,7 @@
     },
     {
         "name":  "Crawling",
-        "shortDescription":  "The Character begins with the Crawler Trait.",
+        "shortDescription":  "Begins with the Crawler Trait.",
         "benefit":  "The Character begins with the Crawler Trait.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -172,7 +220,7 @@
     },
     {
         "name":  "Crisis",
-        "shortDescription":  "In times of Crisis, the Policeman gains access to the time periods",
+        "shortDescription":  "Grants the Policeman access to special resources during a Crisis.",
         "benefit":  "In times of Crisis, the Policeman gains access to the time periods",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -184,7 +232,7 @@
     },
     {
         "name":  "Death And Wounds",
-        "shortDescription":  "Prometheans can only be healed by Watchers and Huragok, but Natural Healing is multiplied by 10. A Promethean that dies will be able to get a new body after 10 Rounds, with full Wo",
+        "shortDescription":  "Healed only by Watchers or Huragok; natural healing ×10. On death, respawns at full Wounds after 10 rounds (costs 1 Luck).",
         "benefit":  "Prometheans can only be healed by Watchers and Huragok, but Natural Healing is multiplied by 10. A Promethean that dies will be able to get a new body after 10 Rounds, with full Wounds. A point of Luck must still be Burnt.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -196,7 +244,7 @@
     },
     {
         "name":  "Death Slipspace Field",
-        "shortDescription":  "When the Cavalier is killed on or within 1,500 Meters a Forerunner structure, a Slipspace Field with a 3 Meter Radius opens. This Field teleports the damaged Cavalier back to a rep",
+        "shortDescription":  "On death within 1,500m of a Forerunner structure, a Slipspace Field teleports the Cavalier to a repair facility; returns in 5 rounds at full Wounds (costs 1 Luck).",
         "benefit":  "When the Cavalier is killed on or within 1,500 Meters a Forerunner structure, a Slipspace Field with a 3 Meter Radius opens. This Field teleports the damaged Cavalier back to a repair facility but will take any other Promethean material with. This includes the Prefect Mjolnir Armor and its wearer, alongside any Character that has Promethean or Forerunner-based Armor Abilities and Permutations. The Cavalier may return with a new body in 5 Rounds at full Wounds, but 1 point of Luck must be Burnt.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -208,7 +256,7 @@
     },
     {
         "name":  "Discount",
-        "shortDescription":  "Covenant Weapons and Equipment are at half the price for the SanShyuum.",
+        "shortDescription":  "Covenant weapons and equipment cost half price.",
         "benefit":  "Covenant Weapons and Equipment are at half the price for the SanShyuum.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -220,7 +268,7 @@
     },
     {
         "name":  "Dual",
-        "shortDescription":  "The Mgalekgolo takes no Penalties from Dual Wielding Weapons from their Equipment and do not need to Brace anyHeavyWeapons.",
+        "shortDescription":  "No dual-wielding penalties; Heavy Weapons don't require Bracing.",
         "benefit":  "The Mgalekgolo takes no Penalties from Dual Wielding Weapons from their Equipment and do not need to Brace anyHeavyWeapons.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -232,7 +280,7 @@
     },
     {
         "name":  "Educated",
-        "shortDescription":  "The Navy Technician begins with 3 +5 Educations at Character Creation.",
+        "shortDescription":  "Starts with 3 Educations at +5 each.",
         "benefit":  "The Navy Technician begins with 3 +5 Educations at Character Creation.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -245,7 +293,7 @@
     },
     {
         "name":  "Equipment",
-        "shortDescription":  "Yonhet gain 100 cR to create an Equipment Pack that can consist of any Armor, Weapons, and Equipment, regardless of type.",
+        "shortDescription":  "Gains 100 cR to build a starting Equipment Pack from any Armory type.",
         "benefit":  "Yonhet gain 100 cR to create an Equipment Pack that can consist of any Armor, Weapons, and Equipment, regardless of type.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -257,7 +305,7 @@
     },
     {
         "name":  "Equipment Pack",
-        "shortDescription":  "The Character selects an Equipment Pack.",
+        "shortDescription":  "Selects a starting Equipment Pack at creation.",
         "benefit":  "The Character selects an Equipment Pack.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -269,7 +317,7 @@
     },
     {
         "name":  "Eternal",
-        "shortDescription":  "The Cavalier, when commanding other Promethean Troops, automatically count as a Success with 0 Degrees of Success if the Test is failed. Any Promethean within 100 Meters can hear t",
+        "shortDescription":  "Auto-succeeds Promethean Leadership tests (0 DoS on failure); commands heard by all Prometheans within 100m without Social Tests.",
         "benefit":  "The Cavalier, when commanding other Promethean Troops, automatically count as a Success with 0 Degrees of Success if the Test is failed. Any Promethean within 100 Meters can hear the Cavaliers commands. This means the GM doesnt have to always roll any Social Tests with the Prometheans unless they are actively fighting against the Cavalier.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -281,7 +329,7 @@
     },
     {
         "name":  "Four Arms",
-        "shortDescription":  "The Huragok gains the Only Flight and Four Arms Traits at Character Creation.",
+        "shortDescription":  "Starts with the Only Flight and Four Arms Traits.",
         "benefit":  "The Huragok gains the Only Flight and Four Arms Traits at Character Creation.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -293,7 +341,7 @@
     },
     {
         "name":  "GESTALT ANATOMY",
-        "shortDescription":  "Each Mgalekgolo is formed of roughly 300 sentient Eels. Mgalekgolo are immune to the Headshot Special Rule and Special Damage. Mgalekgolo do not suffer from Hunger or Thirst for 3",
+        "shortDescription":  "Immune to headshots and special damage; no hunger or thirst for 3 months; no oxygen required; can collapse and reform as actions.",
         "benefit":  "Each Mgalekgolo is formed of roughly 300 sentient Eels. Mgalekgolo are immune to the Headshot Special Rule and Special Damage. Mgalekgolo do not suffer from Hunger or Thirst for 3 Months without eating or drinking. Mgalekgolo do not require Oxygen and can survive in a vacuum. Theyre able to collapse and reform, taking a Full Action to collapse and 2 Full Actions to rebuild.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -305,7 +353,7 @@
     },
     {
         "name":  "Glowing",
-        "shortDescription":  "Prometheans have an orange and yellow glow to their bodies, giving them a -20 Penalty to Camouflage Tests.",
+        "shortDescription":  "-20 penalty to Camouflage Tests due to an inherent orange and yellow glow.",
         "benefit":  "Prometheans have an orange and yellow glow to their bodies, giving them a -20 Penalty to Camouflage Tests.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -318,7 +366,7 @@
     },
     {
         "name":  "GM Approval",
-        "shortDescription":  "The UNSC Smart AI must have GM Approval before being used. A Smart AI is a powerful asset, and an incredibly expensive one at that.",
+        "shortDescription":  "Must have GM approval before use; a powerful and costly asset.",
         "benefit":  "The UNSC Smart AI must have GM Approval before being used. A Smart AI is a powerful asset, and an incredibly expensive one at that.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -330,7 +378,7 @@
     },
     {
         "name":  "Gravity Bomb",
-        "shortDescription":  "The Cavalier has access to Gravity Bombs, which are a Slipspace spheres of energy with EMP properties. These Gravity Bombs move at 15 Meters Per Turn and track a single chosen Oppo",
+        "shortDescription":  "Deploy a homing Slipspace energy sphere (Blast 5, EMP 20, 1d10+10 dmg, 60 Pierce, 15m/turn); 4 Full Action cooldown after detonation.",
         "benefit":  "The Cavalier has access to Gravity Bombs, which are a Slipspace spheres of energy with EMP properties. These Gravity Bombs move at 15 Meters Per Turn and track a single chosen Opponent. If the Bomb hits any non-Character or Vehicle surface, it dissipates. If it strikes a Character or Vehicle, it detonates in a Blast (5) Radius, with EMP (20) Special Rule. The Gravity Bomb deals 1D10 +10 Damage, with 60 Pierce. The Gravity Bomb will not attempt to make major course corrections around cover but will not stop following a Character until it makes a collision of any kind. Gravity Bomb has a cooldown of 4 Full Actions that only begins counting down after the active Gravity Bomb is done attacking. SHORTHAND EQUIPMENT Scattershot Hardlight Blade Splinter Grenade Cavalier Armor WEAPON TRAINING All Weapon Training SUPPRESSION EQUIPMENT Suppressor Boltshot Splinter Grenade Soldier Armor WEAPON TRAINING All Weapon Training COMMANDO EQUIPMENT Light Rifle Hardlight Blade Pulse Grenade Cavalier Armor WEAPON TRAINING All Weapon Training DEVASTATOR EQUIPMENT Hardlight Blade Hardlight Blade Splinter Grenade Cavalier Armor WEAPON TRAINING All Weapon Training",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -343,7 +391,7 @@
     },
     {
         "name":  "Hidden",
-        "shortDescription":  "The ONI Operative may choose to mask themselves as an Army, Marine, Air Force, or Navy Soldier. The Player and Character both do not have to tell other Players or Characters their",
+        "shortDescription":  "Disguise as Army/Marine/Air Force/Navy; not required to reveal ONI affiliation to other players or characters.",
         "benefit":  "The ONI Operative may choose to mask themselves as an Army, Marine, Air Force, or Navy Soldier. The Player and Character both do not have to tell other Players or Characters their motives or that they are an ONI Operative.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -355,7 +403,7 @@
     },
     {
         "name":  "High Support",
-        "shortDescription":  "The Prelate begins with 5 Support Points.",
+        "shortDescription":  "Starts with 5 Support Points.",
         "benefit":  "The Prelate begins with 5 Support Points.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -367,7 +415,7 @@
     },
     {
         "name":  "In Command",
-        "shortDescription":  "SanShyuum gain a +20 to Leadership when commanding Characters in the Covenant.",
+        "shortDescription":  "+20 to Leadership when commanding Covenant Characters.",
         "benefit":  "SanShyuum gain a +20 to Leadership when commanding Characters in the Covenant.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -380,7 +428,7 @@
     },
     {
         "name":  "Kig-Yar Armory",
-        "shortDescription":  "The Combat Trained Kig-Yar is not limited from what Armory they can purchase from and any purchases from other Armories is only 2x the listed price. However, Forerunner Armories ar",
+        "shortDescription":  "Unrestricted armory access; other armories at 2× price; Forerunner at 4× price (with GM permission).",
         "benefit":  "The Combat Trained Kig-Yar is not limited from what Armory they can purchase from and any purchases from other Armories is only 2x the listed price. However, Forerunner Armories are at 4x the price and only if the GM allows it.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -392,7 +440,7 @@
     },
     {
         "name":  "Kig-Yar Limited",
-        "shortDescription":  "Kig-Yar Civilians are allowed to purchase from the",
+        "shortDescription":  "Limited armory access; Kig-Yar Civilians may only purchase from approved sources.",
         "benefit":  "Kig-Yar Civilians are allowed to purchase from the",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -404,7 +452,7 @@
     },
     {
         "name":  "Law Degree",
-        "shortDescription":  "The Policeman begins with the Human Law +10 Education at Character Creation.",
+        "shortDescription":  "Starts with Human Law Education at +10.",
         "benefit":  "The Policeman begins with the Human Law +10 Education at Character Creation.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -417,7 +465,7 @@
     },
     {
         "name":  "Limitation",
-        "shortDescription":  "Police cant Purchase anything from the Covenant and Forerunner Armories. Anything purchased from the UNSC Armory is at double the Price, unless the weapon specifies otherwise.",
+        "shortDescription":  "Cannot buy from Covenant or Forerunner Armories; UNSC gear costs 2× price unless otherwise noted.",
         "benefit":  "Police cant Purchase anything from the Covenant and Forerunner Armories. Anything purchased from the UNSC Armory is at double the Price, unless the weapon specifies otherwise.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -429,7 +477,7 @@
     },
     {
         "name":  "Limited",
-        "shortDescription":  "Purchasing anything from Covenant or Forerunner Armories areimpossible. UNSC Weapons are at triple the price, while weapons with the Insurrectionist Tag [I] are at double the price",
+        "shortDescription":  "Cannot buy from Covenant or Forerunner Armories; UNSC weapons cost 3× price, [I]-tagged weapons cost 2× price.",
         "benefit":  "Purchasing anything from Covenant or Forerunner Armories areimpossible. UNSC Weapons are at triple the price, while weapons with the Insurrectionist Tag [I] are at double the price.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -440,8 +488,21 @@
         "notes":  ""
     },
     {
+        "name":  "Insurrectionist",
+        "shortDescription":  "Weapons without the [I] tag cost 25% more. Weapon and vehicle modifications cost half cR.",
+        "benefit":  "If a character is an Insurrectionist, any item without the [I] tag costs 25% more. Insurrectionists gain all weapon and vehicle modifications at half cR price.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "economy"
+                 ],
+        "sourcePage":  1,
+        "notes":  "Applied only when the Insurrectionist soldier-type faction option is chosen."
+    },
+    {
         "name":  "Limitless Computing",
-        "shortDescription":  "The Huragok has no limit on how many Educations they may learn.",
+        "shortDescription":  "No cap on the number of Educations that can be learned.",
         "benefit":  "The Huragok has no limit on how many Educations they may learn.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -453,7 +514,7 @@
     },
     {
         "name":  "Linguistic",
-        "shortDescription":  "The Huragok is able to learn all Languages at halfprice.",
+        "shortDescription":  "Learns all Languages at half price.",
         "benefit":  "The Huragok is able to learn all Languages at halfprice.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -465,7 +526,7 @@
     },
     {
         "name":  "Marketeer",
-        "shortDescription":  "Yonhet gain all [U] Universal tagged Equipment at half cost.",
+        "shortDescription":  "All [U] Universal-tagged equipment costs half price.",
         "benefit":  "Yonhet gain all [U] Universal tagged Equipment at half cost.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -477,7 +538,7 @@
     },
     {
         "name":  "Marksman",
-        "shortDescription":  "The Slugmen adds +20 to their Perception Characteristic when figuring Perceptive Range.",
+        "shortDescription":  "+20 PER when calculating Perceptive Range.",
         "benefit":  "The Slugmen adds +20 to their Perception Characteristic when figuring Perceptive Range.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -490,7 +551,7 @@
     },
     {
         "name":  "Micro-Arms",
-        "shortDescription":  "Promethean Knights have an extra set of small limbs, the size of a human childs arms. These arms can be used to bypass the Claws Trait Penalty, but only if whatever the Knight i",
+        "shortDescription":  "Small secondary limbs that bypass the Claws penalty for nearby tasks; cannot wield weapons or contribute to carry weight.",
         "benefit":  "Promethean Knights have an extra set of small limbs, the size of a human childs arms. These arms can be used to bypass the Claws Trait Penalty, but only if whatever the Knight is attempting to accomplish is in reach of these small arms. These Micro-Arms cant use or throw weapons and are not considered to have the Knights Mythic Strength or increase to Mythic Toughness and Strength when figuringCarryingWeights.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -502,7 +563,7 @@
     },
     {
         "name":  "Mythic Boosting",
-        "shortDescription":  "The Character may opt out of boosting all three Mythic Characteristic stats, and instead give one Characteristic a +10 for the same amount of time. The following Characteristics ca",
+        "shortDescription":  "Instead of boosting all three Mythic Characteristics, focus the boost on one (STR, TOU, AGL, PER, or CRG) for +10 for the same duration.",
         "benefit":  "The Character may opt out of boosting all three Mythic Characteristic stats, and instead give one Characteristic a +10 for the same amount of time. The following Characteristics can be boosted (only once at a time). STR, TOU, AGL, PER, CRG. HARDLIGHT GAUNTLET SHIELDING On one chosen arm of the Armor to hold a Hardlight Shield. This Shield protects the arm from damage as an Energy Shield. These take a Half Action to activate and a Free Action to deactivate. SHIELD INTEGRITY DELAY RECHARGE RATE 400 5 25",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -515,7 +576,7 @@
     },
     {
         "name":  "No Specialization Pack",
-        "shortDescription":  "The AI Soldier Type does not choose from the",
+        "shortDescription":  "Does not choose from a Specialization Pack.",
         "benefit":  "The AI Soldier Type does not choose from the",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -527,7 +588,7 @@
     },
     {
         "name":  "Ordnance Ready",
-        "shortDescription":  "The Spartan can call in Spartan Ordnance for only 1 Support Point.",
+        "shortDescription":  "Calling in Spartan Ordnance costs only 1 Support Point.",
         "benefit":  "The Spartan can call in Spartan Ordnance for only 1 Support Point.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -539,7 +600,7 @@
     },
     {
         "name":  "Pacifist",
-        "shortDescription":  "Huragok are passive by nature. When wanting to make an Attack during their Round, the Huragok must first pass a Courage Test. If failed, the Huragok is unable to go through with an",
+        "shortDescription":  "Must pass a Courage Test to make any attack; failure prevents all attacks for that round.",
         "benefit":  "Huragok are passive by nature. When wanting to make an Attack during their Round, the Huragok must first pass a Courage Test. If failed, the Huragok is unable to go through with any Attack for that Round.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -551,7 +612,7 @@
     },
     {
         "name":  "Point Defense",
-        "shortDescription":  "The Kig-Yar is able to choose from two types of Shield. A set of Wrist Point Defense Gauntlets, or the standard Point Defense Gauntlet. These can be interchanged between Missions.",
+        "shortDescription":  "Choose between Wrist Point Defense Gauntlets or a standard Point Defense Gauntlet; can swap between missions.",
         "benefit":  "The Kig-Yar is able to choose from two types of Shield. A set of Wrist Point Defense Gauntlets, or the standard Point Defense Gauntlet. These can be interchanged between Missions.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -563,7 +624,7 @@
     },
     {
         "name":  "Powered",
-        "shortDescription":  "The Prelate Powered Armor is a strong and lightweight armor that offers unique abilities to boosting the users capabilities at any given notice. The armor also gives a boost to",
+        "shortDescription":  "Prelate Powered Armor provides on-demand boosts to Characteristics and Mythic Characteristics.",
         "benefit":  "The Prelate Powered Armor is a strong and lightweight armor that offers unique abilities to boosting the users capabilities at any given notice. The armor also gives a boost to the Users Characteristics or Mythic Characteristics.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -575,7 +636,7 @@
     },
     {
         "name":  "Powerhouse",
-        "shortDescription":  "The Promethean Knight doubles their Strength and Toughness when figuring Carrying Weight. Knights do not take Penalties for Dual-Wielding weapons and cant drop them.",
+        "shortDescription":  "Doubles STR and TOU for carry weight; no dual-wielding penalties; can't drop wielded weapons.",
         "benefit":  "The Promethean Knight doubles their Strength and Toughness when figuring Carrying Weight. Knights do not take Penalties for Dual-Wielding weapons and cant drop them.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -587,7 +648,7 @@
     },
     {
         "name":  "Prepared",
-        "shortDescription":  "The Spartan begins with the Fast Foot Ability at Character Creation.",
+        "shortDescription":  "Starts with the Fast Foot ability.",
         "benefit":  "The Spartan begins with the Fast Foot Ability at Character Creation.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -599,7 +660,7 @@
     },
     {
         "name":  "Promethean Vision",
-        "shortDescription":  "The Soldier can see through 20 Meters of wall, floor, and any non-biological obstacle, to find biological forms. Promethean Vision can see any Character and Creature, including oth",
+        "shortDescription":  "See biological forms through up to 20m of non-biological obstacles; +30 to detect Active Camo users; lasts 4 Half Actions, recharges in 6.",
         "benefit":  "The Soldier can see through 20 Meters of wall, floor, and any non-biological obstacle, to find biological forms. Promethean Vision can see any Character and Creature, including other Prometheans. Promethean Vision also gives the Character +30 to finding Characters cloaked using Active Camouflage. Promethean Vision lasts for 4 Half Actions and must recharge for 6 Half Actions.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -612,7 +673,7 @@
     },
     {
         "name":  "Prophetic",
-        "shortDescription":  "The Prelate can purchase the Cleric and Prophetic advancements found in the SanShyuum Soldier Type.",
+        "shortDescription":  "Can purchase Cleric and Prophetic advancements from the SanShyuum Soldier Type.",
         "benefit":  "The Prelate can purchase the Cleric and Prophetic advancements found in the SanShyuum Soldier Type.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -624,7 +685,7 @@
     },
     {
         "name":  "Protect And Serve",
-        "shortDescription":  "When around Civilians in distress or in danger, Policemen gain a +20 Bonus in Courage.",
+        "shortDescription":  "+20 Courage bonus when Civilians nearby are in distress or danger.",
         "benefit":  "When around Civilians in distress or in danger, Policemen gain a +20 Bonus in Courage.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -636,9 +697,9 @@
         "notes":  ""
     },
     {
-        "name":  "Rank",
-        "shortDescription":  "The ONI Operative begin at Rank O-1 and can take the Command",
-        "benefit":  "The ONI Operative begin at Rank O-1 and can take the Command",
+        "name":  "Rank (ONI Operative)",
+        "shortDescription":  "Begins at Rank O-1 and may take Command advancements.",
+        "benefit":  "The ONI Operative begins at Rank O-1 and can take the Command Specialization.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -649,8 +710,44 @@
         "notes":  ""
     },
     {
+        "name":  "Rank (Spartan II)",
+        "shortDescription":  "Begins at the rank of Petty Officer Second Class.",
+        "benefit":  "The Spartan begins at a rank of Petty Officer Second Class. Scaffold only: rank progression mechanics are not yet automated.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Support",
+        "shortDescription":  "Gain +1 extra Support Point at character creation and after each mission; this extra point does not regenerate after use.",
+        "benefit":  "The ONI Operative gains an extra Support Point at Character Creation and after each Mission. This does not regenerate after use.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Section I Extra Information",
+        "shortDescription":  "Section I intelligence privileges: false evacuations (1 SP), intel interception/replacement, and discounted UNSC infantry support/ordnance.",
+        "benefit":  "Description: ONI Section I is the Intelligence-Gathering branch of ONI. SEC I Operatives are the codebreakers and espionage of the UNSC, relying on covering up and retrieving important intel. Evacuate: SEC I Operatives have the option to call in evacuations of urban and colonial locations. Using one Support Point, they may call in a falsified Evacuation of any location. If the evacuation is legitimate for civilian survival, it is free. Espionage: The SEC I Operative has the ability to remove any and all intel sent to the party before any other Character or Player has a chance to see it. They may also replace it with their own falsified documents. Provision: SEC I Operators have the ability to call in Army, Marine, Navy, and Air Force Infantry Support at half the cost. They also are able to call in Ordnance at 1/4th the original cost.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Resistant",
-        "shortDescription":  "ORION Soldiers gain a +20 Bonus to Toughness Tests when resisting Flood Spores and Infection Forms.",
+        "shortDescription":  "+20 TOU when resisting Flood Spores and Infection Forms.",
         "benefit":  "ORION Soldiers gain a +20 Bonus to Toughness Tests when resisting Flood Spores and Infection Forms.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -663,7 +760,7 @@
     },
     {
         "name":  "Rigid",
-        "shortDescription":  "The Character gains the Built Tough Trait at Character Creation.",
+        "shortDescription":  "Starts with the Built Tough Trait.",
         "benefit":  "The Character gains the Built Tough Trait at Character Creation.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -675,7 +772,7 @@
     },
     {
         "name":  "Silver Tongue",
-        "shortDescription":  "Yonhet can sell back scavenged Weapons, Vehicles, and Equipment by 1/3 rd of the price, instead of 1/4 th. Damaged Equipment can be sold back at 1/8 th of theprice, instead of 1/10",
+        "shortDescription":  "Sell undamaged scavenged gear at 1/3 price instead of 1/4; sell damaged gear at 1/8 instead of 1/10.",
         "benefit":  "Yonhet can sell back scavenged Weapons, Vehicles, and Equipment by 1/3 rd of the price, instead of 1/4 th. Damaged Equipment can be sold back at 1/8 th of theprice, instead of 1/10th.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -687,7 +784,7 @@
     },
     {
         "name":  "Skill Training",
-        "shortDescription":  "The Character begins with 2 Skills of their choosing at +10 at Character Creation.",
+        "shortDescription":  "Starts with 2 skills of choice at +10.",
         "benefit":  "The Character begins with 2 Skills of their choosing at +10 at Character Creation.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -700,7 +797,7 @@
     },
     {
         "name":  "Skilled",
-        "shortDescription":  "The Trained Gasgira gains two Skills of their choosing at +10.",
+        "shortDescription":  "Starts with 2 skills of choice at +10.",
         "benefit":  "The Trained Gasgira gains two Skills of their choosing at +10.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -713,7 +810,7 @@
     },
     {
         "name":  "Slave",
-        "shortDescription":  "If with the Covenant factions, a Huragok must take the Huragok Explosive Armor. Else, the Huragok may take the Huragok Armor, instead. ENGINEER Engineers gain the Techno-Organic Tr",
+        "shortDescription":  "Covenant Huragok must wear Explosive Armor; non-Covenant Huragok may use standard Huragok Armor instead.",
         "benefit":  "If with the Covenant factions, a Huragok must take the Huragok Explosive Armor. Else, the Huragok may take the Huragok Armor, instead. ENGINEER Engineers gain the Techno-Organic Trait at Character Creation. This gives the Huragok the Ability to interface with all electronics and equipment as if they had the tools to do so. The Engineer also acts as if it were a computer when interfacing with electronics and take no Penalties for Difficulty. All technology-based Tests with Equipment are at a +10. LIFEWORKER Lifeworkers gain the Bio-Organic Trait at Character Creation. This gives the Huragok the Ability to connect with organic material, such as bodies, plant life, and so on. The Lifeworker counts as having any Medical Tools needed, except for Medication. Performing surgeries or any medical Tests are also at a +10 Bonus, and the Lifeworker takes no Penalties for alien biology. For every Degree of Success on a Medical Test made when attempting to Heal, the Lifeworker is able to heal 1 extra Wound and remove 1 Fatigue. OVERSHIELD PROJECTION Huragok are able to project an Energy Shield onto several allies, equal to their Perception Modifier, and up to 8 Meters away. They also are always counted as being protected by their own Shield. Two or more Huragok Shieldscantstack. When depleted, these Shields must recharge normally per Character under effect. Huragok may also project their Shields onto one single vehicle and its pilot, instead of other Characters. Switching what is protected by the Overshield takes one Half Action and the Shield Integrity begins at 0 and must Recharge, without the Delay. SHIELD INTEGRITY DELAY RECHARGE RATE 50 3 10 EQUIPMENT Huragok Explosive Armor CARRYING WEIGHT All Huragok have a Carry Weight of 1,000 Kilograms. LEG AND ARM BODY LOCATIONS When a Huragok is struck in the Leg Body Location, the Attack should be considered striking the HuragoksGas Bladders that keep them afloat. When a Huragok is struck in the Arm Body Location, the Attack should be considered strikingthe Huragoks tentacles. INFUSION HURAGOK",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -726,7 +823,7 @@
     },
     {
         "name":  "Slow",
-        "shortDescription":  "Due to the Mgalekgolos size and weight, all Melee Attacks are considered to have the Slow Special Rule, reducing the total number of Melee Attacks the Character can make by half",
+        "shortDescription":  "All melee attacks gain the Slow Special Rule, halving the total number of melee attacks per round.",
         "benefit":  "Due to the Mgalekgolos size and weight, all Melee Attacks are considered to have the Slow Special Rule, reducing the total number of Melee Attacks the Character can make by half.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -738,7 +835,7 @@
     },
     {
         "name":  "Slow and Oversized",
-        "shortDescription":  "Due to the Goliaths size and weight, all Melee Attacks are considered to have the Slow Special Rule, reducing the total number of Melee Attacks the Character can make by half. E",
+        "shortDescription":  "All melee attacks gain the Slow Special Rule, halving the total number of melee attacks per round.",
         "benefit":  "Due to the Goliaths size and weight, all Melee Attacks are considered to have the Slow Special Rule, reducing the total number of Melee Attacks the Character can make by half. EXTREMOPHILE ANATOMY",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -749,8 +846,8 @@
         "notes":  ""
     },
     {
-        "name":  "Squad Up",
-        "shortDescription":  "When with others from the Army, Marine, Air Force, Navy, ORION, ODST, Militiaman, and Spartan IV Soldier Types; these Characters gain a +5 Bonus to Courage Tests. The Characters al",
+        "name":  "Squad Up (UNSC)",
+        "shortDescription":  "+5 Courage and +10 to WFR/WFM during Combined Actions when alongside Army, Marine, Air Force, Navy, ORION, ODST, Militiaman, or Spartan IV types.",
         "benefit":  "When with others from the Army, Marine, Air Force, Navy, ORION, ODST, Militiaman, and Spartan IV Soldier Types; these Characters gain a +5 Bonus to Courage Tests. The Characters also gain a +10 Bonus to Warfare Melee and Warfare Range Tests when taking Combined Actions.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -762,8 +859,34 @@
         "notes":  ""
     },
     {
+        "name":  "Squad Up (Spartan)",
+        "shortDescription":  "+45 Courage and +10 to WFR/WFM during Combined Actions when alongside Spartan II, Spartan III, or Spartan IV types.",
+        "benefit":  "When with others from Spartan II, Spartan III, and Spartan IV Soldier Types; these Characters gain a +45 Bonus to Courage Tests. The Characters also gain a +10 Bonus to Warfare Melee and Warfare Range Tests when taking Combined Actions.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Squad Up (Spartan IV)",
+        "shortDescription":  "+5 Courage and +10 to WFR/WFM during Combined Actions when alongside UNSC types.",
+        "benefit":  "When with all UNSC Soldier Types; these Characters gain a +5 Bonus to Courage Tests. The Characters also gain a +10 Bonus to Warfare Melee and Warfare Range Tests when taking Combined Actions.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Stationed",
-        "shortDescription":  "An AI needs a Station to be operable, such as a computer system or even advanced armors like Mjolnir.",
+        "shortDescription":  "Requires a host system—computer network or advanced armor (e.g., Mjolnir)—to operate.",
         "benefit":  "An AI needs a Station to be operable, such as a computer system or even advanced armors like Mjolnir.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -775,7 +898,7 @@
     },
     {
         "name":  "TECHNOLOGICAL HUNTER",
-        "shortDescription":  "Mgalekgolo have the ability to see active technology through disturbances in the air, including magnetic fields, radio waves, and electromagnetic pulses. Mgalekgolo can see up to h",
+        "shortDescription":  "Sense active technology via electromagnetic disturbances up to half Perceptive Range away; detect through walls up to PER Modifier in meters (Full Action concentration required).",
         "benefit":  "Mgalekgolo have the ability to see active technology through disturbances in the air, including magnetic fields, radio waves, and electromagnetic pulses. Mgalekgolo can see up to half their Perceptive Range in Meters to see active technology within their normal eyesight. The Mgalekgolo may also sense technology through walls, debris, etc. up to their Perception Modifier in Meters. This works similar to thermal vision but take a Full Action of concentration to do. A Huntercantdiscern what the Technology is from this Ability andcantfind technology that is turned off or smaller than a common cellphone.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -787,7 +910,7 @@
     },
     {
         "name":  "Technosense",
-        "shortDescription":  "Huragok are able to sense any form of technology when it is within their Perceptive Range. They are not able to tell what the technology is.",
+        "shortDescription":  "Passively detects any active technology within Perceptive Range; cannot identify the technology.",
         "benefit":  "Huragok are able to sense any form of technology when it is within their Perceptive Range. They are not able to tell what the technology is.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -799,7 +922,7 @@
     },
     {
         "name":  "Tough",
-        "shortDescription":  "Mgalekgolo double their Toughness Modifier when figuring Wounds, before adding their Mythic Toughness.",
+        "shortDescription":  "Doubles TOU Modifier when calculating starting Wounds.",
         "benefit":  "Mgalekgolo double their Toughness Modifier when figuring Wounds, before adding their Mythic Toughness.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -811,7 +934,7 @@
     },
     {
         "name":  "Trader",
-        "shortDescription":  "Yonhet are able to buy and sell from the Human Armory at no extra cost. LIMITATIONS Yonhet Characters cant begin as Combat Trained unless approved by the GM. Yonhet are almost a",
+        "shortDescription":  "Buy and sell Human Armory items at no extra cost.",
         "benefit":  "Yonhet are able to buy and sell from the Human Armory at no extra cost. LIMITATIONS Yonhet Characters cant begin as Combat Trained unless approved by the GM. Yonhet are almost always traders, smugglers, and politicians.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -823,7 +946,7 @@
     },
     {
         "name":  "Trained",
-        "shortDescription":  "The Prelate gains two Skills of their choosing at +10.",
+        "shortDescription":  "Starts with 2 skills of choice at +10.",
         "benefit":  "The Prelate gains two Skills of their choosing at +10.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -836,7 +959,7 @@
     },
     {
         "name":  "Training",
-        "shortDescription":  "The Character gains two Skills of their choosing at +10.",
+        "shortDescription":  "Starts with 2 skills of choice at +10.",
         "benefit":  "The Character gains two Skills of their choosing at +10.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -849,7 +972,7 @@
     },
     {
         "name":  "Translocation",
-        "shortDescription":  "Prometheans can teleport towards a chosen location. The Soldier is able to move up to their Run Movement Speed in Meters with each use of the Translocation Ability. This takes a Fu",
+        "shortDescription":  "Teleport up to Run speed in meters (Full Action); carry up to 400KG. Charge multiple Full Actions to multiply the range.",
         "benefit":  "Prometheans can teleport towards a chosen location. The Soldier is able to move up to their Run Movement Speed in Meters with each use of the Translocation Ability. This takes a Full Action to do. The Soldier may choose to Teleport up to 400KG with them, including other Characters and multiple pieces of Equipment. The Soldier may charge their Translocation Ability. The amount of Full Actions used to Charge is the multiplier to the distance able to be traveled. So, a Soldier Charging for 3 Full Actions will be able to Translocate up to their Run Movement Speed, multiplied by 3.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -861,7 +984,7 @@
     },
     {
         "name":  "Unrestrained",
-        "shortDescription":  "Kig-Yar are not constrained to Covenant law allowing them to use Human weapons.",
+        "shortDescription":  "Not bound by Covenant law; may freely use Human weapons.",
         "benefit":  "Kig-Yar are not constrained to Covenant law allowing them to use Human weapons.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -873,7 +996,7 @@
     },
     {
         "name":  "Vehicle",
-        "shortDescription":  "The Air Force Soldier is able to purchase any UNSC Military Vehicle at 1/3 rd its listed cR price. This Vehicle is added to the Characters Starting Equipment and cantbe sold",
+        "shortDescription":  "Buy any UNSC Military Vehicle at 1/3 price as starting equipment; swap between missions at 1/3 cost; vehicle replenishes and repairs between missions.",
         "benefit":  "The Air Force Soldier is able to purchase any UNSC Military Vehicle at 1/3 rd its listed cR price. This Vehicle is added to the Characters Starting Equipment and cantbe sold or traded in. Between Missions, the Character may swap their current starting equipment vehicle for another, but no refund is given and they must pay a third of the cost for the new vehicle. This Vehicle replenishes and is repaired between Missions. The vehicle is considered the Partys vehicle, it does not only belong to the Air Force Pilot.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -885,7 +1008,7 @@
     },
     {
         "name":  "VEHICLE USE",
-        "shortDescription":  "Mgalekgolo are able to pilot and Hijack in their Collapsed Form as two Full Actions. To Hijack a vehicle, the Vehicle must be going slow enough to allow the majority of the Eels to",
+        "shortDescription":  "Can pilot and Hijack vehicles from Collapsed Form (2 Full Actions); Hijack requires the vehicle to be moving slowly and winning an Opposed AGL Test.",
         "benefit":  "Mgalekgolo are able to pilot and Hijack in their Collapsed Form as two Full Actions. To Hijack a vehicle, the Vehicle must be going slow enough to allow the majority of the Eels to board. The Eels are able to slip into small sections to bypass the Hijacking rules. They must fight for control against the active pilot, where an Opposed Agility Test gains control for the Round. HUNTER EQUIPMENT RULES The Mgalekgolo maychoose two of the Weapons listed below. Epleam - Beam Assault Cannon Eplast- Blast Assault Cannon Ratent - HeavyMetal Shield Mgalinsu- Assault Cannon MGALEKGOLO ARMOR Mgalekgolo Armor CARRYING WEIGHT The Character has a Carry Weight of 5,000 Kilograms, unaffected by Armor weight. LEKGOLO PHENOME CULTURE CHOICE Mgalekgolo is the standard, but the GM may allow for the Player to choose one of the following Phenome Cultures. A Bond Brother must share the same Culture Choice. DIPHOLEKGOLO STR TOU AGI WFR WFM INT PER CRG CHA LDR -- -- -- -- -- -- +15 -- -- -- -5 -- -- MYTHIC CHARACTERISTICS The Dipholekgolo are able to use their full Perceptive Range to see active technology. RHULOLEKGOLO STR TOU AGI WFR WFM INT PER CRG CHA LDR -- -- -- -- -- -- -- -- -- -- -4 -- +4 MYTHIC CHARACTERISTICS SBAOLEKGOLO STR TOU AGI WFR WFM INT PER CRG CHA LDR +10 -- -10 -- -- -- -- -- -- -- +1 -- -1 MYTHIC CHARACTERISTICS Sbaolekgolo are 1 Size Category larger. THANOLEKGOLO STR TOU AGI WFR WFM INT PER CRG CHA LDR +5 +5 -5 -- +5 -10 -5 -- -10 -- +5 +1 -- MYTHIC CHARACTERISTICS 78",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -898,7 +1021,7 @@
     },
     {
         "name":  "VISR",
-        "shortDescription":  "Has a built-in visor system that acts as VISR. PRELATE ARMOR VALUES HEAD ARMS CHEST LEGS 23 25 26 25 ARMOR ENERGY SHIELDS SHIELD INTEGRITY DELAY RECHARGE RATE 150 4 50 MYTHIC CHARA",
+        "shortDescription":  "Built-in VISR visor system integrated into the Prelate Armor.",
         "benefit":  "Has a built-in visor system that acts as VISR. PRELATE ARMOR VALUES HEAD ARMS CHEST LEGS 23 25 26 25 ARMOR ENERGY SHIELDS SHIELD INTEGRITY DELAY RECHARGE RATE 150 4 50 MYTHIC CHARACTERISTICS STR TOU AGI +3 +2 +2 CHEMICAL BOOSTERS",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -911,7 +1034,7 @@
     },
     {
         "name":  "Weapons Expert",
-        "shortDescription":  "The Spartan begins with all Faction and Weapon Training options at Character Creation.",
+        "shortDescription":  "Starts with all Faction and Weapon Training options.",
         "benefit":  "The Spartan begins with all Faction and Weapon Training options at Character Creation.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -923,7 +1046,7 @@
     },
     {
         "name":  "Work Life",
-        "shortDescription":  "At Character Creation, the Huragok has two choices, to be an Engineer or a Lifeworker. This cant be changed.",
+        "shortDescription":  "Choose Engineer or Lifeworker at creation; this choice is permanent.",
         "benefit":  "At Character Creation, the Huragok has two choices, to be an Engineer or a Lifeworker. This cant be changed.",
         "category":  "soldier-type",
         "grantOnly":  true,

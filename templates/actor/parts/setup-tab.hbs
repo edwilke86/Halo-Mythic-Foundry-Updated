@@ -16,6 +16,27 @@
         <h3>Sheet Behavior</h3>
         <p class="mythic-sheet-behavior-note">Biography portrait or token preview selection is remembered automatically per actor.</p>
       </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Carry Weight Formula</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field">
+            <span>Multipliers</span>
+            <div class="mythic-carry-multiplier-pair">
+              <div class="mythic-carry-multiplier-cell">
+                <input type="number" min="0" step="0.1" name="system.mythic.soldierTypeStrCarryMultiplier" value="{{mythicSystem.mythic.soldierTypeStrCarryMultiplier}}" readonly />
+                <small>STR</small>
+              </div>
+              <div class="mythic-carry-multiplier-cell">
+                <input type="number" min="0" step="0.1" name="system.mythic.soldierTypeTouCarryMultiplier" value="{{mythicSystem.mythic.soldierTypeTouCarryMultiplier}}" readonly />
+                <small>TOU</small>
+              </div>
+            </div>
+          </div>
+          <div class="mythic-mini-field"><span>Misc Carry Bonus</span><input type="number" step="0.1" name="system.mythic.miscCarryBonus" value="{{mythicSystem.mythic.miscCarryBonus}}" /></div>
+        </div>
+        <p class="ccadv-note">Base carry uses: ((STR/2 + 10*Mythic STR) * Soldier Type STR Multiplier + (TOU/2 + 10*Mythic TOU) * Soldier Type TOU Multiplier) + Misc Carry Bonus.</p>
+      </div>
     </div>
   </section>
 </div>

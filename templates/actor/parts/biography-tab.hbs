@@ -22,8 +22,29 @@
         </div>
 
         <div class="bio-fields">
-          <div class="bio-row"><label>Height</label><input type="text" name="system.biography.physical.height" value="{{mythicBiography.physical.height}}" /></div>
-          <div class="bio-row"><label>Weight</label><input type="text" name="system.biography.physical.weight" value="{{mythicBiography.physical.weight}}" /></div>
+          <div class="bio-height-weight-pair">
+            <div class="bio-row bio-row-multi">
+              <label>Height</label>
+              <input type="number" min="0" step="1" name="system.biography.physical.heightCm" value="{{mythicBiography.physical.heightCm}}" />
+              <span class="bio-inline-unit">cm</span>
+              <input type="text" name="system.biography.physical.heightImperial" value="{{mythicBiography.physical.heightImperial}}" placeholder="5' 6\"" />
+              <span class="bio-inline-unit">ft</span>
+            </div>
+            <button
+              type="button"
+              class="action-btn bio-randomize-build"
+              title="Randomize height and weight by selecting a Body Type."
+            >
+              <i class="fas fa-dice-d20"></i>
+            </button>
+            <div class="bio-row bio-row-multi">
+              <label>Weight</label>
+              <input type="number" min="0" step="0.1" name="system.biography.physical.weightKg" value="{{mythicBiography.physical.weightKg}}" />
+              <span class="bio-inline-unit">kg</span>
+              <input type="number" min="0" step="0.1" name="system.biography.physical.weightLbs" value="{{mythicBiography.physical.weightLbs}}" />
+              <span class="bio-inline-unit">lbs</span>
+            </div>
+          </div>
           <div class="bio-row"><label>Age</label><input type="text" name="system.biography.physical.age" value="{{mythicBiography.physical.age}}" /></div>
           <div class="bio-row"><label>Gender</label><input type="text" name="system.biography.physical.gender" value="{{mythicBiography.physical.gender}}" /></div>
           <div class="bio-row"><label>Hair</label><input type="text" name="system.biography.physical.hair" value="{{mythicBiography.physical.hair}}" /></div>

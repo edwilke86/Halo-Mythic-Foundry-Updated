@@ -141,6 +141,20 @@
   overflow-y: auto;
 }
 
+.mythic-soldier-type-sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.mythic-soldier-type-sheet .ability-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
 /* Edit-mode info rows */
 .mythic-upbringing-item-sheet .item-info-block,
 .mythic-environment-item-sheet .item-info-block,
@@ -943,6 +957,49 @@
   border-color: rgba(140, 190, 255, 0.45);
   background: rgba(38, 66, 106, 0.55);
   cursor: default;
+}
+
+.mythic-character-sheet .mythic-header-core-identity-row {
+  align-items: stretch;
+}
+
+.mythic-character-sheet .mythic-core-identity-block {
+  border: 1px solid rgba(137, 212, 255, 0.5);
+  background: linear-gradient(120deg, rgba(16, 40, 72, 0.95), rgba(23, 78, 122, 0.72));
+  min-height: 28px;
+  border-radius: 4px;
+  padding: 3px 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.mythic-character-sheet .mythic-core-identity-title {
+  font-family: Orbitron, sans-serif;
+  font-size: 11px;
+  line-height: 1.1;
+  color: #e7f8ff;
+  letter-spacing: 0.04em;
+}
+
+.mythic-character-sheet .mythic-core-identity-meta {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 10px;
+  color: rgba(219, 244, 255, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mythic-character-sheet .mythic-core-identity-status {
+  border: 1px solid rgba(163, 233, 255, 0.5);
+  border-radius: 999px;
+  padding: 0 6px;
+  background: rgba(36, 129, 163, 0.3);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .mythic-character-sheet .mythic-header-center {
@@ -2025,6 +2082,32 @@
   font-family: 'Saira Semi Condensed', sans-serif;
 }
 
+.mythic-character-sheet .mythic-carry-multiplier-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.mythic-character-sheet .mythic-carry-multiplier-cell {
+  display: grid;
+  grid-template-rows: 30px 14px;
+}
+
+.mythic-character-sheet .mythic-carry-multiplier-cell > input[type="number"] {
+  height: 30px;
+  margin: 0;
+  text-align: center;
+}
+
+.mythic-character-sheet .mythic-carry-multiplier-cell > small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
 .mythic-character-sheet .mythic-combat-subtitle {
   margin-bottom: 2px;
   font-size: 12px;
@@ -2429,13 +2512,13 @@
   gap: 0;
 }
 
-/* 5-column grid: Name | Cost | Action | Description | Delete */
+/* 6-column grid: Name | Cost | Action | Description | Activation | Delete */
 .mythic-character-sheet .mythic-ability-col-headers,
 .mythic-character-sheet .mythic-ability-row {
   display: grid;
-  grid-template-columns: minmax(190px, 2.2fr) 66px 76px minmax(140px, 2.4fr) 28px;
+  grid-template-columns: minmax(180px, 2fr) 66px 76px minmax(140px, 1.6fr) minmax(140px, 2.2fr) 28px;
   gap: 4px;
-  align-items: center;
+  align-items: start;
   padding: 3px 4px;
 }
 
@@ -2486,8 +2569,9 @@
 
 .mythic-character-sheet .ability-name-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
+  min-width: 0;
 }
 
 .mythic-character-sheet .ability-open-btn {
@@ -2498,6 +2582,13 @@
   font-size: 11px;
   letter-spacing: 0.02em;
   padding: 2px 4px;
+  min-width: 0;
+  height: auto;
+  min-height: 24px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.2;
 }
 
 .mythic-character-sheet .ability-post-btn {
@@ -2505,6 +2596,7 @@
   height: 24px;
   min-width: 24px;
   padding: 0;
+  align-self: flex-start;
 }
 
 .mythic-character-sheet .ability-col-summary {
@@ -2522,6 +2614,28 @@
   text-align: center;
   font-family: 'Saira Semi Condensed', sans-serif;
   font-size: 12px;
+}
+
+.mythic-character-sheet .ability-col-activation {
+  display: grid;
+  gap: 2px;
+  justify-items: stretch;
+}
+
+.mythic-character-sheet .ability-activate-btn,
+.mythic-character-sheet .ability-cooldown-btn {
+  min-height: 22px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+
+.mythic-character-sheet .ability-activation-status {
+  text-align: center;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 10px;
+  color: rgba(232, 242, 255, 0.82);
+  line-height: 1.2;
 }
 
 .mythic-character-sheet .ability-col-description {
@@ -2580,7 +2694,7 @@
   display: grid;
   grid-template-columns: minmax(190px, 2fr) 100px 90px minmax(140px, 2.4fr) 28px;
   gap: 4px;
-  align-items: center;
+  align-items: start;
   padding: 3px 4px;
 }
 
@@ -2991,6 +3105,43 @@
   grid-template-columns: 130px minmax(0, 1fr);
   gap: 6px;
   align-items: center;
+}
+
+.mythic-character-sheet .bio-height-weight-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  grid-template-rows: auto auto;
+  column-gap: 6px;
+  row-gap: 6px;
+}
+
+.mythic-character-sheet .bio-height-weight-pair > .bio-row {
+  grid-column: 1;
+}
+
+.mythic-character-sheet .bio-randomize-build {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 34px;
+  min-width: 34px;
+  height: 100%;
+  min-height: 62px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+}
+
+.mythic-character-sheet .bio-row.bio-row-multi {
+  grid-template-columns: 130px minmax(66px, 0.55fr) 28px minmax(82px, 0.75fr) 32px;
+}
+
+.mythic-character-sheet .bio-inline-unit {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 11px;
+  color: rgba(230, 238, 255, 0.9);
+  text-transform: lowercase;
 }
 
 .mythic-character-sheet .bio-row .file-picker {
@@ -3922,38 +4073,68 @@
 }
 
 .mythic-character-sheet .movement-label.movement-label-half {
-  background: #0d5f28 !important;
-  color: #f4fff6 !important;
-  border-color: #5be38a !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  background: #1f3552 !important;
+  color: #dce8ff !important;
+  border-color: rgba(156, 191, 233, 0.55) !important;
 }
 
 .mythic-character-sheet .movement-label.movement-label-full {
-  background: #124d8c !important;
-  color: #f3f9ff !important;
-  border-color: #66b8ff !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  background: #1f3552 !important;
+  color: #dce8ff !important;
+  border-color: rgba(156, 191, 233, 0.55) !important;
 }
 
 .mythic-character-sheet .movement-label.movement-label-charge {
-  background: #8c6a00 !important;
-  color: #fffbea !important;
-  border-color: #ffe266 !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  background: #1f3552 !important;
+  color: #dce8ff !important;
+  border-color: rgba(156, 191, 233, 0.55) !important;
 }
 
 .mythic-character-sheet .movement-label.movement-label-run {
-  background: #9a4d00 !important;
-  color: #fff7ef !important;
-  border-color: #ffaf5e !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  background: #1f3552 !important;
+  color: #dce8ff !important;
+  border-color: rgba(156, 191, 233, 0.55) !important;
 }
 
 .mythic-character-sheet .movement-label.movement-label-sprint {
-  background: #8f1b16 !important;
-  color: #fff3f2 !important;
-  border-color: #ff7d73 !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  background: #1f3552 !important;
+  color: #dce8ff !important;
+  border-color: rgba(156, 191, 233, 0.55) !important;
+}
+
+.mythic-character-sheet .movement-label.movement-label-half::after,
+.mythic-character-sheet .movement-label.movement-label-full::after,
+.mythic-character-sheet .movement-label.movement-label-charge::after,
+.mythic-character-sheet .movement-label.movement-label-run::after,
+.mythic-character-sheet .movement-label.movement-label-sprint::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-left: 5px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
+}
+
+.mythic-character-sheet .movement-label.movement-label-half::after {
+  background: #1fa34a;
+}
+
+.mythic-character-sheet .movement-label.movement-label-full::after {
+  background: #1b6fd1;
+}
+
+.mythic-character-sheet .movement-label.movement-label-charge::after {
+  background: #b38f00;
+}
+
+.mythic-character-sheet .movement-label.movement-label-run::after {
+  background: #c65a00;
+}
+
+.mythic-character-sheet .movement-label.movement-label-sprint::after {
+  background: #c62828;
 }
 
 /* ── Characteristics Builder ────────────────────────────────────────────── */
@@ -4452,6 +4633,97 @@
   display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.2fr) minmax(200px, 1fr);
   gap: 8px;
+}
+
+.mythic-character-sheet .ccadv-training-compact-card {
+  display: grid;
+  gap: 8px;
+}
+
+.mythic-character-sheet .ccadv-training-lock-note {
+  margin: 0;
+}
+
+.mythic-character-sheet .ccadv-training-compact-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mythic-character-sheet .ccadv-training-compact-group {
+  display: grid;
+  gap: 6px;
+  background: rgba(10, 16, 28, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.mythic-character-sheet .ccadv-training-compact-group h4 {
+  margin: 0;
+}
+
+.mythic-character-sheet .ccadv-training-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mythic-character-sheet .ccadv-training-compact-grid.faction {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mythic-character-sheet .ccadv-training-compact-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 3px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mythic-character-sheet .ccadv-training-compact-option input[type="checkbox"] {
+  margin: 0;
+}
+
+.mythic-character-sheet .ccadv-training-compact-label {
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.mythic-character-sheet .ccadv-training-compact-tag {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  padding: 1px 6px;
+  opacity: 0.8;
+}
+
+.mythic-character-sheet .ccadv-training-compact-option.is-locked {
+  opacity: 0.58;
+  filter: grayscale(0.35);
+}
+
+@media (max-width: 1100px) {
+  .mythic-character-sheet .ccadv-training-compact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .mythic-character-sheet .ccadv-training-compact-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-sheet .ccadv-training-compact-grid,
+  .mythic-character-sheet .ccadv-training-compact-grid.faction {
+    grid-template-columns: 1fr;
+  }
 }
 
 .mythic-character-sheet .ccadv-outliers-list,

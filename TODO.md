@@ -125,6 +125,10 @@ Character Creation ordered flow (single-page staged process):
   - add button to open Soldier Type compendium
   - select/apply Soldier Type in-flow (not by sheet drop as primary UX)
   - enforce that Soldier Type has XP cost and is included in spend/remaining display
+- [ ] P1 Refine Height/Weight Randomizer:
+  - include gender as an input factor for height/weight generation
+  - keep results believable for selected body type and allowed soldier-type ranges
+  - tune low-mass outcomes (e.g., Compact/Light) to avoid implausible weights
 - [ ] P0 Upbringing + Environment + Lifestyle stage
 - [ ] P0 Characteristics Builder stage:
   - retain managed builder workflow
@@ -223,6 +227,7 @@ Prerequisite foundation tasks (before final Soldier Type implementation):
 - [ ] P0 Add Squad Up bonus model and automation hooks
 - [ ] P0 Add Characteristic Advancement auto-apply rules for creation flow
 - [ ] P0 Add Equipment Pack / Kit model with per-Soldier-Type selectable starting kits
+- [ ] P1 Add Insurrectionist purchase logic: when actor has the Insurrectionist flag, apply +25% cost to items without the [I] tag during purchasing/CR workflows
 
 Implementation note:
 

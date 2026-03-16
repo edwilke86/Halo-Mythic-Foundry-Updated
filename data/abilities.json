@@ -1324,5 +1324,105 @@
     "repeatable": false,
     "tags": [],
     "sourcePage": 97
+  },
+  {
+    "name": "Shield Sapping",
+    "cost": 0,
+    "prerequisiteText": "Smart AI soldier type",
+    "shortDescription": "The AI interfaces directly with shielded targets to drain and suppress energy shields, reducing their effectiveness for the current encounter.",
+    "benefit": "As a Half Action, the Smart AI selects one shielded target within Connectivity range. That target's shields are reduced by the AI's INT Bonus × 10 until fully recharged. The target cannot begin recharging shields until they have not been hit for 2 Rounds instead of 1. This ability may be used once per encounter.",
+    "category": "soldier-type",
+    "actionType": "half",
+    "frequency": "1 per encounter",
+    "repeatable": false,
+    "tags": ["soldier-type"],
+    "sourcePage": 0,
+    "activation": {
+      "enabled": true,
+      "maxUsesPerEncounter": 1,
+      "usesSpent": 0,
+      "cooldownTurns": 1,
+      "cooldownRemaining": 0
+    }
+  },
+  {
+    "name": "Acceleration",
+    "cost": 0,
+    "prerequisiteText": "Smart AI soldier type",
+    "shortDescription": "The AI overclocks its host platform's reflexes, granting a burst of enhanced speed as a Reaction to an incoming threat.",
+    "benefit": "As a Reaction, the Smart AI boosts its host or bonded platform's movement by +2m and grants +10 to the next Dodge or Evasion test made this Round. This ability may be used once per encounter.",
+    "category": "soldier-type",
+    "actionType": "reaction",
+    "frequency": "1 per encounter",
+    "repeatable": false,
+    "tags": ["soldier-type"],
+    "sourcePage": 0,
+    "activation": {
+      "enabled": true,
+      "maxUsesPerEncounter": 1,
+      "usesSpent": 0,
+      "cooldownTurns": 1,
+      "cooldownRemaining": 0
+    }
+  },
+  {
+    "name": "Reflex Assistance",
+    "cost": 0,
+    "prerequisiteText": "Smart AI soldier type",
+    "shortDescription": "The AI feeds real-time targeting corrections to its bonded soldier as a Reaction, improving an attack roll made this Round.",
+    "benefit": "As a Reaction, the Smart AI provides targeting assistance to one allied Character within Connectivity range. That Character gains +15 to their next Weapon Skill or Weapon Familiarity (Ranged) test this Round. This ability may be used once per encounter.",
+    "category": "soldier-type",
+    "actionType": "reaction",
+    "frequency": "1 per encounter",
+    "repeatable": false,
+    "tags": ["soldier-type"],
+    "sourcePage": 0,
+    "activation": {
+      "enabled": true,
+      "maxUsesPerEncounter": 1,
+      "usesSpent": 0,
+      "cooldownTurns": 1,
+      "cooldownRemaining": 0
+    }
+  },
+  {
+    "name": "Targeting",
+    "cost": 0,
+    "prerequisiteText": "Smart AI soldier type",
+    "shortDescription": "The AI locks on to a high-priority target and calculates optimal firing solutions, allowing allies to gain Aimed bonuses without spending an action.",
+    "benefit": "As a Free Action, the Smart AI designates one visible enemy as a Priority Target. Allied Characters within Connectivity range who attack that enemy this Round may treat their attack as if they spent a Half Action Aiming. This ability may be used once per encounter.",
+    "category": "soldier-type",
+    "actionType": "free",
+    "frequency": "1 per encounter",
+    "repeatable": false,
+    "tags": ["soldier-type"],
+    "sourcePage": 0,
+    "activation": {
+      "enabled": true,
+      "maxUsesPerEncounter": 1,
+      "usesSpent": 0,
+      "cooldownTurns": 1,
+      "cooldownRemaining": 0
+    }
+  },
+  {
+    "name": "Spotting",
+    "cost": 0,
+    "prerequisiteText": "Smart AI soldier type",
+    "shortDescription": "The AI performs rapid electronic and optical scanning to identify hidden enemies and relay their positions to the squad.",
+    "benefit": "As a Free Action, the Smart AI scans the area. Any hidden or concealed enemies within Connectivity range must immediately make an Opposed Stealth vs. the AI's Perception test. Enemies who fail are revealed to all allied Characters for 1 Round. This ability may be used once per encounter.",
+    "category": "soldier-type",
+    "actionType": "free",
+    "frequency": "1 per encounter",
+    "repeatable": false,
+    "tags": ["soldier-type"],
+    "sourcePage": 0,
+    "activation": {
+      "enabled": true,
+      "maxUsesPerEncounter": 1,
+      "usesSpent": 0,
+      "cooldownTurns": 1,
+      "cooldownRemaining": 0
+    }
   }
 ]

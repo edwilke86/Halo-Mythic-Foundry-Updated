@@ -29,6 +29,9 @@
               <i class="fas fa-book"></i> +
             </button>
             <p class="ccadv-note">Open the Soldier Types compendium and apply the selected Soldier Type during creation.</p>
+            {{#if mythicSoldierTypeScaffold.orionAugmentation.enabled}}
+              <p class="ccadv-note"><strong>Orion Scaffold:</strong> {{#if mythicSoldierTypeScaffold.orionAugmentation.notes}}{{mythicSoldierTypeScaffold.orionAugmentation.notes}}{{else}}Becoming an ORION Soldier is scaffolded for Advancement flow and not enforced yet.{{/if}}</p>
+            {{/if}}
           </div>
         </div>
       </details>
@@ -55,6 +58,11 @@
                 <button type="button" class="action-btn compendium-icon-btn creation-open-upbringings-btn" title="Open Upbringings compendium"><i class="fas fa-book"></i> +</button>
                 <button type="button" class="action-btn creation-clear-btn" data-kind="upbringing">Clear</button>
               </div>
+              {{#if mythicAdvancements.creationPath.upbringingRestrictionLabel}}
+                <div class="creation-path-meta">
+                  <span class="creation-path-pill warning">{{mythicAdvancements.creationPath.upbringingRestrictionLabel}}</span>
+                </div>
+              {{/if}}
               {{#if mythicAdvancements.creationPath.upbringingChoicePills.length}}
                 <div class="creation-path-meta">
                   {{#each mythicAdvancements.creationPath.upbringingChoicePills}}
@@ -148,6 +156,9 @@
               </select>
             </label>
             <button type="button" class="action-btn specialization-confirm-btn" {{#unless mythicSpecialization.canChange}}disabled{{/unless}}>Confirm Specialization</button>
+            {{#if mythicSpecialization.isBlockedBySoldierType}}
+              <p class="ccadv-note"><strong>Unavailable:</strong> {{mythicSpecialization.blockedReason}}</p>
+            {{/if}}
             {{#if mythicSpecialization.confirmed}}
               <p class="mythic-specialization-final-note">Finalized. Only a GM can change this selection.</p>
             {{/if}}
@@ -215,7 +226,10 @@
               {{#if mythicOutliers.purchased.length}}
                 <ul>
                   {{#each mythicOutliers.purchased as |entry|}}
-                    <li>#{{entry.index}} {{entry.name}}{{#if entry.choiceLabel}} ({{entry.choiceLabel}}){{/if}}</li>
+                    <li>
+                      #{{entry.index}} {{entry.name}}{{#if entry.choiceLabel}} ({{entry.choiceLabel}}){{/if}}
+                      <button type="button" class="action-btn outlier-remove-btn" data-outlier-index="{{entry.listIndex}}">Remove</button>
+                    </li>
                   {{/each}}
                 </ul>
               {{else}}
@@ -269,7 +283,47 @@
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-training" open>
         <summary>6. Faction and Weapon Training</summary>
-        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Faction and weapon training purchases will live here.</p></div>
+        <div class="mythic-phase4-card full-width ccadv-training-compact-card">
+          <p class="ccadv-note">Auto-granted Soldier Type trainings are locked. All other options can be selected now; XP purchasing rules will be enforced later.</p>
+
+          {{#if mythicTraining.lockSummary.hasLocks}}
+            <p class="ccadv-note ccadv-training-lock-note">Locked by Soldier Type <strong>{{mythicTraining.lockSummary.sourceLabel}}</strong>: {{mythicTraining.lockSummary.weaponCount}} weapon, {{mythicTraining.lockSummary.factionCount}} faction.</p>
+          {{/if}}
+
+          <div class="ccadv-training-compact-columns">
+            <div class="ccadv-training-compact-group">
+              <h4>Weapon Training</h4>
+              <div class="ccadv-training-compact-grid">
+                {{#each mythicTraining.weaponCategories as |entry|}}
+                  <label class="ccadv-training-compact-option{{#if entry.lockedBySoldierType}} is-locked{{/if}}" title="{{entry.weaponTypesText}}">
+                    <input type="hidden" name="system.training.weapon.{{entry.key}}" value="{{#if entry.lockedBySoldierType}}true{{else}}false{{/if}}" />
+                    <input type="checkbox" name="system.training.weapon.{{entry.key}}" value="true" {{checked entry.checked}} {{#if entry.lockedBySoldierType}}disabled{{/if}} />
+                    <span class="ccadv-training-compact-label">{{entry.label}}</span>
+                    {{#if entry.lockedBySoldierType}}
+                      <span class="ccadv-training-compact-tag">Auto</span>
+                    {{/if}}
+                  </label>
+                {{/each}}
+              </div>
+            </div>
+
+            <div class="ccadv-training-compact-group">
+              <h4>Faction Training</h4>
+              <div class="ccadv-training-compact-grid faction">
+                {{#each mythicTraining.factionCategories as |entry|}}
+                  <label class="ccadv-training-compact-option{{#if entry.lockedBySoldierType}} is-locked{{/if}}" title="{{entry.coverage}}">
+                    <input type="hidden" name="system.training.faction.{{entry.key}}" value="{{#if entry.lockedBySoldierType}}true{{else}}false{{/if}}" />
+                    <input type="checkbox" name="system.training.faction.{{entry.key}}" value="true" {{checked entry.checked}} {{#if entry.lockedBySoldierType}}disabled{{/if}} />
+                    <span class="ccadv-training-compact-label">{{entry.label}}</span>
+                    {{#if entry.lockedBySoldierType}}
+                      <span class="ccadv-training-compact-tag">Auto</span>
+                    {{/if}}
+                  </label>
+                {{/each}}
+              </div>
+            </div>
+          </div>
+        </div>
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-characteristics" open>

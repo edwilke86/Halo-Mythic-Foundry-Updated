@@ -1210,6 +1210,62 @@
 		}
 	},
 	{
+		"name": "Human Civilian",
+		"description": "I'm not sitting by and watching my world, and everything in it, go to hell.",
+		"header": {
+			"faction": "Civilian",
+			"soldierType": "Civilian",
+			"race": "Human",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [],
+		"creation": {
+			"xpCost": 0
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 25,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"wfr": 0,
+			"wfm": 0,
+			"int": 0,
+			"per": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"skillChoices": [],
+		"traits": [
+			"Limited",
+			"Educated (Civilian)",
+			"Squad Up (Civilian)"
+		],
+		"notes": "Civilians have two choices for their Specialization Pack: spend 1,800 XP to build their own Specialization Pack of their choice, or wait and join a Military branch and gain a Specialization Pack worth 2,100 XP. If the Civilian built their own Specialization Pack, they cannot take a Military branch Specialization Pack later.",
+		"sync": {
+			"canonicalId": "soldierType:human-civilian"
+		}
+	},
+	{
 		"name": "United Earth Government Police Force",
 		"description": "When the going gets tough, we'll get tougher.",
 		"header": {

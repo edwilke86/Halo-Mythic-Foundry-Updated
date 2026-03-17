@@ -292,6 +292,19 @@
         "notes":  ""
     },
     {
+        "name":  "Educated (Civilian)",
+        "shortDescription":  "May begin with up to 2 Educations at half their Experience Cost.",
+        "benefit":  "The Civilian may begin with up to 2 Educations at half their Experience Cost.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Equipment",
         "shortDescription":  "Gains 100 cR to build a starting Equipment Pack from any Armory type.",
         "benefit":  "Yonhet gain 100 cR to create an Equipment Pack that can consist of any Armor, Weapons, and Equipment, regardless of type.",
@@ -841,6 +854,19 @@
         "grantOnly":  true,
         "tags":  [
                      "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Squad Up (Civilian)",
+        "shortDescription":  "+5 Courage when alongside other Civilian types.",
+        "benefit":  "When with other Civilians, the Civilian gains a +5 Bonus to Courage Tests.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
                  ],
         "sourcePage":  1,
         "notes":  ""

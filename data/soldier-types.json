@@ -1208,5 +1208,84 @@
 		"sync": {
 			"canonicalId": "soldierType:unsc-smart-ai"
 		}
+	},
+	{
+		"name": "United Earth Government Police Force",
+		"description": "When the going gets tough, we'll get tougher.",
+		"header": {
+			"faction": "United Earth Government",
+			"soldierType": "Police Officer",
+			"race": "Human",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 130,
+			"max": 200
+		},
+		"weightRangeKg": {
+			"min": 45,
+			"max": 117
+		},
+		"training": [
+			"Basic",
+			"Infantry"
+		],
+		"creation": {
+			"xpCost": 1050
+		},
+		"characteristics": {
+			"str": 25,
+			"tou": 25,
+			"agi": 25,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 25,
+			"per": 25,
+			"crg": 25,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"wfr": 5,
+			"ldr": 5,
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"wfm": 0,
+			"int": 0,
+			"per": 0,
+			"crg": 0,
+			"cha": 0
+		},
+		"skillChoices": [
+			{
+				"count": 1,
+				"tier": "plus10",
+				"label": "Skill of choice",
+				"notes": "The Policeman begins with one Skill of their choosing at +10 at Character Creation.",
+				"source": "Skill Training"
+			}
+		],
+		"educationGrants": [
+			{
+				"name": "Human Law",
+				"variant": "Human",
+				"tier": "plus10",
+				"notes": "The Policeman begins with the Human Law +10 Education at Character Creation.",
+				"source": "Law Degree"
+			}
+		],
+		"traits": [
+			"Skill Training",
+			"Law Degree",
+			"Limitation",
+			"Protect And Serve",
+			"Crisis",
+			"Squad Up (Police)"
+		],
+		"notes": "Police Officers serve the United Earth Government, enforcing law and order across human-controlled space. They are limited in their access to military hardware — UNSC weaponry costs double unless otherwise specified, and Covenant and Forerunner armories are entirely off-limits.",
+		"sync": {
+			"canonicalId": "soldierType:ueg-police-force"
+		}
 	}
 ]

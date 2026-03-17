@@ -846,6 +846,19 @@
         "notes":  ""
     },
     {
+        "name":  "Squad Up (Police)",
+        "shortDescription":  "+5 Courage and +10 to WFR/WFM during Combined Actions when alongside other Police Force members.",
+        "benefit":  "When with others from the United Earth Government Police Force; these Characters gain a +5 Bonus to Courage Tests. The Characters also gain a +10 Bonus to Warfare Melee and Warfare Range Tests when taking Combined Actions.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Squad Up (UNSC)",
         "shortDescription":  "+5 Courage and +10 to WFR/WFM during Combined Actions when alongside Army, Marine, Air Force, Navy, ORION, ODST, Militiaman, or Spartan IV types.",
         "benefit":  "When with others from the Army, Marine, Air Force, Navy, ORION, ODST, Militiaman, and Spartan IV Soldier Types; these Characters gain a +5 Bonus to Courage Tests. The Characters also gain a +10 Bonus to Warfare Melee and Warfare Range Tests when taking Combined Actions.",

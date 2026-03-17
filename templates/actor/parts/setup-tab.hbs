@@ -17,6 +17,17 @@
         <p class="mythic-sheet-behavior-note">Biography portrait or token preview selection is remembered automatically per actor.</p>
       </div>
 
+      {{#if mythicSpecialization.isSmartAi}}
+      <div class="mythic-phase4-card">
+        <h3>Smart AI</h3>
+        <p class="ccadv-note">Regenerate this Smart AI's Cognitive Pattern based on their current skill training.</p>
+        {{#if mythicSpecialization.cognitivePattern}}
+          <p class="ccadv-note">Current: <strong>{{mythicSpecialization.cognitivePattern}}</strong></p>
+        {{/if}}
+        <button type="button" class="action-btn mythic-cognitive-reroll-btn">Reroll Cognitive Pattern</button>
+      </div>
+      {{/if}}
+
       <div class="mythic-phase4-card">
         <h3>Carry Weight Formula</h3>
         <div class="mythic-phase4-field-grid compact">

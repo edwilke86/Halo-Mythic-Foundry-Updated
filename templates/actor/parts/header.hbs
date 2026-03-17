@@ -17,21 +17,10 @@
           </select>
         {{/if}}
       </div>
-      {{#if mythicHeader.smartAi.enabled}}
-        <div class="mythic-header-row mythic-header-core-identity-row">
-          <label>{{mythicHeader.smartAi.coreIdentityLabel}}</label>
-          <div class="mythic-core-identity-block">
-            <div class="mythic-core-identity-title">{{mythicHeader.smartAi.profile}}</div>
-            <div class="mythic-core-identity-meta">UNSC SMART AI <span class="mythic-core-identity-status">{{mythicHeader.smartAi.status}}</span></div>
-          </div>
-          <input type="hidden" name="system.header.soldierType" value="{{mythicHeader.values.soldierType}}" />
-        </div>
-      {{else}}
-        <div class="mythic-header-row">
-          <label>Soldier Type</label>
-          <input name="system.header.soldierType" type="text" value="{{mythicHeader.values.soldierType}}" {{#if mythicHeader.locks.soldierType}}readonly class="mythic-header-locked"{{/if}} />
-        </div>
-      {{/if}}
+      <div class="mythic-header-row">
+        <label>Soldier Type</label>
+        <input name="system.header.soldierType" type="text" value="{{mythicHeader.values.soldierType}}" {{#if mythicHeader.locks.soldierType}}readonly class="mythic-header-locked"{{/if}} />
+      </div>
       <div class="mythic-header-row">
         <label>Rank</label>
         <input name="system.header.rank" type="text" value="{{mythicHeader.values.rank}}" {{#if mythicHeader.locks.rank}}readonly class="mythic-header-locked"{{/if}} />
@@ -40,10 +29,22 @@
         <label>Size</label>
         <input name="system.header.buildSize" type="text" value="{{mythicHeader.values.buildSize}}" {{#if mythicHeader.locks.buildSize}}readonly class="mythic-header-locked"{{/if}} />
       </div>
-      <div class="mythic-header-row">
-        <label>Specialisation</label>
-        <input name="system.header.specialisation" type="text" value="{{mythicHeader.values.specialisation}}" {{#if mythicHeader.locks.specialisation}}readonly class="mythic-header-locked"{{/if}} />
-      </div>
+      {{#if mythicHeader.smartAi.enabled}}
+        <div class="mythic-header-row mythic-header-core-identity-row">
+          <label>{{mythicHeader.smartAi.coreIdentityLabel}}</label>
+          <div class="mythic-core-identity-block" title="Cognitive Pattern: The architectural framework governing how a Smart AI processes information, prioritizes decision pathways, and develops emergent decision heuristics.">
+            <div class="mythic-core-identity-title">{{mythicHeader.smartAi.cognitivePattern}}</div>
+            <div class="mythic-core-identity-meta">UNSC SMART AI <span class="mythic-core-identity-status">{{mythicHeader.smartAi.status}}</span></div>
+          </div>
+          <button type="button" class="action-btn mythic-cognitive-reroll-btn" title="Reroll Cognitive Pattern">&#8635;</button>
+          <input type="hidden" name="system.header.specialisation" value="{{mythicHeader.values.specialisation}}" />
+        </div>
+      {{else}}
+        <div class="mythic-header-row">
+          <label>Specialisation</label>
+          <input name="system.header.specialisation" type="text" value="{{mythicHeader.values.specialisation}}" {{#if mythicHeader.locks.specialisation}}readonly class="mythic-header-locked"{{/if}} />
+        </div>
+      {{/if}}
     </section>
 
     <section class="mythic-header-center">

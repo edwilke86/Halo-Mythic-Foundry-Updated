@@ -143,58 +143,81 @@
 
       <details class="ccadv-stage" data-collapse-key="ccadv-creation-specialization" open>
         <summary>5. Specialization Pack Selection</summary>
-        <div class="mythic-phase4-grid two-column">
-          <div class="mythic-phase4-card">
-            <h3>Selection</h3>
-            <label class="mythic-training-stack">
-              <span>Specialization Pack</span>
-              <select name="system.specialization.selectedKey" {{#unless mythicSpecialization.canChange}}disabled{{/unless}}>
-                <option value="">Select pack...</option>
-                {{#each mythicSpecialization.options as |opt|}}
-                  <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
-                {{/each}}
-              </select>
-            </label>
-            <button type="button" class="action-btn specialization-confirm-btn" {{#unless mythicSpecialization.canChange}}disabled{{/unless}}>Confirm Specialization</button>
-            {{#if mythicSpecialization.isBlockedBySoldierType}}
-              <p class="ccadv-note"><strong>Unavailable:</strong> {{mythicSpecialization.blockedReason}}</p>
-            {{/if}}
-            {{#if mythicSpecialization.confirmed}}
-              <p class="mythic-specialization-final-note">Finalized. Only a GM can change this selection.</p>
-            {{/if}}
-          </div>
-
-          <div class="mythic-phase4-card">
-            <h3>Pack Details</h3>
-            {{#if mythicSpecialization.selected}}
-              <div class="mythic-specialization-detail-block">
-                <div><strong>{{mythicSpecialization.selected.name}}</strong>{{#if mythicSpecialization.selected.limited}} <span class="mythic-specialization-limited-tag">Limited Pack</span>{{/if}}</div>
-                {{#if mythicSpecialization.selected.limitedDescription}}
-                  <p class="mythic-specialization-limited-description">{{mythicSpecialization.selected.limitedDescription}}</p>
-                  <label class="mythic-toggle-row">
-                    <input type="checkbox" name="system.specialization.limitedApprovalChecked" {{checked mythicSpecialization.limitedApprovalChecked}} {{#unless mythicSpecialization.canChange}}disabled{{/unless}} />
-                    GM and party approved this limited pack.
-                  </label>
-                {{/if}}
-                <h4>Abilities</h4>
-                <ul>
-                  {{#each mythicSpecialization.selected.abilities as |ability|}}
-                    <li>{{ability}}</li>
-                  {{/each}}
-                </ul>
-                <h4>Skill Training Grants</h4>
-                <ul>
-                  {{#each mythicSpecialization.selected.skillGrants as |grant|}}
-                    <li>{{grant.skillName}} ({{grant.tier}})</li>
-                  {{/each}}
-                </ul>
-                <p class="ccadv-note">Skill training overlaps are highest-wins and do not stack.</p>
+        {{#if mythicSpecialization.isSmartAi}}
+          <div class="mythic-smart-ai-spec-panel">
+            <div class="mythic-smart-ai-spec-header">
+              <div class="mythic-core-identity-block mythic-smart-ai-spec-identity-block" title="Cognitive Pattern: The architectural framework governing how a Smart AI processes information, prioritizes decision pathways, and develops emergent decision heuristics.">
+                <div class="mythic-core-identity-title">{{#if mythicSpecialization.cognitivePattern}}{{mythicSpecialization.cognitivePattern}}{{else}}Not Yet Generated{{/if}}</div>
+                <div class="mythic-core-identity-meta">UNSC SMART AI <span class="mythic-core-identity-status">Spec Locked</span></div>
               </div>
-            {{else}}
-              <p>Select a Specialization Pack to preview its grants.</p>
+              <button type="button" class="action-btn mythic-cognitive-reroll-btn" title="Reroll Cognitive Pattern">&#8635;</button>
+            </div>
+            <p class="ccadv-note">Smart AIs do not receive a Specialization Pack. The Cognitive Pattern system replaces Specialization for this soldier type.</p>
+            {{#if mythicSpecialization.oniData}}
+              <details class="mythic-oni-classification-details">
+                <summary class="mythic-oni-classification-summary">ONI Classification (Internal)</summary>
+                <div class="mythic-oni-classification-block">
+                  <div class="mythic-oni-field"><span>ONI Heuristic Model</span><span>{{mythicSpecialization.oniData.model}}</span></div>
+                  <div class="mythic-oni-field"><span>Logic Structure</span><span>{{mythicSpecialization.oniData.logicStructure}}</span></div>
+                  <div class="mythic-oni-field"><span>AI Serial</span><span>{{mythicSpecialization.oniData.serial}}</span></div>
+                </div>
+              </details>
             {{/if}}
           </div>
-        </div>
+        {{else}}
+          <div class="mythic-phase4-grid two-column">
+            <div class="mythic-phase4-card">
+              <h3>Selection</h3>
+              <label class="mythic-training-stack">
+                <span>Specialization Pack</span>
+                <select name="system.specialization.selectedKey" {{#unless mythicSpecialization.canChange}}disabled{{/unless}}>
+                  <option value="">Select pack...</option>
+                  {{#each mythicSpecialization.options as |opt|}}
+                    <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+                  {{/each}}
+                </select>
+              </label>
+              <button type="button" class="action-btn specialization-confirm-btn" {{#unless mythicSpecialization.canChange}}disabled{{/unless}}>Confirm Specialization</button>
+              {{#if mythicSpecialization.isBlockedBySoldierType}}
+                <p class="ccadv-note"><strong>Unavailable:</strong> {{mythicSpecialization.blockedReason}}</p>
+              {{/if}}
+              {{#if mythicSpecialization.confirmed}}
+                <p class="mythic-specialization-final-note">Finalized. Only a GM can change this selection.</p>
+              {{/if}}
+            </div>
+
+            <div class="mythic-phase4-card">
+              <h3>Pack Details</h3>
+              {{#if mythicSpecialization.selected}}
+                <div class="mythic-specialization-detail-block">
+                  <div><strong>{{mythicSpecialization.selected.name}}</strong>{{#if mythicSpecialization.selected.limited}} <span class="mythic-specialization-limited-tag">Limited Pack</span>{{/if}}</div>
+                  {{#if mythicSpecialization.selected.limitedDescription}}
+                    <p class="mythic-specialization-limited-description">{{mythicSpecialization.selected.limitedDescription}}</p>
+                    <label class="mythic-toggle-row">
+                      <input type="checkbox" name="system.specialization.limitedApprovalChecked" {{checked mythicSpecialization.limitedApprovalChecked}} {{#unless mythicSpecialization.canChange}}disabled{{/unless}} />
+                      GM and party approved this limited pack.
+                    </label>
+                  {{/if}}
+                  <h4>Abilities</h4>
+                  <ul>
+                    {{#each mythicSpecialization.selected.abilities as |ability|}}
+                      <li>{{ability}}</li>
+                    {{/each}}
+                  </ul>
+                  <h4>Skill Training Grants</h4>
+                  <ul>
+                    {{#each mythicSpecialization.selected.skillGrants as |grant|}}
+                      <li>{{grant.skillName}} ({{grant.tier}})</li>
+                    {{/each}}
+                  </ul>
+                  <p class="ccadv-note">Skill training overlaps are highest-wins and do not stack.</p>
+                </div>
+              {{else}}
+                <p>Select a Specialization Pack to preview its grants.</p>
+              {{/if}}
+            </div>
+          </div>
+        {{/if}}
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-creation-outliers" open>

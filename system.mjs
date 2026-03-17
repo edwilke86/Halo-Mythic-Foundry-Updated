@@ -1883,6 +1883,207 @@ function buildCanonicalSkillsSchema() {
   };
 }
 
+// ── Smart AI Cognitive Pattern System ─────────────────────────────────────────
+const MYTHIC_COGNITIVE_PATTERN_FRAGMENTS = {
+  social: {
+    descriptors: [
+      "Influence", "Diplomatic", "Psychological", "Persuasion", "Consensus",
+      "Authority", "Manipulative", "Behavioral", "Charismatic", "Coercive",
+      "Adaptive", "Empathic", "Governance", "Social", "Command"
+    ],
+    architectures: [
+      "Influence Matrix", "Consensus Engine", "Negotiation Framework",
+      "Authority Protocol", "Social Nexus", "Behavioral Lattice",
+      "Persuasion Core", "Command Array", "Diplomatic System",
+      "Psychology Network", "Charisma Kernel", "Leadership Construct"
+    ]
+  },
+  movement: {
+    descriptors: [
+      "Kinetic", "Trajectory", "Reflexive", "Dynamic", "Reactive",
+      "Velocity", "Mobile", "Evasive", "Agile", "Responsive",
+      "Momentum", "Angular", "Acceleration", "Vector", "Combat"
+    ],
+    architectures: [
+      "Navigation Matrix", "Motion Engine", "Trajectory Lattice",
+      "Velocity Framework", "Flight Core", "Evasion Protocol",
+      "Kinetic System", "Agility Nexus", "Dynamic Array",
+      "Reflex Network", "Mobility Kernel", "Combat Grid"
+    ]
+  },
+  fieldcraft: {
+    descriptors: [
+      "Operational", "Strategic", "Stealth", "Encrypted", "Systems",
+      "Analytical", "Deductive", "Defensive", "Systematic", "Predictive",
+      "Recursive", "Distributed", "Probabilistic", "Heuristic", "Tactical"
+    ],
+    architectures: [
+      "Battleflow Matrix", "Predictive Cascade", "Optimization Engine",
+      "Resource Nexus", "Security Protocol", "Logic Fractal",
+      "Operational Core", "Data Lattice", "Stealth Architecture",
+      "Tactical System", "Cipher Framework", "Recon Array",
+      "Strategic Construct", "Infiltration Network", "Field Intelligence Kernel"
+    ]
+  },
+  "technology:human": {
+    descriptors: ["Engineering", "Systematic", "Algorithmic", "Hardware", "Integration"],
+    architectures: [
+      "Systems Engineering Matrix", "Hardware Optimization Engine",
+      "Operational Logic Core", "Integration Architecture", "Systems Array"
+    ]
+  },
+  "technology:covenant": {
+    descriptors: ["Plasma", "Resonant", "Crystalline", "Harmonic", "Covenant"],
+    architectures: [
+      "Plasma Systems Nexus", "Energy Lattice",
+      "Covenant Resonance Framework", "Crystal Logic Core", "Plasma Array"
+    ]
+  },
+  "technology:forerunner": {
+    descriptors: ["Quantum", "Ancilla", "Primordial", "Spectral", "Transcendent"],
+    architectures: [
+      "Quantum Lattice", "Ancilla Architecture",
+      "Forerunner Logic Core", "Primordial Systems Matrix", "Transcendent Array"
+    ]
+  },
+  "medication:human": {
+    descriptors: ["Biocognitive", "Diagnostic", "Biomonitor", "Regenerative", "Medical"],
+    architectures: [
+      "Medical Nexus", "Physiology Engine", "Diagnostic Framework",
+      "Biomonitor Core", "Regeneration Array"
+    ]
+  },
+  "medication:covenant": {
+    descriptors: ["Symbiotic", "Biovital", "Restorative", "Curative", "Mending"],
+    architectures: ["Covenant Physiology Nexus", "Vital Signs Engine", "Restorative Core"]
+  },
+  "medication:xenobiology": {
+    descriptors: ["Xenoanalysis", "Exobiological", "Symbiotic", "Xenobiotic", "Alien"],
+    architectures: [
+      "Alien Physiology Matrix", "Symbiotic Diagnostic Pattern",
+      "Xenobiotic Lattice", "Exobiology Core", "Xenoanalysis Array"
+    ]
+  },
+  "navigation:ground-air": {
+    descriptors: ["Terrain", "Atmospheric", "Topographic", "Geospatial", "Aerial"],
+    architectures: [
+      "Terrain Mapping Matrix", "Atmospheric Trajectory Engine",
+      "Ground Navigation Nexus", "Topographic Core", "Aerial Systems Array"
+    ]
+  },
+  "navigation:space": {
+    descriptors: ["Astrogation", "Slipspace", "Orbital", "Stellar", "Navigational"],
+    architectures: [
+      "Astrogation Matrix", "Slipspace Navigation Core",
+      "Orbital Trajectory Lattice", "Stellar Navigation Framework", "Deep Space Array"
+    ]
+  },
+  "pilot:space": {
+    descriptors: ["Void", "Interstellar", "Cosmic"],
+    architectures: ["Slipspace Nexus", "Orbital Control Matrix", "Void Navigation Core"]
+  }
+};
+
+const MYTHIC_COGNITIVE_PATTERN_SKILL_GROUP_MAP = {
+  appeal: "social", command: "social", deception: "social",
+  gambling: "social", interrogation: "social", intimidation: "social", negotiation: "social",
+  athletics: "movement", evasion: "movement", stunting: "movement",
+  pilot: "movement", navigation: "movement",
+  camouflage: "fieldcraft", cryptography: "fieldcraft", demolition: "fieldcraft",
+  investigation: "fieldcraft", security: "fieldcraft", survival: "fieldcraft",
+  medication: "fieldcraft", technology: "fieldcraft"
+};
+
+function _getSmartAiFragmentPoolKeys(skillKey, variantKey) {
+  const baseGroup = MYTHIC_COGNITIVE_PATTERN_SKILL_GROUP_MAP[skillKey] ?? "fieldcraft";
+  const result = [baseGroup];
+  if (variantKey) {
+    const variantFragKey = `${skillKey}:${variantKey}`;
+    if (MYTHIC_COGNITIVE_PATTERN_FRAGMENTS[variantFragKey]) {
+      result.push(variantFragKey);
+    }
+  }
+  return result;
+}
+
+function generateSmartAiCognitivePattern(skillsData) {
+  const tierOrder = { "plus20": 3, "plus10": 2, "trained": 1, "untrained": 0 };
+  const base = (skillsData && skillsData.base) ? skillsData.base : {};
+  const trainedEntries = [];
+
+  for (const [key, skill] of Object.entries(base)) {
+    const tier = skill.tier ?? "untrained";
+    if (tier !== "untrained") {
+      trainedEntries.push({ skillKey: key, variantKey: null, tier });
+    }
+    if (skill.variants) {
+      for (const [variantKey, variant] of Object.entries(skill.variants)) {
+        const vTier = variant.tier ?? "untrained";
+        if (vTier !== "untrained") {
+          trainedEntries.push({ skillKey: key, variantKey, tier: vTier });
+        }
+      }
+    }
+  }
+
+  trainedEntries.sort((a, b) => (tierOrder[b.tier] ?? 0) - (tierOrder[a.tier] ?? 0));
+  const seenBaseKeys = new Set();
+  const selectedEntries = [];
+  for (const entry of trainedEntries) {
+    if (!seenBaseKeys.has(entry.skillKey)) {
+      seenBaseKeys.add(entry.skillKey);
+      selectedEntries.push(entry);
+      if (selectedEntries.length >= 4) break;
+    }
+  }
+
+  const descriptorSet = new Set();
+  const architectureSet = new Set();
+  for (const { skillKey, variantKey } of selectedEntries) {
+    for (const poolKey of _getSmartAiFragmentPoolKeys(skillKey, variantKey)) {
+      const pool = MYTHIC_COGNITIVE_PATTERN_FRAGMENTS[poolKey];
+      if (!pool) continue;
+      for (const d of (pool.descriptors ?? [])) descriptorSet.add(d);
+      for (const a of (pool.architectures ?? [])) architectureSet.add(a);
+    }
+  }
+
+  if (descriptorSet.size === 0 && architectureSet.size === 0) {
+    for (const pool of Object.values(MYTHIC_COGNITIVE_PATTERN_FRAGMENTS)) {
+      for (const d of (pool.descriptors ?? [])) descriptorSet.add(d);
+      for (const a of (pool.architectures ?? [])) architectureSet.add(a);
+    }
+  }
+
+  const descriptors = Array.from(descriptorSet);
+  const architectures = Array.from(architectureSet);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  let pattern;
+  if (Math.random() < 0.7 && descriptors.length > 0 && architectures.length > 0) {
+    pattern = `${pick(descriptors)} ${pick(architectures)}`;
+  } else if (architectures.length > 0) {
+    pattern = pick(architectures);
+  } else if (descriptors.length > 0) {
+    pattern = pick(descriptors);
+  } else {
+    pattern = "Analytical Battleflow Matrix";
+  }
+
+  const oniModels = ["CORTEX", "ORACLE", "HELIOS", "ARGUS", "HERMES", "ATLAS", "JANUS", "PROMETHEUS", "APOLLO", "SENTINEL"];
+  const oniNum = Math.floor(Math.random() * 11) + 1;
+  const oniModelName = `${pick(oniModels)}-${oniNum}`;
+  const oniSerial = `UNSC-AI-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+
+  return {
+    pattern,
+    oniModel: oniModelName,
+    oniLogicStructure: pattern.toUpperCase(),
+    oniSerial
+  };
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 function getCanonicalCharacterSystemData() {
   return {
     schemaVersion: MYTHIC_ACTOR_SCHEMA_VERSION,
@@ -2106,6 +2307,13 @@ function getCanonicalCharacterSystemData() {
       },
       family: [{ name: "", relationship: "" }],
       generalEntries: [{ label: "General Biography", text: "" }]
+    },
+    ai: {
+      cognitivePattern: "",
+      cognitivePatternGenerated: false,
+      oniModel: "",
+      oniLogicStructure: "",
+      oniSerial: ""
     }
   };
 }
@@ -2522,6 +2730,13 @@ function normalizeCharacterSystemData(systemData) {
       merged.characteristics[key] = Math.max(0, Math.floor(total));
     }
   }
+
+  merged.ai = (merged.ai && typeof merged.ai === "object") ? merged.ai : {};
+  merged.ai.cognitivePattern = String(merged.ai.cognitivePattern ?? "").trim();
+  merged.ai.cognitivePatternGenerated = Boolean(merged.ai.cognitivePatternGenerated);
+  merged.ai.oniModel = String(merged.ai.oniModel ?? "").trim();
+  merged.ai.oniLogicStructure = String(merged.ai.oniLogicStructure ?? "").trim();
+  merged.ai.oniSerial = String(merged.ai.oniSerial ?? "").trim();
 
   merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ACTOR_SCHEMA_VERSION);
   return merged;
@@ -5364,6 +5579,135 @@ async function refreshTraitsCompendium(options = {}) {
   return { created, updated, skipped, dryRun };
 }
 
+async function refreshAbilitiesCompendium(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can refresh the Abilities compendium.");
+    return { created: 0, updated: 0, skipped: 0, dryRun: true };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const defs = await loadMythicAbilityDefinitions();
+  if (!defs.length) {
+    ui.notifications?.warn("No ability rows were loaded from abilities.json.");
+    return { created: 0, updated: 0, skipped: 0, dryRun };
+  }
+
+  const pack = game.packs.get("Halo-Mythic-Foundry-Updated.abilities");
+  if (!pack) {
+    ui.notifications?.error("Abilities compendium was not found.");
+    return { created: 0, updated: 0, skipped: 0, dryRun };
+  }
+
+  const itemsToSync = defs.map((def) => ({
+    name: String(def.name ?? "Ability"),
+    type: "ability",
+    img: MYTHIC_ABILITY_DEFAULT_ICON,
+    system: normalizeAbilitySystemData({
+      cost: def.cost ?? 0,
+      prerequisiteText: def.prerequisiteText ?? "",
+      prerequisites: Array.isArray(def.prerequisites) ? def.prerequisites : [],
+      shortDescription: def.shortDescription ?? "",
+      benefit: def.benefit ?? "",
+      category: def.category ?? "general",
+      actionType: def.actionType ?? "passive",
+      frequency: def.frequency ?? "",
+      repeatable: def.repeatable ?? false,
+      tags: Array.isArray(def.tags) ? def.tags : [],
+      sourcePage: def.sourcePage ?? 97,
+      notes: def.notes ?? "",
+      activation: {
+        enabled: def.activation?.enabled === true,
+        maxUsesPerEncounter: def.activation?.maxUsesPerEncounter ?? 0,
+        usesSpent: def.activation?.usesSpent ?? 0,
+        cooldownTurns: def.activation?.cooldownTurns ?? 0,
+        cooldownRemaining: def.activation?.cooldownRemaining ?? 0
+      },
+      sync: {
+        sourceScope: "mythic",
+        sourceCollection: "abilities-json",
+        contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
+        canonicalId: buildCanonicalItemId("ability", def.name ?? "Ability", def.sourcePage ?? 97)
+      }
+    }, String(def.name ?? "Ability"))
+  }));
+
+  const docs = await pack.getDocuments();
+  const byCanonicalId = new Map();
+  const byLowerName = new Map();
+  for (const doc of docs) {
+    const canonicalId = String(doc?.system?.sync?.canonicalId ?? "").trim();
+    const lowerName = String(doc?.name ?? "").trim().toLowerCase();
+    if (canonicalId) byCanonicalId.set(canonicalId, doc);
+    if (lowerName && !byLowerName.has(lowerName)) byLowerName.set(lowerName, doc);
+  }
+
+  const createBatch = [];
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+  const wasLocked = Boolean(pack.locked);
+  let unlockedForRefresh = false;
+
+  try {
+    if (wasLocked && !dryRun) {
+      await pack.configure({ locked: false });
+      unlockedForRefresh = true;
+    }
+
+    for (const itemData of itemsToSync) {
+      const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+      if (!canonicalId) {
+        skipped += 1;
+        continue;
+      }
+
+      const lowerName = String(itemData?.name ?? "").trim().toLowerCase();
+      const existing = byCanonicalId.get(canonicalId) ?? byLowerName.get(lowerName);
+      if (!existing) {
+        if (!dryRun) createBatch.push(itemData);
+        created += 1;
+        continue;
+      }
+
+      const nextSystem = normalizeAbilitySystemData(itemData.system ?? {}, itemData.name ?? "");
+      nextSystem.sync.sourceCollection = "abilities-json";
+      const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+      const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+
+      if (foundry.utils.isEmpty(diff) && !nameChanged) {
+        skipped += 1;
+        continue;
+      }
+
+      if (!dryRun) {
+        await existing.update({
+          name: itemData.name,
+          system: nextSystem
+        }, { diff: false, recursive: false });
+      }
+      updated += 1;
+    }
+
+    if (!dryRun && createBatch.length) {
+      await Item.createDocuments(createBatch, { pack: pack.collection });
+    }
+  } finally {
+    if (wasLocked && unlockedForRefresh) {
+      try {
+        await pack.configure({ locked: true });
+      } catch (lockError) {
+        console.error(`[mythic-system] Failed to relock compendium ${pack.collection}.`, lockError);
+      }
+    }
+  }
+
+  if (!dryRun) {
+    ui.notifications?.info(`Abilities compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  }
+
+  return { created, updated, skipped, dryRun };
+}
+
 async function removeEmbeddedArmorVariants(options = {}) {
   if (!game.user?.isGM) {
     ui.notifications?.warn("Only a GM can remove embedded armor variants.");
@@ -6166,6 +6510,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       selected: pack.key === String(spec.selectedKey ?? "").trim().toLowerCase()
     }));
 
+    const actorAi = this.actor.system?.ai ?? {};
     return {
       selectedKey: String(spec.selectedKey ?? "").trim().toLowerCase(),
       selectedName: selected?.name ?? "",
@@ -6176,7 +6521,16 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       selected,
       canChange: (!spec.confirmed || game.user?.isGM === true) && !blockedByNoSpecializationPack,
       isBlockedBySoldierType: blockedByNoSpecializationPack,
-      blockedReason
+      blockedReason,
+      isSmartAi: Boolean(smartAiFlag?.enabled),
+      cognitivePattern: Boolean(smartAiFlag?.enabled) ? String(actorAi.cognitivePattern ?? "").trim() : "",
+      oniData: (Boolean(smartAiFlag?.enabled) && actorAi.oniModel)
+        ? {
+            model: String(actorAi.oniModel ?? "").trim(),
+            logicStructure: String(actorAi.oniLogicStructure ?? "").trim(),
+            serial: String(actorAi.oniSerial ?? "").trim()
+          }
+        : null
     };
   }
 
@@ -6262,6 +6616,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const smartAiEnabled = Boolean(smartAiFlag?.enabled);
     const coreIdentityLabel = String(smartAiFlag?.coreIdentityLabel ?? "Cognitive Pattern").trim() || "Cognitive Pattern";
 
+    const actorAiCp = String(this.actor.system?.ai?.cognitivePattern ?? "").trim();
     return {
       values,
       locks,
@@ -6269,7 +6624,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         enabled: smartAiEnabled,
         coreIdentityLabel,
         profile: values.soldierType || "UNSC SMART AI",
-        status: "Operational"
+        status: "Operational",
+        cognitivePattern: actorAiCp || "Ungenerated"
       }
     };
   }
@@ -7861,6 +8217,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (!t || t.includes(":")) continue;
       if (/^or\b/i.test(t) || /^and\b/i.test(t)) continue;
       if (/^(strength|toughness|agility|intellect|perception|courage|charisma|leadership|warfare\s+melee|warfare\s+range|luck)\b/i.test(t)) continue;
+      if (/\bsoldier\s+type\b/i.test(t)) continue;
       if (/\btrait\b/i.test(t)) continue;
       if (/\bskill\b/i.test(t)) continue;
       if (/\bwhile\b/i.test(t)) continue;
@@ -8891,6 +9248,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
     root.querySelector(".specialization-confirm-btn")?.addEventListener("click", (event) => {
       void this._onSpecializationConfirm(event);
+    });
+
+    root.querySelectorAll(".mythic-cognitive-reroll-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCognitivePatternReroll(event);
+      });
     });
 
     root.querySelectorAll(".shields-recharge-btn").forEach((button) => {
@@ -12199,7 +12562,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       itemData.system = normalizeAbilitySystemData(itemData.system ?? {});
 
-      if (enforceAbilityPrereqs) {
+      const isSoldierTypeAbility = String(itemData.system?.category ?? "").trim().toLowerCase() === "soldier-type";
+      if (enforceAbilityPrereqs && !isSoldierTypeAbility) {
         const prereqCheck = await this._evaluateAbilityPrerequisites(itemData);
         if (!prereqCheck.ok) {
           skippedAbilities.push({ name: abilityName, reasons: prereqCheck.reasons });
@@ -13185,6 +13549,23 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
     await this.actor.update(updateData);
     await this._applySpecializationPackGrants(selectedPack);
+  }
+
+  async _onCognitivePatternReroll(event) {
+    event.preventDefault();
+    const soldierTypeRuleFlags = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeRuleFlags");
+    const isSmartAi = Boolean(soldierTypeRuleFlags?.smartAi?.enabled);
+    if (!isSmartAi) return;
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const result = generateSmartAiCognitivePattern(normalized.skills);
+    await this.actor.update({
+      "system.ai.cognitivePattern": result.pattern,
+      "system.ai.cognitivePatternGenerated": true,
+      "system.ai.oniModel": result.oniModel,
+      "system.ai.oniLogicStructure": result.oniLogicStructure,
+      "system.ai.oniSerial": result.oniSerial
+    });
+    ui.notifications?.info(`[mythic-system] Cognitive Pattern: ${result.pattern}`);
   }
 
   async _applySpecializationPackGrants(pack) {
@@ -15411,6 +15792,7 @@ Hooks.once("ready", async () => {
   game.mythic.importReferenceArmorVariants = importReferenceArmorVariants;
   game.mythic.importReferenceEquipment = importReferenceEquipment;
   game.mythic.importSoldierTypesFromJson = importSoldierTypesFromJson;
+  game.mythic.refreshAbilitiesCompendium = refreshAbilitiesCompendium;
   game.mythic.refreshTraitsCompendium = refreshTraitsCompendium;
   game.mythic.getCanonicalEquipmentPackSchemaData = getCanonicalEquipmentPackSystemData;
   game.mythic.normalizeEquipmentPackSchemaData = normalizeEquipmentPackSystemData;

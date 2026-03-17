@@ -3266,6 +3266,12 @@ function getCanonicalSoldierTypeSystemData() {
     traits: [],
     educations: [],
     educationChoices: [],
+    trainingPathChoice: {
+      enabled: false,
+      prompt: "Choose training path for this Soldier Type.",
+      defaultKey: "",
+      choices: []
+    },
     ruleFlags: {
       airForceVehicleBenefit: false,
       carryMultipliers: {
@@ -3369,6 +3375,45 @@ function normalizeSoldierTypeEducationChoice(entry) {
     label: String(entry?.label ?? "Educations of choice").trim() || "Educations of choice",
     notes: String(entry?.notes ?? "").trim(),
     source: String(entry?.source ?? "").trim()
+  };
+}
+
+function normalizeSoldierTypeTrainingPathChoice(systemData) {
+  const source = systemData?.trainingPathChoice;
+  if (!source || typeof source !== "object") {
+    return {
+      enabled: false,
+      prompt: "Choose training path for this Soldier Type.",
+      defaultKey: "",
+      choices: []
+    };
+  }
+
+  const rawChoices = Array.isArray(source.choices) ? source.choices : [];
+  const choices = rawChoices
+    .map((entry, index) => {
+      const key = String(entry?.key ?? `path-${index + 1}`).trim().toLowerCase();
+      const label = String(entry?.label ?? key).trim();
+      if (!key || !label) return null;
+      return {
+        key,
+        label,
+        trainingGrants: normalizeStringList(Array.isArray(entry?.trainingGrants) ? entry.trainingGrants : []),
+        grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : []),
+        notes: String(entry?.notes ?? "").trim()
+      };
+    })
+    .filter(Boolean);
+
+  const requestedDefault = String(source.defaultKey ?? "").trim().toLowerCase();
+  const fallbackDefault = choices.some((entry) => entry.key === "combat") ? "combat" : (choices[0]?.key ?? "");
+  const defaultKey = choices.some((entry) => entry.key === requestedDefault) ? requestedDefault : fallbackDefault;
+
+  return {
+    enabled: source.enabled === false ? false : choices.length > 0,
+    prompt: String(source.prompt ?? "Choose training path for this Soldier Type.").trim() || "Choose training path for this Soldier Type.",
+    defaultKey,
+    choices
   };
 }
 
@@ -3550,6 +3595,8 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
   merged.educationChoices = rawEducationChoices
     .map((entry) => normalizeSoldierTypeEducationChoice(entry))
     .filter((entry) => entry.count > 0);
+
+  merged.trainingPathChoice = normalizeSoldierTypeTrainingPathChoice(merged);
 
   merged.training = Array.from(new Set(
     (Array.isArray(merged.training) ? merged.training : [])
@@ -10390,6 +10437,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const factionChoice = await this._promptSoldierTypeFactionChoice(itemData.name, templateSystem);
       if (factionChoice === null) return false;
 
+      const trainingPathChoice = await this._promptSoldierTypeTrainingPathChoice(itemData.name, templateSystem);
+      if (trainingPathChoice === null) return false;
+
       const resolvedTemplate = foundry.utils.deepClone(templateSystem ?? {});
       if (String(factionChoice?.faction ?? "").trim()) {
         resolvedTemplate.header = resolvedTemplate.header && typeof resolvedTemplate.header === "object"
@@ -10399,7 +10449,11 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       const templateTraits = Array.isArray(resolvedTemplate.traits) ? resolvedTemplate.traits : [];
       const grantedTraits = Array.isArray(factionChoice?.grantedTraits) ? factionChoice.grantedTraits : [];
-      resolvedTemplate.traits = normalizeStringList([...templateTraits, ...grantedTraits]);
+      const trainingPathGrantedTraits = Array.isArray(trainingPathChoice?.grantedTraits) ? trainingPathChoice.grantedTraits : [];
+      resolvedTemplate.traits = normalizeStringList([...templateTraits, ...grantedTraits, ...trainingPathGrantedTraits]);
+      const templateTraining = Array.isArray(resolvedTemplate.training) ? resolvedTemplate.training : [];
+      const trainingPathGrants = Array.isArray(trainingPathChoice?.trainingGrants) ? trainingPathChoice.trainingGrants : [];
+      resolvedTemplate.training = normalizeStringList([...templateTraining, ...trainingPathGrants]);
 
       const preRuleFlagsSource = (resolvedTemplate?.ruleFlags && typeof resolvedTemplate.ruleFlags === "object")
         ? resolvedTemplate.ruleFlags
@@ -10421,6 +10475,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim() || buildCanonicalItemId("soldierType", itemData.name ?? "");
       const selectedChoiceKey = String(factionChoice?.key ?? "").trim();
+      const selectedTrainingPathKey = String(trainingPathChoice?.key ?? "").trim();
       const isInsurrectionist = Boolean(factionChoice?.insurrectionist);
       const templateRuleFlagsSource = (resolvedTemplate?.ruleFlags && typeof resolvedTemplate.ruleFlags === "object")
         ? resolvedTemplate.ruleFlags
@@ -10602,6 +10657,11 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         faction: String(factionChoice?.faction ?? "").trim(),
         insurrectionist: isInsurrectionist
       });
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeTrainingPathChoice", {
+        soldierTypeCanonicalId: canonicalId,
+        choiceKey: selectedTrainingPathKey,
+        label: String(trainingPathChoice?.label ?? "").trim()
+      });
       const trainingLocks = extractStructuredTrainingLocks(
         Array.isArray(resolvedTemplate?.training) ? resolvedTemplate.training : [],
         String(resolvedTemplate?.header?.faction ?? "").trim()
@@ -10615,8 +10675,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       const packNote = result.packApplied ? `, equipment pack "${result.packApplied}"` : "";
       const factionNote = String(factionChoice?.label ?? "").trim() ? `, faction "${String(factionChoice.label).trim()}"` : "";
+      const trainingPathNote = String(trainingPathChoice?.label ?? "").trim() ? `, training path "${String(trainingPathChoice.label).trim()}"` : "";
       ui.notifications.info(
-        `Applied Soldier Type ${itemData.name} (overwrite). Updated ${result.fieldsUpdated} fields, added ${result.educationsAdded} educations, ${result.abilitiesAdded} abilities, ${result.trainingApplied} training grants, ${result.skillChoicesApplied} skill-choice updates${packNote}${factionNote}.`
+        `Applied Soldier Type ${itemData.name} (overwrite). Updated ${result.fieldsUpdated} fields, added ${result.educationsAdded} educations, ${result.abilitiesAdded} abilities, ${result.trainingApplied} training grants, ${result.skillChoicesApplied} skill-choice updates${packNote}${factionNote}${trainingPathNote}.`
       );
       if (result.skippedAbilities.length) {
         console.warn("[mythic-system] Soldier Type abilities skipped:", result.skippedAbilities);
@@ -10812,6 +10873,102 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  _normalizeSoldierTypeTrainingPathChoiceConfig(templateSystem) {
+    const source = templateSystem?.trainingPathChoice;
+    if (!source || typeof source !== "object") return null;
+    if (source.enabled === false) return null;
+
+    const rawChoices = Array.isArray(source.choices) ? source.choices : [];
+    const choices = rawChoices
+      .map((entry, index) => {
+        const key = String(entry?.key ?? `path-${index + 1}`).trim().toLowerCase();
+        const label = String(entry?.label ?? key).trim();
+        if (!key || !label) return null;
+        return {
+          key,
+          label,
+          trainingGrants: normalizeStringList(Array.isArray(entry?.trainingGrants) ? entry.trainingGrants : []),
+          grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : []),
+          notes: String(entry?.notes ?? "").trim()
+        };
+      })
+      .filter(Boolean);
+
+    if (!choices.length) return null;
+
+    const requestedDefault = String(source.defaultKey ?? "").trim().toLowerCase();
+    const fallbackDefault = choices.some((entry) => entry.key === "combat") ? "combat" : choices[0].key;
+    const defaultKey = choices.some((entry) => entry.key === requestedDefault) ? requestedDefault : fallbackDefault;
+
+    return {
+      prompt: String(source.prompt ?? "Choose training path for this Soldier Type.").trim() || "Choose training path for this Soldier Type.",
+      defaultKey,
+      choices
+    };
+  }
+
+  _promptSoldierTypeTrainingPathChoice(templateName, templateSystem) {
+    const config = this._normalizeSoldierTypeTrainingPathChoiceConfig(templateSystem);
+    if (!config) {
+      return Promise.resolve({
+        key: "default",
+        label: "Default",
+        trainingGrants: [],
+        grantedTraits: []
+      });
+    }
+
+    const optionsHtml = config.choices
+      .map((entry) => {
+        const selected = entry.key === config.defaultKey ? " selected" : "";
+        return `<option value="${foundry.utils.escapeHTML(entry.key)}"${selected}>${foundry.utils.escapeHTML(entry.label)}</option>`;
+      })
+      .join("");
+
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "Soldier Type Training Path"
+      },
+      content: `
+        <form>
+          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong></p>
+          <p>${foundry.utils.escapeHTML(config.prompt)}</p>
+          <div class="form-group">
+            <label>Path</label>
+            <select id="mythic-soldier-type-training-path-choice">${optionsHtml}</select>
+          </div>
+        </form>
+      `,
+      buttons: [
+        {
+          action: "confirm",
+          label: "Confirm",
+          callback: () => {
+            const selectedKey = String(document.getElementById("mythic-soldier-type-training-path-choice")?.value ?? "").trim().toLowerCase();
+            const selected = config.choices.find((entry) => entry.key === selectedKey)
+              ?? config.choices.find((entry) => entry.key === config.defaultKey)
+              ?? config.choices[0];
+            return selected
+              ? {
+                key: selected.key,
+                label: selected.label,
+                trainingGrants: Array.isArray(selected.trainingGrants) ? selected.trainingGrants : [],
+                grantedTraits: Array.isArray(selected.grantedTraits) ? selected.grantedTraits : []
+              }
+              : null;
+          }
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  }
+
   _promptSoldierTypeGmApprovalNotice(templateName, approvalText) {
     const message = String(approvalText ?? "").trim() || "This Soldier Type should only be taken with GM Approval.";
     return foundry.applications.api.DialogV2.wait({
@@ -10886,6 +11043,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       if (!Array.isArray(next.skillChoices) || !next.skillChoices.length) {
         next.skillChoices = Array.isArray(ref.skillChoices) ? foundry.utils.deepClone(ref.skillChoices) : [];
+      }
+      if (!(next.trainingPathChoice && typeof next.trainingPathChoice === "object" && Array.isArray(next.trainingPathChoice.choices) && next.trainingPathChoice.choices.length)) {
+        next.trainingPathChoice = foundry.utils.deepClone(ref.trainingPathChoice ?? null);
       }
       // Always merge reference traits so stale compendium entries get new traits automatically.
       if (!Array.isArray(next.educationChoices) || !next.educationChoices.length) {

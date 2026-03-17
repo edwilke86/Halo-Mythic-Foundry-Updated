@@ -1343,5 +1343,91 @@
 		"sync": {
 			"canonicalId": "soldierType:ueg-police-force"
 		}
+	},
+	{
+		"name": "Covenant Unggoy",
+		"description": "We're gonna go down in history!",
+		"header": {
+			"faction": "Covenant",
+			"soldierType": "Unggoy",
+			"race": "Unggoy",
+			"upbringing": "Any",
+			"buildSize": "Normal"
+		},
+		"heightRangeCm": {
+			"min": 138,
+			"max": 167
+		},
+		"weightRangeKg": {
+			"min": 113,
+			"max": 118
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"Covenant"
+		],
+		"creation": {
+			"xpCost": 800
+		},
+		"characteristics": {
+			"str": 30,
+			"tou": 30,
+			"agi": 15,
+			"wfr": 25,
+			"wfm": 25,
+			"int": 20,
+			"per": 25,
+			"crg": 20,
+			"cha": 25,
+			"ldr": 25
+		},
+		"characteristicAdvancements": {
+			"str": 5,
+			"tou": 5,
+			"wfm": 5,
+			"wfr": 5,
+			"agi": 0,
+			"int": 0,
+			"per": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"skillChoices": [],
+		"traits": [
+			"Language Expert (Unggoy)",
+			"Almost Smart (Unggoy)",
+			"Natural Weapon (Unggoy)",
+			"Methane Tank (Unggoy)"
+		],
+		"trainingPathChoice": {
+			"enabled": true,
+			"prompt": "Choose Unggoy training path. Combat Trained is the default for most Covenant campaigns.",
+			"defaultKey": "combat",
+			"choices": [
+				{
+					"key": "combat",
+					"label": "Combat Trained (default)",
+					"grantedTraits": [
+						"Covenant Armory (Unggoy)",
+						"Equipment Pack (Unggoy Combat)",
+						"Squad Up (Unggoy Combat)"
+					]
+				},
+				{
+					"key": "civilian",
+					"label": "Civilian / Support",
+					"grantedTraits": [
+						"Unggoy Limited",
+						"Squad Up (Unggoy Civilian)"
+					]
+				}
+			]
+		},
+		"notes": "Unggoy are modeled as combat-trained by default because most Covenant campaigns use that path. Civilian path remains available as an opt-in at apply time.",
+		"sync": {
+			"canonicalId": "soldierType:covenant-unggoy"
+		}
 	}
 ]

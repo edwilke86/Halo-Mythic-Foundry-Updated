@@ -501,6 +501,90 @@
         "notes":  ""
     },
     {
+        "name":  "Language Expert (Unggoy)",
+        "shortDescription":  "Learns Languages at half XP cost.",
+        "benefit":  "The Unggoy is able to learn all Languages at half the Experience Cost.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Almost Smart (Unggoy)",
+        "shortDescription":  "Pays double XP for Educations; also doubles Intellect Modifier when determining how many Educations/Languages can be learned.",
+        "benefit":  "The Unggoy must pay double the Experience to learn Educations but also double their Intellect Modifier when figuring how many Educations and Languages they may learn.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Natural Weapon (Unggoy)",
+        "shortDescription":  "Starts with the Natural Weapon Trait at character creation.",
+        "benefit":  "The Unggoy has the Natural Weapon Trait at Character Creation.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Methane Tank (Unggoy)",
+        "shortDescription":  "Starts with a Methane Tank at character creation.",
+        "benefit":  "All Unggoy gain a Methane Tank at Character Creation.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Unggoy Limited",
+        "shortDescription":  "Cannot buy from UNSC and Forerunner Armories; Covenant purchases cost 3× while civilian path is active.",
+        "benefit":  "Covenant Civilians are not allowed to purchase weapons from UNSC and Forerunner armories. Purchasing from the Covenant Armory costs 3 times extra.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Covenant Armory (Unggoy)",
+        "shortDescription":  "Combat-trained Unggoy are no longer limited by civilian armory penalties.",
+        "benefit":  "The Combat Trained Unggoy is no longer limited to what Armory they can purchase from and are no longer forced to pay triple the amount for the Covenant Armory.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Equipment Pack (Unggoy Combat)",
+        "shortDescription":  "Select an equipment pack for Anti-Infantry, Guided Munitions, Heavy Weapons, or Ordnance role.",
+        "benefit":  "The character selects an Equipment Pack.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Insurrectionist",
         "shortDescription":  "Weapons without the [I] tag cost 25% more. Weapon and vehicle modifications cost half cR.",
         "benefit":  "If a character is an Insurrectionist, any item without the [I] tag costs 25% more. Insurrectionists gain all weapon and vehicle modifications at half cR price.",
@@ -862,6 +946,32 @@
         "name":  "Squad Up (Civilian)",
         "shortDescription":  "+5 Courage when alongside other Civilian types.",
         "benefit":  "When with other Civilians, the Civilian gains a +5 Bonus to Courage Tests.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Squad Up (Unggoy Civilian)",
+        "shortDescription":  "+5 Courage when alongside other Covenant civilians.",
+        "benefit":  "When with other Civilians, the Civilian gains +5 Courage. This is lost if the Unggoy becomes Combat Trained.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Squad Up (Unggoy Combat)",
+        "shortDescription":  "+5 Courage, Warfare Melee, and Warfare Range with other Unggoy while Command Unit is active.",
+        "benefit":  "When with others Unggoy, the Unggoy gains +5 Courage, Warfare Melee, and Warfare Range. This is lost if the Commanding Unit dies or becomes incapacitated.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [

@@ -585,6 +585,115 @@
         "notes":  ""
     },
     {
+        "name":  "Deacon",
+        "shortDescription":  "Unggoy religious command rank with expanded education and command privileges.",
+        "benefit":  "Deacons no longer pay double the Experience to learn Educations. Deacons can lead their own groups of Grunts and Jackals and can purchase a Goblin or Gorgon vehicle at half price.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  "Scaffold trait for Soldier Type Advancement option."
+    },
+    {
+        "name":  "Digitigrade Legs",
+        "shortDescription":  "Sangheili take climbing penalties but gain bonus leaping distance.",
+        "benefit":  "Sangheili are given a -20 Penalty to Climbing and Swimming Tests. When figuring Leaping Distance, the Sangheili adds +2 to their Agility Modifier.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Swimming Legs",
+        "shortDescription":  "Sangheili take a penalty to Swimming tests.",
+        "benefit":  "Sangheili are given a -20 Penalty to Swimming Tests.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Leaping",
+        "shortDescription":  "Adds +2 to Agility Modifier when figuring Leaping Distance.",
+        "benefit":  "When figuring Leaping Distance, the Sangheili adds +2 to their Agility Modifier.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Ancestral Honor",
+        "shortDescription":  "Purchase mythic characteristics in sequence and retain earned Energy Sword progression between missions.",
+        "benefit":  "Ancestral Honor allows a Sangheili to increase their Mythic Characteristics in a fixed order. Once the character has an Energy Sword, they retain it through mission-end gear resets.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Bloodline",
+        "shortDescription":  "Doubles strength and toughness for carry weight and grants social effects tied to status.",
+        "benefit":  "When active, the Sangheili doubles their Strength and Toughness when figuring Carry Weight and may gain social bonuses in Sangheili circles.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  "Scaffold trait for Soldier Type Advancement option."
+    },
+    {
+        "name":  "Covenant Armory (Sangheili)",
+        "shortDescription":  "Combat-trained Sangheili are no longer limited by civilian armory penalties.",
+        "benefit":  "The Character is no longer limited by Covenant civilian purchasing rules and may buy from approved Covenant armories at standard rates.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Equipment Pack (Sangheili Combat)",
+        "shortDescription":  "Select a combat equipment package for Sangheili combat-trained roles.",
+        "benefit":  "The character selects a combat Equipment Pack.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Spec-Ops",
+        "shortDescription":  "Eligible for equivalent rank and advanced tactical responsibilities.",
+        "benefit":  "The Character can take the equivalent rank and Special Operations responsibilities for Sangheili command structures.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Insurrectionist",
         "shortDescription":  "Weapons without the [I] tag cost 25% more. Weapon and vehicle modifications cost half cR.",
         "benefit":  "If a character is an Insurrectionist, any item without the [I] tag costs 25% more. Insurrectionists gain all weapon and vehicle modifications at half cR price.",
@@ -972,6 +1081,19 @@
         "name":  "Squad Up (Unggoy Combat)",
         "shortDescription":  "+5 Courage, Warfare Melee, and Warfare Range with other Unggoy while Command Unit is active.",
         "benefit":  "When with others Unggoy, the Unggoy gains +5 Courage, Warfare Melee, and Warfare Range. This is lost if the Commanding Unit dies or becomes incapacitated.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Squad Up (Sangheili)",
+        "shortDescription":  "+5 Courage and +10 Warfare Melee/Range when taking Combined Actions with other Sangheili combat units.",
+        "benefit":  "When with other Sangheili combat units, the Character gains +5 Courage Tests and +10 to Warfare Melee and Warfare Range during Combined Actions.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [

@@ -371,6 +371,58 @@
           </div>
         </div>
       </details>
+
+      {{#if mythicSoldierTypeAdvancementScaffold.enabled}}
+        <details class="ccadv-stage" data-collapse-key="ccadv-adv-soldier-type-advancements" open>
+          <summary>10. Soldier Type Advancements</summary>
+          <div class="mythic-phase4-grid two-column">
+            <div class="mythic-phase4-card">
+              <h3>{{mythicSoldierTypeAdvancementScaffold.soldierTypeName}} Options</h3>
+              <label class="mythic-training-stack">
+                <span>Advancement Option</span>
+                <select class="soldier-type-advancement-select">
+                  {{#each mythicSoldierTypeAdvancementScaffold.options as |opt|}}
+                    <option value="{{opt.key}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+                  {{/each}}
+                </select>
+              </label>
+              <p class="ccadv-note">Scaffold only: this selector records intent and displays requirements/details. Purchase and auto-application logic will be added in a later pass.</p>
+            </div>
+
+            <div class="mythic-phase4-card">
+              <h3>Option Details</h3>
+              {{#if mythicSoldierTypeAdvancementScaffold.selected}}
+                <div class="mythic-specialization-detail-block">
+                  <div><strong>{{mythicSoldierTypeAdvancementScaffold.selected.label}}</strong></div>
+                  {{#if mythicSoldierTypeAdvancementScaffold.selected.summary}}
+                    <p class="ccadv-note">{{mythicSoldierTypeAdvancementScaffold.selected.summary}}</p>
+                  {{/if}}
+                  {{#if mythicSoldierTypeAdvancementScaffold.selected.requirements}}
+                    <p><strong>Requirements:</strong> {{mythicSoldierTypeAdvancementScaffold.selected.requirements}}</p>
+                  {{/if}}
+                  {{#if mythicSoldierTypeAdvancementScaffold.selected.details}}
+                    <p><strong>Details:</strong> {{mythicSoldierTypeAdvancementScaffold.selected.details}}</p>
+                  {{/if}}
+                  <p><strong>XP Cost:</strong> {{mythicSoldierTypeAdvancementScaffold.selected.xpCost}}</p>
+                  {{#if mythicSoldierTypeAdvancementScaffold.selected.traitGrants.length}}
+                    <h4>Trait Grants</h4>
+                    <ul>
+                      {{#each mythicSoldierTypeAdvancementScaffold.selected.traitGrants as |traitName|}}
+                        <li>{{traitName}}</li>
+                      {{/each}}
+                    </ul>
+                  {{/if}}
+                  {{#if mythicSoldierTypeAdvancementScaffold.selected.notes}}
+                    <p class="ccadv-note">{{mythicSoldierTypeAdvancementScaffold.selected.notes}}</p>
+                  {{/if}}
+                </div>
+              {{else}}
+                <p class="ccadv-note">No Soldier Type Advancement selected.</p>
+              {{/if}}
+            </div>
+          </div>
+        </details>
+      {{/if}}
     </div>
   </div>
 </div>

@@ -3272,6 +3272,7 @@ function getCanonicalSoldierTypeSystemData() {
       defaultKey: "",
       choices: []
     },
+    advancementOptions: [],
     ruleFlags: {
       airForceVehicleBenefit: false,
       carryMultipliers: {
@@ -3400,6 +3401,15 @@ function normalizeSoldierTypeTrainingPathChoice(systemData) {
         label,
         trainingGrants: normalizeStringList(Array.isArray(entry?.trainingGrants) ? entry.trainingGrants : []),
         grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : []),
+        creationXpCost: Number.isFinite(Number(entry?.creationXpCost))
+          ? toNonNegativeWhole(entry?.creationXpCost, 0)
+          : null,
+        characteristicAdvancements: (entry?.characteristicAdvancements && typeof entry.characteristicAdvancements === "object")
+          ? MYTHIC_CHARACTERISTIC_KEYS.reduce((acc, key) => {
+            acc[key] = Math.max(0, Math.floor(Number(entry?.characteristicAdvancements?.[key] ?? 0)));
+            return acc;
+          }, {})
+          : null,
         notes: String(entry?.notes ?? "").trim()
       };
     })
@@ -3414,6 +3424,22 @@ function normalizeSoldierTypeTrainingPathChoice(systemData) {
     prompt: String(source.prompt ?? "Choose training path for this Soldier Type.").trim() || "Choose training path for this Soldier Type.",
     defaultKey,
     choices
+  };
+}
+
+function normalizeSoldierTypeAdvancementOption(entry, index = 0) {
+  const key = String(entry?.key ?? `advancement-${index + 1}`).trim().toLowerCase();
+  const label = String(entry?.label ?? key).trim();
+  if (!key || !label) return null;
+  return {
+    key,
+    label,
+    requirements: String(entry?.requirements ?? "").trim(),
+    details: String(entry?.details ?? "").trim(),
+    summary: String(entry?.summary ?? "").trim(),
+    xpCost: toNonNegativeWhole(entry?.xpCost, 0),
+    traitGrants: normalizeStringList(Array.isArray(entry?.traitGrants) ? entry.traitGrants : []),
+    notes: String(entry?.notes ?? "").trim()
   };
 }
 
@@ -3597,6 +3623,9 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
     .filter((entry) => entry.count > 0);
 
   merged.trainingPathChoice = normalizeSoldierTypeTrainingPathChoice(merged);
+  merged.advancementOptions = (Array.isArray(merged.advancementOptions) ? merged.advancementOptions : [])
+    .map((entry, index) => normalizeSoldierTypeAdvancementOption(entry, index))
+    .filter(Boolean);
 
   merged.training = Array.from(new Set(
     (Array.isArray(merged.training) ? merged.training : [])
@@ -6259,6 +6288,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicTraits = this._getTraitsViewData();
     context.mythicTraining = await this._getTrainingViewData(normalizedSystem?.training, normalizedSystem);
     context.mythicSoldierTypeScaffold = this._getSoldierTypeScaffoldViewData();
+    context.mythicSoldierTypeAdvancementScaffold = await this._getSoldierTypeAdvancementScaffoldViewData(normalizedSystem);
     context.mythicHasBlurAbility = this.actor.items.some((i) => i.type === "ability" && String(i.name ?? "").toLowerCase() === "blur");
     context.mythicCharBuilder = this._getCharBuilderViewData(normalizedSystem, creationPathOutcome);
     context.mythicHeader = await this._getHeaderViewData(normalizedSystem);
@@ -6305,6 +6335,57 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         notes: String(orionSource?.notes ?? "").trim()
       }
     };
+  }
+
+  async _getSoldierTypeAdvancementScaffoldViewData(normalizedSystem = null) {
+    const actorSystem = normalizedSystem ?? normalizeCharacterSystemData(this.actor.system ?? {});
+    const soldierTypeName = String(actorSystem?.header?.soldierType ?? "").trim();
+    const empty = {
+      enabled: false,
+      soldierTypeName,
+      options: [],
+      selectedKey: "",
+      selected: null
+    };
+    if (!soldierTypeName) return empty;
+
+    try {
+      const rows = await loadReferenceSoldierTypeItems();
+      const factionChoiceFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeFactionChoice");
+      const actorCanonicalId = String(factionChoiceFlag?.soldierTypeCanonicalId ?? "").trim().toLowerCase();
+      const byCanonical = rows.find((entry) => String(entry?.system?.sync?.canonicalId ?? "").trim().toLowerCase() === actorCanonicalId) ?? null;
+      const byName = rows.find((entry) => normalizeSoldierTypeNameForMatch(entry?.name ?? "") === normalizeSoldierTypeNameForMatch(soldierTypeName)) ?? null;
+      const matched = byCanonical ?? byName;
+      if (!matched) return empty;
+
+      const template = normalizeSoldierTypeSystemData(matched.system ?? {}, matched.name ?? soldierTypeName);
+      const options = Array.isArray(template?.advancementOptions) ? template.advancementOptions : [];
+      if (!options.length) return empty;
+
+      const selectedFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAdvancementSelection");
+      const selectedFlagCanonical = String(selectedFlag?.soldierTypeCanonicalId ?? "").trim().toLowerCase();
+      const matchedCanonical = String(template?.sync?.canonicalId ?? matched?.system?.sync?.canonicalId ?? "").trim().toLowerCase();
+      const defaultKey = String(options[0]?.key ?? "").trim().toLowerCase();
+      const requestedKey = (matchedCanonical && selectedFlagCanonical && selectedFlagCanonical === matchedCanonical)
+        ? String(selectedFlag?.optionKey ?? "").trim().toLowerCase()
+        : "";
+      const selectedKey = options.some((entry) => entry.key === requestedKey) ? requestedKey : defaultKey;
+      const selected = options.find((entry) => entry.key === selectedKey) ?? null;
+
+      return {
+        enabled: true,
+        soldierTypeName,
+        options: options.map((entry) => ({
+          key: entry.key,
+          label: entry.label,
+          selected: entry.key === selectedKey
+        })),
+        selectedKey,
+        selected
+      };
+    } catch (_err) {
+      return empty;
+    }
   }
 
   _getOutliersViewData(systemData, ccAdvData = null) {
@@ -9417,6 +9498,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".soldier-type-advancement-select").forEach((select) => {
+      select.addEventListener("change", (event) => {
+        void this._onSoldierTypeAdvancementSelectionChange(event);
+      });
+    });
+
     root.querySelectorAll(".equipment-pack-apply-btn").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onApplyEquipmentPackSelection(event);
@@ -10454,6 +10541,22 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const templateTraining = Array.isArray(resolvedTemplate.training) ? resolvedTemplate.training : [];
       const trainingPathGrants = Array.isArray(trainingPathChoice?.trainingGrants) ? trainingPathChoice.trainingGrants : [];
       resolvedTemplate.training = normalizeStringList([...templateTraining, ...trainingPathGrants]);
+      const trainingPathXpCost = Number(trainingPathChoice?.creationXpCost);
+      if (Number.isFinite(trainingPathXpCost) && trainingPathXpCost >= 0) {
+        resolvedTemplate.creation = (resolvedTemplate.creation && typeof resolvedTemplate.creation === "object")
+          ? resolvedTemplate.creation
+          : {};
+        resolvedTemplate.creation.xpCost = Math.max(0, Math.floor(trainingPathXpCost));
+      }
+      const trainingPathAdvSource = (trainingPathChoice?.characteristicAdvancements && typeof trainingPathChoice.characteristicAdvancements === "object")
+        ? trainingPathChoice.characteristicAdvancements
+        : null;
+      if (trainingPathAdvSource) {
+        resolvedTemplate.characteristicAdvancements = MYTHIC_CHARACTERISTIC_KEYS.reduce((acc, key) => {
+          acc[key] = Math.max(0, Math.floor(Number(trainingPathAdvSource?.[key] ?? 0)));
+          return acc;
+        }, {});
+      }
 
       const preRuleFlagsSource = (resolvedTemplate?.ruleFlags && typeof resolvedTemplate.ruleFlags === "object")
         ? resolvedTemplate.ruleFlags
@@ -10889,6 +10992,15 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           label,
           trainingGrants: normalizeStringList(Array.isArray(entry?.trainingGrants) ? entry.trainingGrants : []),
           grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : []),
+          creationXpCost: Number.isFinite(Number(entry?.creationXpCost))
+            ? toNonNegativeWhole(entry?.creationXpCost, 0)
+            : null,
+            characteristicAdvancements: (entry?.characteristicAdvancements && typeof entry.characteristicAdvancements === "object")
+              ? MYTHIC_CHARACTERISTIC_KEYS.reduce((acc, key) => {
+                acc[key] = Math.max(0, Math.floor(Number(entry?.characteristicAdvancements?.[key] ?? 0)));
+                return acc;
+              }, {})
+              : null,
           notes: String(entry?.notes ?? "").trim()
         };
       })
@@ -10914,7 +11026,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         key: "default",
         label: "Default",
         trainingGrants: [],
-        grantedTraits: []
+        grantedTraits: [],
+        creationXpCost: null,
+        characteristicAdvancements: null
       });
     }
 
@@ -10953,7 +11067,13 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
                 key: selected.key,
                 label: selected.label,
                 trainingGrants: Array.isArray(selected.trainingGrants) ? selected.trainingGrants : [],
-                grantedTraits: Array.isArray(selected.grantedTraits) ? selected.grantedTraits : []
+                grantedTraits: Array.isArray(selected.grantedTraits) ? selected.grantedTraits : [],
+                creationXpCost: Number.isFinite(Number(selected.creationXpCost))
+                  ? toNonNegativeWhole(selected.creationXpCost, 0)
+                  : null,
+                characteristicAdvancements: (selected.characteristicAdvancements && typeof selected.characteristicAdvancements === "object")
+                  ? selected.characteristicAdvancements
+                  : null
               }
               : null;
           }
@@ -11046,6 +11166,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       if (!(next.trainingPathChoice && typeof next.trainingPathChoice === "object" && Array.isArray(next.trainingPathChoice.choices) && next.trainingPathChoice.choices.length)) {
         next.trainingPathChoice = foundry.utils.deepClone(ref.trainingPathChoice ?? null);
+      }
+      if (!(Array.isArray(next.advancementOptions) && next.advancementOptions.length)) {
+        next.advancementOptions = foundry.utils.deepClone(ref.advancementOptions ?? []);
       }
       // Always merge reference traits so stale compendium entries get new traits automatically.
       if (!Array.isArray(next.educationChoices) || !next.educationChoices.length) {
@@ -12640,8 +12763,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const actorSystemAfter = normalizeCharacterSystemData(this.actor.system ?? {});
       const isInCharBuilder = Boolean(actorSystemAfter?.charBuilder?.managed);
       const templateXpCost = toNonNegativeWhole(templateSystem?.creation?.xpCost ?? 0, 0);
-      if (isInCharBuilder && templateXpCost > 0) {
-        // Overwrite xpSpent with the soldier-type creation cost
+      if (isInCharBuilder) {
+        // Overwrite xpSpent with the soldier-type creation cost (including zero-cost paths).
         await this.actor.update({ "system.advancements.xpSpent": templateXpCost });
       }
     } catch (_err) {
@@ -13370,6 +13493,19 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const next = String(event.currentTarget?.dataset?.subtab ?? "").trim().toLowerCase();
     if (!next || !["creation", "advancement"].includes(next)) return;
     await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "ccAdvSubtab", next);
+    this.render(false);
+  }
+
+  async _onSoldierTypeAdvancementSelectionChange(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+    const optionKey = String(event.currentTarget?.value ?? "").trim().toLowerCase();
+    const factionChoiceFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeFactionChoice");
+    const canonicalId = String(factionChoiceFlag?.soldierTypeCanonicalId ?? "").trim();
+    await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAdvancementSelection", {
+      soldierTypeCanonicalId: canonicalId,
+      optionKey
+    });
     this.render(false);
   }
 

@@ -1409,6 +1409,19 @@
 				{
 					"key": "combat",
 					"label": "Combat Trained (default)",
+					"creationXpCost": 800,
+					"characteristicAdvancements": {
+						"str": 5,
+						"tou": 5,
+						"wfm": 5,
+						"wfr": 5,
+						"agi": 0,
+						"int": 0,
+						"per": 0,
+						"crg": 0,
+						"cha": 0,
+						"ldr": 0
+					},
 					"grantedTraits": [
 						"Covenant Armory (Unggoy)",
 						"Equipment Pack (Unggoy Combat)",
@@ -1418,6 +1431,19 @@
 				{
 					"key": "civilian",
 					"label": "Civilian / Support",
+					"creationXpCost": 800,
+					"characteristicAdvancements": {
+						"str": 5,
+						"tou": 5,
+						"wfm": 5,
+						"wfr": 5,
+						"agi": 0,
+						"int": 0,
+						"per": 0,
+						"crg": 0,
+						"cha": 0,
+						"ldr": 0
+					},
 					"grantedTraits": [
 						"Unggoy Limited",
 						"Squad Up (Unggoy Civilian)"
@@ -1425,9 +1451,155 @@
 				}
 			]
 		},
+		"advancementOptions": [
+			{
+				"key": "deacon",
+				"label": "Becoming a Deacon",
+				"xpCost": 1000,
+				"summary": "Promotes this Unggoy into Covenant religious command as a Deacon.",
+				"requirements": "Spend a minimum of 500 XP on Educations.",
+				"details": "Deacons no longer pay double XP for Educations, gain Leadership perks, and may purchase Goblin or Gorgon vehicles at half price.",
+				"traitGrants": [
+					"Deacon"
+				],
+				"notes": "Scaffold only for now. Selection is recorded in Advancements > Soldier Type Advancements."
+			}
+		],
 		"notes": "Unggoy are modeled as combat-trained by default because most Covenant campaigns use that path. Civilian path remains available as an opt-in at apply time.",
 		"sync": {
 			"canonicalId": "soldierType:covenant-unggoy"
+		}
+	},
+	{
+		"name": "Covenant Sangheili",
+		"description": "Your bloodline carries duty, and your duty carries steel.",
+		"header": {
+			"faction": "Covenant",
+			"soldierType": "Sangheili",
+			"race": "Sangheili",
+			"upbringing": "Any",
+			"buildSize": "Large"
+		},
+		"heightRangeCm": {
+			"min": 223,
+			"max": 259
+		},
+		"weightRangeKg": {
+			"min": 139,
+			"max": 178
+		},
+		"training": [
+			"Basic",
+			"Infantry",
+			"Covenant"
+		],
+		"creation": {
+			"xpCost": 6950
+		},
+		"characteristics": {
+			"str": 45,
+			"tou": 45,
+			"agi": 45,
+			"wfr": 35,
+			"wfm": 35,
+			"int": 25,
+			"per": 35,
+			"crg": 25,
+			"cha": 35,
+			"ldr": 30
+		},
+		"characteristicAdvancements": {
+			"str": 0,
+			"tou": 0,
+			"agi": 0,
+			"wfr": 0,
+			"wfm": 0,
+			"int": 0,
+			"per": 0,
+			"crg": 0,
+			"cha": 0,
+			"ldr": 0
+		},
+		"mythic": {
+			"str": 5,
+			"tou": 2,
+			"agi": 4
+		},
+		"skillChoices": [],
+		"traits": [
+			"Limited",
+			"Digitigrade Legs",
+			"Swimming Legs",
+			"Leaping",
+			"Ancestral Honor",
+			"Bloodline",
+			"Carry Weight"
+		],
+		"trainingPathChoice": {
+			"enabled": true,
+			"prompt": "Choose Sangheili training path. Combat Trained is the default for most Covenant campaigns.",
+			"defaultKey": "combat",
+			"choices": [
+				{
+					"key": "combat",
+					"label": "Combat Trained (default)",
+					"creationXpCost": 8750,
+					"characteristicAdvancements": {
+						"wfm": 10,
+						"wfr": 10,
+						"per": 5,
+						"str": 0,
+						"tou": 0,
+						"agi": 0,
+						"int": 0,
+						"crg": 0,
+						"cha": 0,
+						"ldr": 0
+					},
+					"grantedTraits": [
+						"Covenant Armory (Sangheili)",
+						"Training",
+						"Equipment Pack (Sangheili Combat)",
+						"Spec-Ops",
+						"Squad Up (Sangheili)"
+					]
+				},
+				{
+					"key": "civilian",
+					"label": "Civilian / Support",
+					"creationXpCost": 6950
+				}
+			]
+		},
+		"advancementOptions": [
+			{
+				"key": "bloodline",
+				"label": "Bloodline",
+				"xpCost": 0,
+				"summary": "Sangheili bloodline options that reshape role and social standing.",
+				"requirements": "GM approval and campaign fit.",
+				"details": "Choose a bloodline track to define clan obligations and inherited expectations.",
+				"traitGrants": [
+					"Bloodline"
+				],
+				"notes": "Scaffold only. Mechanical branch effects will be added later."
+			},
+			{
+				"key": "ancestral-honor",
+				"label": "Ancestral Honor",
+				"xpCost": 0,
+				"summary": "Formalize honor-bound obligations and legacy penalties/rewards.",
+				"requirements": "GM approval and narrative trigger.",
+				"details": "Track honor debts, oaths, and social consequences as part of Sangheili advancement.",
+				"traitGrants": [
+					"Ancestral Honor"
+				],
+				"notes": "Scaffold only. Mechanical enforcement will be added later."
+			}
+		],
+		"notes": "Sangheili include civilian baseline profile with optional Combat Training package and soldier-type advancement scaffolding.",
+		"sync": {
+			"canonicalId": "soldierType:covenant-sangheili"
 		}
 	}
 ]

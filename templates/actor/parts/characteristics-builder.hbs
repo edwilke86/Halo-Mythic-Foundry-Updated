@@ -154,11 +154,17 @@
           {{/each}}
         </tr>
 
-        {{!-- Penalties row (placeholder — future auto-computed) --}}
+        {{!-- Penalties row (gravity penalty, etc.) --}}
         <tr class="mythic-charbuilder-row row-penalties">
           <td class="mythic-charbuilder-row-label">Penalties</td>
           {{#each mythicCharBuilder.displayKeys as |statKey|}}
-            <td><span class="mythic-charbuilder-cell-display">(-0)</span></td>
+            <td>
+              {{#if (lookup ../mythicCharBuilder.penaltiesRow statKey)}}
+                <span class="mythic-charbuilder-cell-display gravity-penalty-cell" title="Gravity Penalty">−{{lookup ../mythicCharBuilder.penaltiesRow statKey}}</span>
+              {{else}}
+                <span class="mythic-charbuilder-cell-display">(−0)</span>
+              {{/if}}
+            </td>
           {{/each}}
         </tr>
 
@@ -184,7 +190,7 @@
           <td class="mythic-charbuilder-row-label">Total</td>
           {{#each mythicCharBuilder.displayKeys as |statKey|}}
             <td>
-              <span class="mythic-charbuilder-cell-display total-value">{{lookup ../mythicCharBuilder.totals statKey}}</span>
+              <span class="mythic-charbuilder-cell-display total-value{{#if (lookup ../mythicCharBuilder.penaltiesRow statKey)}} penalized{{/if}}">{{lookup ../mythicCharBuilder.effectiveTotals statKey}}</span>
             </td>
           {{/each}}
         </tr>

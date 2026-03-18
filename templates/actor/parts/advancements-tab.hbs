@@ -382,7 +382,7 @@
                 <span>Advancement Option</span>
                 <select class="soldier-type-advancement-select">
                   {{#each mythicSoldierTypeAdvancementScaffold.options as |opt|}}
-                    <option value="{{opt.key}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+                    <option value="{{opt.key}}"{{#if opt.selected}} selected{{/if}}{{#if opt.disabled}} disabled{{/if}}>{{opt.label}}{{#if opt.disabled}} ({{opt.lockedReason}}){{/if}}</option>
                   {{/each}}
                 </select>
               </label>

@@ -236,13 +236,13 @@ Implementation note:
 
 ### Drag-and-drop background packages (race/specialisation/lifestyle/environment/upbringing)
 
-- [ ] P0 Create separate compendium entries for:
+- [X] P0 Create separate compendium entries for:
   - race
   - specialisation
   - lifestyle
   - environment
   - upbringing
-- [ ] P0 Define package schema: skill adjustments, abilities, features, proficiencies, notes
+- [C] P0 Define package schema: skill adjustments, abilities, features, proficiencies, notes
 - [ ] P0 Implement drop handlers for each package type
 - [ ] P0 Auto-apply appropriate abilities, skills, and features on drop
 - [ ] P1 Add stacking rules and incompatibility warnings
@@ -314,6 +314,7 @@ Live content sync and update propagation:
 - [ ] P1 Add unit-like tests for formula helpers where practical
 - [ ] P1 Add test fixtures for representative character archetypes
 - [ ] P2 Add visual regression screenshots for key sheet states
+- [ ] P2 Check traits and abilities that have Soldier-Type Variants for options to minimize iterations. (i.e. One single "Squad Up" trait with a placeholder for the variations in the traits for each soldier type that would need to be added/removed on soldier type change.)
 
 ### Smoke Checklist Draft (run after each core change)
 

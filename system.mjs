@@ -80,8 +80,10 @@ function applyCharacterCreationDefaults(createData) {
     foundry.utils.setProperty(createData, "system.advancements.xpSpent", 0);
   }
 
-  foundry.utils.setProperty(createData, "system.combat.luck.current", 6);
-  foundry.utils.setProperty(createData, "system.combat.luck.max", 6);
+  const goodFortuneMode = isGoodFortuneModeEnabled();
+  const startingLuck = goodFortuneMode ? 7 : 6;
+  foundry.utils.setProperty(createData, "system.combat.luck.current", startingLuck);
+  foundry.utils.setProperty(createData, "system.combat.luck.max", startingLuck);
   foundry.utils.setProperty(createData, "system.combat.cr", startingCr);
   foundry.utils.setProperty(createData, "system.equipment.credits", startingCr);
 
@@ -320,6 +322,8 @@ const MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY = "charBuilderCreationPoin
 const MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY = "charBuilderStatCap";
 const MYTHIC_CREATION_XP_PLAYER_EDIT_SETTING_KEY = "letPlayersHandleXp";
 const MYTHIC_CAMPAIGN_YEAR_SETTING_KEY = "campaignYear";
+const MYTHIC_WORLD_GRAVITY_SETTING_KEY = "worldGravityLevel";
+const MYTHIC_GOOD_FORTUNE_MODE_SETTING_KEY = "goodFortuneMode";
 const MYTHIC_MJOLNIR_ARMOR_LIST = Object.freeze([
   { name: "SPI Mark I",      yearStart: 2531, yearEnd: 2537 },
   { name: "SPI Mark II",     yearStart: 2537, yearEnd: null },
@@ -330,6 +334,10 @@ const MYTHIC_MJOLNIR_ARMOR_LIST = Object.freeze([
   { name: "Mjolnir Mark VI", yearStart: 2552, yearEnd: 2553 },
   { name: "GEN II Mjolnir",  yearStart: 2553, yearEnd: 2559 },
   { name: "GEN III Mjolnir", yearStart: 2559, yearEnd: null }
+]);
+const MYTHIC_KIG_YAR_POINT_DEFENSE_SHIELDS = Object.freeze([
+  "Mistrom Pattern Point Defense Gauntlet",
+  "Murmifo Pattern Wrist Point Defense Gauntlet"
 ]);
 
 // Characteristic advancement tiers: value = stat bonus, xpStep = cost for that tier, xpCumulative = total purchase cost from scratch
@@ -493,6 +501,13 @@ function getSizeCategoryFromHeightCm(heightCm) {
   return "Normal";
 }
 
+function getCanonicalSizeCategoryLabel(label) {
+  const marker = String(label ?? "").trim().toLowerCase();
+  if (!marker) return "";
+  const entry = MYTHIC_SIZE_CATEGORIES.find((candidate) => candidate.label.toLowerCase() === marker);
+  return entry?.label ?? "";
+}
+
 function getNextSizeCategoryLabel(currentLabel) {
   const marker = String(currentLabel ?? "").trim().toLowerCase();
   const index = MYTHIC_SIZE_CATEGORIES.findIndex((entry) => entry.label.toLowerCase() === marker);
@@ -500,11 +515,59 @@ function getNextSizeCategoryLabel(currentLabel) {
   return MYTHIC_SIZE_CATEGORIES[index + 1]?.label ?? null;
 }
 
+function getPreviousSizeCategoryLabel(currentLabel) {
+  const marker = String(currentLabel ?? "").trim().toLowerCase();
+  const index = MYTHIC_SIZE_CATEGORIES.findIndex((entry) => entry.label.toLowerCase() === marker);
+  if (index <= 0) return null;
+  return MYTHIC_SIZE_CATEGORIES[index - 1]?.label ?? null;
+}
+
 function getSizeCategoryMinHeightCm(label) {
   const marker = String(label ?? "").trim().toLowerCase();
   const entry = MYTHIC_SIZE_CATEGORIES.find((candidate) => candidate.label.toLowerCase() === marker);
   if (!entry) return 0;
   return Math.ceil(entry.minMeters * 100);
+}
+
+function getSizeCategoryIndexByLabel(label) {
+  const marker = String(label ?? "").trim().toLowerCase();
+  return MYTHIC_SIZE_CATEGORIES.findIndex((entry) => entry.label.toLowerCase() === marker);
+}
+
+function computeMeleeReach(buildSizeLabel) {
+  const index = getSizeCategoryIndexByLabel(buildSizeLabel);
+  const normalIndex = getSizeCategoryIndexByLabel("Normal");
+  if (index < 0 || normalIndex < 0) return 1;
+  const sizePointsAboveNormal = index - normalIndex;
+  const baseReach = 1.0;
+  const reachPerSize = 0.5;
+  return Math.max(0.5, baseReach + (sizePointsAboveNormal * reachPerSize));
+}
+
+function computeToHitModifierVsSize(actorSizeLabel, targetSizeLabel) {
+  const actorIndex = getSizeCategoryIndexByLabel(actorSizeLabel);
+  const targetIndex = getSizeCategoryIndexByLabel(targetSizeLabel);
+  if (actorIndex < 0 || targetIndex < 0) return 0;
+  const immenseIndex = getSizeCategoryIndexByLabel("Immense");
+  if (immenseIndex < 0) return 0;
+  const targetSizePointsAboveImmense = Math.max(0, targetIndex - immenseIndex);
+  const bonusPer2Points = targetSizePointsAboveImmense >= 2 ? Math.floor(targetSizePointsAboveImmense / 2) * 10 : 0;
+  return bonusPer2Points;
+}
+
+function computeMeleeDamageBonus(buildSizeLabel) {
+  const index = getSizeCategoryIndexByLabel(buildSizeLabel);
+  const normalIndex = getSizeCategoryIndexByLabel("Normal");
+  if (index < 0 || normalIndex < 0) return 0;
+  const sizePointsAboveNormal = index - normalIndex;
+  const bonusDicePerSize = sizePointsAboveNormal > 0 ? Math.floor((sizePointsAboveNormal + 1) / 2) : 0;
+  return bonusDicePerSize;
+}
+
+function applySbaolekgoloSizing(buildSize, hasImposingOutlier, phenomeKey) {
+  const phenomeKeyLower = String(phenomeKey ?? "").trim().toLowerCase();
+  if (phenomeKeyLower !== "sbaolekgolo") return buildSize;
+  return getNextSizeCategoryLabel(buildSize) ?? buildSize;
 }
 
 function hasOutlierPurchase(systemData, outlierKey) {
@@ -1202,12 +1265,33 @@ function computeCharacteristicModifiers(characteristics = {}) {
   return mods;
 }
 
+function getWorldGravity() {
+  try {
+    if (!game?.settings) return null;
+    const val = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_WORLD_GRAVITY_SETTING_KEY) ?? 1.0);
+    return Number.isFinite(val) && val >= 0 ? val : 1.0;
+  } catch (_) {
+    return null;
+  }
+}
+
+function isGoodFortuneModeEnabled() {
+  try {
+    if (!game?.settings) return false;
+    return Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_GOOD_FORTUNE_MODE_SETTING_KEY));
+  } catch (_) {
+    return false;
+  }
+}
+
 function computeCharacterDerivedValues(systemData = {}) {
   const characteristics = systemData?.characteristics ?? {};
   const mythic = systemData?.mythic?.characteristics ?? {};
   const modifiers = computeCharacteristicModifiers(characteristics);
 
-  const gravity = Number(systemData?.gravity ?? 1.0);
+  const actorGravity = Number(systemData?.gravity ?? 1.0);
+  const worldGravity = getWorldGravity();
+  const gravity = worldGravity !== null ? worldGravity : actorGravity;
   const isZeroG = gravity === 0;
   const safeGravity = isZeroG ? 1.0 : gravity;
   const gravDist = (value) => (isZeroG ? value : (value / safeGravity));
@@ -1218,21 +1302,44 @@ function computeCharacterDerivedValues(systemData = {}) {
 
   const touModifier = toNonNegativeWhole(modifiers.tou, 0);
   const touCombined = touModifier + mythicTou;
+  const rawSoldierTypeTouWoundsMultiplier = Number(systemData?.mythic?.soldierTypeTouWoundsMultiplier);
+  const soldierTypeTouWoundsMultiplier = Number.isFinite(rawSoldierTypeTouWoundsMultiplier)
+    ? Math.max(0, rawSoldierTypeTouWoundsMultiplier)
+    : 1;
+  const rawMiscWoundsModifier = Number(systemData?.mythic?.miscWoundsModifier);
+  const miscWoundsModifier = Number.isFinite(rawMiscWoundsModifier) ? rawMiscWoundsModifier : 0;
 
-  const woundsMaximum = ((touModifier + mythicTou) * 2) + 40;
+  const woundsMaximum = 40 + (((touModifier * soldierTypeTouWoundsMultiplier) + mythicTou) * 2) + miscWoundsModifier;
   const fatigueThreshold = touModifier * 2;
 
   const movMod = Math.max(0, modifiers.agi + mythicAgi);
   const halfBase = movMod;
   const fullBase = halfBase * 2;
+  const rawChargeRunAgiBonus = Number(systemData?.mythic?.soldierTypeChargeRunAgiBonus);
+  const chargeRunAgiBonus = Number.isFinite(rawChargeRunAgiBonus) ? rawChargeRunAgiBonus : 0;
+  const chargeRunBase = Math.max(0, halfBase + chargeRunAgiBonus);
   const jumpDistanceBase = Math.max(0, modifiers.str / 4);
-  const leapDistanceBase = Math.max(0, Math.max(modifiers.str / 2, modifiers.agi / 2));
+  const rawSoldierTypeLeapMultiplier = Number(systemData?.mythic?.soldierTypeLeapMultiplier);
+  const soldierTypeLeapMultiplier = Number.isFinite(rawSoldierTypeLeapMultiplier)
+    ? Math.max(0, rawSoldierTypeLeapMultiplier)
+    : 1;
+  const rawSoldierTypeLeapModifier = Number(systemData?.mythic?.soldierTypeLeapModifier);
+  const soldierTypeLeapModifier = Number.isFinite(rawSoldierTypeLeapModifier) ? rawSoldierTypeLeapModifier : 0;
+  const rawMiscLeapModifier = Number(systemData?.mythic?.miscLeapModifier);
+  const miscLeapModifier = Number.isFinite(rawMiscLeapModifier) ? rawMiscLeapModifier : 0;
+  const leapDistanceBase = Math.max(
+    0,
+    Math.max(
+      ((modifiers.str * soldierTypeLeapMultiplier) + soldierTypeLeapModifier) / 2,
+      ((modifiers.agi * soldierTypeLeapMultiplier) + soldierTypeLeapModifier) / 2
+    ) + miscLeapModifier
+  );
 
   const movement = {
     half: Math.floor(halfBase),
     full: Math.floor(fullBase),
-    charge: Math.floor(halfBase * 3),
-    run: Math.floor(halfBase * 6),
+    charge: Math.floor(chargeRunBase * 3),
+    run: Math.floor(chargeRunBase * 6),
     jump: roundToOne(gravDist(jumpDistanceBase)),
     leap: roundToOne(gravDist(leapDistanceBase)),
     sprint: Math.floor(halfBase * 8),
@@ -1268,17 +1375,37 @@ function computeCharacterDerivedValues(systemData = {}) {
     : fallbackCarryMultiplier;
   const rawMiscCarryBonus = Number(systemData?.mythic?.miscCarryBonus);
   const miscCarryBonus = Number.isFinite(rawMiscCarryBonus) ? rawMiscCarryBonus : 0;
+  const rawFixedCarryWeight = Number(systemData?.mythic?.fixedCarryWeight);
+  const fixedCarryWeight = Number.isFinite(rawFixedCarryWeight) ? Math.max(0, rawFixedCarryWeight) : 0;
   const rawCarryStr = toNonNegativeNumber(characteristics.str, 0);
   const rawCarryTou = toNonNegativeNumber(characteristics.tou, 0);
   const baseCarry = (((rawCarryStr / 2) + (10 * mythicStr)) * soldierTypeStrMultiplier)
     + (((rawCarryTou / 2) + (10 * mythicTou)) * soldierTypeTouMultiplier)
     + miscCarryBonus;
-  const gravCarry = isZeroG ? baseCarry : roundToOne(baseCarry / safeGravity);
+  const gravCarry = fixedCarryWeight > 0
+    ? fixedCarryWeight
+    : (isZeroG ? baseCarry : roundToOne(baseCarry / safeGravity));
 
   const carryingCapacity = {
     carry: gravCarry,
     lift:  roundToOne(gravCarry * 3),
     push:  roundToOne(gravCarry * 5)
+  };
+
+  const buildSizeRaw = String(systemData?.header?.buildSize ?? "").trim() || "Normal";
+  const phenomeKeyRaw = systemData?.flags?.["Halo-Mythic-Foundry-Updated"]?.mgalekgoloPhenome?.key ?? "";
+  const hasImposingOutlier = hasOutlierPurchase(systemData, "imposing");
+  const buildSizeForScaffolding = applySbaolekgoloSizing(buildSizeRaw, hasImposingOutlier, phenomeKeyRaw);
+
+  const meleeReach = computeMeleeReach(buildSizeForScaffolding);
+  const toHitModifierVsLargerFoes = computeToHitModifierVsSize(buildSizeForScaffolding, buildSizeForScaffolding);
+  const meleeDamageBonus = computeMeleeDamageBonus(buildSizeForScaffolding);
+
+  const sizeScaffolding = {
+    buildSizeForGameplay: buildSizeForScaffolding,
+    meleeReach: Math.round(meleeReach * 100) / 100,
+    toHitModifierVsLargerFoes,
+    meleeDamageBonusDice: meleeDamageBonus
   };
 
   return {
@@ -1294,7 +1421,8 @@ function computeCharacterDerivedValues(systemData = {}) {
     fatigueThreshold,
     movement,
     perceptiveRange,
-    carryingCapacity
+    carryingCapacity,
+    sizeScaffolding
   };
 }
 
@@ -1822,6 +1950,23 @@ function buildTraitAutoEffects(definition) {
   }];
 }
 
+/**
+ * Substitutes soldier-type placeholders in trait text with actual soldier type name.
+ * Replaces "[SOLDIER_TYPE]" with the provided soldier type name.
+ * @param {string} text - The trait text (benefit or description)
+ * @param {string} soldierTypeName - The soldier type name to substitute (e.g., "Jiralhanae", "Spartan")
+ * @returns {string} - The text with substitutions applied
+ */
+function substituteSoldierTypeInTraitText(text, soldierTypeName = "") {
+  if (!text || !soldierTypeName) return text;
+  
+  const cleanTypeName = String(soldierTypeName ?? "").trim();
+  if (!cleanTypeName) return text;
+  
+  // Replace [SOLDIER_TYPE] placeholder with actual soldier type name
+  return String(text).replace(/\[SOLDIER_TYPE\]/gi, cleanTypeName);
+}
+
 function buildSkillRankDefaults(override = {}) {
   const options = Array.isArray(override.characteristicOptions)
     ? override.characteristicOptions
@@ -2127,9 +2272,16 @@ function getCanonicalCharacterSystemData() {
         tou: 0,
         agi: 0
       },
+      fixedCarryWeight: 0,
+      soldierTypeChargeRunAgiBonus: 0,
       soldierTypeStrCarryMultiplier: 1,
       soldierTypeTouCarryMultiplier: 1,
+      soldierTypeTouWoundsMultiplier: 1,
+      soldierTypeLeapMultiplier: 1,
+      soldierTypeLeapModifier: 0,
+      miscLeapModifier: 0,
       miscCarryBonus: 0,
+      miscWoundsModifier: 0,
       requiredUpbringing: {
         enabled: false,
         upbringing: "",
@@ -2165,7 +2317,7 @@ function getCanonicalCharacterSystemData() {
       wounds: { current: 0, max: 0 },
       woundsBar: { value: 0, max: 0 },
       fatigue: { current: 0, max: 0 },
-      luck: { current: 0, max: 0 },
+      luck: { current: 6, max: 6 },
       supportPoints: { current: 0, max: 0 },
       cr: 0,
       shields: {
@@ -2269,6 +2421,7 @@ function getCanonicalCharacterSystemData() {
       automation: {
         enforceAbilityPrereqs: true,
         showRollHints: true,
+        showWorkflowGuidance: true,
         keepSidebarCollapsed: false,
         preferTokenPreview: false
       }
@@ -2422,8 +2575,22 @@ function normalizeCharacterSystemData(systemData) {
   merged.mythic.soldierTypeStrCarryMultiplier = Number.isFinite(strCarryMultiplierRaw) ? Math.max(0, strCarryMultiplierRaw) : 1;
   const touCarryMultiplierRaw = Number(merged.mythic?.soldierTypeTouCarryMultiplier ?? legacyCarryMultiplier);
   merged.mythic.soldierTypeTouCarryMultiplier = Number.isFinite(touCarryMultiplierRaw) ? Math.max(0, touCarryMultiplierRaw) : 1;
+  const touWoundsMultiplierRaw = Number(merged.mythic?.soldierTypeTouWoundsMultiplier ?? 1);
+  merged.mythic.soldierTypeTouWoundsMultiplier = Number.isFinite(touWoundsMultiplierRaw) ? Math.max(0, touWoundsMultiplierRaw) : 1;
+  const soldierTypeLeapMultiplierRaw = Number(merged.mythic?.soldierTypeLeapMultiplier ?? 1);
+  merged.mythic.soldierTypeLeapMultiplier = Number.isFinite(soldierTypeLeapMultiplierRaw) ? Math.max(0, soldierTypeLeapMultiplierRaw) : 1;
+  const soldierTypeLeapModifierRaw = Number(merged.mythic?.soldierTypeLeapModifier ?? 0);
+  merged.mythic.soldierTypeLeapModifier = Number.isFinite(soldierTypeLeapModifierRaw) ? soldierTypeLeapModifierRaw : 0;
+  const miscLeapModifierRaw = Number(merged.mythic?.miscLeapModifier ?? 0);
+  merged.mythic.miscLeapModifier = Number.isFinite(miscLeapModifierRaw) ? miscLeapModifierRaw : 0;
   const miscCarryBonusRaw = Number(merged.mythic?.miscCarryBonus ?? 0);
   merged.mythic.miscCarryBonus = Number.isFinite(miscCarryBonusRaw) ? miscCarryBonusRaw : 0;
+  const miscWoundsModifierRaw = Number(merged.mythic?.miscWoundsModifier ?? 0);
+  merged.mythic.miscWoundsModifier = Number.isFinite(miscWoundsModifierRaw) ? miscWoundsModifierRaw : 0;
+  const fixedCarryWeightRaw = Number(merged.mythic?.fixedCarryWeight ?? 0);
+  merged.mythic.fixedCarryWeight = Number.isFinite(fixedCarryWeightRaw) ? Math.max(0, fixedCarryWeightRaw) : 0;
+  const chargeRunAgiBonusRaw = Number(merged.mythic?.soldierTypeChargeRunAgiBonus ?? 0);
+  merged.mythic.soldierTypeChargeRunAgiBonus = Number.isFinite(chargeRunAgiBonusRaw) ? chargeRunAgiBonusRaw : 0;
 
   const derived = computeCharacterDerivedValues(merged);
 
@@ -2642,7 +2809,7 @@ function normalizeCharacterSystemData(systemData) {
 
   merged.settings ??= {};
   merged.settings.automation ??= {};
-  for (const key of ["enforceAbilityPrereqs", "showRollHints", "keepSidebarCollapsed", "preferTokenPreview"]) {
+  for (const key of ["enforceAbilityPrereqs", "showRollHints", "showWorkflowGuidance", "keepSidebarCollapsed", "preferTokenPreview"]) {
     merged.settings.automation[key] = Boolean(merged.settings.automation?.[key]);
   }
 
@@ -2688,6 +2855,8 @@ function normalizeCharacterSystemData(systemData) {
 
   if (normalizedHeightCm > 0) {
     merged.header.buildSize = getSizeCategoryFromHeightCm(normalizedHeightCm);
+  } else {
+    merged.header.buildSize = getCanonicalSizeCategoryLabel(merged.header.buildSize);
   }
 
   merged.training = normalizeTrainingData(merged.training);
@@ -3275,10 +3444,15 @@ function getCanonicalSoldierTypeSystemData() {
     advancementOptions: [],
     ruleFlags: {
       airForceVehicleBenefit: false,
+      fixedCarryWeight: 0,
+      chargeRunAgiBonus: 0,
       carryMultipliers: {
         str: 1,
         tou: 1
       },
+      toughMultiplier: 1,
+      leapMultiplier: 1,
+      leapModifier: 0,
       branchTransition: {
         enabled: false,
         advancementOnly: false,
@@ -3325,6 +3499,12 @@ function getCanonicalSoldierTypeSystemData() {
       },
       spartanCarryWeight: {
         enabled: false
+      },
+      phenomeChoice: {
+        enabled: false,
+        prompt: "Choose a Lekgolo phenome culture.",
+        defaultKey: "",
+        choices: []
       }
     },
     specPacks: [],
@@ -3401,6 +3581,9 @@ function normalizeSoldierTypeTrainingPathChoice(systemData) {
         label,
         trainingGrants: normalizeStringList(Array.isArray(entry?.trainingGrants) ? entry.trainingGrants : []),
         grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : []),
+        skillChoices: (Array.isArray(entry?.skillChoices) ? entry.skillChoices : [])
+          .map((choice) => normalizeSoldierTypeSkillChoice(choice))
+          .filter((choice) => choice.count > 0),
         creationXpCost: Number.isFinite(Number(entry?.creationXpCost))
           ? toNonNegativeWhole(entry?.creationXpCost, 0)
           : null,
@@ -3434,6 +3617,7 @@ function normalizeSoldierTypeAdvancementOption(entry, index = 0) {
   return {
     key,
     label,
+    requiresKey: String(entry?.requiresKey ?? "").trim().toLowerCase(),
     requirements: String(entry?.requirements ?? "").trim(),
     details: String(entry?.details ?? "").trim(),
     summary: String(entry?.summary ?? "").trim(),
@@ -3568,6 +3752,18 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
 
   merged.heightRangeCm = normalizeRangeObject(merged.heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
   merged.weightRangeKg = normalizeRangeObject(merged.weightRangeKg, MYTHIC_DEFAULT_WEIGHT_RANGE_KG);
+  const canonicalBuildSize = getCanonicalSizeCategoryLabel(merged.header.buildSize);
+  if (canonicalBuildSize) {
+    merged.header.buildSize = canonicalBuildSize;
+  } else {
+    const fallbackHeightCm = Math.max(
+      Number(merged.heightRangeCm?.max ?? 0) || 0,
+      Number(merged.heightRangeCm?.min ?? 0) || 0
+    );
+    merged.header.buildSize = fallbackHeightCm > 0
+      ? getSizeCategoryFromHeightCm(fallbackHeightCm)
+      : "";
+  }
 
   for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
     merged.characteristics[key] = toNonNegativeWhole(merged.characteristics?.[key], 0);
@@ -3661,12 +3857,22 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
     : {};
   const legacyCarryMultiplierRaw = Number(merged.ruleFlags?.carryMultiplier ?? 1);
   const legacyCarryMultiplier = Number.isFinite(legacyCarryMultiplierRaw) ? Math.max(0, legacyCarryMultiplierRaw) : 1;
+  const fixedCarryWeightRaw = Number(merged.ruleFlags?.fixedCarryWeight ?? 0);
+  const chargeRunAgiBonusRaw = Number(merged.ruleFlags?.chargeRunAgiBonus ?? 0);
   const carryStrRaw = Number(carryMultipliersSource?.str ?? legacyCarryMultiplier);
   const carryTouRaw = Number(carryMultipliersSource?.tou ?? legacyCarryMultiplier);
+  const toughMultiplierRaw = Number(merged.ruleFlags?.toughMultiplier ?? 1);
+  const leapMultiplierRaw = Number(merged.ruleFlags?.leapMultiplier ?? 1);
+  const leapModifierRaw = Number(merged.ruleFlags?.leapModifier ?? 0);
   merged.ruleFlags.carryMultipliers = {
     str: Number.isFinite(carryStrRaw) ? Math.max(0, carryStrRaw) : 1,
     tou: Number.isFinite(carryTouRaw) ? Math.max(0, carryTouRaw) : 1
   };
+  merged.ruleFlags.fixedCarryWeight = Number.isFinite(fixedCarryWeightRaw) ? Math.max(0, fixedCarryWeightRaw) : 0;
+  merged.ruleFlags.chargeRunAgiBonus = Number.isFinite(chargeRunAgiBonusRaw) ? chargeRunAgiBonusRaw : 0;
+  merged.ruleFlags.toughMultiplier = Number.isFinite(toughMultiplierRaw) ? Math.max(0, toughMultiplierRaw) : 1;
+  merged.ruleFlags.leapMultiplier = Number.isFinite(leapMultiplierRaw) ? Math.max(0, leapMultiplierRaw) : 1;
+  merged.ruleFlags.leapModifier = Number.isFinite(leapModifierRaw) ? leapModifierRaw : 0;
   merged.ruleFlags.branchTransition = {
     enabled: Boolean(branchTransitionSource?.enabled),
     advancementOnly: Boolean(branchTransitionSource?.advancementOnly),
@@ -3750,6 +3956,42 @@ function normalizeSoldierTypeSystemData(systemData, itemName = "") {
     : {};
   merged.ruleFlags.spartanCarryWeight = {
     enabled: Boolean(spartanCarryWeightSource?.enabled)
+  };
+  const phenomeChoiceSource = (merged?.ruleFlags?.phenomeChoice && typeof merged.ruleFlags.phenomeChoice === "object")
+    ? merged.ruleFlags.phenomeChoice
+    : {};
+  const phenomeChoices = Array.isArray(phenomeChoiceSource?.choices)
+    ? phenomeChoiceSource.choices
+      .map((entry) => {
+        const key = String(entry?.key ?? "").trim();
+        if (!key) return null;
+        const label = String(entry?.label ?? key).trim() || key;
+        const characteristics = {};
+        for (const cKey of MYTHIC_CHARACTERISTIC_KEYS) {
+          const raw = Number(entry?.characteristics?.[cKey] ?? 0);
+          characteristics[cKey] = Number.isFinite(raw) ? raw : 0;
+        }
+        const mythic = {};
+        for (const mKey of ["str", "tou", "agi"]) {
+          const raw = Number(entry?.mythic?.[mKey] ?? 0);
+          mythic[mKey] = Number.isFinite(raw) ? raw : 0;
+        }
+        return {
+          key,
+          label,
+          characteristics,
+          mythic,
+          traits: normalizeStringList(Array.isArray(entry?.traits) ? entry.traits : []),
+          notes: String(entry?.notes ?? "").trim()
+        };
+      })
+      .filter(Boolean)
+    : [];
+  merged.ruleFlags.phenomeChoice = {
+    enabled: Boolean(phenomeChoiceSource?.enabled),
+    prompt: String(phenomeChoiceSource?.prompt ?? "Choose a Lekgolo phenome culture.").trim() || "Choose a Lekgolo phenome culture.",
+    defaultKey: String(phenomeChoiceSource?.defaultKey ?? "").trim(),
+    choices: phenomeChoices
   };
   const allowedUpbringingsSource = (merged?.ruleFlags?.allowedUpbringings && typeof merged.ruleFlags.allowedUpbringings === "object")
     ? merged.ruleFlags.allowedUpbringings
@@ -6229,6 +6471,11 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
     const creationPathOutcome = await this._resolveCreationPathOutcome(normalizedSystem);
     const effectiveSystem = this._applyCreationPathOutcomeToSystem(normalizedSystem, creationPathOutcome);
+    const gravityAgiPenalty = this._getSanShyuumGravityPenaltyValue(effectiveSystem);
+    if (gravityAgiPenalty > 0) {
+      const currentAgi = Number(effectiveSystem?.characteristics?.agi ?? 0);
+      effectiveSystem.characteristics.agi = Math.max(0, currentAgi - gravityAgiPenalty);
+    }
     const derived = computeCharacterDerivedValues(effectiveSystem);
     const faction = this.actor.system?.header?.faction ?? "";
     const themedFaction = String(faction ?? "").trim() || "Other (Setting Agnostic)";
@@ -6238,6 +6485,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.actor = this.actor;
     context.editable = this.isEditable;
     context.mythicSystem = normalizedSystem;
+    context.mythicGravityAgilityPenalty = gravityAgiPenalty;
     context.mythicCreationPathOutcome = creationPathOutcome;
     context.mythicLogo = customLogo || this._getFactionLogoPath(themedFaction);
     context.mythicFactionIndex = this._getFactionIndex(themedFaction);
@@ -6252,7 +6500,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicCreationFinalizeSummary = this._getCreationFinalizeSummaryViewData(normalizedSystem, context.mythicAdvancements, context.mythicOutliers);
     context.mythicEquipment = await this._getEquipmentViewData(effectiveSystem, derived);
     context.mythicGammaCompany = this._getGammaCompanyViewData(normalizedSystem);
-    context.mythicGravityValue = String(normalizedSystem?.gravity ?? 1.0);
+    const worldGravity = getWorldGravity();
+    context.mythicGravityValue = String(worldGravity !== null ? worldGravity : (normalizedSystem?.gravity ?? 1.0));
+    context.mythicIsGM = Boolean(game?.user?.isGM);
     context.mythicSkills = this._getSkillsViewData(normalizedSystem?.skills, effectiveSystem?.characteristics);
     context.mythicFactionOptions = [
       "United Nations Space Command",
@@ -6291,9 +6541,54 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicSoldierTypeAdvancementScaffold = await this._getSoldierTypeAdvancementScaffoldViewData(normalizedSystem);
     context.mythicHasBlurAbility = this.actor.items.some((i) => i.type === "ability" && String(i.name ?? "").toLowerCase() === "blur");
     context.mythicCharBuilder = this._getCharBuilderViewData(normalizedSystem, creationPathOutcome);
+    // Augment char builder with penalty-aware rows so templates can show effective values.
+    const cbPenaltiesRow = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((k) => [k, 0]));
+    if (gravityAgiPenalty > 0) cbPenaltiesRow.agi = gravityAgiPenalty;
+    const cbEffectiveTotals = Object.fromEntries(
+      MYTHIC_CHARACTERISTIC_KEYS.map((k) => [k, Math.max(0, (context.mythicCharBuilder.totals[k] ?? 0) - (cbPenaltiesRow[k] ?? 0))])
+    );
+    context.mythicCharBuilder = { ...context.mythicCharBuilder, penaltiesRow: cbPenaltiesRow, effectiveTotals: cbEffectiveTotals };
+    context.mythicEffectiveCharacteristics = effectiveSystem.characteristics;
     context.mythicHeader = await this._getHeaderViewData(normalizedSystem);
     context.mythicSpecialization = this._getSpecializationViewData(normalizedSystem);
     return context;
+  }
+
+  _isSanShyuumActor(systemData = null) {
+    const source = systemData ?? this.actor?.system ?? {};
+    const race = String(source?.header?.race ?? "").trim().toLowerCase();
+    if (!/san.?shyuum/.test(race)) return false;
+    // Prelates are genetically modified and do not take the San'Shyuum AGI gravity penalty.
+    const isPrelate = /prelate/.test(race)
+      || /prelate/.test(String(source?.header?.soldierType ?? "").trim().toLowerCase());
+    return !isPrelate;
+  }
+
+  _hasSanShyuumGravityBeltBypass() {
+    // Gravity Belt bypass
+    const belt = this.actor.items.find((entry) => (
+      entry.type === "gear"
+      && String(entry.name ?? "").trim().toLowerCase() === "gravity belt"
+    ));
+    const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+      ? this.actor.system.equipment.carriedIds
+      : [];
+    const equippedArmorId = String(this.actor.system?.equipment?.equipped?.armorId ?? "").trim();
+    if (belt) {
+      const bypassFlag = Boolean(belt.getFlag("Halo-Mythic-Foundry-Updated", "gravityPenaltyBypass"));
+      if (carriedIds.includes(belt.id) || equippedArmorId === belt.id || bypassFlag) return true;
+    }
+    return false;
+  }
+
+  _getSanShyuumGravityPenaltyValue(systemData = null) {
+    if (!this._isSanShyuumActor(systemData)) return 0;
+    const worldGravity = getWorldGravity();
+    const source = systemData ?? this.actor?.system ?? {};
+    const gravity = worldGravity !== null ? worldGravity : Number(source?.gravity ?? 1);
+    if (!Number.isFinite(gravity) || gravity < 1) return 0;
+    if (this._hasSanShyuumGravityBeltBypass()) return 0;
+    return 10;
   }
 
   _getCharacterCreationAdvancementViewData() {
@@ -6359,18 +6654,96 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (!matched) return empty;
 
       const template = normalizeSoldierTypeSystemData(matched.system ?? {}, matched.name ?? soldierTypeName);
-      const options = Array.isArray(template?.advancementOptions) ? template.advancementOptions : [];
+      const options = Array.isArray(template?.advancementOptions) ? [...template.advancementOptions] : [];
+
+      const hasOptionKey = (key) => options.some((entry) => String(entry?.key ?? "").trim().toLowerCase() === key);
+      const factionKey = normalizeLookupText(template?.header?.faction ?? "");
+      const trainingPathChoices = Array.isArray(template?.trainingPathChoice?.choices)
+        ? template.trainingPathChoice.choices
+        : [];
+      const combatPath = trainingPathChoices.find((entry) => String(entry?.key ?? "").trim().toLowerCase() === "combat") ?? null;
+      const trainingPathFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeTrainingPathChoice");
+      const trainingPathFlagCanonical = String(trainingPathFlag?.soldierTypeCanonicalId ?? "").trim().toLowerCase();
+      const matchedCanonical = String(template?.sync?.canonicalId ?? matched?.system?.sync?.canonicalId ?? "").trim().toLowerCase();
+      const selectedTrainingPathKey = (matchedCanonical && trainingPathFlagCanonical && matchedCanonical === trainingPathFlagCanonical)
+        ? String(trainingPathFlag?.choiceKey ?? "").trim().toLowerCase()
+        : "";
+      const isCombatTrained = selectedTrainingPathKey === "combat";
+
+      if (factionKey === "covenant" && combatPath && !isCombatTrained && !hasOptionKey("combat-training")) {
+        options.push(normalizeSoldierTypeAdvancementOption({
+          key: "combat-training",
+          label: "Combat Training",
+          xpCost: toNonNegativeWhole(combatPath?.creationXpCost, 0),
+          summary: "Unlock the combat-trained package for this Covenant soldier type.",
+          requirements: "Recommended for civilian starts.",
+          details: "Scaffold option for tracking the transition from civilian to combat-trained status. Trait automation will be enforced in a later pass.",
+          traitGrants: [],
+          notes: "Scaffold only. This option intentionally does not include Spec-Ops automatically."
+        }));
+      }
+
+      const combatTraitNames = normalizeStringList(Array.isArray(combatPath?.grantedTraits) ? combatPath.grantedTraits : []);
+      const hasSpecOpsCombatTrait = combatTraitNames.some((name) => normalizeLookupText(name) === "spec-ops" || normalizeLookupText(name) === "spec ops");
+      if (hasSpecOpsCombatTrait && !hasOptionKey("spec-ops")) {
+        const specOpsOption = normalizeSoldierTypeAdvancementOption({
+          key: "spec-ops",
+          label: "Spec Ops",
+          xpCost: 0,
+          summary: "Unlock Spec-Ops access after taking Combat Training.",
+          requirements: "Requires Combat Training and GM approval.",
+          details: "Use this to track Spec-Ops status as a separate advancement from baseline combat training.",
+          traitGrants: ["Spec-Ops"],
+          notes: "Scaffold only. Purchase/enforcement logic will be added later."
+        });
+        if (specOpsOption) {
+          specOpsOption.disabledForActor = !isCombatTrained;
+          options.push(specOpsOption);
+        }
+      }
+
+      // --- Prerequisite-chain gating ---
+      // An option is unlocked if its requiresKey is satisfied:
+      //   (a) empty requiresKey → always available
+      //   (b) requiresKey === "combat-training" → need isCombatTrained
+      //   (c) any other requiresKey → actor must own (as an item) one of the
+      //       traitGrants from the referenced prerequisite option
+      const hasActorItem = (name) => this.actor.items.some(
+        (item) => String(item.name ?? "").trim().toLowerCase() === name.trim().toLowerCase()
+      );
+      const isOptionUnlocked = (opt) => {
+        const req = String(opt?.requiresKey ?? "").trim().toLowerCase();
+        if (!req) return true;
+        if (req === "combat-training") return isCombatTrained;
+        const prereqOption = options.find((o) => String(o?.key ?? "").trim().toLowerCase() === req);
+        if (!prereqOption) return false;
+        const grants = Array.isArray(prereqOption.traitGrants) ? prereqOption.traitGrants : [];
+        return grants.some((traitName) => hasActorItem(traitName));
+      };
+      for (const opt of options) {
+        if (!opt) continue;
+        if (!isOptionUnlocked(opt)) opt.disabledForActor = true;
+      }
+
       if (!options.length) return empty;
 
       const selectedFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAdvancementSelection");
       const selectedFlagCanonical = String(selectedFlag?.soldierTypeCanonicalId ?? "").trim().toLowerCase();
-      const matchedCanonical = String(template?.sync?.canonicalId ?? matched?.system?.sync?.canonicalId ?? "").trim().toLowerCase();
-      const defaultKey = String(options[0]?.key ?? "").trim().toLowerCase();
+      const selectableOptions = options.filter((entry) => !entry?.disabledForActor);
+      const defaultKey = String((selectableOptions[0]?.key ?? options[0]?.key) ?? "").trim().toLowerCase();
       const requestedKey = (matchedCanonical && selectedFlagCanonical && selectedFlagCanonical === matchedCanonical)
         ? String(selectedFlag?.optionKey ?? "").trim().toLowerCase()
         : "";
-      const selectedKey = options.some((entry) => entry.key === requestedKey) ? requestedKey : defaultKey;
+      const selectedKey = selectableOptions.some((entry) => entry.key === requestedKey) ? requestedKey : defaultKey;
       const selected = options.find((entry) => entry.key === selectedKey) ?? null;
+
+      // Build prerequisite label map for locked hint text
+      const prereqLabelFor = (opt) => {
+        const req = String(opt?.requiresKey ?? "").trim().toLowerCase();
+        if (!req) return "";
+        const prereq = options.find((o) => String(o?.key ?? "").trim().toLowerCase() === req);
+        return prereq?.label ?? req;
+      };
 
       return {
         enabled: true,
@@ -6378,7 +6751,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         options: options.map((entry) => ({
           key: entry.key,
           label: entry.label,
-          selected: entry.key === selectedKey
+          selected: entry.key === selectedKey,
+          disabled: Boolean(entry?.disabledForActor),
+          lockedReason: entry?.disabledForActor ? `Requires: ${prereqLabelFor(entry)}` : ""
         })),
         selectedKey,
         selected
@@ -7974,12 +8349,16 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _getTraitsViewData() {
+    const soldierTypeName = String(this.actor?.system?.header?.soldierType ?? "").trim();
     return this.actor.items
       .filter((i) => i.type === "trait")
       .sort((left, right) => String(left.name ?? "").localeCompare(String(right.name ?? "")))
       .map((item) => {
         const sys = normalizeTraitSystemData(item.system ?? {});
-        const shortDescription = String(sys.shortDescription ?? "").trim();
+        const shortDescription = substituteSoldierTypeInTraitText(
+          String(sys.shortDescription ?? "").trim(),
+          soldierTypeName
+        );
         return {
           id: item.id,
           name: item.name,
@@ -10527,6 +10906,17 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const trainingPathChoice = await this._promptSoldierTypeTrainingPathChoice(itemData.name, templateSystem);
       if (trainingPathChoice === null) return false;
 
+      let combinedSkillSelections = Array.isArray(skillSelections) ? [...skillSelections] : [];
+      const trainingPathSkillChoices = Array.isArray(trainingPathChoice?.skillChoices) ? trainingPathChoice.skillChoices : [];
+      if (trainingPathSkillChoices.length) {
+        const trainingPathSkillSelections = await this._promptSoldierTypeSkillChoices(
+          `${itemData.name} - ${String(trainingPathChoice?.label ?? "Training Path").trim() || "Training Path"}`,
+          { skillChoices: trainingPathSkillChoices }
+        );
+        if (trainingPathSkillSelections === null) return false;
+        combinedSkillSelections = [...combinedSkillSelections, ...trainingPathSkillSelections];
+      }
+
       const resolvedTemplate = foundry.utils.deepClone(templateSystem ?? {});
       if (String(factionChoice?.faction ?? "").trim()) {
         resolvedTemplate.header = resolvedTemplate.header && typeof resolvedTemplate.header === "object"
@@ -10574,7 +10964,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       const mode = "overwrite";
-      const result = await this._applySoldierTypeTemplate(itemData.name, resolvedTemplate, mode, skillSelections, null, educationSelections);
+      const result = await this._applySoldierTypeTemplate(itemData.name, resolvedTemplate, mode, combinedSkillSelections, null, educationSelections);
 
       const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim() || buildCanonicalItemId("soldierType", itemData.name ?? "");
       const selectedChoiceKey = String(factionChoice?.key ?? "").trim();
@@ -10622,19 +11012,59 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const carryMultipliersSource = (templateRuleFlagsSource?.carryMultipliers && typeof templateRuleFlagsSource.carryMultipliers === "object")
         ? templateRuleFlagsSource.carryMultipliers
         : {};
+      const phenomeChoiceSource = (templateRuleFlagsSource?.phenomeChoice && typeof templateRuleFlagsSource.phenomeChoice === "object")
+        ? templateRuleFlagsSource.phenomeChoice
+        : {};
+      const phenomeChoices = Array.isArray(phenomeChoiceSource?.choices)
+        ? phenomeChoiceSource.choices
+          .map((entry) => {
+            const key = String(entry?.key ?? "").trim();
+            if (!key) return null;
+            const label = String(entry?.label ?? key).trim() || key;
+            const characteristics = {};
+            for (const cKey of MYTHIC_CHARACTERISTIC_KEYS) {
+              const raw = Number(entry?.characteristics?.[cKey] ?? 0);
+              characteristics[cKey] = Number.isFinite(raw) ? raw : 0;
+            }
+            const mythic = {};
+            for (const mKey of ["str", "tou", "agi"]) {
+              const raw = Number(entry?.mythic?.[mKey] ?? 0);
+              mythic[mKey] = Number.isFinite(raw) ? raw : 0;
+            }
+            return {
+              key,
+              label,
+              characteristics,
+              mythic,
+              traits: normalizeStringList(Array.isArray(entry?.traits) ? entry.traits : []),
+              notes: String(entry?.notes ?? "").trim()
+            };
+          })
+          .filter(Boolean)
+        : [];
       const legacyCarryMultiplierRaw = Number(templateRuleFlagsSource?.carryMultiplier ?? 1);
       const legacyCarryMultiplier = Number.isFinite(legacyCarryMultiplierRaw) ? Math.max(0, legacyCarryMultiplierRaw) : 1;
+      const fixedCarryWeightRaw = Number(templateRuleFlagsSource?.fixedCarryWeight ?? 0);
+      const chargeRunAgiBonusRaw = Number(templateRuleFlagsSource?.chargeRunAgiBonus ?? 0);
       const carryStrRaw = Number(carryMultipliersSource?.str ?? legacyCarryMultiplier);
       const carryTouRaw = Number(carryMultipliersSource?.tou ?? legacyCarryMultiplier);
+      const toughMultiplierRaw = Number(templateRuleFlagsSource?.toughMultiplier ?? 1);
+      const leapMultiplierRaw = Number(templateRuleFlagsSource?.leapMultiplier ?? 1);
+      const leapModifierRaw = Number(templateRuleFlagsSource?.leapModifier ?? 0);
       const spartanCarryWeightSrc = (templateRuleFlagsSource?.spartanCarryWeight && typeof templateRuleFlagsSource.spartanCarryWeight === "object")
         ? templateRuleFlagsSource.spartanCarryWeight
         : {};
       const templateRuleFlags = {
         airForceVehicleBenefit: Boolean(templateRuleFlagsSource?.airForceVehicleBenefit),
+        fixedCarryWeight: Number.isFinite(fixedCarryWeightRaw) ? Math.max(0, fixedCarryWeightRaw) : 0,
+        chargeRunAgiBonus: Number.isFinite(chargeRunAgiBonusRaw) ? chargeRunAgiBonusRaw : 0,
         carryMultipliers: {
           str: Number.isFinite(carryStrRaw) ? Math.max(0, carryStrRaw) : 1,
           tou: Number.isFinite(carryTouRaw) ? Math.max(0, carryTouRaw) : 1
         },
+        toughMultiplier: Number.isFinite(toughMultiplierRaw) ? Math.max(0, toughMultiplierRaw) : 1,
+        leapMultiplier: Number.isFinite(leapMultiplierRaw) ? Math.max(0, leapMultiplierRaw) : 1,
+        leapModifier: Number.isFinite(leapModifierRaw) ? leapModifierRaw : 0,
         branchTransition: {
           enabled: Boolean(branchTransitionSource?.enabled),
           advancementOnly: Boolean(branchTransitionSource?.advancementOnly),
@@ -10697,6 +11127,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         spartanCarryWeight: {
           enabled: Boolean(spartanCarryWeightSrc?.enabled)
         },
+        phenomeChoice: {
+          enabled: Boolean(phenomeChoiceSource?.enabled),
+          prompt: String(phenomeChoiceSource?.prompt ?? "Choose a Lekgolo phenome culture.").trim() || "Choose a Lekgolo phenome culture.",
+          defaultKey: String(phenomeChoiceSource?.defaultKey ?? "").trim(),
+          choices: phenomeChoices
+        },
         gammaCompanyOption: {
           enabled: Boolean(gammaCompanySource?.enabled),
           defaultSelected: Boolean(gammaCompanySource?.defaultSelected),
@@ -10720,8 +11156,13 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing", templateRuleFlags.requiredUpbringing);
       await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings", templateRuleFlags.allowedUpbringings);
       await this.actor.update({
+        "system.mythic.fixedCarryWeight": Number(templateRuleFlags.fixedCarryWeight ?? 0),
+        "system.mythic.soldierTypeChargeRunAgiBonus": Number(templateRuleFlags.chargeRunAgiBonus ?? 0),
         "system.mythic.soldierTypeStrCarryMultiplier": Number(templateRuleFlags.carryMultipliers?.str ?? 1),
-        "system.mythic.soldierTypeTouCarryMultiplier": Number(templateRuleFlags.carryMultipliers?.tou ?? 1)
+        "system.mythic.soldierTypeTouCarryMultiplier": Number(templateRuleFlags.carryMultipliers?.tou ?? 1),
+        "system.mythic.soldierTypeTouWoundsMultiplier": Number(templateRuleFlags.toughMultiplier ?? 1),
+        "system.mythic.soldierTypeLeapMultiplier": Number(templateRuleFlags.leapMultiplier ?? 1),
+        "system.mythic.soldierTypeLeapModifier": Number(templateRuleFlags.leapModifier ?? 0)
       });
       await this.actor.update({ "system.mythic.spartanCarryWeight.enabled": Boolean(templateRuleFlags.spartanCarryWeight?.enabled) });
       // Handle upbringing restrictions: remove any non-matching upbringing items and lock future drops
@@ -10747,12 +11188,27 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (templateRuleFlags.mjolnirArmorSelection.enabled) {
         await this._promptAndApplyMjolnirArmor();
       }
+      const selectedTrainingPathKeyLower = String(selectedTrainingPathKey ?? "").trim().toLowerCase();
+      const resolvedRace = String(resolvedTemplate?.header?.race ?? "").trim().toLowerCase();
+      if (selectedTrainingPathKeyLower === "combat" && resolvedRace === "kig-yar") {
+        await this._promptAndApplyKigYarPointDefenseShield();
+      }
+      if (/san.?shyuum/.test(resolvedRace)) {
+        const resolvedSoldierType = String(resolvedTemplate?.header?.soldierType ?? "").trim().toLowerCase();
+        const isPrelate = /prelate/.test(resolvedRace) || /prelate/.test(resolvedSoldierType);
+        if (!isPrelate) {
+          await this._ensureSanShyuumGravityBelt();
+        }
+      }
       // Optional Spartan III Gamma Company track
       if (templateRuleFlags.gammaCompanyOption.enabled) {
         const gammaEnabled = await this._promptGammaCompanySelection(templateRuleFlags.gammaCompanyOption);
         await this._applyGammaCompanySelection(gammaEnabled, templateRuleFlags.gammaCompanyOption);
       } else {
         await this._applyGammaCompanySelection(false, templateRuleFlags.gammaCompanyOption);
+      }
+      if (templateRuleFlags.phenomeChoice.enabled) {
+        await this._promptAndApplyMgalekgoloPhenome(templateRuleFlags.phenomeChoice);
       }
       await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeFactionChoice", {
         soldierTypeCanonicalId: canonicalId,
@@ -10857,15 +11313,27 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return this.actor.createEmbeddedDocuments("Item", [itemData]);
     }
 
-    // Block upbringing drops that don't match the soldier type's required upbringing
+    // Block upbringing drops that do not match soldier-type restrictions.
     if (item.type === "upbringing") {
       const reqUpbr = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing");
+      const allowedUpbr = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings");
       if (reqUpbr?.enabled && reqUpbr?.upbringing) {
         const requiredLower = String(reqUpbr.upbringing).trim().toLowerCase();
         const droppingLower = String(item.name ?? "").trim().toLowerCase();
         if (droppingLower !== requiredLower) {
           ui.notifications.warn(`This Spartan requires the "${String(reqUpbr.upbringing).trim()}" Upbringing. Other upbringings cannot be applied.`);
           return false;
+        }
+      }
+      if (allowedUpbr?.enabled) {
+        const allowedNames = normalizeStringList(Array.isArray(allowedUpbr?.upbringings) ? allowedUpbr.upbringings : []);
+        if (allowedNames.length > 0) {
+          const allowedSet = new Set(allowedNames.map((entry) => String(entry).trim().toLowerCase()).filter(Boolean));
+          const droppingLower = String(item.name ?? "").trim().toLowerCase();
+          if (!allowedSet.has(droppingLower)) {
+            ui.notifications.warn(`This Soldier Type only allows these Upbringings: ${allowedNames.join(", ")}.`);
+            return false;
+          }
         }
       }
     }
@@ -10992,6 +11460,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           label,
           trainingGrants: normalizeStringList(Array.isArray(entry?.trainingGrants) ? entry.trainingGrants : []),
           grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : []),
+          skillChoices: (Array.isArray(entry?.skillChoices) ? entry.skillChoices : [])
+            .map((choice) => normalizeSoldierTypeSkillChoice(choice))
+            .filter((choice) => choice.count > 0),
           creationXpCost: Number.isFinite(Number(entry?.creationXpCost))
             ? toNonNegativeWhole(entry?.creationXpCost, 0)
             : null,
@@ -11027,6 +11498,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         label: "Default",
         trainingGrants: [],
         grantedTraits: [],
+        skillChoices: [],
         creationXpCost: null,
         characteristicAdvancements: null
       });
@@ -11068,6 +11540,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
                 label: selected.label,
                 trainingGrants: Array.isArray(selected.trainingGrants) ? selected.trainingGrants : [],
                 grantedTraits: Array.isArray(selected.grantedTraits) ? selected.grantedTraits : [],
+                skillChoices: Array.isArray(selected.skillChoices) ? selected.skillChoices : [],
                 creationXpCost: Number.isFinite(Number(selected.creationXpCost))
                   ? toNonNegativeWhole(selected.creationXpCost, 0)
                   : null,
@@ -11153,23 +11626,25 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         }
       }
       // Fill missing advancement minima
-      const hasAdv = MYTHIC_CHARACTERISTIC_KEYS.some((key) => toNonNegativeWhole(next?.characteristicAdvancements?.[key], 0) > 0);
-      if (!hasAdv) {
+      const hasAdvKeys = Boolean(next?.characteristicAdvancements && typeof next.characteristicAdvancements === "object")
+        && MYTHIC_CHARACTERISTIC_KEYS.some((key) => Object.prototype.hasOwnProperty.call(next.characteristicAdvancements, key));
+      if (!hasAdvKeys) {
         next.characteristicAdvancements = foundry.utils.deepClone(ref.characteristicAdvancements ?? next.characteristicAdvancements);
+      }
+      // Fill missing creation XP cost from reference for stale compendium entries.
+      const nextCreationXp = toNonNegativeWhole(next?.creation?.xpCost ?? 0, 0);
+      const refCreationXp = toNonNegativeWhole(ref?.creation?.xpCost ?? 0, 0);
+      if (nextCreationXp <= 0 && refCreationXp > 0) {
+        next.creation = (next.creation && typeof next.creation === "object") ? next.creation : {};
+        next.creation.xpCost = refCreationXp;
       }
       // Fill missing training and skill choices
       if (!Array.isArray(next.training) || !next.training.length) {
         next.training = Array.isArray(ref.training) ? [...ref.training] : [];
       }
-      if (!Array.isArray(next.skillChoices) || !next.skillChoices.length) {
-        next.skillChoices = Array.isArray(ref.skillChoices) ? foundry.utils.deepClone(ref.skillChoices) : [];
-      }
-      if (!(next.trainingPathChoice && typeof next.trainingPathChoice === "object" && Array.isArray(next.trainingPathChoice.choices) && next.trainingPathChoice.choices.length)) {
-        next.trainingPathChoice = foundry.utils.deepClone(ref.trainingPathChoice ?? null);
-      }
-      if (!(Array.isArray(next.advancementOptions) && next.advancementOptions.length)) {
-        next.advancementOptions = foundry.utils.deepClone(ref.advancementOptions ?? []);
-      }
+      next.skillChoices = Array.isArray(ref.skillChoices) ? foundry.utils.deepClone(ref.skillChoices) : [];
+      next.trainingPathChoice = foundry.utils.deepClone(ref.trainingPathChoice ?? null);
+      next.advancementOptions = foundry.utils.deepClone(ref.advancementOptions ?? []);
       // Always merge reference traits so stale compendium entries get new traits automatically.
       if (!Array.isArray(next.educationChoices) || !next.educationChoices.length) {
         next.educationChoices = Array.isArray(ref.educationChoices) ? foundry.utils.deepClone(ref.educationChoices) : [];
@@ -11217,6 +11692,45 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const refCarryMultipliers = (refRuleFlags?.carryMultipliers && typeof refRuleFlags.carryMultipliers === "object")
         ? refRuleFlags.carryMultipliers
         : {};
+      const nextFixedCarryWeight = Number(nextRuleFlags?.fixedCarryWeight ?? 0);
+      const refFixedCarryWeight = Number(refRuleFlags?.fixedCarryWeight ?? 0);
+      const nextChargeRunAgiBonus = Number(nextRuleFlags?.chargeRunAgiBonus ?? 0);
+      const refChargeRunAgiBonus = Number(refRuleFlags?.chargeRunAgiBonus ?? 0);
+      const nextToughMultiplier = Number(nextRuleFlags?.toughMultiplier ?? 1);
+      const refToughMultiplier = Number(refRuleFlags?.toughMultiplier ?? 1);
+      const nextPhenomeChoice = (nextRuleFlags?.phenomeChoice && typeof nextRuleFlags.phenomeChoice === "object")
+        ? nextRuleFlags.phenomeChoice
+        : {};
+      const refPhenomeChoice = (refRuleFlags?.phenomeChoice && typeof refRuleFlags.phenomeChoice === "object")
+        ? refRuleFlags.phenomeChoice
+        : {};
+      const refPhenomeChoices = Array.isArray(refPhenomeChoice?.choices)
+        ? refPhenomeChoice.choices
+        : [];
+      const nextPhenomeChoices = Array.isArray(nextPhenomeChoice?.choices)
+        ? nextPhenomeChoice.choices
+        : [];
+      const mergedPhenomeChoiceMap = new Map();
+      for (const choice of refPhenomeChoices) {
+        const key = String(choice?.key ?? "").trim();
+        if (!key) continue;
+        mergedPhenomeChoiceMap.set(key, foundry.utils.deepClone(choice));
+      }
+      for (const choice of nextPhenomeChoices) {
+        const key = String(choice?.key ?? "").trim();
+        if (!key) continue;
+        const refChoice = mergedPhenomeChoiceMap.get(key);
+        if (refChoice && typeof refChoice === "object") {
+          mergedPhenomeChoiceMap.set(key, foundry.utils.mergeObject(
+            foundry.utils.deepClone(refChoice),
+            foundry.utils.deepClone(choice),
+            { overwrite: false, inplace: false }
+          ));
+          continue;
+        }
+        mergedPhenomeChoiceMap.set(key, foundry.utils.deepClone(choice));
+      }
+      const mergedPhenomeChoices = Array.from(mergedPhenomeChoiceMap.values());
       const nextAllowedUpbringings = (nextRuleFlags?.allowedUpbringings && typeof nextRuleFlags.allowedUpbringings === "object")
         ? nextRuleFlags.allowedUpbringings
         : {};
@@ -11249,6 +11763,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       next.ruleFlags = {
         ...nextRuleFlags,
         airForceVehicleBenefit: Boolean(nextRuleFlags.airForceVehicleBenefit || refRuleFlags.airForceVehicleBenefit),
+        fixedCarryWeight: Number.isFinite(nextFixedCarryWeight)
+          ? Math.max(0, nextFixedCarryWeight)
+          : (Number.isFinite(refFixedCarryWeight) ? Math.max(0, refFixedCarryWeight) : 0),
+        chargeRunAgiBonus: Number.isFinite(nextChargeRunAgiBonus)
+          ? nextChargeRunAgiBonus
+          : (Number.isFinite(refChargeRunAgiBonus) ? refChargeRunAgiBonus : 0),
         carryMultipliers: {
           str: Math.max(
             0,
@@ -11259,6 +11779,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             Number(nextCarryMultipliers?.tou ?? refCarryMultipliers?.tou ?? mergedLegacyCarryMultiplier) || mergedLegacyCarryMultiplier
           )
         },
+        toughMultiplier: Number.isFinite(nextToughMultiplier)
+          ? Math.max(0, nextToughMultiplier)
+          : (Number.isFinite(refToughMultiplier) ? Math.max(0, refToughMultiplier) : 1),
         allowedUpbringings: {
           enabled: Boolean(nextAllowedUpbringings?.enabled || refAllowedUpbringings?.enabled),
           upbringings: normalizeStringList([
@@ -11290,6 +11813,12 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           enabled: Boolean(nextSmartAi?.enabled || refSmartAi?.enabled),
           coreIdentityLabel: String(nextSmartAi?.coreIdentityLabel ?? refSmartAi?.coreIdentityLabel ?? "Cognitive Pattern").trim() || "Cognitive Pattern",
           notes: String(nextSmartAi?.notes ?? refSmartAi?.notes ?? "").trim()
+        },
+        phenomeChoice: {
+          enabled: Boolean(nextPhenomeChoice?.enabled || refPhenomeChoice?.enabled),
+          prompt: String(nextPhenomeChoice?.prompt ?? refPhenomeChoice?.prompt ?? "Choose a Lekgolo phenome culture.").trim() || "Choose a Lekgolo phenome culture.",
+          defaultKey: String(nextPhenomeChoice?.defaultKey ?? refPhenomeChoice?.defaultKey ?? "").trim(),
+          choices: mergedPhenomeChoices
         },
         branchTransition: {
           enabled: Boolean(nextBranchTransition?.enabled || refBranchTransition?.enabled),
@@ -11473,6 +12002,141 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ui.notifications.info(`Equipped "${chosenName}" as Spartan armor.`);
   }
 
+  async _promptAndApplyKigYarPointDefenseShield() {
+    const optionsHtml = MYTHIC_KIG_YAR_POINT_DEFENSE_SHIELDS
+      .map((name) => `<option value="${foundry.utils.escapeHTML(name)}">${foundry.utils.escapeHTML(name)}</option>`)
+      .join("");
+
+    const chosenName = await foundry.applications.api.DialogV2.prompt({
+      window: { title: "Choose Kig-Yar Point Defense Shield" },
+      content: `
+        <div class="mythic-modal-body">
+          <p>Select which point-defense shield this Combat Trained Kig-Yar starts with:</p>
+          <div class="form-group">
+            <label for="kig-yar-pd-shield-choice">Shield</label>
+            <select id="kig-yar-pd-shield-choice" name="shieldChoice">${optionsHtml}</select>
+          </div>
+        </div>`,
+      ok: {
+        label: "Confirm",
+        callback: (_event, _button, dialogApp) => {
+          const dialogElement = dialogApp?.element instanceof HTMLElement
+            ? dialogApp.element
+            : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+          const select = dialogElement?.querySelector('[name="shieldChoice"]')
+            ?? document.getElementById("kig-yar-pd-shield-choice");
+          return select instanceof HTMLSelectElement ? String(select.value ?? "").trim() : null;
+        }
+      }
+    }).catch(() => null);
+
+    if (!chosenName) return;
+    const existing = this.actor.items.find((entry) => (
+      entry.type === "gear"
+      && String(entry.name ?? "").trim().toLowerCase() === chosenName.toLowerCase()
+    ));
+    if (existing) return;
+
+    let shieldItemData = null;
+    for (const candidatePack of game.packs) {
+      if (candidatePack.documentName !== "Item") continue;
+      try {
+        const index = await candidatePack.getIndex();
+        const found = index.find((entry) => String(entry?.name ?? "").trim().toLowerCase() === chosenName.toLowerCase());
+        if (!found?._id) continue;
+        const doc = await candidatePack.getDocument(found._id);
+        const obj = doc?.toObject?.() ?? null;
+        if (obj && obj.type === "gear") {
+          shieldItemData = obj;
+          break;
+        }
+      } catch (_err) {
+        // Skip packs that fail to index/load.
+      }
+    }
+
+    if (!shieldItemData) {
+      ui.notifications.warn(`Could not find "${chosenName}" in any item compendium. Add it manually from your gear compendium.`);
+      return;
+    }
+
+    shieldItemData.system = normalizeGearSystemData(shieldItemData.system ?? {}, shieldItemData.name ?? chosenName);
+    const created = await this.actor.createEmbeddedDocuments("Item", [shieldItemData]);
+    const newItem = created?.[0];
+    if (!newItem?.id) return;
+
+    const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+      ? this.actor.system.equipment.carriedIds
+      : [];
+    const nextCarried = Array.from(new Set([...carriedIds, newItem.id]));
+    const updateData = {
+      "system.equipment.carriedIds": nextCarried
+    };
+
+    const itemClass = String(newItem.system?.itemClass ?? "").trim().toLowerCase();
+    const equippedArmorId = String(this.actor.system?.equipment?.equipped?.armorId ?? "").trim();
+    if (itemClass === "armor" && !equippedArmorId) {
+      updateData["system.equipment.equipped.armorId"] = newItem.id;
+    }
+
+    await this.actor.update(updateData);
+    ui.notifications.info(`Added "${chosenName}" to inventory.`);
+  }
+
+  async _ensureSanShyuumGravityBelt() {
+    const beltName = "Gravity Belt";
+    let beltItem = this.actor.items.find((entry) => (
+      entry.type === "gear"
+      && String(entry.name ?? "").trim().toLowerCase() === beltName.toLowerCase()
+    )) ?? null;
+
+    if (!beltItem) {
+      let beltItemData = null;
+      for (const candidatePack of game.packs) {
+        if (candidatePack.documentName !== "Item") continue;
+        try {
+          const index = await candidatePack.getIndex();
+          const found = index.find((entry) => String(entry?.name ?? "").trim().toLowerCase() === beltName.toLowerCase());
+          if (!found?._id) continue;
+          const doc = await candidatePack.getDocument(found._id);
+          const obj = doc?.toObject?.() ?? null;
+          if (obj && obj.type === "gear") {
+            beltItemData = obj;
+            break;
+          }
+        } catch (_err) {
+          // Skip packs that fail to index/load.
+        }
+      }
+
+      if (!beltItemData) {
+        ui.notifications.warn(`Could not find "${beltName}" in any item compendium. Add it manually to enable San'Shyuum gravity mitigation.`);
+        return;
+      }
+
+      beltItemData.system = normalizeGearSystemData(beltItemData.system ?? {}, beltItemData.name ?? beltName);
+      const created = await this.actor.createEmbeddedDocuments("Item", [beltItemData]);
+      beltItem = created?.[0] ?? null;
+    }
+
+    if (!beltItem?.id) return;
+
+    await beltItem.setFlag("Halo-Mythic-Foundry-Updated", "gravityPenaltyBypass", true);
+    await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "sanShyuumGravityBeltScaffold", {
+      requiresEquipped: true,
+      requiresActivated: true,
+      currentBypassMode: "carried-or-equipped"
+    });
+
+    const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+      ? this.actor.system.equipment.carriedIds
+      : [];
+    const nextCarried = Array.from(new Set([...carriedIds, beltItem.id]));
+    if (nextCarried.length !== carriedIds.length) {
+      await this.actor.update({ "system.equipment.carriedIds": nextCarried });
+    }
+  }
+
   async _promptGammaCompanySelection(gammaOption = {}) {
     const defaultSelected = Boolean(gammaOption?.defaultSelected);
     const promptText = String(gammaOption?.prompt ?? "").trim()
@@ -11551,6 +12215,118 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     abilityData.system = normalizeAbilitySystemData(abilityData.system ?? {});
     await this.actor.createEmbeddedDocuments("Item", [abilityData]);
     ui.notifications.info(`Gamma Company enabled: granted ability "${abilityName}".`);
+  }
+
+  async _promptAndApplyMgalekgoloPhenome(phenomeConfig = {}) {
+    const choices = Array.isArray(phenomeConfig?.choices) ? phenomeConfig.choices.filter((entry) => String(entry?.key ?? "").trim()) : [];
+    if (!choices.length) return;
+
+    const defaultKeyRaw = String(phenomeConfig?.defaultKey ?? "").trim();
+    const fallbackKey = String(choices[0]?.key ?? "").trim();
+    const defaultKey = choices.some((entry) => String(entry?.key ?? "").trim() === defaultKeyRaw)
+      ? defaultKeyRaw
+      : fallbackKey;
+    if (!defaultKey) return;
+
+    const promptText = String(phenomeConfig?.prompt ?? "").trim() || "Choose a Lekgolo phenome culture.";
+    const optionsHtml = choices
+      .map((entry) => {
+        const key = String(entry?.key ?? "").trim();
+        const label = String(entry?.label ?? key).trim() || key;
+        const selected = key === defaultKey ? " selected" : "";
+        return `<option value="${foundry.utils.escapeHTML(key)}"${selected}>${foundry.utils.escapeHTML(label)}</option>`;
+      })
+      .join("");
+
+    const selectedKey = await foundry.applications.api.DialogV2.prompt({
+      window: { title: "Lekgolo Phenome" },
+      content: `
+        <div class="mythic-modal-body">
+          <p>${foundry.utils.escapeHTML(promptText)}</p>
+          <div class="form-group">
+            <label for="mythic-mgalekgolo-phenome">Phenome</label>
+            <select id="mythic-mgalekgolo-phenome" name="phenomeChoice">${optionsHtml}</select>
+          </div>
+          <p class="hint">Stat and mythic modifiers from this phenome are applied after the base Mgalekgolo template.</p>
+        </div>
+      `,
+      ok: {
+        label: "Apply",
+        callback: (_event, _button, dialogApp) => {
+          const dialogElement = dialogApp?.element instanceof HTMLElement
+            ? dialogApp.element
+            : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+          const select = dialogElement?.querySelector('[name="phenomeChoice"]')
+            ?? document.getElementById("mythic-mgalekgolo-phenome");
+          const value = select instanceof HTMLSelectElement ? String(select.value ?? "").trim() : "";
+          return value || defaultKey;
+        }
+      }
+    }).catch(() => defaultKey);
+
+    const resolvedKey = String(selectedKey ?? defaultKey).trim() || defaultKey;
+    const selected = choices.find((entry) => String(entry?.key ?? "").trim() === resolvedKey)
+      ?? choices.find((entry) => String(entry?.key ?? "").trim() === defaultKey)
+      ?? null;
+    if (!selected) return;
+
+    const updateData = {};
+    const phenomeRaceNameRaw = String(selected?.label ?? resolvedKey).trim() || resolvedKey;
+    const phenomeRaceName = phenomeRaceNameRaw.replace(/\s*\(.*\)\s*$/, "").trim() || resolvedKey;
+    updateData["system.header.race"] = `Lekgolo (${phenomeRaceName})`;
+
+    // Apply SBAOLEKGOLO sizing: bump buildSize one category larger
+    const phenomeKeyLower = String(resolvedKey ?? "").trim().toLowerCase();
+    if (phenomeKeyLower === "sbaolekgolo") {
+      const currentSize = String(this.actor.system?.header?.buildSize ?? "Normal").trim() || "Normal";
+      const nextSize = getNextSizeCategoryLabel(currentSize);
+      if (nextSize) {
+        updateData["system.header.buildSize"] = nextSize;
+      }
+    }
+
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      const deltaRaw = Number(selected?.characteristics?.[key] ?? 0);
+      const delta = Number.isFinite(deltaRaw) ? deltaRaw : 0;
+      if (!delta) continue;
+      const current = Number(this.actor.system?.characteristics?.[key] ?? 0);
+      const next = Math.max(0, current + delta);
+      updateData[`system.characteristics.${key}`] = next;
+      updateData[`system.charBuilder.soldierTypeRow.${key}`] = next;
+    }
+    for (const key of ["str", "tou", "agi"]) {
+      const deltaRaw = Number(selected?.mythic?.[key] ?? 0);
+      const delta = Number.isFinite(deltaRaw) ? deltaRaw : 0;
+      if (!delta) continue;
+      const current = Number(this.actor.system?.mythic?.characteristics?.[key] ?? 0);
+      updateData[`system.mythic.characteristics.${key}`] = Math.max(0, current + delta);
+    }
+    if (!foundry.utils.isEmpty(updateData)) {
+      await this.actor.update(updateData);
+    }
+
+    const traitNames = normalizeStringList(Array.isArray(selected?.traits) ? selected.traits : []);
+    for (const traitName of traitNames) {
+      const exists = this.actor.items.some((entry) => entry.type === "trait" && String(entry.name ?? "").trim().toLowerCase() === traitName.toLowerCase());
+      if (exists) continue;
+      let itemData = await this._importCompendiumItemDataByName("Halo-Mythic-Foundry-Updated.traits", traitName);
+      if (!itemData) {
+        itemData = {
+          name: traitName,
+          type: "trait",
+          img: MYTHIC_ABILITY_DEFAULT_ICON,
+          system: normalizeTraitSystemData({ shortDescription: "Granted by Lekgolo phenome selection.", grantOnly: true })
+        };
+      }
+      itemData.system = normalizeTraitSystemData(itemData.system ?? {});
+      await this.actor.createEmbeddedDocuments("Item", [itemData]);
+    }
+
+    await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "mgalekgoloPhenome", {
+      key: String(selected?.key ?? resolvedKey).trim(),
+      label: String(selected?.label ?? resolvedKey).trim(),
+      notes: String(selected?.notes ?? "").trim()
+    });
   }
 
   async _importCompendiumItemDataByName(packCollection, itemName) {
@@ -12432,8 +13208,8 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     let characteristicAdvancementSource = templateSystem?.characteristicAdvancements ?? {};
     const templateHeaderSource = foundry.utils.deepClone(templateSystem?.header ?? {});
     const templateTrainingSource = Array.isArray(templateSystem?.training) ? [...templateSystem.training] : [];
-    const hasCharacteristicAdvancements = MYTHIC_CHARACTERISTIC_KEYS
-      .some((key) => toNonNegativeWhole(characteristicAdvancementSource?.[key], 0) > 0);
+    const hasCharacteristicAdvancementKeys = Boolean(characteristicAdvancementSource && typeof characteristicAdvancementSource === "object")
+      && MYTHIC_CHARACTERISTIC_KEYS.some((key) => Object.prototype.hasOwnProperty.call(characteristicAdvancementSource, key));
     const hasStructuredTraining = templateTrainingSource.some((entry) => {
       const parsed = parseTrainingGrant(entry);
       return parsed?.bucket === "weapon" || parsed?.bucket === "faction";
@@ -12442,7 +13218,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       || !String(templateHeaderSource?.race ?? "").trim()
       || !String(templateHeaderSource?.buildSize ?? "").trim();
 
-    if (!hasCharacteristicAdvancements || !hasStructuredTraining || missingHeaderFallback) {
+    if (!hasCharacteristicAdvancementKeys || !hasStructuredTraining || missingHeaderFallback) {
       // Compatibility fallback: older imported soldier type entries may lack newer metadata fields.
       try {
         const normalizedName = normalizeSoldierTypeNameForMatch(templateName);
@@ -12454,7 +13230,7 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           });
           const matchedSystem = matched?.system ?? {};
 
-          if (!hasCharacteristicAdvancements && matchedSystem?.characteristicAdvancements && typeof matchedSystem.characteristicAdvancements === "object") {
+          if (!hasCharacteristicAdvancementKeys && matchedSystem?.characteristicAdvancements && typeof matchedSystem.characteristicAdvancements === "object") {
             characteristicAdvancementSource = matchedSystem.characteristicAdvancements;
           }
 
@@ -12485,6 +13261,20 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const unresolvedTraining = [];
     const unresolvedSkillChoiceLines = [];
+    const templateRuleFlags = (templateSystem?.ruleFlags && typeof templateSystem.ruleFlags === "object")
+      ? templateSystem.ruleFlags
+      : {};
+    const templateRequiredUpbringing = (templateRuleFlags?.requiredUpbringing && typeof templateRuleFlags.requiredUpbringing === "object")
+      ? templateRuleFlags.requiredUpbringing
+      : {};
+    const templateAllowedUpbringings = (templateRuleFlags?.allowedUpbringings && typeof templateRuleFlags.allowedUpbringings === "object")
+      ? templateRuleFlags.allowedUpbringings
+      : {};
+    const requiredUpbringingName = String(templateRequiredUpbringing?.upbringing ?? "").trim();
+    const allowedUpbringingNames = Boolean(templateAllowedUpbringings?.enabled)
+      ? normalizeStringList(Array.isArray(templateAllowedUpbringings?.upbringings) ? templateAllowedUpbringings.upbringings : [])
+      : [];
+    const hasAllowedUpbringingRestrictions = allowedUpbringingNames.length > 0;
 
     const headerKeys = ["faction", "soldierType", "rank", "race", "buildSize", "upbringing", "environment", "lifestyle"];
     const soldierTypeControlledHeaderKeys = new Set(["faction", "soldierType", "race", "buildSize"]);
@@ -12497,7 +13287,15 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     for (const key of headerKeys) {
-      const incoming = String(headerValues?.[key] ?? "").trim();
+      let incoming = String(headerValues?.[key] ?? "").trim();
+      if (key === "upbringing") {
+        if (Boolean(templateRequiredUpbringing?.enabled) && requiredUpbringingName) {
+          incoming = requiredUpbringingName;
+        } else if (hasAllowedUpbringingRestrictions) {
+          // Allowed-upbringing soldier types should restrict drops, not prefill header upbringing.
+          continue;
+        }
+      }
       if (!incoming) continue;
       const current = String(actorSystem?.header?.[key] ?? "").trim();
       if (soldierTypeControlledHeaderKeys.has(key) || mode === "overwrite" || !current) {
@@ -12524,6 +13322,9 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
     if (soldierTypeCharApplied) {
+      setField("system.charBuilder.managed", true);
+    }
+    if (mode === "overwrite" && !soldierTypeCharApplied) {
       setField("system.charBuilder.managed", true);
     }
 
@@ -12756,15 +13557,19 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.actor.update(updateData);
     }
 
-    // If this template defines a soldier-type creation XP cost and the actor is
-    // currently in character-creation (charBuilder.managed), overwrite the
-    // actor's recorded xpSpent to reflect the soldier-type creation cost.
+    // Soldier type creation XP is the base cost for this creation path.
+    // On overwrite flow, ensure xpSpent reflects the selected soldier type cost.
     try {
-      const actorSystemAfter = normalizeCharacterSystemData(this.actor.system ?? {});
-      const isInCharBuilder = Boolean(actorSystemAfter?.charBuilder?.managed);
-      const templateXpCost = toNonNegativeWhole(templateSystem?.creation?.xpCost ?? 0, 0);
-      if (isInCharBuilder) {
-        // Overwrite xpSpent with the soldier-type creation cost (including zero-cost paths).
+      let templateXpCost = toNonNegativeWhole(templateSystem?.creation?.xpCost ?? 0, 0);
+      if (templateXpCost <= 0) {
+        const normalizedName = normalizeSoldierTypeNameForMatch(templateName);
+        if (normalizedName) {
+          const referenceRows = await loadReferenceSoldierTypeItems();
+          const matched = referenceRows.find((entry) => normalizeSoldierTypeNameForMatch(entry?.name ?? "") === normalizedName) ?? null;
+          templateXpCost = toNonNegativeWhole(matched?.system?.creation?.xpCost ?? 0, 0);
+        }
+      }
+      if (mode === "overwrite") {
         await this.actor.update({ "system.advancements.xpSpent": templateXpCost });
       }
     } catch (_err) {
@@ -13172,10 +13977,11 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!item || item.type !== "trait") return;
 
     const sys = normalizeTraitSystemData(item.system ?? {});
+    const soldierTypeName = String(this.actor?.system?.header?.soldierType ?? "").trim();
     const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
-    const summary = esc(sys.shortDescription || "-");
-    const benefit = esc(sys.benefit || "-");
-    const notes = esc(sys.notes || "-");
+    const summary = esc(substituteSoldierTypeInTraitText(sys.shortDescription || "-", soldierTypeName));
+    const benefit = esc(substituteSoldierTypeInTraitText(sys.benefit || "-", soldierTypeName));
+    const notes = esc(substituteSoldierTypeInTraitText(sys.notes || "-", soldierTypeName));
     const grantOnly = sys.grantOnly ? "Granted Only" : "Player Selectable";
     const tags = Array.isArray(sys.tags) && sys.tags.length ? esc(sys.tags.join(", ")) : "-";
 
@@ -13646,6 +14452,11 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const touCurrent = toNonNegativeWhole(systemData?.charBuilder?.misc?.tou, 0);
       updateData["system.charBuilder.misc.str"] = strCurrent + 3;
       updateData["system.charBuilder.misc.tou"] = touCurrent + 3;
+      const currentSize = String(systemData?.header?.buildSize ?? "Normal").trim() || "Normal";
+      const nextSize = getNextSizeCategoryLabel(currentSize);
+      if (nextSize) {
+        updateData["system.header.buildSize"] = nextSize;
+      }
     } else if (definition.key === "robust") {
       const woundsMax = toNonNegativeWhole(systemData?.combat?.wounds?.max, 0);
       const woundsCurrent = toNonNegativeWhole(systemData?.combat?.wounds?.current, 0);
@@ -13733,6 +14544,11 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const touCurrent = toNonNegativeWhole(systemData?.charBuilder?.misc?.tou, 0);
       updateData["system.charBuilder.misc.str"] = Math.max(0, strCurrent - 3);
       updateData["system.charBuilder.misc.tou"] = Math.max(0, touCurrent - 3);
+      const currentSize = String(systemData?.header?.buildSize ?? "Normal").trim() || "Normal";
+      const prevSize = getPreviousSizeCategoryLabel(currentSize);
+      if (prevSize) {
+        updateData["system.header.buildSize"] = prevSize;
+      }
     } else if (definition.key === "robust") {
       const woundsMax = toNonNegativeWhole(systemData?.combat?.wounds?.max, 0);
       const woundsCurrent = toNonNegativeWhole(systemData?.combat?.wounds?.current, 0);
@@ -14748,7 +15564,10 @@ class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const button = event.currentTarget;
     const key = button?.dataset?.characteristic;
     const label = button?.dataset?.label ?? key?.toUpperCase() ?? "TEST";
-    const targetValue = Number(this.actor.system?.characteristics?.[key] ?? 0);
+    let targetValue = Number(this.actor.system?.characteristics?.[key] ?? 0);
+    if (String(key ?? "").trim().toLowerCase() === "agi") {
+      targetValue = Math.max(0, targetValue - this._getSanShyuumGravityPenaltyValue(this.actor.system ?? {}));
+    }
     await this._runUniversalTest({
       label,
       targetValue,
@@ -15141,6 +15960,25 @@ class MythicTraitSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
     context.canEditFields = this.isEditable && Boolean(this.item.system?.editMode);
     context.traitTags = Array.isArray(this.item.system?.tags) ? this.item.system.tags.join(", ") : "";
     context.grantOnlyLabel = this.item.system?.grantOnly !== false ? "Granted Only" : "Player Selectable";
+    
+    // Apply soldier-type substitution when this trait is embedded on a character actor.
+    const actor = this.item?.parent || this.actor || options?.actor || null;
+    if (actor && actor.type === "character") {
+      const soldierTypeName = String(actor.system?.header?.soldierType ?? "").trim();
+      if (soldierTypeName) {
+        const itemClone = this.item.toObject(false);
+        itemClone.system.benefit = substituteSoldierTypeInTraitText(
+          itemClone.system.benefit,
+          soldierTypeName
+        );
+        itemClone.system.shortDescription = substituteSoldierTypeInTraitText(
+          itemClone.system.shortDescription,
+          soldierTypeName
+        );
+        context.item = itemClone;
+      }
+    }
+    
     return context;
   }
 
@@ -15986,6 +16824,25 @@ Hooks.once("init", async () => {
     config: true,
     type: Number,
     default: 0
+  });
+
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_WORLD_GRAVITY_SETTING_KEY, {
+    name: "World Gravity Level",
+    hint: "Current gravitational environment for the campaign world (in g). 1.0 = standard Earth gravity. Affects carrying capacity, movement distances, jump/leap, and species-specific penalties. Set to 0 for Zero-G.",
+    scope: "world",
+    config: true,
+    type: Number,
+    range: { min: 0, max: 4, step: 0.1 },
+    default: 1.0
+  });
+
+  game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_GOOD_FORTUNE_MODE_SETTING_KEY, {
+    name: "Good Fortune Mode (p.327)",
+    hint: "Characters start with 7 Luck (current and max) instead of 6. Benefits from Burning and Spending Luck are doubled.",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
   });
 
   // Removed duplicate per-request: use single "Let Players Handle XP" setting instead
@@ -16958,6 +17815,15 @@ Hooks.on("createActor", async (actor, _options, _userId) => {
         const startingCr = getCRForXP(startingXp);
         foundry.utils.setProperty(updates, "system.combat.cr", startingCr);
         foundry.utils.setProperty(updates, "system.equipment.credits", startingCr);
+      }
+
+      // Enforce Good Fortune Mode luck on freshly created characters
+      const goodFortuneActive = isGoodFortuneModeEnabled();
+      if (goodFortuneActive) {
+        const currentLuck = toNonNegativeWhole(actor.system?.combat?.luck?.current, 0);
+        const maxLuck = toNonNegativeWhole(actor.system?.combat?.luck?.max, 0);
+        if (currentLuck < 7) foundry.utils.setProperty(updates, "system.combat.luck.current", 7);
+        if (maxLuck < 7) foundry.utils.setProperty(updates, "system.combat.luck.max", 7);
       }
 
       if (Object.keys(updates).length) await actor.update(updates, { diff: false, recursive: false });

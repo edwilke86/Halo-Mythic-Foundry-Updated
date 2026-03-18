@@ -1242,6 +1242,39 @@
   background: var(--mythic-hover) !important;
 }
 
+/* Gravity penalty — red modifier highlight */
+.mythic-character-sheet .characteristic-modifier.gravity-penalized {
+  background: rgba(160, 30, 30, 0.55);
+  color: #ff8a80;
+  border-color: rgba(220, 80, 80, 0.6);
+}
+
+/* Gravity penalty notice banner (below characteristics strip) */
+.mythic-character-sheet .mythic-gravity-penalty-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(140, 30, 30, 0.25);
+  border: 1px solid rgba(200, 60, 60, 0.45);
+  border-radius: 4px;
+  color: #ef9a9a;
+  font-size: 0.75em;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  padding: 4px 10px;
+  margin-top: 5px;
+}
+
+/* Gravity penalty value cell in characteristics builder */
+.mythic-character-sheet .mythic-charbuilder-cell-display.gravity-penalty-cell {
+  color: #ff8a80;
+  font-weight: bold;
+}
+
+/* Penalized total cell in characteristics builder */
+.mythic-character-sheet .mythic-charbuilder-cell-display.total-value.penalized {
+  color: #ff8a80;
+}
+
 /* ============================================================
    Mythic and derived stat cards (main-tab 4-column row)
    ============================================================ */
@@ -1440,6 +1473,22 @@
 
 .mythic-character-sheet .gravity-input-row input[type="number"] {
   width: 56px;
+}
+
+/* Readonly gravity field — subtle locked appearance */
+.mythic-character-sheet .gravity-input-row input[readonly] {
+  opacity: 0.75;
+  cursor: default;
+  border-style: dashed;
+}
+
+/* GM hint text next to locked gravity field */
+.mythic-character-sheet .mythic-gravity-gm-hint {
+  font-size: 0.68em;
+  color: #9e9e9e;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  margin-left: 6px;
+  white-space: nowrap;
 }
 
 .mythic-character-sheet .movement-ref-content {
@@ -1889,6 +1938,87 @@
   width: 100%;
   margin: 0;
   box-sizing: border-box;
+}
+
+.mythic-character-sheet .mythic-formula-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 0;
+}
+
+.mythic-character-sheet .mythic-legend-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mythic-character-sheet .mythic-legend-col p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: 'Saira Semi Condensed', sans-serif;
+}
+
+.mythic-character-sheet .mythic-legend-col strong {
+  color: rgba(255, 223, 146, 0.95);
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+}
+
+.mythic-character-sheet .mythic-formula-block {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid rgba(130, 180, 230, 0.35);
+  border-radius: 4px;
+  background: rgba(15, 28, 44, 0.42);
+}
+
+.mythic-character-sheet .mythic-formula-math {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.94);
+  padding: 4px 0;
+}
+
+.mythic-character-sheet .mythic-formula-term {
+  color: rgba(255, 223, 146, 0.98);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.mythic-character-sheet .mythic-formula-op,
+.mythic-character-sheet .mythic-formula-group {
+  color: rgba(160, 206, 255, 0.95);
+}
+
+.mythic-character-sheet .mythic-frac {
+  display: inline-grid;
+  grid-template-rows: auto auto;
+  justify-items: center;
+  min-width: 18px;
+  vertical-align: middle;
+  line-height: 0.95;
+  font-size: 12px;
+}
+
+.mythic-character-sheet .mythic-frac > span:first-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.72);
+  padding: 0 2px 0;
+}
+
+.mythic-character-sheet .mythic-frac > span:last-child {
+  padding: 0 2px 0;
+  font-size: 11px;
 }
 
 .mythic-character-sheet .mythic-toggle-row {
@@ -4467,7 +4597,8 @@
   flex: 1;
 }
 
-.mythic-character-sheet .mythic-char-strip-builder-badge {
+.mythic-character-sheet .mythic-char-strip-builder-badge,
+.mythic-character-sheet .mythic-workflow-guidance-tag {
   font-size: 10px;
   font-weight: 700;
   padding: 2px 8px;
@@ -4478,6 +4609,17 @@
   color: #7ecbff;
   border: 1px solid rgba(52, 130, 200, 0.4);
   cursor: default;
+}
+
+.mythic-character-sheet .mythic-workflow-guidance-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mythic-character-sheet .mythic-workflow-guidance-tag i {
+  font-size: 11px;
+  line-height: 1;
 }
 
 .mythic-character-sheet .characteristic-block input[readonly] {
@@ -4893,6 +5035,7 @@
   color: rgba(219, 244, 255, 0.5);
   text-transform: uppercase;
   padding: 2px 0;
+  -webkit-user-select: none;
   user-select: none;
 }
 

@@ -48,9 +48,9 @@
         "notes":  ""
     },
     {
-        "name":  "Banished Armory",
-        "shortDescription":  "Unrestricted armory access; no triple-price penalty for Banished or Covenant gear.",
-        "benefit":  "The Combat Trained Gasgira is no longer limited to what Armory they can purchase from and are no longer forced to pay triple the amount for the Banished and Covenant Armory.",
+        "name":  "Covenant Armory",
+        "shortDescription":  "Combat-trained troops are no longer limited by civilian armory penalties.",
+        "benefit":  "The Combat Trained [SOLDIER_TYPE] is no longer limited to what Armory they can purchase from and are no longer forced to pay triple the amount for the Covenant Armory.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -69,6 +69,30 @@
                      "soldier-type"
                  ],
         "sourcePage":  1,
+        "notes":  ""
+    },
+     {
+        "name":  "BOND BROTHER (Slugman)",
+        "shortDescription":  "Can be bond brothers in groups of 2-4 slugmen or 2 slumen and a standard Lekgolo. If a Bond Brother is incapacitated or killed, the other may temporarily gain the Berserker Trait for 6 hours.",
+        "benefit":  "Slugment are commonly found in groups of 2 to 4. This gives 2 to 4 players the ability to become Bond Brother Slugmen. At any point, a Bond Brother is incapacitated or killed, the other may temporarily gain the Berserker Trait for 3 hours. 2 Slugmen can also be Bond Brothers with a standard Lekgolo.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+        {
+        "name":  "Berserker (Jiralhanae)",
+        "shortDescription":  "+20 to smell tests, and grants the Berserker trait.",
+        "benefit":  "The Jiralhanae automatically gains the Berserker trait and receives a +20 Bonus to all Smell-Based Perception Tests.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  71,
         "notes":  ""
     },
     {
@@ -110,19 +134,7 @@
     {
         "name":  "Carry Weight",
         "shortDescription":  "Doubles STR and TOU when calculating carry weight.",
-        "benefit":  "The Spartan doubles their Strength and Toughness Characteristic when figuring Carry Weight.",
-        "category":  "soldier-type",
-        "grantOnly":  true,
-        "tags":  [
-                     "soldier-type"
-                 ],
-        "sourcePage":  1,
-        "notes":  ""
-    },
-    {
-        "name":  "Carry Weight (Spartan II)",
-        "shortDescription":  "Doubles STR and TOU when calculating carry weight.",
-        "benefit":  "The Spartan doubles their Strength and Toughness Characteristic when figuring Carry Weight.",
+        "benefit":  "The [SOLDIER_TYPE] doubles their Strength and Toughness Characteristic when figuring Carry Weight.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -255,6 +267,18 @@
         "notes":  ""
     },
     {
+        "name":  "Cleric",
+        "shortDescription":  "San'Shyuum Medical Role: acts as a Medic; gains a second Equipment Kit of medical tools and Medication Skill at +20.",
+        "benefit":  "The Cleric role for a San'Shyuum is that of a Medic. Clerics gain a second Equipment Kit of Medical tools and medication. The Cleric also gains the Medication Skill at +20.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  "Scaffold: second Equipment Kit and Medication +20 are not yet auto-applied."
+    },
+    {
         "name":  "Discount",
         "shortDescription":  "Covenant weapons and equipment cost half price.",
         "benefit":  "Covenant Weapons and Equipment are at half the price for the SanShyuum.",
@@ -342,8 +366,8 @@
     },
     {
         "name":  "Four Arms",
-        "shortDescription":  "Starts with the Only Flight and Four Arms Traits.",
-        "benefit":  "The Huragok gains the Only Flight and Four Arms Traits at Character Creation.",
+        "shortDescription":  "Multiple arms grant improved manipulation and mobility; +10 to Grapple and may use more than two weapons at extra Penalty.",
+        "benefit":  "The Character has multiple arms, allowing for better grasp and mobility. The Character gains a +10 to Grapple and is able to use more than two weapons, at extra Penalty.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -400,6 +424,19 @@
                      "numeric"
                  ],
         "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Gravity",
+        "shortDescription":  "San'Shyuum are adapted to 0.5x gravity; in 1.0x gravity or higher they suffer -10 Agility unless protected by a Gravity Belt.",
+        "benefit":  "San'Shyuum are adapted to 0.5x Earth Gravity. In environments of 1.0x Gravity or higher, they suffer a -10 Penalty to Agility. All San'Shyuum are automatically granted a Gravity Belt that bypasses this penalty while active. Scaffold: currently bypass is treated as available when the belt is carried/equipped; activation logic will be enforced in a later pass.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  75,
         "notes":  ""
     },
     {
@@ -561,9 +598,9 @@
         "notes":  ""
     },
     {
-        "name":  "Covenant Armory (Unggoy)",
-        "shortDescription":  "Combat-trained Unggoy are no longer limited by civilian armory penalties.",
-        "benefit":  "The Combat Trained Unggoy is no longer limited to what Armory they can purchase from and are no longer forced to pay triple the amount for the Covenant Armory.",
+        "name":  "Equipment Pack (Unggoy Combat)",
+        "shortDescription":  "Select an equipment pack for Anti-Infantry, Guided Munitions, Heavy Weapons, or Ordnance role.",
+        "benefit":  "The character selects an Equipment Pack.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -573,8 +610,8 @@
         "notes":  ""
     },
     {
-        "name":  "Equipment Pack (Unggoy Combat)",
-        "shortDescription":  "Select an equipment pack for Anti-Infantry, Guided Munitions, Heavy Weapons, or Ordnance role.",
+        "name":  "Equipment Pack (Kig-Yar Combat)",
+        "shortDescription":  "Select a combat equipment package for Kig-Yar combat-trained roles.",
         "benefit":  "The character selects an Equipment Pack.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -598,8 +635,8 @@
     },
     {
         "name":  "Digitigrade Legs",
-        "shortDescription":  "Sangheili take climbing penalties but gain bonus leaping distance.",
-        "benefit":  "Sangheili are given a -20 Penalty to Climbing and Swimming Tests. When figuring Leaping Distance, the Sangheili adds +2 to their Agility Modifier.",
+        "shortDescription":  "Sangheili take a -20 penalty to climbing and swimming tests.",
+        "benefit":  "Sangheili are given a -20 Penalty to Climbing and Swimming Tests.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -623,7 +660,7 @@
     {
         "name":  "Leaping",
         "shortDescription":  "Adds +2 to Agility Modifier when figuring Leaping Distance.",
-        "benefit":  "When figuring Leaping Distance, the Sangheili adds +2 to their Agility Modifier.",
+        "benefit":  "When figuring Leaping Distance, the [SOLDIER_TYPE] adds +2 to their Agility Modifier.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -656,18 +693,6 @@
                  ],
         "sourcePage":  1,
         "notes":  "Scaffold trait for Soldier Type Advancement option."
-    },
-    {
-        "name":  "Covenant Armory (Sangheili)",
-        "shortDescription":  "Combat-trained Sangheili are no longer limited by civilian armory penalties.",
-        "benefit":  "The Character is no longer limited by Covenant civilian purchasing rules and may buy from approved Covenant armories at standard rates.",
-        "category":  "soldier-type",
-        "grantOnly":  true,
-        "tags":  [
-                     "soldier-type"
-                 ],
-        "sourcePage":  1,
-        "notes":  ""
     },
     {
         "name":  "Equipment Pack (Sangheili Combat)",
@@ -1104,6 +1129,19 @@
         "notes":  ""
     },
     {
+        "name":  "Squad Up (Kig-Yar)",
+        "shortDescription":  "+5 Courage and +10 to WFR/WFM during Combined Actions when alongside other Kig-Yar.",
+        "benefit":  "When with other Kig-Yar, these Characters gain a +5 Bonus to Courage Tests. The Characters also gain a +10 Bonus to Warfare Melee and Warfare Range Tests when taking Combined Actions.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Squad Up (Police)",
         "shortDescription":  "+5 Courage and +10 to WFR/WFM during Combined Actions when alongside other Police Force members.",
         "benefit":  "When with others from the United Earth Government Police Force; these Characters gain a +5 Bonus to Courage Tests. The Characters also gain a +10 Bonus to Warfare Melee and Warfare Range Tests when taking Combined Actions.",
@@ -1170,7 +1208,7 @@
     {
         "name":  "TECHNOLOGICAL HUNTER",
         "shortDescription":  "Sense active technology via electromagnetic disturbances up to half Perceptive Range away; detect through walls up to PER Modifier in meters (Full Action concentration required).",
-        "benefit":  "Mgalekgolo have the ability to see active technology through disturbances in the air, including magnetic fields, radio waves, and electromagnetic pulses. Mgalekgolo can see up to half their Perceptive Range in Meters to see active technology within their normal eyesight. The Mgalekgolo may also sense technology through walls, debris, etc. up to their Perception Modifier in Meters. This works similar to thermal vision but take a Full Action of concentration to do. A Huntercantdiscern what the Technology is from this Ability andcantfind technology that is turned off or smaller than a common cellphone.",
+        "benefit":  "Mgalekgolo have the ability to see active technology through disturbances in the air, including magnetic fields, radio waves, and electromagnetic pulses. Mgalekgolo can see up to half their Perceptive Range (Full Range if Dipholekgolo) in Meters to see active technology within their normal eyesight. The Mgalekgolo may also sense technology through walls, debris, etc. up to their Perception Modifier in Meters. This works similar to thermal vision but take a Full Action of concentration to do. A Huntercantdiscern what the Technology is from this Ability andcantfind technology that is turned off or smaller than a common cellphone.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -1242,6 +1280,18 @@
         "notes":  ""
     },
     {
+        "name":  "Truth",
+        "shortDescription":  "May purchase from the Forerunner Armory at 2x the listed cost.",
+        "benefit":  "Once a San'Shyuum has become a Prophet, they are able to purchase items from the Forerunner Armory at 2 times the cost listed.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  "Scaffold: Forerunner Armory pricing multiplier is not yet automated."
+    },
+    {
         "name":  "Translocation",
         "shortDescription":  "Teleport up to Run speed in meters (Full Action); carry up to 400KG. Charge multiple Full Actions to multiply the range.",
         "benefit":  "Prometheans can teleport towards a chosen location. The Soldier is able to move up to their Run Movement Speed in Meters with each use of the Translocation Ability. This takes a Full Action to do. The Soldier may choose to Teleport up to 400KG with them, including other Characters and multiple pieces of Equipment. The Soldier may charge their Translocation Ability. The amount of Full Actions used to Charge is the multiplier to the distance able to be traveled. So, a Soldier Charging for 3 Full Actions will be able to Translocate up to their Run Movement Speed, multiplied by 3.",
@@ -1280,7 +1330,7 @@
     {
         "name":  "VEHICLE USE",
         "shortDescription":  "Can pilot and Hijack vehicles from Collapsed Form (2 Full Actions); Hijack requires the vehicle to be moving slowly and winning an Opposed AGL Test.",
-        "benefit":  "Mgalekgolo are able to pilot and Hijack in their Collapsed Form as two Full Actions. To Hijack a vehicle, the Vehicle must be going slow enough to allow the majority of the Eels to board. The Eels are able to slip into small sections to bypass the Hijacking rules. They must fight for control against the active pilot, where an Opposed Agility Test gains control for the Round. HUNTER EQUIPMENT RULES The Mgalekgolo maychoose two of the Weapons listed below. Epleam - Beam Assault Cannon Eplast- Blast Assault Cannon Ratent - HeavyMetal Shield Mgalinsu- Assault Cannon MGALEKGOLO ARMOR Mgalekgolo Armor CARRYING WEIGHT The Character has a Carry Weight of 5,000 Kilograms, unaffected by Armor weight. LEKGOLO PHENOME CULTURE CHOICE Mgalekgolo is the standard, but the GM may allow for the Player to choose one of the following Phenome Cultures. A Bond Brother must share the same Culture Choice. DIPHOLEKGOLO STR TOU AGI WFR WFM INT PER CRG CHA LDR -- -- -- -- -- -- +15 -- -- -- -5 -- -- MYTHIC CHARACTERISTICS The Dipholekgolo are able to use their full Perceptive Range to see active technology. RHULOLEKGOLO STR TOU AGI WFR WFM INT PER CRG CHA LDR -- -- -- -- -- -- -- -- -- -- -4 -- +4 MYTHIC CHARACTERISTICS SBAOLEKGOLO STR TOU AGI WFR WFM INT PER CRG CHA LDR +10 -- -10 -- -- -- -- -- -- -- +1 -- -1 MYTHIC CHARACTERISTICS Sbaolekgolo are 1 Size Category larger. THANOLEKGOLO STR TOU AGI WFR WFM INT PER CRG CHA LDR +5 +5 -5 -- +5 -10 -5 -- -10 -- +5 +1 -- MYTHIC CHARACTERISTICS 78",
+        "benefit":  "Mgalekgolo are able to pilot and Hijack in their Collapsed Form as two Full Actions. To Hijack a vehicle, the Vehicle must be going slow enough to allow the majority of the Eels to board. The Eels are able to slip into small sections to bypass the Hijacking rules. They must fight for control against the active pilot, where an Opposed Agility Test gains control for the Round.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -1326,5 +1376,143 @@
                  ],
         "sourcePage":  1,
         "notes":  ""
+    },
+    {
+        "name": "Adrenaline Rush",
+        "shortDescription": "At 0 Wounds or below (or after missed Smoother), ignores Fatigue/Pinning hindrance while conscious; auto-passes Shock/Fear tests, takes -20 Evasion/Reaction, and doubles Toughness Modifier for damage reduction.",
+        "benefit": "Adrenaline Rush activates when a Character is 0 Wounds or under, or when a Character has not taken their Smoother drugs in a day. While under the effects of Adrenaline Rush, Characters ignore hindering effects such as Fatigue and Pinning while also staying conscious until death, even when in negative Wounds. The Character will not lose Wounds from Bleedout. The Character will automatically pass any Shock and Fear tests. Characters under the effects of Adrenaline Rush gain a -20 Penalty to all Evasion and Reaction Tests and doubles Toughness Modifier when reducing incoming Damage. Characters under Adrenaline Rush have difficulty telling friend from foe and must make a +20 Intellect Test to not see an ally as an enemy. The Character cannot be calmed down when in Adrenaline Rush and can only be sedated with medication or made unconscious by tranquilizers. If the Character is given the Smoother Drug, they will no longer be under Adrenaline Rush at the beginning of their next turn.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type",
+            "numeric"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Berserker",
+        "shortDescription": "At 25% Wounds or less, rushes enemies; +20 Toughness tests and double STR modifier for melee, but suffers major combat and social penalties.",
+        "benefit": "Berserker activates when the Character's Wounds are at 25% or less, or if the Character took an attack that dealt 25% of their wounds in one round. Berserking Characters are in a bloodlust rage where they rush through the battlefield as fast as possible to reach their enemy as long as it does not directly lead to the Character's death. Characters Berserking are given a +20 Bonus to Toughness Tests and double their Strength Modifier when making Melee Attacks. The Character takes a -20 Penalty to all Evasion and Reaction Tests and a -30 Penalty to any Warfare Range Tests. The Character will also automatically pass any Shock, Fear, and Pinning Tests. The Character may attempt to calm down by making a -30 Charisma Test at the beginning of their Turn. If successful, the Character is no longer under the effects of Berserker. Other Characters may assist in calming them down by making a -30 Charisma Test or a -20 Leadership Test. Other Characters may also use medication such as tranquilizers to force the Character to calm down, or to knock them unconscious. When a Berserking Character becomes Unconscious, they are no longer under the effects of Berserker.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type",
+            "numeric"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Built Tough",
+        "shortDescription": "Large, wide, and well-balanced body grants +20 when opposing Grapple, Takedown, or actions to prevent being knocked over.",
+        "benefit": "The Character is large, wide, and well-balanced. The Character gains a +20 Bonus when opposing a Grapple, Takedown, or any general Actions to prevent falling over.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type",
+            "numeric"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Crawler",
+        "shortDescription": "Insect-like limbs/equipment allow wall attachment; ignores difficult-terrain penalties and gains +40 to Climbing Actions.",
+        "benefit": "The Character has insect-like limbs or equipment that allows attachment to walls and surroundings. The Character takes no penalties when moving over difficult terrain and gains a +40 bonus to Climbing Actions.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type",
+            "numeric"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Flight",
+        "shortDescription": "Can fly at Movement Speed x2; exceeding 50% carry removes x2 and exceeding 75% carry prevents flight.",
+        "benefit": "The Character has the ability of flight through the means of wings or anti-gravitational technology. The Character's flight speed is their Movement Speed multiplied by 2. Exceeding 50% of the Character's Carry Weight removes the x2 multiplier for Movement Speeds. Exceeding 75% of the Character's Carry Weight will cause the Character to be unable to fly.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type",
+            "numeric"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Natural Armor",
+        "shortDescription": "Always has innate armor when not wearing armor; when worn with armor, natural armor is halved. Headshots also halve natural armor.",
+        "benefit": "Natural Armor is armor that a Character always has when not wearing armor. When worn with armor, Natural Armor is halved. Headshots halve the effects of a Character's natural armor.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Natural Weapon",
+        "shortDescription": "Dangerous natural weaponry grants +4 damage and +2 Pierce when used.",
+        "benefit": "The Character has dangerous talons, teeth, or another natural weapon that assists in combat. This gives the Character +4 to Damage and +2 to Pierce when using their natural weapon.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type",
+            "numeric"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Night Vision",
+        "shortDescription": "No low-light or darkness penalties; in darkness, bright-light based penalties are doubled.",
+        "benefit": "The Character has improved vision in darkness and low-light environments. The Character takes no penalties in low-light and darkness, but gains double penalties from effects based on bright lights while in darkness.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Only Flight",
+        "shortDescription": "Flight is the only movement method; flight speed is already included in movement values and no extra bonuses/penalties are added.",
+        "benefit": "The Character only has the ability of flight, as they have no other form of transportation. The Character's flight speed is already figured into their movement, and no bonuses or penalties are gained.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Pack Leader",
+        "shortDescription": "Leadership role within a Jiralhanae pack; includes Chieftain authority. Requires combat training.",
+        "benefit": "The Jiralhanae holds the position of Pack Leader and Chieftain within their pack, holding supreme command authority. This advancement is not available to civilian Jiralhanae without first becoming combat trained. As Chieftain, they trade their starting weapons from their equipment pack for a Gravity Hammer. A Jiralhanae may also seize the position from another within the same pack; otherwise it is an act of war between packs.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type"
+        ],
+        "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Journey of the Hunter",
+        "shortDescription": "Jiralhanae hunters gain mythic characteristic advancements following sequential pricing.",
+        "benefit": "The Jiralhanae enters the path of the hunter, seeking to prove themselves through hunting and combat. Their mythic characteristic advancements follow sequential pricing as they progress in power.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type"
+        ],
+        "sourcePage": 1,
+        "notes": ""
     }
 ]

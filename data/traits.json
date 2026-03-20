@@ -169,15 +169,28 @@
     },
     {
         "name":  "Charge Forward",
-        "shortDescription":  "+3 AGL Modifier when calculating Charge and Run movement distances.",
-        "benefit":  "Mgalekgolo add +3 to their Agility Modifier when discoveringCharge and Run Movement Distances.",
+        "shortDescription":  "+3 AGI Modifier when calculating Charge and Run movement distances.",
+        "benefit":  "Mgalekgolo add +3 to their Agility Modifier when discovering Charge and Run Movement Distances.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
                      "soldier-type",
                      "numeric"
                  ],
-        "sourcePage":  1,
+        "sourcePage":  77,
+        "notes":  ""
+    },
+        {
+        "name":  "Charge Forward (Goliath)",
+        "shortDescription":  "+2 AGI Modifier when calculating Charge and Run movement distances.",
+        "benefit":  "Mgalekgolo add +2 to their Agility Modifier when discovering Charge and Run Movement Distances.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  82,
         "notes":  ""
     },
     {
@@ -197,6 +210,19 @@
         "name":  "CLAWS",
         "shortDescription":  "-20 penalty to precision actions like throwing, grabbing small objects, or other delicate tasks.",
         "benefit":  "The Mgalekgolo have large claws on each arm. Due to this, they lack the dexterity needed for precision movement and delicate actions. When attempting to throw items, grab onto small objects, or any other action a GM would suggest being difficult, are given a -20 Penalty.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+        {
+        "name":  "Claws (Goliath)",
+        "shortDescription":  "-30 penalty to precision actions like throwing, grabbing small objects, or other delicate tasks.",
+        "benefit":  "The Goliath have large claws on each arm. Due to this, they lack the dexterity needed for precision movement and delicate actions. When attempting to throw items, grab onto small objects, or any other action a GM would suggest being difficult, are given a -30 Penalty.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -243,8 +269,8 @@
         "notes":  ""
     },
     {
-        "name":  "Death And Wounds",
-        "shortDescription":  "Healed only by Watchers or Huragok; natural healing ×10. On death, respawns at full Wounds after 10 rounds (costs 1 Luck).",
+        "name":  "Death And Wounds (Promethean)",
+        "shortDescription":  "Healed only by Watchers or Huragok; natural healing ×10. On death, respawns at full Wounds after 10 rounds (burns 1 Luck).",
         "benefit":  "Prometheans can only be healed by Watchers and Huragok, but Natural Healing is multiplied by 10. A Promethean that dies will be able to get a new body after 10 Rounds, with full Wounds. A point of Luck must still be Burnt.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -329,6 +355,19 @@
         "notes":  ""
     },
     {
+        "name": "Educations",
+        "shortDescription": "Double intellect modifier when determining how many Educations can be learned.",
+        "benefit": "The Yanme’e doubles their Intellect Modifier when figuring how many Educations they may learn.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type",
+            "numeric"
+        ],
+        "sourcePage": 79,
+        "notes": "Scaffold"        
+    },
+    {
         "name":  "Equipment",
         "shortDescription":  "Gains 100 cR to build a starting Equipment Pack from any Armory type.",
         "benefit":  "Yonhet gain 100 cR to create an Equipment Pack that can consist of any Armor, Weapons, and Equipment, regardless of type.",
@@ -377,7 +416,7 @@
         "notes":  ""
     },
     {
-        "name":  "GESTALT ANATOMY",
+        "name":  "Gestalt Anatomy",
         "shortDescription":  "Immune to headshots and special damage; no hunger or thirst for 3 months; no oxygen required; can collapse and reform as actions.",
         "benefit":  "Each Mgalekgolo is formed of roughly 300 sentient Eels. Mgalekgolo are immune to the Headshot Special Rule and Special Damage. Mgalekgolo do not suffer from Hunger or Thirst for 3 Months without eating or drinking. Mgalekgolo do not require Oxygen and can survive in a vacuum. Theyre able to collapse and reform, taking a Full Action to collapse and 2 Full Actions to rebuild.",
         "category":  "soldier-type",
@@ -385,7 +424,31 @@
         "tags":  [
                      "soldier-type"
                  ],
-        "sourcePage":  1,
+        "sourcePage":  77,
+        "notes":  ""
+    },
+        {
+        "name":  "Gestalt Anatomy (Goliath)",
+        "shortDescription":  "Immune to headshots and special damage; no hunger or thirst for 1 week; no oxygen required; can collapse and reform as actions.",
+        "benefit":  "Each Mgalekgolo Goliath is formed of roughly 500 sentient Eels. Mgalekgolo are immune to the Headshot Special Rule and Special Damage. Mgalekgolo do not suffer from Hunger or Thirst for 1 Week without eating or drinking. Mgalekgolo do not require Oxygen and can survive in a vacuum. Theyre able to collapse and reform, taking a Full Action to collapse and 2 Full Actions to rebuild.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  82,
+        "notes":  ""
+    },
+       {
+        "name":  "Gestalt Anatomy (Slugmen)",
+        "shortDescription":  "Immune to headshots and special damage; no hunger or thirst for 3 months; no oxygen required; can collapse and reform as actions.",
+        "benefit":  "Each Mgalekgolo Slugman is formed of roughly 150 sentient Eels. Mgalekgolo are immune to the Headshot Special Rule and Special Damage. Mgalekgolo do not suffer from Hunger or Thirst for 3 Months without eating or drinking. Mgalekgolo do not require Oxygen and can survive in a vacuum. Theyre able to collapse and reform, taking a Full Action to collapse and 2 Full Actions to rebuild.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  78,
         "notes":  ""
     },
     {
@@ -416,7 +479,7 @@
     {
         "name":  "Gravity Bomb",
         "shortDescription":  "Deploy a homing Slipspace energy sphere (Blast 5, EMP 20, 1d10+10 dmg, 60 Pierce, 15m/turn); 4 Full Action cooldown after detonation.",
-        "benefit":  "The Cavalier has access to Gravity Bombs, which are a Slipspace spheres of energy with EMP properties. These Gravity Bombs move at 15 Meters Per Turn and track a single chosen Opponent. If the Bomb hits any non-Character or Vehicle surface, it dissipates. If it strikes a Character or Vehicle, it detonates in a Blast (5) Radius, with EMP (20) Special Rule. The Gravity Bomb deals 1D10 +10 Damage, with 60 Pierce. The Gravity Bomb will not attempt to make major course corrections around cover but will not stop following a Character until it makes a collision of any kind. Gravity Bomb has a cooldown of 4 Full Actions that only begins counting down after the active Gravity Bomb is done attacking. SHORTHAND EQUIPMENT Scattershot Hardlight Blade Splinter Grenade Cavalier Armor WEAPON TRAINING All Weapon Training SUPPRESSION EQUIPMENT Suppressor Boltshot Splinter Grenade Soldier Armor WEAPON TRAINING All Weapon Training COMMANDO EQUIPMENT Light Rifle Hardlight Blade Pulse Grenade Cavalier Armor WEAPON TRAINING All Weapon Training DEVASTATOR EQUIPMENT Hardlight Blade Hardlight Blade Splinter Grenade Cavalier Armor WEAPON TRAINING All Weapon Training",
+        "benefit":  "The Cavalier has access to Gravity Bombs, which are a Slipspace spheres of energy with EMP properties. These Gravity Bombs move at 15 Meters Per Turn and track a single chosen Opponent. If the Bomb hits any non-Character or Vehicle surface, it dissipates. If it strikes a Character or Vehicle, it detonates in a Blast (5) Radius, with EMP (20) Special Rule. The Gravity Bomb deals 1D10 +10 Damage, with 60 Pierce. The Gravity Bomb will not attempt to make major course corrections around cover but will not stop following a Character until it makes a collision of any kind. Gravity Bomb has a cooldown of 4 Full Actions that only begins counting down after the active Gravity Bomb is done attacking.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -424,6 +487,19 @@
                      "numeric"
                  ],
         "sourcePage":  1,
+        "notes":  ""
+    },
+        {
+        "name":  "Slipspace Storage",
+        "shortDescription":  "Can carry Equipment in Slipspace Storage with no weight limits; takes one Half Action to retrieve items; cannot store Characters, Sentinels, or Vehicles.",
+        "benefit":  "Prometheans are capable of carrying their Equipment in Slipspace Storage. The Slipspace Storage has no weight limits, though it can’t hold Characters, Sentinels, or Vehicles.\n It takes one Half Action to retrieve something from Storage. ",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  84,
         "notes":  ""
     },
     {
@@ -598,8 +674,32 @@
         "notes":  ""
     },
     {
+        "name":  "Yanme'e Limited",
+        "shortDescription":  "Cannot buy from UNSC and Forerunner Armories; Covenant purchases cost 3× while civilian path is active.",
+        "benefit":  "Covenant Civilians are not allowed to purchase weapons from UNSC and Forerunner armories. Purchasing from the Covenant Armory costs 3 times extra.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Equipment Pack (Unggoy Combat)",
         "shortDescription":  "Select an equipment pack for Anti-Infantry, Guided Munitions, Heavy Weapons, or Ordnance role.",
+        "benefit":  "The character selects an Equipment Pack.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Equipment Pack (Yanme'e Combat)",
+        "shortDescription":  "Select an equipment pack for Anti-Infantry, Guided Munitions, Heavy Weapon, or Marksman role.",
         "benefit":  "The character selects an Equipment Pack.",
         "category":  "soldier-type",
         "grantOnly":  true,
@@ -874,7 +974,19 @@
         "tags":  [
                      "soldier-type"
                  ],
-        "sourcePage":  1,
+        "sourcePage":  85,
+        "notes":  ""
+    },
+    {
+        "name":  "Watcher Spawning",
+        "shortDescription":  "May summon a Watcher to assist in combat; 20 min cooldown.",
+        "benefit":  "Knights are able to summon a single Bestiary Rank 3 Promethean Watcher with a Full Action. These Watchers, if destroyed, take 20 in- game minutes to rebuild and redeploy. The Knight does not control the Watcher, the Watcher will act on its own. It will attempt to stick alongside the Knight and stay 5 Meters above if possible. Watcher priorities are projecting shields, catching grenades, and redeploying the Knight if killed.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type"
+                 ],
+        "sourcePage":  85,
         "notes":  ""
     },
     {
@@ -885,6 +997,19 @@
         "grantOnly":  true,
         "tags":  [
                      "soldier-type"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+        {
+        "name":  "Constraint Field",
+        "shortDescription":  "See biological forms through up to 20m of non-biological obstacles; +30 to detect Active Camo users; lasts 4 Half Actions, recharges in 6.",
+        "benefit":  "The Soldier can see through 20 Meters of wall, floor, and any non-biological obstacle, to find biological forms. Promethean Vision can see any Character and Creature, including other Prometheans. Promethean Vision also gives the Character +30 to finding Characters cloaked using Active Camouflage. Promethean Vision lasts for 4 Half Actions and must recharge for 6 Half Actions.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
                  ],
         "sourcePage":  1,
         "notes":  ""
@@ -1040,6 +1165,19 @@
         "notes":  ""
     },
     {
+        "name":  "Skilled (Yanme'e)",
+        "shortDescription":  "Starts with 2 skills of choice at +10.",
+        "benefit":  "The Character gains two Skills of their choosing at +10.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Slave",
         "shortDescription":  "Covenant Huragok must wear Explosive Armor; non-Covenant Huragok may use standard Huragok Armor instead.",
         "benefit":  "If with the Covenant factions, a Huragok must take the Huragok Explosive Armor. Else, the Huragok may take the Huragok Armor, instead. ENGINEER Engineers gain the Techno-Organic Trait at Character Creation. This gives the Huragok the Ability to interface with all electronics and equipment as if they had the tools to do so. The Engineer also acts as if it were a computer when interfacing with electronics and take no Penalties for Difficulty. All technology-based Tests with Equipment are at a +10. LIFEWORKER Lifeworkers gain the Bio-Organic Trait at Character Creation. This gives the Huragok the Ability to connect with organic material, such as bodies, plant life, and so on. The Lifeworker counts as having any Medical Tools needed, except for Medication. Performing surgeries or any medical Tests are also at a +10 Bonus, and the Lifeworker takes no Penalties for alien biology. For every Degree of Success on a Medical Test made when attempting to Heal, the Lifeworker is able to heal 1 extra Wound and remove 1 Fatigue. OVERSHIELD PROJECTION Huragok are able to project an Energy Shield onto several allies, equal to their Perception Modifier, and up to 8 Meters away. They also are always counted as being protected by their own Shield. Two or more Huragok Shieldscantstack. When depleted, these Shields must recharge normally per Character under effect. Huragok may also project their Shields onto one single vehicle and its pilot, instead of other Characters. Switching what is protected by the Overshield takes one Half Action and the Shield Integrity begins at 0 and must Recharge, without the Delay. SHIELD INTEGRITY DELAY RECHARGE RATE 50 3 10 EQUIPMENT Huragok Explosive Armor CARRYING WEIGHT All Huragok have a Carry Weight of 1,000 Kilograms. LEG AND ARM BODY LOCATIONS When a Huragok is struck in the Leg Body Location, the Attack should be considered striking the HuragoksGas Bladders that keep them afloat. When a Huragok is struck in the Arm Body Location, the Attack should be considered strikingthe Huragoks tentacles. INFUSION HURAGOK",
@@ -1116,9 +1254,74 @@
         "notes":  ""
     },
     {
+        "name":  "Squad Up (Yanme'e Civilian)",
+        "shortDescription":  "+5 Courage when alongside other civilians.",
+        "benefit":  "When with other Civilians, the Civilian gains +5 Courage. This is lost if the Yanme'e becomes Combat Trained.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
+        "name":  "Squad Up (Yanme'e Combat)",
+        "shortDescription":  "+5 Courage, Warfare Melee, and Warfare Range while the commanding unit remains active.",
+        "benefit":  "When with other Yanme'e, the Yanme'e gains +5 Courage, Warfare Melee, and Warfare Range. This is lost if the Commanding Unit dies or becomes incapacitated.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  "Source image uses Unggoy wording; retained here for reference while applying the rule to Yanme'e combat training."
+    },
+    {
+        "name": "Squad Up (Gasgira)",
+        "shortDescription": "+5 Courage, Warfare Melee, and Warfare Range while the commanding unit remains active.",
+        "benefit": "When with other Gasgira, the Gasgira gains +5 Courage, Warfare Melee, and Warfare Range. This is lost if the Commanding Unit dies or becomes incapacitated.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+        {
+        "name": "Squad Up (Gasgira Civilian)",
+        "shortDescription": "+5 Courage, with civilians.",
+        "benefit": "When with other Gasgira civilians, the Gasgira gains +5 Courage. This is lost if the Gasgira becomes Combat Trained.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+    {
         "name":  "Squad Up (Sangheili)",
         "shortDescription":  "+5 Courage and +10 Warfare Melee/Range when taking Combined Actions with other Sangheili combat units.",
         "benefit":  "When with other Sangheili combat units, the Character gains +5 Courage Tests and +10 to Warfare Melee and Warfare Range during Combined Actions.",
+        "category":  "soldier-type",
+        "grantOnly":  true,
+        "tags":  [
+                     "soldier-type",
+                     "numeric"
+                 ],
+        "sourcePage":  1,
+        "notes":  ""
+    },
+        {
+        "name":  "Squad Up (Promethean)",
+        "shortDescription":  "+5 Courage and +10 Warfare Melee/Range when taking Combined Actions with other Promethean combat units.",
+        "benefit":  "When with other Promethean combat units, the Character gains +5 Courage Tests and +10 to Warfare Melee and Warfare Range during Combined Actions.",
         "category":  "soldier-type",
         "grantOnly":  true,
         "tags":  [
@@ -1206,7 +1409,7 @@
         "notes":  ""
     },
     {
-        "name":  "TECHNOLOGICAL HUNTER",
+        "name":  "Technological Hunter",
         "shortDescription":  "Sense active technology via electromagnetic disturbances up to half Perceptive Range away; detect through walls up to PER Modifier in meters (Full Action concentration required).",
         "benefit":  "Mgalekgolo have the ability to see active technology through disturbances in the air, including magnetic fields, radio waves, and electromagnetic pulses. Mgalekgolo can see up to half their Perceptive Range (Full Range if Dipholekgolo) in Meters to see active technology within their normal eyesight. The Mgalekgolo may also sense technology through walls, debris, etc. up to their Perception Modifier in Meters. This works similar to thermal vision but take a Full Action of concentration to do. A Huntercantdiscern what the Technology is from this Ability andcantfind technology that is turned off or smaller than a common cellphone.",
         "category":  "soldier-type",
@@ -1328,7 +1531,7 @@
         "notes":  ""
     },
     {
-        "name":  "VEHICLE USE",
+        "name":  "Vehicle Use",
         "shortDescription":  "Can pilot and Hijack vehicles from Collapsed Form (2 Full Actions); Hijack requires the vehicle to be moving slowly and winning an Opposed AGL Test.",
         "benefit":  "Mgalekgolo are able to pilot and Hijack in their Collapsed Form as two Full Actions. To Hijack a vehicle, the Vehicle must be going slow enough to allow the majority of the Eels to board. The Eels are able to slip into small sections to bypass the Hijacking rules. They must fight for control against the active pilot, where an Opposed Agility Test gains control for the Round.",
         "category":  "soldier-type",
@@ -1513,6 +1716,54 @@
             "soldier-type"
         ],
         "sourcePage": 1,
+        "notes": ""
+    },
+    {
+        "name": "Equipment (Yonhet)",
+        "shortDescription": "Yonhet may design their own equipment pack with 100cr worth of starting gear.",
+        "benefit": "The Yonhet may design their own equipment pack with 100cr worth of starting gear.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type"
+        ],
+        "sourcePage": 91,
+        "notes": ""
+    },        
+    {
+        "name": "Limitations (Yonhet)",
+        "shortDescription": "Combat training is typically unavailable to Yonhet; they are often traders, smugglers, and politicians.",
+        "benefit": "Yonhet Characters cant begin as Combat Trained unless approved by the GM. Yonhet are almost always traders, smugglers, and politicians.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type"
+        ],  
+        "sourcePage": 91,
+        "notes": ""
+    },
+    {
+        "name": "Squad Up (Yonhet)",
+        "shortDescription": "+5 Courage, Warfare Melee, and Warfare Range while the commanding unit remains active.",
+        "benefit": "When with other Yonhet, the Yonhet gains +5 Courage, Warfare Melee, and Warfare Range. This is lost if the Commanding Unit dies or becomes incapacitated.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type"
+        ],
+        "sourcePage": 91,
+        "notes": ""
+    },
+    {
+        "name": "Carry Weight (Goliath)",
+        "shortDescription": "Carry weight is 10,000KG.",
+        "benefit": "The Goliath can carry up to 10,000KG without penalty.",
+        "category": "soldier-type",
+        "grantOnly": true,
+        "tags": [
+            "soldier-type"
+        ],
+        "sourcePage": 92,
         "notes": ""
     }
 ]

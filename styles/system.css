@@ -3690,6 +3690,17 @@
   font-weight: 700;
 }
 
+.chat-message .mythic-chat-subheader {
+  text-align: center;
+  padding: 2px 8px 4px;
+  font-size: 11px;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.04em;
+  background: var(--mythic-input-bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 .chat-message .mythic-chat-outcome {
   font-weight: 700;
   text-align: right;
@@ -5083,3 +5094,213 @@
   color: rgba(219, 244, 255, 0.88);
 }
 
+/* ============================================================
+   Combat panel section header — initiative button row
+   ============================================================ */
+.mythic-character-sheet .mythic-combat-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.mythic-character-sheet .mythic-combat-section-header h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.mythic-character-sheet .mythic-initiative-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.mythic-character-sheet .mythic-initiative-label {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 12px;
+  color: var(--mythic-text);
+  white-space: nowrap;
+}
+
+.mythic-character-sheet .mythic-initiative-roll-btn {
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Initiative chat card
+   ============================================================ */
+.chat-message .mythic-chat-note {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.7);
+  background: var(--mythic-dark-bg, #1a2b40);
+  text-align: center;
+}
+
+.chat-message .mythic-chat-subheader {
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--mythic-text);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.chat-message .mythic-chat-formula {
+  font-size: 11px;
+  opacity: 0.75;
+  font-style: italic;
+  margin-left: 6px;
+}
+
+.chat-message .mythic-initiative-details {
+  padding: 0 8px 8px;
+}
+
+.chat-message .mythic-initiative-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 0 4px;
+}
+
+.chat-message .mythic-initiative-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.chat-message .mythic-initiative-total-label {
+  font-weight: 700;
+}
+
+.chat-message .mythic-inline-total {
+  min-width: 54px;
+  text-align: center;
+}
+
+.chat-message .mythic-initiative-breakdown {
+  display: grid;
+  gap: 4px;
+}
+
+.chat-message .mythic-initiative-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 6px;
+  background: var(--mythic-input-bg);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.chat-message .mythic-initiative-row-label {
+  font-weight: 700;
+}
+
+.chat-message .mythic-initiative-row-value {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.chat-message .mythic-initiative-dice-row {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.chat-message .mythic-initiative-die {
+  min-width: 24px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.2)), #8d8d8d;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #111;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.chat-message .mythic-initiative-die.discarded {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+/* ---- Fly Speeds section ---- */
+.mythic-character-sheet .movement-fly-section {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-light, rgba(255,255,255,0.2));
+}
+
+.mythic-character-sheet .movement-fly-header {
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  color: var(--mythic-text);
+  font-family: Orbitron, sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 4px 0;
+  margin-bottom: 3px;
+  letter-spacing: 0.05em;
+}
+
+
+
+.mythic-character-sheet .movement-fly-action-block {
+  display: flex;
+  align-items: stretch;
+}
+
+.mythic-character-sheet .movement-fly-action-btn {
+  flex: 1;
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.mythic-character-sheet .movement-fly-action-btn.fly-mode-active {
+  background: rgba(31, 240, 90, 0.15);
+  border-color: rgba(31, 240, 90, 0.55);
+  color: #1ff05a;
+}
+
+.mythic-character-sheet .movement-fly-action-btn:hover {
+  background: rgba(31, 240, 90, 0.25);
+  border-color: rgba(31, 240, 90, 0.75);
+}
+
+.mythic-character-sheet .movement-fly-unavailable {
+  padding: 0.5rem;
+  text-align: center;
+  color: var(--color-text-warning, #f0a500);
+  font-size: 11px;
+}
+
+.mythic-character-sheet .movement-fly-encumbrance {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: right;
+  padding-top: 2px;
+}
+
+/* ---- Natural Armor DR note row ---- */
+.mythic-character-sheet .mythic-dr-nat-armor-row .mythic-dr-label,
+.mythic-character-sheet .mythic-dr-nat-armor-row .mythic-dr-value,
+.mythic-character-sheet .mythic-dr-nat-armor-row .mythic-dr-note {
+  font-style: italic;
+  opacity: 0.75;
+  font-size: 11px;
+}

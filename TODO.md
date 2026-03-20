@@ -270,6 +270,60 @@ Implementation note:
 
 ## Milestone 6: Macro and Chat Reference Tab (Your Requested Feature)
 
+### MAJOR PRIORITY: Canonical Runtime Variables and Easy Chat/Macro Aliases
+
+User intent:
+
+- Make Foundry chat/macro usage feel as simple as Roll20-style workflows (especially selected-token formulas)
+- Define canonical runtime variables once, then only reference those variables everywhere (never recompute ad hoc)
+- Keep variable names human-readable for players and GMs
+
+Core architecture tasks:
+
+- [ ] P0 Define canonical runtime variable registry for actor-derived values (single source of truth):
+  - characteristic scores (`STR`, `TOU`, `AGI`, `WFR`, `WFM`, `INT`, `PER`, `CRG`, `CHA`, `LDR`)
+  - characteristic modifiers (`STR_MOD`, `TOU_MOD`, etc.)
+  - mythic characteristics (`STR_MYTH`, `TOU_MYTH`, `AGI_MYTH`)
+  - combat values (`DR_HEAD`, `DR_CHEST`, `DR_L_ARM`, `DR_R_ARM`, `DR_L_LEG`, `DR_R_LEG`)
+- [ ] P0 Build one reusable resolver/hydrator function that returns all aliases for an actor/token and is reused by:
+  - sheet inline rolls
+  - chat-card automation
+  - macro helpers
+  - future formula evaluators
+- [ ] P0 Refactor all formulas that currently recompute shared values to only reference canonical aliases
+
+Formula consistency migration (must not recalculate locally):
+
+- [ ] P0 Replace inline characteristic-mod math in all formula sites with alias references (example target pattern: use `TOU_MOD` instead of `floor(TOU/10)`)
+- [ ] P0 Refactor wounds/fatigue/derived formulas to consume canonical aliases (`TOU_MOD`, `TOU_MYTH`, etc.)
+- [ ] P0 Refactor weapon and melee damage formulas to consume canonical aliases (`STR_MOD`, etc.)
+- [ ] P1 Add guardrail lint/check (or debug assertion pass) to flag prohibited direct recomputation patterns in roll formulas
+
+User-facing chat/macro UX tasks:
+
+- [ ] P0 Add selected-token alias context for chat formula workflows (Roll20-like):
+  - support a selected-token scope that users can target without typing actor names
+  - provide clear error messaging when no token is selected
+- [ ] P0 Add simple alias naming layer so users can avoid long system paths in formulas
+- [ ] P0 Add macro helper API on `game.mythic` for quick alias expansion from selected token and explicit actor/token
+- [ ] P1 Add user examples in Reference tab and docs with side-by-side forms:
+  - short alias form (preferred)
+  - full path form (advanced/fallback)
+
+Tooltip and discoverability tasks:
+
+- [ ] P0 Add/standardize main-characteristics tooltip copy showing both:
+  - canonical alias (e.g., `@STR`, `@STR_MOD`)
+  - resolved engine path fallback (e.g., `@system.characteristics.str`)
+- [ ] P1 Add copy-to-clipboard actions for alias names from the Reference tab
+- [ ] P1 Add quick examples for common formulas (skill check, buttstroke, wounds, DR-based mitigation)
+
+Selected token and actor-reference parity goals:
+
+- [ ] P1 Support both selected-token references and explicit actor references in helper APIs
+- [ ] P1 Normalize actor-name lookup behavior with robust fallback/validation (avoid exact-name brittle failures)
+- [ ] P1 Add documentation mapping from Roll20-style mental model to Foundry usage patterns
+
 - [ ] P0 Add new left sidebar tab: Reference (always bottom-most tab)
 - [ ] P0 Populate with user-facing list of roll references and field paths
 - [ ] P0 Include copy buttons for common snippets/macros
@@ -343,6 +397,11 @@ Live content sync and update propagation:
 - [ ] P1 Add changelog process and versioning policy
 - [ ] P1 Prepare release checklist (manifest version bump, migration notes, test pass)
 
+## Chat Output Compactness and Spam Reduction
+
+- [ ] P1 Burst fire: show hit location once per attack instead of repeating it on every damage line
+- [ ] P1 (Add future compactness items here)
+
 ## Rules/Content Validation Against Mythic v7.0 CU1
 
 - [ ] P0 Audit all formulas and terms against v7.0 CU1 source text
@@ -362,3 +421,8 @@ Live content sync and update propagation:
 
 - This file is planning only. No implementation work is implied by checklist items.
 - Re-prioritize after each milestone demo so high-impact tasks stay at top.
+
+## Neo's other things to do
+
+- [ ] Fix Huragok Infustion attack to use special rules
+- [ ] Add Huragok Overshield trait and rules

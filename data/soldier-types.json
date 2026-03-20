@@ -1387,10 +1387,10 @@
                                 "ldr":  25
                             },
         "characteristicAdvancements":  {
-                                           "str":  5,
-                                           "tou":  5,
-                                           "wfm":  5,
-                                           "wfr":  5,
+                                           "str":  0,
+                                           "tou":  0,
+                                           "wfm":  0,
+                                           "wfr":  0,
                                            "agi":  0,
                                            "int":  0,
                                            "per":  0,
@@ -2126,6 +2126,145 @@
                  }
     },
     {
+        "name":  "Covenant Yanme'e",
+        "description":  "They're like giant cockroaches, except angrier.",
+        "header":  {
+                       "faction":  "Covenant",
+                       "soldierType":  "Yanme'e",
+                       "race":  "Yanme'e",
+                       "buildSize":  "Normal"
+                   },
+        "heightRangeCm":  {
+                              "min":  178,
+                              "max":  206
+                          },
+        "weightRangeKg":  {
+                              "min":  77,
+                              "max":  109
+                          },
+        "training":  [
+                         "Basic",
+                         "Infantry",
+                         "Melee",
+						 "Covenant"
+                     ],
+        "creation":  {
+                         "xpCost":  1450
+                     },
+        "characteristics":  {
+                                "str":  20,
+                                "tou":  25,
+                                "agi":  15,
+                                "wfr":  20,
+                                "wfm":  20,
+                                "int":  35,
+                                "per":  25,
+                                "crg":  25,
+                                "cha":  10,
+                                "ldr":  20
+                            },
+        "characteristicAdvancements":  {
+                                           "str":  0,
+                                           "tou":  0,
+                                           "agi":  0,
+                                           "wfr":  0,
+                                           "wfm":  0,
+                                           "int":  0,
+                                           "per":  0,
+                                           "crg":  0,
+                                           "cha":  0,
+                                           "ldr":  0
+                                       },
+        "mythic":  {
+                       "str":  1,
+                       "tou":  1,
+                       "agi":  4
+                   },
+        "skillChoices":  [
+
+                         ],
+        "traits":  [
+                       "Crawler",
+                       "Natural Weapon",
+                       "Flight",
+                       "Four Arms",
+                       "Natural Armor",
+					   "Educations"
+                   ],
+        "trainingPathChoice":  {
+                                   "enabled":  true,
+                                   "prompt":  "Choose Yanme'e training path. Civilian matches the source page baseline; Combat Training adds the separate 1,600 Experience package.",
+                                   "defaultKey":  "combat",
+                                   "choices":  [
+                                                   {
+                                                       "key":  "civilian",
+                                                       "label":  "Civilian",
+                                                       "creationXpCost":  1450,
+                                                       "characteristicAdvancements":  {
+                                                                                          "str":  0,
+                                                                                          "tou":  0,
+                                                                                          "agi":  0,
+                                                                                          "wfr":  0,
+                                                                                          "wfm":  0,
+                                                                                          "int":  0,
+                                                                                          "per":  0,
+                                                                                          "crg":  0,
+                                                                                          "cha":  0,
+                                                                                          "ldr":  0
+                                                                                      },
+                                                       "grantedTraits":  [
+                                                                             "Yanme'e Limited",
+                                                                             "Squad Up (Yanme'e Civilian)"
+                                                                         ]
+                                                   },
+                                                   {
+                                                       "key":  "combat",
+                                                       "label":  "Combat Training",
+                                                       "creationXpCost":  3050,
+                                                       "characteristicAdvancements":  {
+                                                                                          "str":  5,
+                                                                                          "tou":  5,
+                                                                                          "wfm":  5,
+                                                                                          "wfr":  5,
+                                                                                          "agi":  0,
+                                                                                          "int":  0,
+                                                                                          "per":  0,
+                                                                                          "crg":  0,
+                                                                                          "cha":  0,
+                                                                                          "ldr":  0
+                                                                                      },
+                                                       "skillChoices":  [
+                                                                            {
+                                                                                "count":  2,
+                                                                                "tier":  "plus10",
+                                                                                "label":  "Combat Training Skills",
+                                                                                "notes":  "The Combat Trained Yanme'e gains two Skills of their choosing at +10.",
+                                                                                "source":  "Combat Training"
+                                                                            }
+                                                                        ],
+                                                       "grantedTraits":  [
+                                                                             "Covenant Armory",
+                                                                             "Squad Up (Yanme'e Combat)"
+                                                                         ]
+                                                   }
+                                               ]
+                               },
+        
+        "ruleFlags":  {
+                          "naturalArmorScaffold":  {
+                                                       "enabled":  true,
+                                                       "baseValue":  10,
+                                                       "halvedWhenArmored":  true,
+                                                       "halvedOnHeadshot":  true,
+                                                       "notes":  "Scaffold only. Natural Armor 10 is recorded here for future automation and is not yet applied automatically to DR calculations."
+                                                   }
+                      },
+        "notes":  "Educations: The Yanme'e doubles their Intellect Modifier when figuring how many Educations they may learn. Civilians have two choices: spend 1,800 Experience to build their own Specialization Pack of their choice, or wait to become Combat Trained and gain a Specialization Pack. Natural Armor 10 is scaffolded in rule flags for now and is not yet automated.",
+        "sync":  {
+                     "canonicalId":  "soldierType:covenant-yanmee"
+                 }
+    },
+    {
         "name":  "Covenant San\u0027Shyuum",
         "description":  "Will they not see us as Gods? Will our power not push us towards our Great Journey?",
         "header":  {
@@ -2269,6 +2408,180 @@
                  }
     },
     {
+        "name":  "Covenant Huragok",
+        "description":  "Ancient Forerunner engineers with unmatched technical mastery and limited direct combat focus.",
+        "header":  {
+                       "faction":  "Covenant",
+                       "soldierType":  "Huragok",
+                       "race":  "Huragok",
+                       "buildSize":  "Large"
+                   },
+        "heightRangeCm":  {
+                              "min":  165,
+                              "max":  279
+                          },
+        "weightRangeKg":  {
+                              "min":  92,
+                              "max":  182
+                          },
+        "training":  [
+                         "Basic",
+                         "Infantry",
+                         "Covenant"
+                     ],
+        "creation":  {
+                         "xpCost":  4775
+                     },
+        "characteristics":  {
+                                "str":  5,
+                                "tou":  50,
+                                "agi":  10,
+                                "wfr":  5,
+                                "wfm":  5,
+                                "int":  60,
+                                "per":  50,
+                                "crg":  20,
+                                "cha":  10,
+                                "ldr":  10
+                            },
+        "characteristicAdvancements":  {
+                                           "str":  0,
+                                           "tou":  0,
+                                           "agi":  0,
+                                           "wfr":  0,
+                                           "wfm":  0,
+                                           "int":  0,
+                                           "per":  0,
+                                           "crg":  0,
+                                           "cha":  0,
+                                           "ldr":  0
+                                       },
+        "mythic":  {
+                       "str":  10,
+                       "tou":  0,
+                       "agi":  0
+                   },
+        "traits":  [
+                       "Pacifist",
+                       "Only Flight",
+                       "Limitless Computing",
+                       "Linguistic",
+                       "Slave"
+                   ],
+        "factionChoice":  {
+                              "enabled":  true,
+                              "prompt":  "Choose Huragok faction before selecting a variant.",
+                              "defaultKey":  "covenant",
+                              "choices":  [
+                                              {
+                                                  "key":  "covenant",
+                                                  "label":  "Covenant",
+                                                  "faction":  "Covenant"
+                                              },
+                                              {
+                                                  "key":  "banished",
+                                                  "label":  "Banished",
+                                                  "faction":  "Banished"
+                                              },
+                                              {
+                                                  "key":  "swords",
+                                                  "label":  "Swords of Sangheilios",
+                                                  "faction":  "Swords of Sangheilios"
+                                              },
+                                              {
+                                                  "key":  "other",
+                                                  "label":  "Other",
+                                                  "faction":  "Other"
+                                              }
+                                          ]
+                          },
+        "trainingPathChoice":  {
+                                   "enabled":  true,
+                                   "prompt":  "Choose Huragok variant.",
+                                   "defaultKey":  "engineer",
+                                   "choices":  [
+                                                   {
+                                                       "key":  "engineer",
+                                                       "label":  "Engineer",
+                                                       "creationXpCost":  4775,
+                                                       "characteristicAdvancements":  {
+                                                                                          "str":  0,
+                                                                                          "tou":  0,
+                                                                                          "agi":  0,
+                                                                                          "wfr":  0,
+                                                                                          "wfm":  0,
+                                                                                          "int":  0,
+                                                                                          "per":  0,
+                                                                                          "crg":  0,
+                                                                                          "cha":  0,
+                                                                                          "ldr":  0
+                                                                                      },
+                                                       "grantedTraits":  [
+                                                                             "Techno-Organic"
+                                                                         ]
+                                                   },
+                                                   {
+                                                       "key":  "lifeworker",
+                                                       "label":  "Lifeworker",
+                                                       "creationXpCost":  4775,
+                                                       "characteristicAdvancements":  {
+                                                                                          "str":  0,
+                                                                                          "tou":  0,
+                                                                                          "agi":  0,
+                                                                                          "wfr":  0,
+                                                                                          "wfm":  0,
+                                                                                          "int":  0,
+                                                                                          "per":  0,
+                                                                                          "crg":  0,
+                                                                                          "cha":  0,
+                                                                                          "ldr":  0
+                                                                                      },
+                                                       "grantedTraits":  [
+                                                                             "Bio-Organic"
+                                                                         ]
+                                                   }
+                                               ]
+                               },
+        "infusionOption":  {
+                               "enabled":  true,
+                               "eligibleFactions":  [
+                                                        "Banished"
+                                                    ],
+                               "prompt":  "Banished Huragok may take Infusion (costs 1000 XP). Apply Infusion now?",
+                               "yesLabel":  "Apply Infusion",
+                               "noLabel":  "Skip Infusion",
+                               "infusionLabel":  "Infusion",
+                               "xpDelta":  1000,
+                               "characteristicAdjustments":  {
+                                                              "int":  -10,
+                                                              "tou":  10
+                                                          },
+                               "grantInfusionRadiusWeapon":  true,
+                               "advancementScaffold":  {
+                                                           "key":  "infusion",
+                                                           "label":  "Infusion",
+                                                           "xpCost":  1000,
+                                                           "summary":  "Banished-only Huragok advancement that replaces Overshield projection with an offensive radius.",
+                                                           "requirements":  "Banished Huragok only.",
+                                                           "details":  "Infused Huragok can attack without Pacifist Courage tests, gain +10 TOU and -10 INT, and receive the Infusion Radius weapon scaffold.",
+                                                           "traitGrants":  [
+                                                                               "Infusion Huragok"
+                                                                           ],
+                                                           "notes":  "Scaffolded for future multi-race advancement chains (Deacon, Cleric, Pack Leader, etc.)."
+                                                       },
+                               "grantedTraits":  [
+                                                     "Infusion Huragok"
+                                                 ]
+                           },
+        "ruleFlags":  {
+                          "fixedCarryWeight":  1000
+                      },
+        "notes":  "Apply flow: choose faction, choose variant (Engineer or Lifeworker), then Banished characters may optionally apply Infusion.",
+        "sync":  {
+                     "canonicalId":  "soldierType:covenant-huragok"
+                 }
+    },
+    {
         "name":  "Covenant San\u0027Shyuum Prelate",
         "description":  "There were not many San'Shyuum who could match your skills or your devotion - and now perhaps there are none.",
         "header":  {
@@ -2383,7 +2696,6 @@
                        "faction":  "Covenant",
                        "soldierType":  "Mgalekgolo",
                        "race":  "Lekgolo",
-                       "upbringing":  "Colony",
                        "buildSize":  "Hulking"
                    },
         "heightRangeCm":  {
@@ -2442,6 +2754,17 @@
                                                }
                           ,
                           "toughMultiplier":  2,
+                          "allowedUpbringings":  {
+                                                     "enabled":  true,
+                                                     "upbringings":  [
+                                                                         "Military",
+                                                                         "Laborer",
+                                                                         "Fugitive",
+                                                                         "Wastelander"
+                                                                     ],
+                                                     "removeOtherUpbringings":  true,
+                                                     "notes":  "Mgalekgolo are locked to Military, Laborer, Fugitive, or Wastelander upbringings."
+                                                 },
                           "phenomeChoice":  {
                                                 "enabled":  true,
                                                 "prompt":  "Select the Lekgolo Phenome Culture (Ref p.77).",
@@ -2585,7 +2908,6 @@
                        "faction":  "Covenant",
                        "soldierType":  "Mgalekgolo Slugmen",
                        "race":  "Lekgolo (Slugmen)",
-                       "upbringing":  "Colony",
                        "buildSize":  "Large"
                    },
         "heightRangeCm":  {
@@ -2638,6 +2960,17 @@
                                                    "tou":  1
                                                },
                           "toughMultiplier":  2,
+                          "allowedUpbringings":  {
+                                                     "enabled":  true,
+                                                     "upbringings":  [
+                                                                         "Military",
+                                                                         "Laborer",
+                                                                         "Fugitive",
+                                                                         "Wastelander"
+                                                                     ],
+                                                     "removeOtherUpbringings":  true,
+                                                     "notes":  "Slugmen are locked to Military, Laborer, Fugitive, or Wastelander upbringings."
+                                                 },
                           "phenomeChoice":  {
                                                 "enabled":  true,
                                                 "prompt":  "Select the Lekgolo Phenome Culture.",
@@ -2773,6 +3106,681 @@
         "sync":  {
                      "canonicalId":  "soldierType:covenant-mgalekgolo-slugmen"
                  }
-    }
+    },
+	{
+		"name": "Fringe Covenant Yonhet",
+		"description": "Gotta give her credit for her shout-out to the Yonhet, though. I mean, nobody remembers those guys.",
+		"header":  {
+                       "faction":  "Covenant",
+                       "soldierType":  "Yonhet",
+                       "race":  "Yonhet",
+                       "buildSize":  "Normal"
+                   },
+        "heightRangeCm":  {
+                              "min":  137,
+                              "max":  187
+                          },
+        "weightRangeKg":  {
+                              "min":  43,
+                              "max":  111
+                          },
+        "creation":  {
+                         "xpCost":  1100
+                     },
+        "characteristics":  {
+                                "str":  25,
+                                "tou":  25,
+                                "agi":  25,
+                                "wfr":  20,
+                                "wfm":  20,
+                                "int":  30,
+                                "per":  30,
+                                "crg":  20,
+                                "cha":  30,
+                                "ldr":  25
+                            },
+        "mythic":  {
+                       "str":  0,
+                       "tou":  0,
+                       "agi":  0
+                   },
+        "traits":  [
+                       "MARKETEER", 
+					   "SILVER TONGUE",
+					   "ARMOR CHOICE",
+                       "Equipment (Yonhet)",
+                       "TRADER",
+					   "Limitations (Yonhet)"
+                   ],
+		"trainingPathChoice":  {
+                                   "enabled":  true,
+                                   "prompt":  "Choose Yonhet training path. Combat Training is limited to GM Approval. Yonhet are almost always traders, smugglers, and politicians.",
+                                   "defaultKey":  "civilian",
+								   "choices":  [
+                                                   {
+                                                       "key":  "civilian",
+                                                       "label":  "Civilian",
+                                                       "creationXpCost":  1100,
+                                                       "characteristicAdvancements":  {
+                                                                                          "str":  0,
+                                                                                          "tou":  0,
+                                                                                          "wfm":  0,
+                                                                                          "wfr":  0,
+                                                                                          "agi":  0,
+                                                                                          "int":  0,
+                                                                                          "per":  0,
+                                                                                          "crg":  0,
+                                                                                          "cha":  0,
+                                                                                          "ldr":  0
+                                                                                      }
+                                                   },
+                                                   {
+                                                       "key":  "combat",
+                                                       "label":  "Combat Trained",
+                                                       "creationXpCost":  2700,
+                                                       "characteristicAdvancements":  {
+                                                                                          "str":  5,
+                                                                                          "tou":  5,
+                                                                                          "wfm":  5,
+                                                                                          "wfr":  5,
+                                                                                          "agi":  0,
+                                                                                          "int":  0,
+                                                                                          "per":  0,
+                                                                                          "crg":  0,
+                                                                                          "cha":  0,
+                                                                                          "ldr":  0
+                                                                                      },
+                                                       "grantedTraits":  [
+                                                                             "Covenant Armory",
+																			 "Squad Up (Yonhet)"
+                                                                         ],
+														"skillChoices":  [
+																		{
+																			"count":  2,
+																			"tier":  "plus10",
+																			"label":  "Combat Training Skills",
+																			"source":  "Training"
+																			}
+																	]
+                                                   }
+                                               ]
+                               }
+	},
+	{
+        "name":  "Banished Mgalekgolo Goliath",
+        "description":  "It’s like a walking tank that bulldozes everything.",
+        "header":  {
+                       "faction":  "Banished",
+                       "soldierType":  "Mgalekgolo Goliath",
+                       "race":  "Lekgolo",
+                       "buildSize":  "Giant"
+                   },
+        "heightRangeCm":  {
+                              "min":  411,
+                              "max":  443
+                          },
+        "weightRangeKg":  {
+                              "min":  5650,
+                              "max":  6300
+                          },
+        "training":  [
+                         "Melee",
+                         "Covenant"
+                     ],
+        "creation":  {
+                         "xpCost":  12550
+                     },
+        "characteristics":  {
+                                "str":  55,
+                                "tou":  35,
+                                "agi":  10,
+                                "wfr":  10,
+                                "wfm":  30,
+                                "int":  15,
+                                "per":  5,
+                                "crg":  55,
+                                "cha":  5,
+                                "ldr":  5
+                            },
+        "mythic":  {
+                       "str":  19,
+                       "tou":  8,
+                       "agi":  0
+                   },
+        "traits":  [
+                       "Built Tough",
+                       "Charge Forward (Goliath)",
+                       "Gestalt Anatomy (Goliath)",
+                       "Technological Hunter",
+                       "Claws (Goliath)",
+                       "Vehicle Use",
+                       "Slow",
+                       "Carry Weight (Goliath)",
+					   "Dual"
+                   ],
+        "ruleFlags":  {
+                          "fixedCarryWeight":  10000,
+                          "chargeRunAgiBonus":  2,
+                          "carryMultipliers":  {
+                                                   "str":  1,
+                                                   "tou":  1
+                                               }
+                          ,
+                          "toughMultiplier":  2,
+                          "allowedUpbringings":  {
+                                                     "enabled":  true,
+                                                     "upbringings":  [
+                                                                         "Military",
+                                                                         "Laborer",
+                                                                         "Fugitive",
+                                                                         "Wastelander"
+                                                                     ],
+                                                     "removeOtherUpbringings":  true,
+                                                     "notes":  "Mgalekgolo are locked to Military, Laborer, Fugitive, or Wastelander upbringings."
+                                                 },
+                          "phenomeChoice":  {
+                                                "enabled":  true,
+                                                "prompt":  "Select the Lekgolo Phenome Culture (Ref p.77).",
+                                                "defaultKey":  "mgalekgolo",
+                                                "choices":  [
+                                                                {
+                                                                    "key":  "mgalekgolo",
+                                                                    "label":  "Mgalekgolo (Standard)",
+                                                                    "characteristics":  {
+                                                                                            "str":  0,
+                                                                                            "tou":  0,
+                                                                                            "agi":  0,
+                                                                                            "wfr":  0,
+                                                                                            "wfm":  0,
+                                                                                            "int":  0,
+                                                                                            "per":  0,
+                                                                                            "crg":  0,
+                                                                                            "cha":  0,
+                                                                                            "ldr":  0
+                                                                                        },
+                                                                    "mythic":  {
+                                                                                	"str":  0,
+                                                                                   "tou":  0,
+                                                                                   "agi":  0
+                                                                               },
+                                                                    "traits":  [],
+                                                                    "notes":  "Default Hunter baseline."
+                                                                },
+                                                                {
+                                                                    "key":  "dipholekgolo",
+                                                                    "label":  "Dipholekgolo",
+                                                                    "characteristics":  {
+                                                                                            "str":  0,
+                                                                                            "tou":  0,
+                                                                                            "agi":  0,
+                                                                                            "wfr":  0,
+                                                                                            "wfm":  0,
+                                                                                            "int":  0,
+                                                                                            "per":  15,
+                                                                                            "crg":  0,
+                                                                                            "cha":  0,
+                                                                                            "ldr":  0
+                                                                                        },
+                                                                    "mythic":  {
+                                                                                   "str":  -5,
+                                                                                   "tou":  0,
+                                                                                   "agi":  0
+                                                                               },
+                                                                    "traits":  [
+                                                                                   "Dipholekgolo"
+                                                                               ],
+                                                                    "notes":  "Enhanced perceptive tech sensing per page 77."
+                                                                },
+                                                                {
+                                                                    "key":  "rhulolekgolo",
+                                                                    "label":  "Rhulolekgolo",
+                                                                    "characteristics":  {
+                                                                                            "str":  0,
+                                                                                            "tou":  0,
+                                                                                            "agi":  0,
+                                                                                            "wfr":  0,
+                                                                                            "wfm":  0,
+                                                                                            "int":  0,
+                                                                                            "per":  0,
+                                                                                            "crg":  0,
+                                                                                            "cha":  0,
+                                                                                            "ldr":  0
+                                                                                        },
+                                                                    "mythic":  {
+                                                                                   "str":  -4,
+                                                                                   "tou":  0,
+                                                                                   "agi":  4
+                                                                               },
+                                                                    "traits":  [
+                                                                                   "Rhulolekgolo"
+                                                                               ],
+                                                                    "notes":  "Mythic shift variant per page 77."
+                                                                },
+                                                                {
+                                                                    "key":  "sbaolekgolo",
+                                                                    "label":  "Sbaolekgolo",
+                                                                    "characteristics":  {
+                                                                                            "str":  5,
+                                                                                            "tou":  0,
+                                                                                            "agi":  -5,
+                                                                                            "wfr":  0,
+                                                                                            "wfm":  0,
+                                                                                            "int":  0,
+                                                                                            "per":  0,
+                                                                                            "crg":  0,
+                                                                                            "cha":  0,
+                                                                                            "ldr":  0
+                                                                                        },
+                                                                    "mythic":  {
+                                                                                   "str":  1,
+                                                                                   "tou":  0,
+                                                                                   "agi":  -1
+                                                                               },
+                                                                    "traits":  [
+                                                                                   "Sbaolekgolo"
+                                                                               ],
+                                                                    "notes":  "Larger-bodied phenome per page 77."
+                                                                },
+                                                                {
+                                                                    "key":  "thanolekgolo",
+                                                                    "label":  "Thanolekgolo",
+                                                                    "characteristics":  {
+                                                                                            "str":  0,
+                                                                                            "tou":  5,
+                                                                                            "agi":  0,
+                                                                                            "wfr":  0,
+                                                                                            "wfm":  5,
+                                                                                            "int":  -10,
+                                                                                            "per":  -5,
+                                                                                            "crg":  0,
+                                                                                            "cha":  -10,
+                                                                                            "ldr":  0
+                                                                                        },
+                                                                    "mythic":  {
+                                                                                   "str":  5,
+                                                                                   "tou":  1,
+                                                                                   "agi":  0
+                                                                               },
+                                                                    "traits":  [
+                                                                                   "Thanolekgolo"
+                                                                               ],
+                                                                    "notes":  "Heavy assault phenome per page 77."
+                                                                }
+                                                            ]
+                                            }
+                      },
+        "notes":  "Hunter bonds, colony dependence, and bonded-pair assumptions are represented in notes and traits rather than hard automation. Carry Weight is fixed at 5,000 kg and is unaffected by armor.",
+        "sync":  {
+                     "canonicalId":  "soldierType:covenant-mgalekgolo-goliath"
+                 }
+    },
+	{
+        "name":  "Banished and Endless Gasgira",
+        "description":  "They’re the smelliest bastards I have ever seen.",
+        "header":  {
+                       "faction":  "Banished",
+                       "soldierType":  "Gasgira",
+                       "race":  "Gasgira",
+                       "buildSize":  "Normal"
+                   },
+        "heightRangeCm":  {
+                              "min":  178,
+                              "max":  206
+                          },
+        "weightRangeKg":  {
+                              "min":  77,
+                              "max":  109
+                          },
+        "training":  [
+                         "Basic",
+                         "Infantry",
+                         "Covenant"
+                     ],
+        "creation":  {
+                         "xpCost":  650
+                     },
+        "characteristics":  {
+                                "str":  20,
+                                "tou":  30,
+                                "agi":  20,
+                                "wfr":  25,
+                                "wfm":  15,
+                                "int":  25,
+                                "per":  25,
+                                "crg":  25,
+                                "cha":  25,
+                                "ldr":  25
+                            },
+        "characteristicAdvancements":  {
+                                           "str":  0,
+                                           "tou":  0,
+                                           "agi":  0,
+                                           "wfr":  0,
+                                           "wfm":  0,
+                                           "int":  0,
+                                           "per":  0,
+                                           "crg":  0,
+                                           "cha":  0,
+                                           "ldr":  0
+                                       },
+        "mythic":  {
+                       "str":  0,
+                       "tou":  0,
+                       "agi":  5
+                   },
+        "traits":  [
+                       "Crawler",
+                       "Four Arms"   
+                   ],
+        "trainingPathChoice":  {
+                                   "enabled":  true,
+                                   "prompt":  "Choose Gasgira training path. Combat Trained is the default for Banished campaigns.",
+                                   "defaultKey":  "combat",
+                                   "choices":  [
+                                                   {
+                                                       "key":  "combat",
+                                                       "label":  "Combat Trained (default)",
+                                                       "creationXpCost":  2250,
+                                                       "characteristicAdvancements":  {
+                                                                                          "str":  5,
+                                                                                          "tou":  5,
+                                                                                          "agi":  0,
+                                                                                          "wfr":  5,
+                                                                                          "wfm":  5,
+                                                                                          "int":  0,
+                                                                                          "per":  0,
+                                                                                          "crg":  0,
+                                                                                          "cha":  0,
+                                                                                          "ldr":  0
+                                                                                      },
+                                                       "grantedTraits":  [
+                                                                             "Banished Armory",
+																			 "Squad Up (Gasgira)"
+                                                                         ]
+                                                   },
+                                                   {
+                                                       "key":  "civilian",
+                                                       "label":  "Civilian",
+                                                       "creationXpCost":  650,
+                                                       "characteristicAdvancements":  {
+                                                                                          "str":  0,
+                                                                                          "tou":  0,
+                                                                                          "agi":  0,
+                                                                                          "wfr":  0,
+                                                                                          "wfm":  0,
+                                                                                          "int":  0,
+                                                                                          "per":  0,
+                                                                                          "crg":  0,
+                                                                                          "cha":  0,
+                                                                                          "ldr":  0
+                                                                                      },
+                                                       "grantedTraits":  [
+                                                                             "Limited",
+																			 "Squad Up (Gasgira Civilian)"
+                                                                         ]
+                                                   }
+                                               ]
+                               },
+        "ruleFlags":  {
+                          "flightScaffold":  {
+                                                 "enabled":  true,
+                                                 "notes":  "Scaffold only. Gasgira flight support is noted for future automation and is not yet applied automatically."
+                                             }
+                      },
+        "notes":  "Banished Gasgira use the civilian Gasgira baseline from the source card. Upbringing Any is treated as unrestricted and is intentionally not written into the header. Combat Training is the default path. Limited applies only to civilians. Armor and flight remain scaffolded only for future automation.",
+        "sync":  {
+                     "canonicalId":  "soldierType:banished-gasgira"
+                 }
+    },
+	{
+		"name":  "Promethean Soldier",
+		"description":  "Sentient, intelligent, and resourceful. A major upgrade from those braindead sentinels we managed to trick with a rock and a piece of string.",
+		"header":  {
+					   "faction":  "Forerunner",
+					   "soldierType":  "Promethean Soldier",
+					   "race": "Forerunner",
+					   "buildSize":  "Large"
+				   },
+		"heightRangeCm":  {
+								"min":  190,
+								"max":  230
+							},
+		"weightRangeKg":  {
+								"min":  110,
+								"max":  124
+							},
+        "training":  [
+                         "Basic",
+                         "Infantry",
+                         "Heavy",
+                         "Advanced",
+                         "Launcher",
+                         "Long Range",
+                         "Ordnance",
+                         "Cannon",
+                         "Melee",
+                         "UNSC",
+                         "Covenant",
+                         "Forerunner"
+                     ],
+		"creation":  {
+                         "xpCost":  5250
+                     },
+        "characteristics":  {
+                                "str":  35,
+                                "tou":  35,
+                                "agi":  35,
+                                "wfr":  30,
+                                "wfm":  30,
+                                "int":  25,
+                                "per":  35,
+                                "crg":  35,
+                                "cha":  25,
+                                "ldr":  25
+                            },
+        "characteristicAdvancements":  {
+                                           "str":  0,
+                                           "tou":  0,
+                                           "agi":  0,
+                                           "wfm":  0,
+                                           "wfr":  0,
+                                           "int":  0,
+                                           "per":  0,
+                                           "crg":  0,
+                                           "cha":  0,
+                                           "ldr":  0
+                                       },
+        "mythic":  {
+                       "str":  1,
+                       "tou":  1,
+                       "agi":  0
+                   },
+		"traits":  [
+					   "Promethean Vision",
+					   "Translocation",
+					   "Auto-Translation",
+					   "Crawler",
+					   "Glowing",
+					   "Death And Wounds (Promethean)",
+					   "Squad Up (Promethean)",
+					   "Slipspace Storage"
+				   ], 	
+		"sync":  {
+					 "canonicalId":  "soldierType:forerunner-promethean-soldier"
+				  }
+	},
+	{
+		"name":  "Promethean Knight",
+		"description":  "Sentient, intelligent, and resourceful. A major upgrade from those braindead sentinels we managed to trick with a rock and a piece of string.",
+		"header":  {
+					   "faction":  "Forerunner",
+					   "soldierType":  "Promethean Knight",
+					   "race": "Forerunner",
+					   "buildSize":  "Huge"
+				   },
+		"heightRangeCm":  {
+								"min":  302,
+								"max":  329
+							},
+		"weightRangeKg":  {
+								"min":  407,
+								"max":  423
+							},
+        "training":  [
+                         "Basic",
+                         "Infantry",
+                         "Heavy",
+                         "Advanced",
+                         "Launcher",
+                         "Long Range",
+                         "Ordnance",
+                         "Cannon",
+                         "Melee",
+                         "UNSC",
+                         "Covenant",
+                         "Forerunner"
+                     ],
+		"creation":  {
+                         "xpCost":  7500
+                     },
+        "characteristics":  {
+                                "str":  35,
+                                "tou":  35,
+                                "agi":  25,
+                                "wfr":  30,
+                                "wfm":  30,
+                                "int":  25,
+                                "per":  35,
+                                "crg":  35,
+                                "cha":  25,
+                                "ldr":  25
+                            },
+        "characteristicAdvancements":  {
+                                           "str":  0,
+                                           "tou":  0,
+                                           "agi":  0,
+                                           "wfm":  0,
+                                           "wfr":  0,
+                                           "int":  0,
+                                           "per":  0,
+                                           "crg":  0,
+                                           "cha":  0,
+                                           "ldr":  0
+                                       },
+        "mythic":  {
+                       "str":  5,
+                       "tou":  3,
+                       "agi":  0
+                   },
+		"traits":  [
+					   "Powerhouse",
+					   "Promethean Vision",
+					   "Translocation",
+					   "Auto-Translation",
+					   "Crawler",
+					   "Glowing",
+					   "Claws",
+					   "Micro-Arms",
+					   "Watcher Spawning",
+					   "Death And Wounds (Promethean)",
+					   "Squad Up (Promethean)",
+					   "Slipspace Storage"
+				   ],
+		"ruleFlags":  {
+                          "carryMultipliers":  {
+                                                   "str":  2,
+                                                   "tou":  2
+												},
+                          "dualWieldScaffold":  {
+                                                     "enabled":  true,
+                                                     "ignoreDualWieldPenalties":  true,
+                                                     "cannotDropDualWieldedWeapons":  true,
+                                                     "notes":  "Scaffold only. Promethean Knights ignore dual-wield penalties and cannot drop dual-wielded weapons once dual-wield automation exists."
+                                                 }
+						},
+		"sync":  {
+					 "canonicalId":  "soldierType:forerunner-promethean-knight"
+				  }
+	},
+		{
+		"name":  "Promethean Cavalier",
+		"description":  "Life is a fleeting vessel too fragile and small to hold a true mind",
+		"header":  {
+					   "faction":  "Forerunner",
+					   "soldierType":  "Promethean Cavalier",
+					   "race": "Forerunner",
+					   "buildSize":  "Giant"
+				   },
+		"heightRangeCm":  {
+								"min":  430,
+								"max":  430
+							},
+		"weightRangeKg":  {
+								"min":  1452,
+								"max":  1452
+							},
+        "training":  [
+                         "Basic",
+                         "Infantry",
+                         "Heavy",
+                         "Advanced",
+                         "Launcher",
+                         "Long Range",
+                         "Ordnance",
+                         "Cannon",
+                         "Melee",
+                         "UNSC",
+                         "Covenant",
+                         "Forerunner"
+                     ],
+		"creation":  {
+                         "xpCost":  12900
+                     },
+        "characteristics":  {
+                                "str":  55,
+                                "tou":  45,
+                                "agi":  55,
+                                "wfr":  35,
+                                "wfm":  35,
+                                "int":  30,
+                                "per":  20,
+                                "crg":  20,
+                                "cha":  25,
+                                "ldr":  45
+                            },
+        "characteristicAdvancements":  {
+                                           "str":  0,
+                                           "tou":  0,
+                                           "agi":  0,
+                                           "wfm":  0,
+                                           "wfr":  0,
+                                           "int":  0,
+                                           "per":  0,
+                                           "crg":  0,
+                                           "cha":  0,
+                                           "ldr":  0
+                                       },
+        "mythic":  {
+                       "str":  8,
+                       "tou":  10,
+                       "agi":  2
+                   },
+		"traits":  [
+					   "Powerhouse",
+					   "Constraint Field",
+					   "Eternal",
+					   "Death Slipspace Field",
+					   "Gravity Bomb",
+					   "Promethean Vision",
+					   "Translocation",
+					   "Auto-Translation",
+					   "Glowing",
+					   "Death And Wounds (Promethean)",
+					   "Slipspace Storage"
+				   ], 	
+		"sync":  {
+					 "canonicalId":  "soldierType:forerunner-promethean-cavalier"
+				  }
+	}
 ]
    

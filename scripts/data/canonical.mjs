@@ -138,7 +138,11 @@ export function getCanonicalCharacterSystemData() {
         group: "",
         name: "",
         description: "",
-        items: []
+        items: [],
+        packKey: "",
+        source: "",
+        grants: [],
+        appliedAt: ""
       },
       equipped: {
         weaponIds: [],

@@ -239,6 +239,16 @@
         "traits":  [
                        "Squad Up (UNSC)"
                    ],
+        "ruleFlags":  {
+                          "equipmentPackCatalog":  {
+                                                       "enabled":  true,
+                                                       "packKeys":  [
+                                                                        "unsc-marine-point-man",
+                                                                        "unsc-marine-marksman"
+                                                                    ],
+                                                       "notes":  "External mission-loadout equipment packs linked for Marine Soldier."
+                                                   }
+                      },
         "notes":  "Physical attributes: 130 centimeters (4\u00273 ft.) - 200 centimeters (6\u00276 ft.), 45 kilograms (100 lb.) - 117 kilograms (260 lb.). Insurrectionist option: if chosen, any item without the [I] tag costs 25% more. Insurrectionists gain all weapon and vehicle modifications at half cR price.",
         "factionChoice":  {
                               "enabled":  true,

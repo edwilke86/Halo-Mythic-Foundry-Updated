@@ -6,7 +6,7 @@
       <h3>Load Summary</h3>
       <div class="mythic-phase4-field-grid compact mythic-inventory-load-grid">
         <div class="mythic-mini-field"><span>Credits</span><input type="number" min="0" name="system.equipment.credits" value="{{mythicSystem.equipment.credits}}" /></div>
-        <div class="mythic-mini-field"><span>Carried Weight</span><input type="number" min="0" name="system.equipment.carriedWeight" value="{{mythicEquipment.carriedWeight}}" /></div>
+        <div class="mythic-phase4-stat"><span>Carried Weight</span><strong>{{mythicEquipment.carriedWeight}} kg</strong></div>
         <div class="mythic-phase4-stat"><span>Carry Capacity</span><strong>{{mythicEquipment.carryCapacity}}</strong></div>
         <div class="mythic-phase4-stat"><span>Remaining</span><strong>{{mythicEquipment.remainingCarry}}</strong></div>
         <div class="mythic-phase4-stat"><span>Load Utilization</span><strong>{{mythicEquipment.loadPercent}}%</strong></div>
@@ -18,64 +18,93 @@
       </div>
     </div>
 
-    <div class="mythic-phase4-card full-width">
-      <h3>Equipment Pack Selection</h3>
-      {{#if mythicEquipment.packSelection.hasSoldierType}}
-        <p class="ccadv-note">Available packs are filtered by Soldier Type: <strong>{{mythicEquipment.packSelection.soldierTypeName}}</strong>.</p>
-        {{#if mythicEquipment.packSelection.options.length}}
-          <label class="mythic-training-stack">
-            <span>Active Equipment Pack (mission loadout, free to change)</span>
-            <select name="mythic.equipmentPackSelection">
+    <details class="ccadv-stage" data-collapse-key="equipment-pack-selection" open>
+      <summary>Equipment Pack Selection</summary>
+      <div class="mythic-phase4-card full-width">
+        {{#if mythicEquipment.packSelection.hasSoldierType}}
+          <p class="ccadv-note">Available packs are filtered by Soldier Type: <strong>{{mythicEquipment.packSelection.soldierTypeName}}</strong>.</p>
+          {{#if mythicEquipment.packSelection.options.length}}
+            <select name="mythic.equipmentPackSelection" class="mythic-hidden-pack-select" aria-hidden="true" tabindex="-1">
               <option value="">(none)</option>
               {{#each mythicEquipment.packSelection.options as |opt|}}
                 <option value="{{opt.value}}" data-group="{{opt.group}}" data-name="{{opt.name}}" data-description="{{opt.description}}" data-items="{{opt.itemsPipe}}"{{#if (eq ../mythicEquipment.packSelection.selectedValue opt.value)}} selected{{/if}}>{{opt.group}} - {{opt.name}}</option>
               {{/each}}
             </select>
-          </label>
-          <button type="button" class="action-btn equipment-pack-apply-btn">Apply Active Equipment Pack</button>
-        {{else}}
-          <p>No equipment pack options are defined on this Soldier Type.</p>
-        {{/if}}
-      {{else}}
-        <p>Select a Soldier Type first to unlock Equipment Pack options.</p>
-      {{/if}}
 
-      {{#if mythicEquipment.packSelection.selectedName}}
-        <div class="mythic-specialization-detail-block" style="margin-top:8px">
-          <h4>Current Active Equipment Pack</h4>
-          <p><strong>{{mythicEquipment.packSelection.selectedGroup}}</strong> - {{mythicEquipment.packSelection.selectedName}}</p>
-          {{#if mythicEquipment.packSelection.selectedDescription}}
-            <p>{{mythicEquipment.packSelection.selectedDescription}}</p>
+            <div class="mythic-equipment-pack-grid">
+              <div class="mythic-equipment-pack-list ccadv-outliers-list">
+                <h3>Pack Choices</h3>
+                <div class="mythic-equipment-pack-scroll ccadv-outliers-scroll">
+                  {{#each mythicEquipment.packSelection.options as |opt|}}
+                    <button
+                      type="button"
+                      class="action-btn outlier-select-btn equipment-pack-choice-btn {{#if (eq ../mythicEquipment.packSelection.selectedValue opt.value)}}is-active{{/if}}"
+                      data-pack-value="{{opt.value}}"
+                      data-pack-group="{{opt.group}}"
+                      data-pack-name="{{opt.name}}"
+                      data-pack-description="{{opt.description}}"
+                      data-pack-items="{{opt.itemsPipe}}"
+                    >{{opt.name}}</button>
+                  {{/each}}
+                </div>
+              </div>
+
+              <div class="mythic-equipment-pack-detail" data-pack-detail>
+                <h3>Selected Pack Details</h3>
+                <p class="mythic-equipment-pack-active-line"><strong>Selected:</strong> <span data-pack-detail-heading>{{#if mythicEquipment.packSelection.selectedName}}{{mythicEquipment.packSelection.selectedGroup}} - {{mythicEquipment.packSelection.selectedName}}{{else}}(none){{/if}}</span></p>
+                <p class="ccadv-note" data-pack-detail-description>{{#if mythicEquipment.packSelection.selectedDescription}}{{mythicEquipment.packSelection.selectedDescription}}{{else}}Select a pack on the left to preview and apply it.{{/if}}</p>
+                <ul data-pack-detail-items>
+                  {{#if mythicEquipment.packSelection.selectedItems.length}}
+                    {{#each mythicEquipment.packSelection.selectedItems as |item|}}
+                      <li>{{item}}</li>
+                    {{/each}}
+                  {{else}}
+                    <li>No listed items for this pack yet.</li>
+                  {{/if}}
+                </ul>
+                <p class="ccadv-note"><strong>Warning:</strong> Using a pack will overwrite and replace tracked items/ammo from the current active Equipment Pack.</p>
+                <button type="button" class="action-btn equipment-pack-apply-btn">Use This Pack</button>
+              </div>
+            </div>
+          {{else}}
+            <p>No equipment pack options are defined on this Soldier Type.</p>
           {{/if}}
-          {{#if mythicEquipment.packSelection.selectedItems.length}}
-            <ul>
-              {{#each mythicEquipment.packSelection.selectedItems as |item|}}
-                <li>{{item}}</li>
-              {{/each}}
-            </ul>
-          {{/if}}
-        </div>
-      {{/if}}
-    </div>
+        {{else}}
+          <p>Select a Soldier Type first to unlock Equipment Pack options.</p>
+        {{/if}}
+      </div>
+    </details>
 
     <div class="mythic-phase4-card full-width">
       <h3>Weapons (Actor Items)</h3>
       {{#if mythicEquipment.weaponItems.length}}
-        <div class="mythic-equipment-list">
+        <div class="mythic-equipment-list mythic-equipment-table">
+          <div class="mythic-equipment-row mythic-equipment-header-row">
+            <span class="mythic-equipment-header-name">Name</span>
+            <span>CARR</span>
+            <span>EQP</span>
+            <span>MULT</span>
+            <span>QTY</span>
+            <span>TOTAL<br>WEIGHT</span>
+            <span>EFF.<br>WEIGHT</span>
+          </div>
           {{#each mythicEquipment.weaponItems as |item|}}
-          <div class="mythic-equipment-row">
-            <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
-            <span class="mythic-equipment-name">{{item.name}}</span>
-            <span class="mythic-equipment-meta">{{item.weaponClass}}</span>
-            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" {{#if item.isCarried}}checked{{/if}} /> Carried</label>
-            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-kind="weapon" {{#if item.isEquipped}}checked{{/if}} /> Ready</label>
-            {{#unless item.isWielded}}
-            <button type="button" class="action-btn gear-wield-btn" data-item-id="{{item.id}}" {{#unless item.isEquipped}}disabled{{/unless}}>Wield</button>
-            {{else}}
-            <span class="mythic-equipment-meta">Wielded</span>
-            {{/unless}}
-            <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}">Open</button>
-            <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}">Remove</button>
+          <div class="mythic-equipment-row mythic-equipment-data-row">
+            <span class="mythic-equipment-name-cell">
+              <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+              <span class="mythic-equipment-name">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
+              <span class="mythic-equipment-meta">{{item.weaponClass}}</span>
+              <span class="mythic-equipment-actions-inline">
+                <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+                <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
+              </span>
+            </span>
+            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
+            <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" {{#if item.isEquipped}}checked{{/if}} /></span>
+            <span>{{item.weightMultiplierDisplay}}</span>
+            <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" value="{{item.quantity}}" /></span>
+            <span>{{item.totalWeightLabel}}</span>
+            <span>{{item.effectiveWeightLabel}}</span>
           </div>
           {{/each}}
         </div>
@@ -87,17 +116,33 @@
     <div class="mythic-phase4-card full-width">
       <h3>Armor (Actor Items)</h3>
       {{#if mythicEquipment.armorItems.length}}
-        <div class="mythic-equipment-list">
+        <div class="mythic-equipment-list mythic-equipment-table">
+          <div class="mythic-equipment-row mythic-equipment-header-row">
+            <span class="mythic-equipment-header-name">Name</span>
+            <span>CARR</span>
+            <span>EQP</span>
+            <span>MULT</span>
+            <span>QTY</span>
+            <span>TOTAL<br>WEIGHT</span>
+            <span>EFF.<br>WEIGHT</span>
+          </div>
           {{#each mythicEquipment.armorItems as |item|}}
-          <div class="mythic-equipment-row">
-            <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
-            <span class="mythic-equipment-name">{{item.name}}</span>
-            <span class="mythic-equipment-meta">armor</span>
-            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" {{#if item.isCarried}}checked{{/if}} /> Carried</label>
-            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-kind="armor" {{#if item.isEquipped}}checked{{/if}} /> Equipped</label>
-            <span class="mythic-equipment-meta">{{#if item.isEquipped}}Active{{else}}Inactive{{/if}}</span>
-            <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}">Open</button>
-            <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}">Remove</button>
+          <div class="mythic-equipment-row mythic-equipment-data-row">
+            <span class="mythic-equipment-name-cell">
+              <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+              <span class="mythic-equipment-name">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
+              <span class="mythic-equipment-meta">armor</span>
+              <span class="mythic-equipment-actions-inline">
+                <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+                <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
+              </span>
+            </span>
+            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
+            <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" {{#if item.isEquipped}}checked{{/if}} /></span>
+            <span>{{item.weightMultiplierDisplay}}</span>
+            <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" value="{{item.quantity}}" /></span>
+            <span>{{item.totalWeightLabel}}</span>
+            <span>{{item.effectiveWeightLabel}}</span>
           </div>
           {{/each}}
         </div>
@@ -109,20 +154,33 @@
     {{#if mythicEquipment.otherItems.length}}
     <div class="mythic-phase4-card full-width">
       <h3>Other Gear</h3>
-      <div class="mythic-equipment-list">
+      <div class="mythic-equipment-list mythic-equipment-table">
+        <div class="mythic-equipment-row mythic-equipment-header-row">
+          <span class="mythic-equipment-header-name">Name</span>
+          <span>CARR</span>
+          <span>EQP</span>
+          <span>MULT</span>
+          <span>QTY</span>
+          <span>TOTAL<br>WEIGHT</span>
+          <span>EFF.<br>WEIGHT</span>
+        </div>
         {{#each mythicEquipment.otherItems as |item|}}
-        <div class="mythic-equipment-row">
-          <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
-          <span class="mythic-equipment-name">{{item.name}}</span>
-          <span class="mythic-equipment-meta">{{item.itemClass}}</span>
-          <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" {{#if item.isCarried}}checked{{/if}} /> Carried</label>
-          {{#if item.canEquip}}
-            <label class="mythic-equipment-toggle"><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} /> Equipped</label>
-          {{else}}
-            <span class="mythic-equipment-meta">Not equippable</span>
-          {{/if}}
-          <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}">Open</button>
-          <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}">Remove</button>
+        <div class="mythic-equipment-row mythic-equipment-data-row">
+          <span class="mythic-equipment-name-cell">
+            <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+            <span class="mythic-equipment-name">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
+            <span class="mythic-equipment-meta">{{item.itemClass}}</span>
+            <span class="mythic-equipment-actions-inline">
+              <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+              <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
+            </span>
+          </span>
+          <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
+          <span>{{#if item.canEquip}}<input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} />{{else}}-{{/if}}</span>
+          <span>{{item.weightMultiplierDisplay}}</span>
+          <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" value="{{item.quantity}}" /></span>
+          <span>{{item.totalWeightLabel}}</span>
+          <span>{{item.effectiveWeightLabel}}</span>
         </div>
         {{/each}}
       </div>
@@ -139,7 +197,7 @@
         <div class="mythic-ammo-list">
           {{#each mythicEquipment.ammoEntries as |ammo|}}
           <div class="mythic-ammo-row">
-            <span class="mythic-ammo-name">{{ammo.name}}</span>
+            <span class="mythic-ammo-name">{{ammo.name}}{{#if ammo.equipmentPackCount}} <span class="mythic-equipment-ep-tag" title="{{ammo.weightTooltip}}" aria-label="{{ammo.weightTooltip}}">EP {{ammo.equipmentPackCount}}</span>{{/if}} <span class="mythic-equipment-ep-tag" title="{{ammo.weightTooltip}}" aria-label="{{ammo.weightTooltip}}">Wt {{ammo.totalWeightLabel}}</span></span>
             <label>
               Count
               <input type="number" min="0" step="1" class="ammo-count-input" data-ammo-key="{{ammo.key}}" data-ammo-name="{{ammo.name}}" value="{{ammo.count}}" {{#if ../mythicEquipment.ammoConfig.ignoreBasicAmmoCounts}}disabled{{/if}} />

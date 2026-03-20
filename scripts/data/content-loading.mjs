@@ -1,7 +1,15 @@
-import { MYTHIC_ABILITY_DEFINITIONS_PATH, MYTHIC_TRAIT_DEFINITIONS_PATH, MYTHIC_TRAIT_TEXT_TO_STAT } from '../config.mjs';
+import {
+  MYTHIC_ABILITY_DEFINITIONS_PATH,
+  MYTHIC_TRAIT_DEFINITIONS_PATH,
+  MYTHIC_TRAIT_TEXT_TO_STAT,
+  MYTHIC_EQUIPMENT_PACK_DEFINITIONS_PATH,
+  MYTHIC_AMMO_TYPE_DEFINITIONS_PATH
+} from '../config.mjs';
 
 let mythicAbilityDefinitionsCache = null;
 let mythicTraitDefinitionsCache = null;
+let mythicEquipmentPackDefinitionsCache = null;
+let mythicAmmoTypeDefinitionsCache = null;
 
 export async function loadMythicAbilityDefinitions() {
   if (Array.isArray(mythicAbilityDefinitionsCache)) return mythicAbilityDefinitionsCache;
@@ -32,6 +40,52 @@ export async function loadMythicTraitDefinitions() {
     console.error("[mythic-system] Failed to load trait definitions JSON.", error);
     mythicTraitDefinitionsCache = [];
     return mythicTraitDefinitionsCache;
+  }
+}
+
+export async function loadMythicEquipmentPackDefinitions() {
+  if (Array.isArray(mythicEquipmentPackDefinitionsCache)) return mythicEquipmentPackDefinitionsCache;
+  try {
+    const response = await fetch(MYTHIC_EQUIPMENT_PACK_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const defs = Array.isArray(json) ? json : [];
+    mythicEquipmentPackDefinitionsCache = defs;
+    return defs;
+  } catch (error) {
+    console.error("[mythic-system] Failed to load equipment pack definitions JSON.", error);
+    mythicEquipmentPackDefinitionsCache = [];
+    return mythicEquipmentPackDefinitionsCache;
+  }
+}
+
+export async function loadMythicAmmoTypeDefinitions() {
+  if (Array.isArray(mythicAmmoTypeDefinitionsCache) && mythicAmmoTypeDefinitionsCache.length > 0) return mythicAmmoTypeDefinitionsCache;
+  try {
+    const response = await fetch(MYTHIC_AMMO_TYPE_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const defs = Array.isArray(json) ? json : [];
+    const parsed = defs
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object') return null;
+        const name = String(entry.name ?? '').trim();
+        if (!name) return null;
+        const unitWeightKg = Number(entry.unitWeightKg ?? 0);
+        return {
+          name,
+          unitWeightKg: Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0
+        };
+      })
+      .filter(Boolean);
+    if (parsed.length > 0) {
+      mythicAmmoTypeDefinitionsCache = parsed;
+    }
+    return parsed;
+  } catch (error) {
+    console.error("[mythic-system] Failed to load ammo type definitions JSON.", error);
+    // Do NOT cache on failure — allow retry on next render.
+    return [];
   }
 }
 

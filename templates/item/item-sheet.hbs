@@ -70,9 +70,20 @@
         <input id="armor-recharge" type="number" min="0" step="1" name="system.shields.rechargeRate" value="{{gear.shields.rechargeRate}}" {{#unless canEditFields}}disabled{{/unless}} />
       </div>
       <div class="ability-info-row ability-col">
+        <label for="armor-weight-profile">Weight Profile</label>
+        <select id="armor-weight-profile" name="system.armorWeightProfile" {{#unless canEditFields}}disabled{{/unless}}>
+          <option value="standard" {{#if (eq gear.armorWeightProfile "standard")}}selected{{/if}}>Standard</option>
+          <option value="semi-powered" {{#if (eq gear.armorWeightProfile "semi-powered")}}selected{{/if}}>Semi-Powered</option>
+          <option value="powered" {{#if (eq gear.armorWeightProfile "powered")}}selected{{/if}}>Powered</option>
+        </select>
+      </div>
+      <div class="ability-info-row ability-col">
         <label for="armor-price">Price</label>
         <input id="armor-price" type="number" min="0" step="1" name="system.price.amount" value="{{gear.price.amount}}" {{#unless canEditFields}}disabled{{/unless}} />
       </div>
+    </div>
+
+    <div class="ability-grid-3">
       <div class="ability-info-row ability-col">
         <label for="armor-weight">Weight (kg)</label>
         <input id="armor-weight" type="number" min="0" step="0.1" name="system.weightKg" value="{{gear.weightKg}}" {{#unless canEditFields}}disabled{{/unless}} />

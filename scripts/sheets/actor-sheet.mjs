@@ -50,7 +50,9 @@ import {
 
 import {
   substituteSoldierTypeInTraitText,
-  loadMythicAbilityDefinitions
+  loadMythicAbilityDefinitions,
+  loadMythicEquipmentPackDefinitions,
+  loadMythicAmmoTypeDefinitions
 } from "../data/content-loading.mjs";
 
 import {
@@ -1293,16 +1295,38 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _getEquipmentViewData(systemData, derivedData = null) {
     const derived = derivedData ?? computeCharacterDerivedValues(systemData);
-    const carriedWeight = toNonNegativeWhole(systemData?.equipment?.carriedWeight, 0);
+    const storedCarriedWeight = toNonNegativeWhole(systemData?.equipment?.carriedWeight, 0);
     const carryCapacity = Number(derived?.carryingCapacity?.carry ?? 0);
-    const loadPercent = carryCapacity > 0
-      ? Math.min(999, Math.round((carriedWeight / carryCapacity) * 100))
-      : 0;
+
+    const roundWeight = (value) => {
+      const numeric = Number(value ?? 0);
+      if (!Number.isFinite(numeric)) return 0;
+      return Math.round(Math.max(0, numeric) * 1000) / 1000;
+    };
+
+    const formatWeight = (value) => {
+      const rounded = roundWeight(value);
+      if (!rounded) return "0";
+      return String(rounded)
+        .replace(/(\.\d*?[1-9])0+$/u, "$1")
+        .replace(/\.0+$/u, "");
+    };
+
+    const activePackSelection = systemData?.equipment?.activePackSelection ?? {};
+    const activePackGrants = Array.isArray(activePackSelection?.grants) ? activePackSelection.grants : [];
+    const activePackItemIds = new Set(
+      activePackGrants
+        .filter((entry) => String(entry?.kind ?? "").trim().toLowerCase() === "item")
+        .map((entry) => String(entry?.itemId ?? "").trim())
+        .filter(Boolean)
+    );
 
     const baseGearItems = (this.actor?.items ?? [])
       .filter((item) => item.type === "gear")
       .map((item) => {
         const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+        const grantFlag = item.getFlag("Halo-Mythic-Foundry-Updated", "equipmentPackGrant") ?? {};
+        const isEquipmentPackGranted = activePackItemIds.has(String(item.id ?? "")) || Boolean(grantFlag?.packKey || grantFlag?.source);
         return {
           id: item.id,
           name: item.name,
@@ -1325,7 +1349,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           attachments: String(gear.attachments ?? ""),
           description: String(gear.description ?? ""),
           source: gear.source,
-          weightKg: Number(gear.weightKg ?? 0)
+          weightKg: Number(gear.weightKg ?? 0),
+          category: String(gear.category ?? "").trim(),
+          modifiers: String(gear.modifiers ?? "").trim(),
+          armorWeightProfile: String(gear.armorWeightProfile ?? "").trim().toLowerCase(),
+          isEquipmentPackGranted,
+          equipmentPackTag: isEquipmentPackGranted ? "EP" : ""
         };
       });
 
@@ -1364,9 +1393,106 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     });
 
-    const weaponItems = sortedGearItems.filter((entry) => entry.itemClass === "weapon");
-    const armorItems = sortedGearItems.filter((entry) => entry.itemClass === "armor");
-    const otherItems = sortedGearItems.filter((entry) => entry.itemClass !== "weapon" && entry.itemClass !== "armor");
+    const resolveArmorWeightProfile = (row) => {
+      const explicit = String(row?.armorWeightProfile ?? "").trim().toLowerCase();
+      if (["standard", "semi-powered", "powered"].includes(explicit)) return explicit;
+
+      const profileHint = [
+        row?.name,
+        row?.weaponType,
+        row?.category,
+        row?.specialRules,
+        row?.modifiers,
+        row?.description
+      ].map((entry) => String(entry ?? "").trim().toLowerCase()).join(" ");
+
+      if (/(semi\s*-?\s*powered|semi\s+power)/u.test(profileHint)) return "semi-powered";
+      if (/(^|\W)powered(\W|$)/u.test(profileHint)) return "powered";
+      return "standard";
+    };
+
+    const resolveWeightMultiplier = (row, mergedState) => {
+      const isArmor = String(row?.itemClass ?? "").toLowerCase() === "armor";
+      const isWorn = Boolean(mergedState?.isEquipped);
+      if (!isArmor || !isWorn) return 1;
+      const profile = resolveArmorWeightProfile(row);
+      if (profile === "semi-powered" || profile === "powered") return 0;
+      return 0.25;
+    };
+
+    // Unified helper: groups rows by name, collapses into stacked representative rows.
+    // repSelector(sortedGroup) -> pick the representative item row for the group.
+    // mergeState(sortedGroup) -> object of overrides (e.g. isCarried, isEquipped) derived from the whole group.
+    const stackItemGroup = (rows, repSelector, mergeState) => {
+      const groups = new Map();
+      for (const row of rows) {
+        const key = normalizeLookupText(row?.name ?? "");
+        if (!key) continue;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(row);
+      }
+      return Array.from(groups.values())
+        .map((group) => {
+          const sortedGroup = [...group].sort((a, b) => String(a.id ?? "").localeCompare(String(b.id ?? "")));
+          const quantity = sortedGroup.length;
+          const quantityEp = sortedGroup.filter((entry) => entry.isEquipmentPackGranted).length;
+          const quantityPurchased = Math.max(0, quantity - quantityEp);
+          const repRow = repSelector(sortedGroup);
+          const mergedState = mergeState(sortedGroup);
+          const epBadgeLabel = quantityEp > 1 ? `EP ${quantityEp}` : quantityEp === 1 ? "EP" : "";
+          const epTooltip = quantityEp > 0
+            ? `Equipment Pack granted item${quantityEp === 1 ? "" : "s"}: ${quantityEp}`
+            : "";
+          const qtyLabel = quantity > 1 ? String(quantity) : "";
+          const unitWeightKg = roundWeight((sortedGroup.reduce((sum, entry) => sum + Math.max(0, Number(entry?.weightKg ?? 0) || 0), 0)) / Math.max(1, quantity));
+          const totalWeightKg = roundWeight(sortedGroup.reduce((sum, entry) => sum + Math.max(0, Number(entry?.weightKg ?? 0) || 0), 0));
+          const weightMultiplier = resolveWeightMultiplier(repRow, mergedState);
+          const isCarried = Boolean(mergedState?.isCarried);
+          const effectiveWeightKg = isCarried ? roundWeight(totalWeightKg * weightMultiplier) : 0;
+          return {
+            ...repRow,
+            ...mergedState,
+            stackItemIds: sortedGroup.map((entry) => String(entry.id ?? "")).filter(Boolean),
+            quantity,
+            showQuantity: quantity > 1,
+            quantityEp,
+            quantityPurchased,
+            epBadgeLabel,
+            epTooltip,
+            qtyLabel,
+            unitWeightKg,
+            totalWeightKg,
+            effectiveWeightKg,
+            weightMultiplier,
+            weightMultiplierDisplay: weightMultiplier === 0 ? "x0" : (weightMultiplier === 0.25 ? "x0.25" : "x1"),
+            totalWeightLabel: `${formatWeight(totalWeightKg)} kg`,
+            effectiveWeightLabel: `${formatWeight(effectiveWeightKg)} kg`
+          };
+        })
+        .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+    };
+
+    const rawWeaponItems = sortedGearItems.filter((entry) => entry.itemClass === "weapon");
+    const rawArmorItems = sortedGearItems.filter((entry) => entry.itemClass === "armor");
+    const rawOtherItems = sortedGearItems.filter((entry) => entry.itemClass !== "weapon" && entry.itemClass !== "armor");
+
+    const weaponItems = stackItemGroup(
+      rawWeaponItems,
+      (group) => group.find((e) => e.isWielded) ?? group.find((e) => e.isEquipped) ?? group.find((e) => e.isEquipmentPackGranted) ?? group[0],
+      (group) => ({ isCarried: group.some((e) => e.isCarried), isEquipped: group.some((e) => e.isEquipped), isWielded: group.some((e) => e.isWielded) })
+    );
+
+    const armorItems = stackItemGroup(
+      rawArmorItems,
+      (group) => group.find((e) => e.isEquipped) ?? group.find((e) => e.isEquipmentPackGranted) ?? group[0],
+      (group) => ({ isCarried: group.some((e) => e.isCarried), isEquipped: group.some((e) => e.isEquipped), isWielded: false })
+    );
+
+    const otherItems = stackItemGroup(
+      rawOtherItems,
+      (group) => group.find((entry) => entry.isEquipmentPackGranted) ?? group[0],
+      (group) => ({ isCarried: group.some((e) => e.isCarried), isEquipped: false, canEquip: false })
+    );
 
     const findById = (id) => sortedGearItems.find((entry) => String(entry.id) === String(id)) ?? null;
     const equippedWeaponItems = weaponItems.filter((entry) => entry.isEquipped);
@@ -1473,6 +1599,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     });
 
+    const ammoTypeDefinitions = await loadMythicAmmoTypeDefinitions();
+    const normalizeAmmoLookupKey = (value) => String(value ?? "")
+      .toLowerCase()
+      .replace(/[×]/g, "x")
+      .replace(/[^a-z0-9]+/g, "");
+    const ammoTypeMapByName = new Map();
+    const ammoTypeMapByKey = new Map();
+    const ammoTypeMapByCompactKey = new Map();
+    for (const def of ammoTypeDefinitions) {
+      const name = String(def?.name ?? "").trim();
+      const keyByName = normalizeLookupText(name);
+      const keyBySlug = toSlug(name);
+      const keyByCompact = normalizeAmmoLookupKey(name);
+      const unitWeightKg = Number(def?.unitWeightKg ?? 0);
+      if (keyByName) ammoTypeMapByName.set(keyByName, Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0);
+      if (keyBySlug) ammoTypeMapByKey.set(keyBySlug, Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0);
+      if (keyByCompact) ammoTypeMapByCompactKey.set(keyByCompact, Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0);
+    }
+
     const ammoMap = new Map();
     for (const weapon of weaponItems) {
       const ammoLabel = String(weapon.ammoName ?? "").trim();
@@ -1484,14 +1629,78 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const pool = (rawAmmoPools[ammoKey] && typeof rawAmmoPools[ammoKey] === "object")
           ? rawAmmoPools[ammoKey]
           : {};
+        const epCount = toNonNegativeWhole(pool.epCount, 0);
+        const purchasedCount = toNonNegativeWhole(pool.purchasedCount, Math.max(0, toNonNegativeWhole(pool.count, 0) - epCount));
+        const baseLookupName = String(pool.name ?? ammoLabel).trim() || ammoLabel;
+        const baseUnitWeightKg = ammoTypeMapByName.get(normalizeLookupText(baseLookupName))
+          ?? ammoTypeMapByKey.get(ammoKey)
+          ?? ammoTypeMapByCompactKey.get(normalizeAmmoLookupKey(baseLookupName))
+          ?? 0;
+        const weightMultiplierRaw = Number(pool.weightMultiplier ?? 1);
+        const weightMultiplier = Number.isFinite(weightMultiplierRaw) ? Math.max(0, weightMultiplierRaw) : 1;
+        const overrideRaw = Number(pool.unitWeightOverrideKg);
+        const unitWeightOverrideKg = Number.isFinite(overrideRaw) && overrideRaw > 0 ? overrideRaw : null;
+        const unitWeightKg = unitWeightOverrideKg !== null ? unitWeightOverrideKg : baseUnitWeightKg;
         ammoMap.set(ammoKey, {
           key: ammoKey,
-          name: String(pool.name ?? ammoLabel).trim() || ammoLabel,
-          count: toNonNegativeWhole(pool.count, 0)
+          name: baseLookupName,
+          epCount,
+          purchasedCount,
+          count: epCount + purchasedCount,
+          baseUnitWeightKg,
+          unitWeightKg,
+          weightMultiplier
         });
       }
     }
-    const ammoEntries = Array.from(ammoMap.values()).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+    for (const [rawAmmoKey, rawPool] of Object.entries(rawAmmoPools)) {
+      const ammoKey = toSlug(rawAmmoKey);
+      if (!ammoKey || ammoMap.has(ammoKey)) continue;
+      const pool = (rawPool && typeof rawPool === "object") ? rawPool : {};
+      const epCount = toNonNegativeWhole(pool.epCount, 0);
+      const purchasedCount = toNonNegativeWhole(pool.purchasedCount, Math.max(0, toNonNegativeWhole(pool.count, 0) - epCount));
+      const ammoName = String(pool.name ?? rawAmmoKey).trim() || rawAmmoKey;
+      const baseUnitWeightKg = ammoTypeMapByName.get(normalizeLookupText(ammoName))
+        ?? ammoTypeMapByKey.get(ammoKey)
+        ?? ammoTypeMapByCompactKey.get(normalizeAmmoLookupKey(ammoName))
+        ?? 0;
+      const weightMultiplierRaw = Number(pool.weightMultiplier ?? 1);
+      const weightMultiplier = Number.isFinite(weightMultiplierRaw) ? Math.max(0, weightMultiplierRaw) : 1;
+      const overrideRaw = Number(pool.unitWeightOverrideKg);
+      const unitWeightOverrideKg = Number.isFinite(overrideRaw) && overrideRaw > 0 ? overrideRaw : null;
+      const unitWeightKg = unitWeightOverrideKg !== null ? unitWeightOverrideKg : baseUnitWeightKg;
+      ammoMap.set(ammoKey, {
+        key: ammoKey,
+        name: ammoName,
+        epCount,
+        purchasedCount,
+        count: epCount + purchasedCount,
+        baseUnitWeightKg,
+        unitWeightKg,
+        weightMultiplier
+      });
+    }
+
+    const ammoEntries = Array.from(ammoMap.values())
+      .map((entry) => {
+        const unitWeightKg = Math.max(0, Number(entry.unitWeightKg ?? 0) || 0);
+        const weightMultiplier = Math.max(0, Number(entry.weightMultiplier ?? 1) || 1);
+        const totalWeightKg = roundWeight(unitWeightKg * Math.max(0, toNonNegativeWhole(entry.count, 0)) * weightMultiplier);
+        const effectiveWeightKg = ammoConfig.ignoreBasicAmmoWeight ? 0 : totalWeightKg;
+        return {
+          ...entry,
+          equipmentPackCount: Math.max(0, toNonNegativeWhole(entry.epCount, 0)),
+          purchasedCount: Math.max(0, toNonNegativeWhole(entry.purchasedCount, 0)),
+          totalWeightKg,
+          effectiveWeightKg,
+          totalWeightLabel: `${formatWeight(totalWeightKg)} kg`,
+          weightTooltip: unitWeightKg > 0
+            ? `Base ${formatWeight(unitWeightKg)} kg x ${Math.max(0, toNonNegativeWhole(entry.count, 0))} x mod ${weightMultiplier}`
+            : "No base ammo weight mapped yet"
+        };
+      })
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
     const equipped = {
       weaponIds: equippedWeaponIds,
@@ -1502,11 +1711,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const packSelection = await this._getEquipmentPackSelectionViewData(systemData);
 
+    const computedCarriedWeight = roundWeight([
+      ...weaponItems,
+      ...armorItems,
+      ...otherItems
+    ].reduce((sum, entry) => sum + Math.max(0, Number(entry?.effectiveWeightKg ?? 0) || 0), 0));
+    const ammoEffectiveWeight = roundWeight(ammoEntries.reduce((sum, entry) => sum + Math.max(0, Number(entry?.effectiveWeightKg ?? 0) || 0), 0));
+
+    const carriedWeight = roundWeight(computedCarriedWeight + ammoEffectiveWeight);
+    const loadPercent = carryCapacity > 0
+      ? Math.min(999, Math.round((carriedWeight / carryCapacity) * 100))
+      : 0;
+
     return {
       carriedWeight,
+      storedCarriedWeight,
       carryCapacity,
       loadPercent,
-      remainingCarry: Math.max(0, Math.round((carryCapacity - carriedWeight) * 10) / 10),
+      remainingCarry: Math.max(0, roundWeight(carryCapacity - carriedWeight)),
       gearItems: sortedGearItems,
       weaponItems,
       armorItems,
@@ -1530,6 +1752,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const selectedGroup = String(selection?.group ?? "").trim();
     const selectedDescription = String(selection?.description ?? "").trim();
     const selectedItems = normalizeStringList(Array.isArray(selection?.items) ? selection.items : []);
+    const selectedPackKey = String(selection?.packKey ?? "").trim();
 
     const soldierTypeName = String(systemData?.header?.soldierType ?? "").trim();
     if (!soldierTypeName) {
@@ -1541,7 +1764,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         selectedName,
         selectedGroup,
         selectedDescription,
-        selectedItems
+        selectedItems,
+        selectedPackKey
       };
     }
 
@@ -1551,9 +1775,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const referenceRows = await loadReferenceSoldierTypeItems();
       const matched = referenceRows.find((entry) => normalizeSoldierTypeNameForMatch(entry?.name ?? "") === normalizedName) ?? null;
       const template = normalizeSoldierTypeSystemData(matched?.system ?? {}, matched?.name ?? soldierTypeName);
+      const canonicalId = String(template?.sync?.canonicalId ?? "").trim().toLowerCase();
+      const allowedPackKeys = Boolean(template?.ruleFlags?.equipmentPackCatalog?.enabled)
+        ? normalizeStringList(Array.isArray(template?.ruleFlags?.equipmentPackCatalog?.packKeys)
+          ? template.ruleFlags.equipmentPackCatalog.packKeys
+          : [])
+          .map((entry) => String(entry ?? "").trim().toLowerCase())
+          .filter(Boolean)
+        : [];
       const groups = Array.isArray(template?.specPacks) ? template.specPacks : [];
 
-      options = groups.flatMap((group, gIdx) => {
+      const legacyOptions = groups.flatMap((group, gIdx) => {
         const groupName = String(group?.name ?? "Equipment Pack").trim() || "Equipment Pack";
         const groupDesc = String(group?.description ?? "").trim();
         const rows = Array.isArray(group?.options) ? group.options : [];
@@ -1561,27 +1793,78 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           const items = normalizeStringList(Array.isArray(row?.items) ? row.items : []);
           return {
             value: `${gIdx + 1}:${rIdx + 1}`,
+            key: "",
+            source: "soldier-type",
             group: groupName,
             name: String(row?.name ?? `Option ${rIdx + 1}`).trim() || `Option ${rIdx + 1}`,
             description: String(row?.description ?? groupDesc).trim(),
             items,
-            itemsPipe: items.join("|")
+            itemsPipe: items.join("|"),
+            grants: []
           };
         });
       });
+
+      const packDefs = await loadMythicEquipmentPackDefinitions();
+      const jsonOptions = (Array.isArray(packDefs) ? packDefs : [])
+        .filter((entry) => entry && typeof entry === "object")
+        .filter((entry) => {
+          const ids = normalizeStringList(Array.isArray(entry?.soldierTypeCanonicalIds) ? entry.soldierTypeCanonicalIds : [])
+            .map((value) => String(value ?? "").trim().toLowerCase())
+            .filter(Boolean);
+          const names = normalizeStringList(Array.isArray(entry?.soldierTypeNames) ? entry.soldierTypeNames : [])
+            .map((value) => normalizeSoldierTypeNameForMatch(value))
+            .filter(Boolean);
+          if (canonicalId && ids.includes(canonicalId)) return true;
+          return normalizedName ? names.includes(normalizedName) : false;
+        })
+        .map((entry, index) => {
+          const key = String(entry?.key ?? `pack-${index + 1}`).trim().toLowerCase();
+          if (allowedPackKeys.length > 0 && !allowedPackKeys.includes(key)) return null;
+          const grants = Array.isArray(entry?.grants) ? foundry.utils.deepClone(entry.grants) : [];
+          const items = normalizeStringList(
+            Array.isArray(entry?.displayItems)
+              ? entry.displayItems
+              : (Array.isArray(entry?.items) ? entry.items : [])
+          );
+          return {
+            value: `json:${key}`,
+            key,
+            source: "json",
+            group: String(entry?.group ?? "Equipment Pack").trim() || "Equipment Pack",
+            name: String(entry?.name ?? `Pack ${index + 1}`).trim() || `Pack ${index + 1}`,
+            description: String(entry?.description ?? "").trim(),
+            items,
+            itemsPipe: items.join("|"),
+            grants
+          };
+        })
+        .filter(Boolean);
+
+      options = [...jsonOptions, ...legacyOptions];
     } catch (_error) {
       options = [];
     }
+
+    const selectedOption = options.find((entry) => String(entry?.value ?? "").trim() === selectedValue) ?? null;
+    const resolvedSelectedName = selectedName || String(selectedOption?.name ?? "").trim();
+    const resolvedSelectedGroup = selectedGroup || String(selectedOption?.group ?? "").trim();
+    const resolvedSelectedDescription = selectedDescription || String(selectedOption?.description ?? "").trim();
+    const resolvedSelectedItems = selectedItems.length
+      ? selectedItems
+      : normalizeStringList(Array.isArray(selectedOption?.items) ? selectedOption.items : []);
+    const resolvedSelectedPackKey = selectedPackKey || String(selectedOption?.key ?? "").trim();
 
     return {
       hasSoldierType: true,
       soldierTypeName,
       options,
       selectedValue,
-      selectedName,
-      selectedGroup,
-      selectedDescription,
-      selectedItems
+      selectedName: resolvedSelectedName,
+      selectedGroup: resolvedSelectedGroup,
+      selectedDescription: resolvedSelectedDescription,
+      selectedItems: resolvedSelectedItems,
+      selectedPackKey: resolvedSelectedPackKey
     };
   }
 
@@ -3508,6 +3791,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".gear-quantity-input[data-item-id]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onChangeGearQuantity(event);
+      });
+    });
+
     root.querySelectorAll(".gear-wield-btn[data-item-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onSetWieldedWeapon(event);
@@ -3748,6 +4037,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         void this._onApplyEquipmentPackSelection(event);
       });
     });
+
+    const packChoiceButtons = Array.from(root.querySelectorAll(".equipment-pack-choice-btn[data-pack-value]"));
+    packChoiceButtons.forEach((button) => {
+      button.addEventListener("click", (event) => {
+        this._onSelectEquipmentPackOption(event);
+      });
+    });
+    if (packChoiceButtons.length && !packChoiceButtons.some((button) => button.classList.contains("is-active"))) {
+      this._onSelectEquipmentPackOption({
+        preventDefault: () => {},
+        currentTarget: packChoiceButtons[0]
+      });
+    }
 
     root.querySelectorAll(".creation-dropzone[data-kind]").forEach((zone) => {
       zone.addEventListener("dragover", (event) => {
@@ -8453,11 +8755,31 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this.actor.update({ [`system.equipment.weaponState.${itemId}.rechargeRemaining`]: next });
   }
 
+  _resolveStackedItemIdsFromEvent(event, fallbackItemId = "") {
+    const stackedRaw = String(event?.currentTarget?.dataset?.itemIds ?? "").trim();
+    const stackedIds = normalizeStringList(stackedRaw.split(",")).filter((entry) => this.actor.items.has(entry));
+    if (stackedIds.length) return stackedIds;
+    const fallback = String(fallbackItemId ?? "").trim();
+    return fallback && this.actor.items.has(fallback) ? [fallback] : [];
+  }
+
+  _pickEquipmentPackFirstItemId(itemIds = []) {
+    const ids = Array.isArray(itemIds) ? itemIds : [];
+    const epFirst = ids.find((id) => {
+      const doc = this.actor.items.get(String(id ?? ""));
+      const grant = doc?.getFlag("Halo-Mythic-Foundry-Updated", "equipmentPackGrant") ?? {};
+      return Boolean(grant?.packKey || grant?.source);
+    });
+    return String(epFirst ?? ids[0] ?? "").trim();
+  }
+
   async _onRemoveGearItem(event) {
     event.preventDefault();
     if (!this.isEditable) return;
 
-    const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    const fallbackItemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    const stackedIds = this._resolveStackedItemIdsFromEvent(event, fallbackItemId);
+    const itemId = this._pickEquipmentPackFirstItemId(stackedIds);
     if (!itemId) return;
 
     const item = this.actor.items.get(itemId);
@@ -8514,14 +8836,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
     if (!itemId) return;
+    const stackedIds = this._resolveStackedItemIdsFromEvent(event, itemId);
+    const targetIds = stackedIds.length ? stackedIds : [itemId];
     const checked = Boolean(event.currentTarget?.checked);
 
     const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
       ? this.actor.system.equipment.carriedIds
       : [];
     const nextCarried = checked
-      ? Array.from(new Set([...carriedIds, itemId]))
-      : carriedIds.filter((id) => String(id) !== itemId);
+      ? Array.from(new Set([...carriedIds, ...targetIds]))
+      : carriedIds.filter((id) => !targetIds.includes(String(id)));
 
     await this.actor.update({
       "system.equipment.carriedIds": nextCarried
@@ -8535,6 +8859,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
     const kind = String(event.currentTarget?.dataset?.kind ?? "").trim().toLowerCase();
     if (!itemId || !kind) return;
+    const stackedIds = this._resolveStackedItemIdsFromEvent(event, itemId);
+    const targetIds = stackedIds.length ? stackedIds : [itemId];
     const checked = Boolean(event.currentTarget?.checked);
 
     const item = this.actor.items.get(itemId);
@@ -8556,13 +8882,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (kind === "weapon") {
       nextWeaponIds = checked
-        ? Array.from(new Set([...weaponIds, itemId]))
-        : weaponIds.filter((id) => String(id) !== itemId);
+        ? Array.from(new Set([...weaponIds, ...targetIds]))
+        : weaponIds.filter((id) => !targetIds.includes(String(id)));
       if (!nextWeaponIds.includes(wieldedWeaponId)) {
         wieldedWeaponId = "";
       }
     } else if (kind === "armor") {
-      nextArmorId = checked ? itemId : (armorId === itemId ? "" : armorId);
+      nextArmorId = checked ? itemId : (targetIds.includes(armorId) ? "" : armorId);
     } else {
       return;
     }
@@ -8613,11 +8939,82 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this.actor.update(updateData);
   }
 
+  async _onChangeGearQuantity(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    if (!itemId) return;
+
+    const stackIds = this._resolveStackedItemIdsFromEvent(event, itemId);
+    const currentIds = stackIds.length ? stackIds : [itemId];
+    const currentCount = currentIds.length;
+    const desiredCount = Math.max(0, toNonNegativeWhole(event.currentTarget?.value, currentCount));
+    event.currentTarget.value = String(desiredCount);
+
+    if (desiredCount === currentCount) return;
+
+    if (desiredCount < currentCount) {
+      const removeCount = currentCount - desiredCount;
+      const epFirstIds = [...currentIds].sort((a, b) => {
+        const aFlag = this.actor.items.get(a)?.getFlag("Halo-Mythic-Foundry-Updated", "equipmentPackGrant") ?? {};
+        const bFlag = this.actor.items.get(b)?.getFlag("Halo-Mythic-Foundry-Updated", "equipmentPackGrant") ?? {};
+        const aIsEp = Boolean(aFlag?.packKey || aFlag?.source);
+        const bIsEp = Boolean(bFlag?.packKey || bFlag?.source);
+        if (aIsEp === bIsEp) return 0;
+        return aIsEp ? -1 : 1;
+      });
+
+      for (const removeId of epFirstIds.slice(0, removeCount)) {
+        await this._onRemoveGearItem({
+          preventDefault() {},
+          currentTarget: { dataset: { itemId: removeId, itemIds: removeId } }
+        });
+      }
+      return;
+    }
+
+    const sourceItem = this.actor.items.get(itemId);
+    if (!sourceItem || sourceItem.type !== "gear") return;
+    const addCount = desiredCount - currentCount;
+    const sourceData = sourceItem.toObject();
+    const createPayload = [];
+    for (let i = 0; i < addCount; i += 1) {
+      const clone = foundry.utils.deepClone(sourceData);
+      delete clone._id;
+      delete clone._stats;
+      clone.flags ??= {};
+      if (clone.flags["Halo-Mythic-Foundry-Updated"] && typeof clone.flags["Halo-Mythic-Foundry-Updated"] === "object") {
+        delete clone.flags["Halo-Mythic-Foundry-Updated"].equipmentPackGrant;
+      }
+      createPayload.push(clone);
+    }
+    if (!createPayload.length) return;
+
+    const createdItems = await this.actor.createEmbeddedDocuments("Item", createPayload);
+    const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+      ? this.actor.system.equipment.carriedIds
+      : [];
+    const sourceIsCarried = carriedIds.includes(itemId);
+    if (sourceIsCarried && createdItems.length) {
+      const nextCarried = Array.from(new Set([
+        ...carriedIds,
+        ...createdItems.map((doc) => String(doc?.id ?? "")).filter(Boolean)
+      ]));
+      await this.actor.update({ "system.equipment.carriedIds": nextCarried });
+    }
+  }
+
   async _onSetWieldedWeapon(event) {
     event.preventDefault();
     if (!this.isEditable) return;
 
-    const itemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    const fallbackItemId = String(event.currentTarget?.dataset?.itemId ?? "");
+    const stackIds = this._resolveStackedItemIdsFromEvent(event, fallbackItemId);
+    const equippedWeaponIds = Array.isArray(this.actor.system?.equipment?.equipped?.weaponIds)
+      ? this.actor.system.equipment.equipped.weaponIds.map((id) => String(id))
+      : [];
+    const itemId = stackIds.find((id) => equippedWeaponIds.includes(id)) ?? fallbackItemId;
     if (!itemId) return;
 
     const item = this.actor.items.get(itemId);
@@ -8628,10 +9025,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ui.notifications?.warn("Infusion Radius is always wielded for Infusion Huragok.");
       return;
     }
-
-    const equippedWeaponIds = Array.isArray(this.actor.system?.equipment?.equipped?.weaponIds)
-      ? this.actor.system.equipment.equipped.weaponIds.map((id) => String(id))
-      : [];
 
     if (!equippedWeaponIds.includes(itemId)) return;
 
@@ -9034,42 +9427,478 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
     const select = root?.querySelector("select[name='mythic.equipmentPackSelection']");
     const selectedValue = String(select?.value ?? "").trim();
-    const options = Array.from(select?.options ?? []);
-    const selectedOption = options.find((option) => String(option?.value ?? "").trim() === selectedValue) ?? null;
+    const viewData = await this._getEquipmentPackSelectionViewData(normalizeCharacterSystemData(this.actor.system ?? {}));
+    const selectedOption = Array.isArray(viewData?.options)
+      ? viewData.options.find((entry) => String(entry?.value ?? "").trim() === selectedValue)
+      : null;
+
+    const currentSelection = normalizeCharacterSystemData(this.actor.system ?? {})?.equipment?.activePackSelection ?? {};
+    const currentGrants = Array.isArray(currentSelection?.grants) ? currentSelection.grants : [];
+
+    if (selectedValue && selectedOption && (currentGrants.length > 0 || String(currentSelection?.value ?? "").trim())) {
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        window: { title: "Overwrite Active Equipment Pack?" },
+        content: "<p>Applying this Equipment Pack will remove tracked items and ammo from your current active pack before adding the new loadout.</p>",
+        yes: { label: "Overwrite Pack" },
+        no: { label: "Cancel" },
+        rejectClose: false,
+        modal: true
+      });
+      if (!confirmed) return;
+    }
 
     if (!selectedValue || !selectedOption) {
+      await this._removeTrackedEquipmentPackGrants(currentGrants);
       await this.actor.update({
         "system.equipment.activePackSelection": {
           value: "",
           group: "",
           name: "",
           description: "",
-          items: []
+          items: [],
+          packKey: "",
+          source: "",
+          grants: [],
+          appliedAt: ""
         }
       });
-      ui.notifications?.info("Cleared Equipment Pack selection.");
+      ui.notifications?.info("Cleared Equipment Pack selection and removed tracked EP grants.");
       return;
     }
 
-    const group = String(selectedOption.getAttribute("data-group") ?? "").trim();
-    const name = String(selectedOption.getAttribute("data-name") ?? "").trim();
-    const description = String(selectedOption.getAttribute("data-description") ?? "").trim();
-    const itemsRaw = String(selectedOption.getAttribute("data-items") ?? "").trim();
-    const items = itemsRaw
-      ? normalizeStringList(itemsRaw.split("|").map((entry) => String(entry ?? "").trim()))
-      : [];
+    const result = await this._applySelectedEquipmentPackOption(selectedOption);
+    if (result?.cancelled) {
+      ui.notifications?.info("Equipment Pack application cancelled.");
+      return;
+    }
+    if (result?.missingNames?.length) {
+      ui.notifications?.warn(`Equipment Pack partially applied. Missing item definitions: ${result.missingNames.join(", ")}`);
+      return;
+    }
+    ui.notifications?.info(`Applied Equipment Pack: ${String(selectedOption?.name ?? "selection")}.`);
+  }
+
+  _onSelectEquipmentPackOption(event) {
+    event.preventDefault();
+    const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+    const button = event.currentTarget;
+    const value = String(button?.dataset?.packValue ?? "").trim();
+    if (!value) return;
+
+    const select = root?.querySelector("select[name='mythic.equipmentPackSelection']");
+    if (select) {
+      select.value = value;
+    }
+
+    root?.querySelectorAll(".equipment-pack-choice-btn").forEach((entry) => {
+      entry.classList.toggle("is-active", entry === button);
+    });
+
+    const group = String(button?.dataset?.packGroup ?? "").trim();
+    const name = String(button?.dataset?.packName ?? "").trim();
+    const description = String(button?.dataset?.packDescription ?? "").trim();
+    const items = normalizeStringList(String(button?.dataset?.packItems ?? "").split("|"));
+
+    const headingEl = root?.querySelector("[data-pack-detail-heading]");
+    const descEl = root?.querySelector("[data-pack-detail-description]");
+    const itemsEl = root?.querySelector("[data-pack-detail-items]");
+
+    if (headingEl) {
+      headingEl.textContent = `${group || "Equipment Pack"} - ${name || "Option"}`;
+    }
+    if (descEl) {
+      descEl.textContent = description || "No additional description for this pack.";
+    }
+    if (itemsEl) {
+      itemsEl.innerHTML = "";
+      const rows = items.length ? items : ["No listed items for this pack yet."];
+      for (const row of rows) {
+        const li = document.createElement("li");
+        li.textContent = String(row ?? "");
+        itemsEl.appendChild(li);
+      }
+    }
+  }
+
+  async _removeGearItemsByIds(itemIds = []) {
+    const removable = Array.from(new Set((Array.isArray(itemIds) ? itemIds : [])
+      .map((entry) => String(entry ?? "").trim())
+      .filter(Boolean)));
+    if (!removable.length) return [];
+
+    const removableSet = new Set(removable);
+    const equipment = this.actor.system?.equipment ?? {};
+    const equipped = equipment?.equipped ?? {};
+    const carriedIds = Array.isArray(equipment?.carriedIds) ? equipment.carriedIds : [];
+    const weaponIds = Array.isArray(equipped?.weaponIds) ? equipped.weaponIds : [];
+    const armorId = String(equipped?.armorId ?? "");
+    const wieldedWeaponId = String(equipped?.wieldedWeaponId ?? "");
+
+    const nextCarried = carriedIds.filter((id) => !removableSet.has(String(id)));
+    const nextWeaponIds = weaponIds.filter((id) => !removableSet.has(String(id)));
+    const nextArmorId = removableSet.has(armorId) ? "" : armorId;
+    const nextWielded = removableSet.has(wieldedWeaponId) ? "" : wieldedWeaponId;
+    const nextWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    if (nextWeaponState && typeof nextWeaponState === "object") {
+      for (const id of removableSet) delete nextWeaponState[id];
+    }
+
+    const updateData = {
+      "system.equipment.carriedIds": nextCarried,
+      "system.equipment.equipped.weaponIds": nextWeaponIds,
+      "system.equipment.equipped.armorId": nextArmorId,
+      "system.equipment.equipped.wieldedWeaponId": nextWielded,
+      "system.equipment.weaponState": nextWeaponState
+    };
+
+    if (!nextArmorId) {
+      updateData["system.combat.dr.armor.head"] = 0;
+      updateData["system.combat.dr.armor.chest"] = 0;
+      updateData["system.combat.dr.armor.lArm"] = 0;
+      updateData["system.combat.dr.armor.rArm"] = 0;
+      updateData["system.combat.dr.armor.lLeg"] = 0;
+      updateData["system.combat.dr.armor.rLeg"] = 0;
+      updateData["system.combat.shields.integrity"] = 0;
+      updateData["system.combat.shields.current"] = 0;
+      updateData["system.combat.shields.rechargeDelay"] = 0;
+      updateData["system.combat.shields.rechargeRate"] = 0;
+    }
+
+    await this.actor.update(updateData);
+
+    const existingIds = removable.filter((id) => this.actor.items.has(id));
+    if (existingIds.length) {
+      await this.actor.deleteEmbeddedDocuments("Item", existingIds);
+    }
+    return existingIds;
+  }
+
+  async _removeTrackedEquipmentPackGrants(grants = []) {
+    const source = Array.isArray(grants) ? grants : [];
+    const itemIds = source
+      .filter((entry) => String(entry?.kind ?? "").trim().toLowerCase() === "item")
+      .map((entry) => String(entry?.itemId ?? "").trim())
+      .filter(Boolean);
+
+    await this._removeGearItemsByIds(itemIds);
+
+    const ammoDeltas = new Map();
+    for (const entry of source) {
+      if (String(entry?.kind ?? "").trim().toLowerCase() !== "ammo") continue;
+      const key = toSlug(String(entry?.ammoKey ?? "").trim());
+      if (!key) continue;
+      const current = ammoDeltas.get(key) ?? 0;
+      ammoDeltas.set(key, current + toNonNegativeWhole(entry?.count, 0));
+    }
+
+    if (!ammoDeltas.size) return;
+
+    const ammoPools = foundry.utils.deepClone(this.actor.system?.equipment?.ammoPools ?? {});
+    for (const [ammoKey, removeCount] of ammoDeltas.entries()) {
+      if (!ammoPools[ammoKey] || typeof ammoPools[ammoKey] !== "object") continue;
+      const currentEpCount = toNonNegativeWhole(ammoPools[ammoKey]?.epCount, 0);
+      const currentPurchasedCount = toNonNegativeWhole(ammoPools[ammoKey]?.purchasedCount, 0);
+      const nextEpCount = Math.max(0, currentEpCount - removeCount);
+      ammoPools[ammoKey].epCount = nextEpCount;
+      ammoPools[ammoKey].purchasedCount = currentPurchasedCount;
+      ammoPools[ammoKey].count = nextEpCount + currentPurchasedCount;
+    }
+    await this.actor.update({ "system.equipment.ammoPools": ammoPools });
+  }
+
+  async _promptEquipmentPackGrantChoice(grant = {}, fallbackLabel = "Choice") {
+    const rawChoices = Array.isArray(grant?.choices) ? grant.choices : [];
+    const normalizedChoices = rawChoices
+      .map((entry) => {
+        if (typeof entry === "string") {
+          const name = String(entry ?? "").trim();
+          return name ? { name, note: "", yearStart: 0, yearEnd: 0 } : null;
+        }
+        if (!entry || typeof entry !== "object") return null;
+        const name = String(entry?.name ?? "").trim();
+        if (!name) return null;
+        return {
+          name,
+          note: String(entry?.note ?? "").trim(),
+          yearStart: toNonNegativeWhole(entry?.yearStart, 0),
+          yearEnd: toNonNegativeWhole(entry?.yearEnd, 0)
+        };
+      })
+      .filter(Boolean);
+
+    if (!normalizedChoices.length) return "";
+
+    const campaignYear = toNonNegativeWhole(
+      game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CAMPAIGN_YEAR_SETTING_KEY),
+      0
+    );
+    const hasYearFilter = campaignYear > 0;
+    const filteredChoices = hasYearFilter
+      ? normalizedChoices.filter((entry) => {
+        const min = toNonNegativeWhole(entry?.yearStart, 0);
+        const max = toNonNegativeWhole(entry?.yearEnd, 0);
+        if (min > 0 && campaignYear < min) return false;
+        if (max > 0 && campaignYear > max) return false;
+        return true;
+      })
+      : normalizedChoices;
+
+    const visibleChoices = (filteredChoices.length ? filteredChoices : normalizedChoices)
+      .filter((entry, index, source) => source.findIndex((other) => {
+        const a = normalizeLookupText(other?.name ?? "");
+        const b = normalizeLookupText(entry?.name ?? "");
+        return a && b && a === b;
+      }) === index);
+    if (visibleChoices.length === 1) return String(visibleChoices[0]?.name ?? "").trim();
+
+    const label = String(grant?.label ?? fallbackLabel).trim() || fallbackLabel;
+    const promptNote = String(grant?.promptNote ?? "").trim();
+    const optionsHtml = visibleChoices
+      .map((entry) => {
+        const name = String(entry?.name ?? "").trim();
+        const note = String(entry?.note ?? "").trim();
+        const optionLabel = note ? `${name} - ${note}` : name;
+        return `<option value="${foundry.utils.escapeHTML(name)}">${foundry.utils.escapeHTML(optionLabel)}</option>`;
+      })
+      .join("");
+    const noteHtml = promptNote
+      ? `<p class="ccadv-note"><strong>Note:</strong> ${foundry.utils.escapeHTML(promptNote)}</p>`
+      : "";
+
+    return foundry.applications.api.DialogV2.prompt({
+      window: { title: `Choose ${label}` },
+      content: `
+        <div class="mythic-modal-body">
+          <p>Select ${foundry.utils.escapeHTML(label)}:</p>
+          ${noteHtml}
+          <div class="form-group">
+            <label for="mythic-ep-choice">${foundry.utils.escapeHTML(label)}</label>
+            <select id="mythic-ep-choice" name="epChoice">${optionsHtml}</select>
+          </div>
+        </div>`,
+      ok: {
+        label: "Confirm",
+        callback: (_event, _button, dialogApp) => {
+          const dialogElement = dialogApp?.element instanceof HTMLElement
+            ? dialogApp.element
+            : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+          const selectEl = dialogElement?.querySelector('[name="epChoice"]') ?? document.getElementById("mythic-ep-choice");
+          return selectEl instanceof HTMLSelectElement ? String(selectEl.value ?? "").trim() : "";
+        }
+      }
+    }).catch(() => "");
+  }
+
+  async _findGearCompendiumItemDataByName(itemName = "") {
+    const requested = String(itemName ?? "").trim();
+    if (!requested) return null;
+
+    const lower = requested.toLowerCase();
+    const compact = lower.replace(/[^a-z0-9]+/g, "");
+
+    for (const candidatePack of game.packs) {
+      if (candidatePack.documentName !== "Item") continue;
+      try {
+        const index = await candidatePack.getIndex();
+        const found = index.find((entry) => {
+          const name = String(entry?.name ?? "").trim();
+          if (!name) return false;
+          if (name === requested) return true;
+          const nameLower = name.toLowerCase();
+          if (nameLower === lower) return true;
+          return nameLower.replace(/[^a-z0-9]+/g, "") === compact;
+        });
+        if (!found?._id) continue;
+        const doc = await candidatePack.getDocument(found._id);
+        const obj = doc?.toObject?.() ?? null;
+        if (obj && obj.type === "gear") return obj;
+      } catch (_error) {
+        // Skip packs that fail to index/load.
+      }
+    }
+    return null;
+  }
+
+  async _applySelectedEquipmentPackOption(option) {
+    const grants = Array.isArray(option?.grants) ? foundry.utils.deepClone(option.grants) : [];
+    const resolvedGrants = [];
+
+    for (let index = 0; index < grants.length; index += 1) {
+      const grant = grants[index] ?? {};
+      const rawType = String(grant?.type ?? "").trim().toLowerCase();
+      const type = rawType.replace(/\s+/g, "-");
+      const isChoice = type.endsWith("choice") || type.endsWith("-choice");
+      let resolvedName = String(grant?.name ?? "").trim();
+
+      if (isChoice) {
+        resolvedName = await this._promptEquipmentPackGrantChoice(grant, `Choice ${index + 1}`);
+        if (!resolvedName) return { cancelled: true };
+      }
+
+      resolvedGrants.push({
+        ...grant,
+        type,
+        resolvedName
+      });
+    }
+
+    const previousSelection = normalizeCharacterSystemData(this.actor.system ?? {})?.equipment?.activePackSelection ?? {};
+    const previousGrants = Array.isArray(previousSelection?.grants) ? previousSelection.grants : [];
+    await this._removeTrackedEquipmentPackGrants(previousGrants);
+
+    let carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds) ? [...this.actor.system.equipment.carriedIds] : [];
+    let weaponIds = Array.isArray(this.actor.system?.equipment?.equipped?.weaponIds) ? [...this.actor.system.equipment.equipped.weaponIds] : [];
+    let armorId = String(this.actor.system?.equipment?.equipped?.armorId ?? "").trim();
+    let wieldedWeaponId = String(this.actor.system?.equipment?.equipped?.wieldedWeaponId ?? "").trim();
+    const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    const ammoPools = foundry.utils.deepClone(this.actor.system?.equipment?.ammoPools ?? {});
+
+    const grantRecords = [];
+    const missingNames = [];
+    const packKey = String(option?.key ?? "").trim();
+    const packName = String(option?.name ?? "").trim() || "Equipment Pack";
+
+    for (let grantIndex = 0; grantIndex < resolvedGrants.length; grantIndex += 1) {
+      const grant = resolvedGrants[grantIndex] ?? {};
+      const type = String(grant?.type ?? "").trim().toLowerCase();
+      const resolvedName = String(grant?.resolvedName ?? grant?.name ?? "").trim();
+      if (!resolvedName) continue;
+
+      if (!["weapon-choice", "armor-choice", "gear-choice", "gear"].includes(type)) continue;
+
+      const quantity = Math.max(1, toNonNegativeWhole(grant?.quantity, 1));
+      for (let count = 0; count < quantity; count += 1) {
+        const itemData = await this._findGearCompendiumItemDataByName(resolvedName);
+        if (!itemData) {
+          missingNames.push(resolvedName);
+          continue;
+        }
+
+        itemData.system = normalizeGearSystemData(itemData.system ?? {}, itemData.name ?? resolvedName);
+        itemData.flags ??= {};
+        itemData.flags["Halo-Mythic-Foundry-Updated"] = foundry.utils.mergeObject(
+          itemData.flags["Halo-Mythic-Foundry-Updated"] ?? {},
+          {
+            equipmentPackGrant: {
+              source: "equipment-pack",
+              packKey,
+              packName,
+              grantType: type,
+              grantIndex
+            }
+          },
+          { inplace: false, recursive: true }
+        );
+
+        const created = await this.actor.createEmbeddedDocuments("Item", [itemData]);
+        const newItem = created?.[0] ?? null;
+        if (!newItem?.id) continue;
+
+        const newId = String(newItem.id);
+        const newSystem = normalizeGearSystemData(newItem.system ?? {}, newItem.name ?? resolvedName);
+        const itemClass = String(newSystem.itemClass ?? "").trim().toLowerCase();
+
+        const addAsCarried = grant?.addAsCarried !== false;
+        if (addAsCarried) {
+          carriedIds = Array.from(new Set([...carriedIds, newId]));
+        }
+
+        if (itemClass === "weapon" && grant?.addAsReady === true) {
+          weaponIds = Array.from(new Set([...weaponIds, newId]));
+          if (!weaponState[newId] || typeof weaponState[newId] !== "object") {
+            weaponState[newId] = {
+              fireMode: "single",
+              toHitModifier: 0,
+              damageModifier: 0,
+              chargeLevel: 0,
+              magazineCurrent: 0,
+              rechargeRemaining: 0
+            };
+          }
+        }
+
+        if (itemClass === "weapon" && grant?.setAsWielded === true) {
+          wieldedWeaponId = newId;
+          weaponIds = Array.from(new Set([...weaponIds, newId]));
+          if (!weaponState[newId] || typeof weaponState[newId] !== "object") {
+            weaponState[newId] = {
+              fireMode: "single",
+              toHitModifier: 0,
+              damageModifier: 0,
+              chargeLevel: 0,
+              magazineCurrent: 0,
+              rechargeRemaining: 0
+            };
+          }
+        }
+
+        if (itemClass === "armor" && grant?.equip === true) {
+          armorId = newId;
+        }
+
+        grantRecords.push({
+          kind: "item",
+          itemId: newId,
+          name: String(newItem.name ?? resolvedName),
+          source: "equipment-pack",
+          packKey
+        });
+
+        if (itemClass === "weapon") {
+          const magCount = Math.max(0, toNonNegativeWhole(grant?.grantStandardMagazines, 0));
+          const magSize = toNonNegativeWhole(newSystem?.range?.magazine, 0);
+          const ammoName = String(newSystem?.ammoName ?? "").trim();
+          const ammoKey = toSlug(ammoName);
+          if (magCount > 0 && magSize > 0 && ammoKey) {
+            const incomingCount = magCount * magSize;
+            const currentPool = (ammoPools[ammoKey] && typeof ammoPools[ammoKey] === "object")
+              ? ammoPools[ammoKey]
+              : { name: ammoName, epCount: 0, purchasedCount: 0, count: 0 };
+            currentPool.name = String(currentPool.name ?? ammoName).trim() || ammoName;
+            const nextEpCount = toNonNegativeWhole(currentPool.epCount, 0) + incomingCount;
+            const purchasedCount = toNonNegativeWhole(currentPool.purchasedCount, 0);
+            currentPool.epCount = nextEpCount;
+            currentPool.purchasedCount = purchasedCount;
+            currentPool.count = nextEpCount + purchasedCount;
+            ammoPools[ammoKey] = currentPool;
+            grantRecords.push({
+              kind: "ammo",
+              ammoKey,
+              name: ammoName,
+              count: incomingCount,
+              sourceItemId: newId,
+              source: "equipment-pack",
+              packKey
+            });
+          }
+        }
+      }
+    }
 
     await this.actor.update({
+      "system.equipment.carriedIds": Array.from(new Set(carriedIds)),
+      "system.equipment.equipped.weaponIds": Array.from(new Set(weaponIds)),
+      "system.equipment.equipped.armorId": armorId,
+      "system.equipment.equipped.wieldedWeaponId": wieldedWeaponId,
+      "system.equipment.weaponState": weaponState,
+      "system.equipment.ammoPools": ammoPools,
       "system.equipment.activePackSelection": {
-        value: selectedValue,
-        group,
-        name,
-        description,
-        items
+        value: String(option?.value ?? "").trim(),
+        group: String(option?.group ?? "").trim(),
+        name: packName,
+        description: String(option?.description ?? "").trim(),
+        items: normalizeStringList(Array.isArray(option?.items) ? option.items : []),
+        packKey,
+        source: String(option?.source ?? "").trim(),
+        grants: grantRecords,
+        appliedAt: new Date().toISOString()
       }
     });
 
-    ui.notifications?.info(`Active Equipment Pack set to ${name || "selection"}.`);
+    return {
+      cancelled: false,
+      missingNames: Array.from(new Set(missingNames))
+    };
   }
 
   async _onSpecializationConfirm(event) {
@@ -9427,10 +10256,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const ammoName = String(event.currentTarget?.dataset?.ammoName ?? "").trim();
     const value = toNonNegativeWhole(event.currentTarget?.value ?? 0, 0);
+    const currentPool = (this.actor.system?.equipment?.ammoPools?.[ammoKey] && typeof this.actor.system.equipment.ammoPools[ammoKey] === "object")
+      ? this.actor.system.equipment.ammoPools[ammoKey]
+      : {};
+    const epCount = toNonNegativeWhole(currentPool?.epCount, 0);
+    const purchasedCount = Math.max(0, value - epCount);
 
     await this.actor.update({
       [`system.equipment.ammoPools.${ammoKey}.name`]: ammoName,
-      [`system.equipment.ammoPools.${ammoKey}.count`]: value
+      [`system.equipment.ammoPools.${ammoKey}.epCount`]: epCount,
+      [`system.equipment.ammoPools.${ammoKey}.purchasedCount`]: purchasedCount,
+      [`system.equipment.ammoPools.${ammoKey}.count`]: epCount + purchasedCount
     });
   }
 
@@ -9461,11 +10297,22 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     let loadedRounds = roundsNeeded;
     let nextReserveCount = null;
+    let nextReserveEpCount = null;
+    let nextReservePurchasedCount = null;
 
     if (!ammoConfig.ignoreBasicAmmoCounts && roundsNeeded > 0) {
-      const reserveCount = toNonNegativeWhole(this.actor.system?.equipment?.ammoPools?.[ammoKey]?.count, 0);
+      const pool = (this.actor.system?.equipment?.ammoPools?.[ammoKey] && typeof this.actor.system.equipment.ammoPools[ammoKey] === "object")
+        ? this.actor.system.equipment.ammoPools[ammoKey]
+        : {};
+      const reserveEpCount = toNonNegativeWhole(pool?.epCount, 0);
+      const reservePurchasedCount = toNonNegativeWhole(pool?.purchasedCount, 0);
+      const reserveCount = reserveEpCount + reservePurchasedCount;
       loadedRounds = Math.min(reserveCount, roundsNeeded);
       nextReserveCount = reserveCount - loadedRounds;
+      const consumedFromEp = Math.min(reserveEpCount, loadedRounds);
+      const consumedFromPurchased = Math.max(0, loadedRounds - consumedFromEp);
+      nextReserveEpCount = Math.max(0, reserveEpCount - consumedFromEp);
+      nextReservePurchasedCount = Math.max(0, reservePurchasedCount - consumedFromPurchased);
       if (loadedRounds <= 0) {
         ui.notifications.warn(`No ${ammoName || "matching"} reserve ammo available to reload ${item.name}.`);
         return;
@@ -9479,6 +10326,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (nextReserveCount !== null && ammoKey) {
       updateData[`system.equipment.ammoPools.${ammoKey}.name`] = ammoName || "Ammo";
       updateData[`system.equipment.ammoPools.${ammoKey}.count`] = nextReserveCount;
+      updateData[`system.equipment.ammoPools.${ammoKey}.epCount`] = Math.max(0, toNonNegativeWhole(nextReserveEpCount, 0));
+      updateData[`system.equipment.ammoPools.${ammoKey}.purchasedCount`] = Math.max(0, toNonNegativeWhole(nextReservePurchasedCount, 0));
     }
 
     await this.actor.update(updateData);

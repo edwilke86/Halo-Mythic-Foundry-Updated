@@ -237,6 +237,29 @@ export function normalizeCharacterSystemData(systemData) {
   merged.equipment.activePackSelection.items = normalizeStringList(
     Array.isArray(merged.equipment?.activePackSelection?.items) ? merged.equipment.activePackSelection.items : []
   );
+  merged.equipment.activePackSelection.packKey = String(merged.equipment?.activePackSelection?.packKey ?? "").trim();
+  merged.equipment.activePackSelection.source = String(merged.equipment?.activePackSelection?.source ?? "").trim();
+  merged.equipment.activePackSelection.appliedAt = String(merged.equipment?.activePackSelection?.appliedAt ?? "").trim();
+  const rawPackGrants = Array.isArray(merged.equipment?.activePackSelection?.grants)
+    ? merged.equipment.activePackSelection.grants
+    : [];
+  merged.equipment.activePackSelection.grants = rawPackGrants
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const kind = String(entry.kind ?? "").trim().toLowerCase();
+      if (!kind) return null;
+      return {
+        kind,
+        itemId: String(entry.itemId ?? "").trim(),
+        ammoKey: String(entry.ammoKey ?? "").trim(),
+        name: String(entry.name ?? "").trim(),
+        count: toNonNegativeWhole(entry.count, 0),
+        sourceItemId: String(entry.sourceItemId ?? "").trim(),
+        source: String(entry.source ?? "").trim(),
+        packKey: String(entry.packKey ?? "").trim()
+      };
+    })
+    .filter(Boolean);
 
   const normalizeIdArray = (value) => {
     const source = Array.isArray(value) ? value : [];
@@ -255,9 +278,31 @@ export function normalizeCharacterSystemData(systemData) {
     const key = toSlug(rawKey);
     if (!key) continue;
     const pool = (rawPool && typeof rawPool === "object") ? rawPool : {};
+    const legacyCount = toNonNegativeWhole(pool.count, 0);
+    const hasEpCount = Object.prototype.hasOwnProperty.call(pool, "epCount");
+    const hasPurchasedCount = Object.prototype.hasOwnProperty.call(pool, "purchasedCount");
+    const epCount = toNonNegativeWhole(pool.epCount, 0);
+    const purchasedCount = hasPurchasedCount
+      ? toNonNegativeWhole(pool.purchasedCount, 0)
+      : Math.max(0, legacyCount - epCount);
+    const rawWeightMultiplier = Number(pool.weightMultiplier ?? 1);
+    const weightMultiplier = Number.isFinite(rawWeightMultiplier)
+      ? Math.max(0, rawWeightMultiplier)
+      : 1;
+    const rawUnitWeightOverrideKg = Number(pool.unitWeightOverrideKg);
+    const unitWeightOverrideKg = Number.isFinite(rawUnitWeightOverrideKg) && rawUnitWeightOverrideKg > 0
+      ? rawUnitWeightOverrideKg
+      : null;
     normalizedAmmoPools[key] = {
       name: String(pool.name ?? "").trim(),
-      count: toNonNegativeWhole(pool.count, 0)
+      epCount,
+      purchasedCount,
+      weightMultiplier,
+      unitWeightOverrideKg,
+      // Keep legacy total for backward compatibility with existing consumers.
+      count: hasEpCount || hasPurchasedCount
+        ? Math.max(0, epCount + purchasedCount)
+        : legacyCount
     };
   }
   merged.equipment.ammoPools = normalizedAmmoPools;
@@ -1699,6 +1744,7 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     attachments: "",
     description: "",
     // Armor-specific fields (ignored for weapons)
+    armorWeightProfile: "standard",
     modifiers: "",
     protection: {
       head: 0,
@@ -1776,6 +1822,24 @@ export function normalizeGearSystemData(systemData, itemName = "") {
 
   // Armor variants are now their own item type and are no longer stored inline on armor.
   if (Object.hasOwn(merged, "armorVariant")) delete merged.armorVariant;
+  const armorProfileRaw = String(merged.armorWeightProfile ?? "").trim().toLowerCase();
+  const armorProfileHint = [
+    itemName,
+    merged.weaponType,
+    merged.category,
+    merged.specialRules,
+    merged.modifiers,
+    merged.description
+  ].map((entry) => String(entry ?? "").trim().toLowerCase()).join(" ");
+  if (["standard", "semi-powered", "powered"].includes(armorProfileRaw)) {
+    merged.armorWeightProfile = armorProfileRaw;
+  } else if (/(semi\s*-?\s*powered|semi\s+power)/u.test(armorProfileHint)) {
+    merged.armorWeightProfile = "semi-powered";
+  } else if (/(^|\W)powered(\W|$)/u.test(armorProfileHint)) {
+    merged.armorWeightProfile = "powered";
+  } else {
+    merged.armorWeightProfile = "standard";
+  }
   merged.modifiers = String(merged.modifiers ?? "").trim();
   merged.protection.head = toNonNegativeWhole(merged.protection?.head, 0);
   merged.protection.arms = toNonNegativeWhole(merged.protection?.arms, 0);

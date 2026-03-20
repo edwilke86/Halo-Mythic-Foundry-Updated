@@ -400,6 +400,8 @@ export const MYTHIC_REFERENCE_MELEE_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-U
 export const MYTHIC_REFERENCE_ARMOR_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Armor.csv";
 export const MYTHIC_REFERENCE_EQUIPMENT_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - CR costing items.csv";
 export const MYTHIC_REFERENCE_SOLDIER_TYPES_JSON = "systems/Halo-Mythic-Foundry-Updated/data/soldier-types.json";
+export const MYTHIC_EQUIPMENT_PACK_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/equipment-packs-human.json";
+export const MYTHIC_AMMO_TYPE_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/ammo-types.json";
 
 // --- Token Ruler Colors ---
 export const MYTHIC_TOKEN_RULER_COLORS = Object.freeze({

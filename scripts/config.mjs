@@ -240,15 +240,15 @@ export const MYTHIC_GOOD_FORTUNE_MODE_SETTING_KEY = "goodFortuneMode";
 
 // --- Mjolnir Armor & Kig-Yar Shields ---
 export const MYTHIC_MJOLNIR_ARMOR_LIST = Object.freeze([
-  { name: "SPI Mark I",      yearStart: 2531, yearEnd: 2537 },
-  { name: "SPI Mark II",     yearStart: 2537, yearEnd: null },
-  { name: "SPI Headhunter",  yearStart: 2537, yearEnd: null },
-  { name: "Black Body Suit", yearStart: 2500, yearEnd: 2525 },
-  { name: "Mjolnir Mark IV", yearStart: 2525, yearEnd: 2551 },
-  { name: "Mjolnir Mark V",  yearStart: 2551, yearEnd: 2552 },
-  { name: "Mjolnir Mark VI", yearStart: 2552, yearEnd: 2553 },
-  { name: "GEN II Mjolnir",  yearStart: 2553, yearEnd: 2559 },
-  { name: "GEN III Mjolnir", yearStart: 2559, yearEnd: null }
+  { name: "Mark I Semi-Powered Infiltration Armor", yearStart: 2531, yearEnd: 2537 },
+  { name: "Mark II Semi-Powered Infiltration Armor", yearStart: 2537, yearEnd: null },
+  { name: "Headhunter Variant Mark II Semi-Powered Infiltration Armor", yearStart: 2537, yearEnd: null },
+  { name: "ODST Black Body Suit", yearStart: 2500, yearEnd: 2525 },
+  { name: "Mjolnir Mark IV Powered Assault Armor", yearStart: 2525, yearEnd: 2551 },
+  { name: "Mjolnir Mark V Powered Assault Armor",  yearStart: 2551, yearEnd: 2552 },
+  { name: "Mjolnir Mark VI Powered Assault Armor", yearStart: 2552, yearEnd: 2553 },
+  { name: "Mjolnir Gen II Mark I Powered Assault Armor",  yearStart: 2553, yearEnd: 2559 },
+  { name: "Mjolnir Gen III Mark I Powered Assault Armor", yearStart: 2559, yearEnd: null }
 ]);
 export const MYTHIC_KIG_YAR_POINT_DEFENSE_SHIELDS = Object.freeze([
   "Mistrom Pattern Point Defense Gauntlet",

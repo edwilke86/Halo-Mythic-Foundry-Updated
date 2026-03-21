@@ -365,6 +365,65 @@ export function normalizeCharacterSystemData(systemData) {
   for (const key of ["unlockedFeatures", "spendLog"]) {
     merged.advancements[key] = String(merged.advancements?.[key] ?? "");
   }
+  merged.advancements.purchases = (merged.advancements?.purchases && typeof merged.advancements.purchases === "object")
+    ? merged.advancements.purchases
+    : {};
+  merged.advancements.purchases.woundUpgrades = toNonNegativeWhole(merged.advancements.purchases?.woundUpgrades, 0);
+
+  const rawQueue = (merged.advancements?.queue && typeof merged.advancements.queue === "object")
+    ? merged.advancements.queue
+    : {};
+  const coerceRank = (value) => {
+    const numeric = Number(value ?? 0);
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.max(0, Math.min(3, Math.floor(numeric)));
+  };
+  const coerceBoolMap = (source) => {
+    const obj = (source && typeof source === "object" && !Array.isArray(source)) ? source : {};
+    return Object.fromEntries(Object.entries(obj)
+      .map(([key, value]) => [String(key ?? "").trim(), Boolean(value)])
+      .filter(([key]) => key));
+  };
+  const coerceNumberMap = (source, clampMin = 0) => {
+    const obj = (source && typeof source === "object" && !Array.isArray(source)) ? source : {};
+    return Object.fromEntries(Object.entries(obj)
+      .map(([key, value]) => [String(key ?? "").trim(), Number(value ?? 0)])
+      .filter(([key, value]) => key && Number.isFinite(value))
+      .map(([key, value]) => [key, Math.max(clampMin, Math.trunc(value))]));
+  };
+  const coerceStringQueueEntries = (source) => {
+    const list = Array.isArray(source) ? source : [];
+    return list
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return null;
+        const name = String(entry.name ?? "").trim();
+        if (!name) return null;
+        return {
+          uuid: String(entry.uuid ?? "").trim(),
+          name,
+          cost: toNonNegativeWhole(entry.cost, 0),
+          tier: String(entry.tier ?? "").trim().toLowerCase(),
+          img: String(entry.img ?? "").trim()
+        };
+      })
+      .filter(Boolean);
+  };
+
+  merged.advancements.queue = {
+    abilities: coerceStringQueueEntries(rawQueue.abilities),
+    educations: coerceStringQueueEntries(rawQueue.educations),
+    skillRanks: Object.fromEntries(Object.entries((rawQueue.skillRanks && typeof rawQueue.skillRanks === "object") ? rawQueue.skillRanks : {})
+      .map(([key, value]) => [String(key ?? "").trim(), coerceRank(value)])
+      .filter(([key]) => key)),
+    weaponTraining: coerceBoolMap(rawQueue.weaponTraining),
+    factionTraining: coerceBoolMap(rawQueue.factionTraining),
+    luckPoints: toNonNegativeWhole(rawQueue.luckPoints, 0),
+    woundUpgrades: toNonNegativeWhole(rawQueue.woundUpgrades, 0),
+    characteristicAdvancements: coerceNumberMap(rawQueue.characteristicAdvancements, 0),
+    characteristicOther: coerceNumberMap(rawQueue.characteristicOther, 0),
+    languages: normalizeStringList(Array.isArray(rawQueue.languages) ? rawQueue.languages : [])
+  };
+
   const rawOutliers = (merged.advancements?.outliers && typeof merged.advancements.outliers === "object")
     ? merged.advancements.outliers
     : {};
@@ -430,6 +489,7 @@ export function normalizeCharacterSystemData(systemData) {
   }
 
   merged.biography ??= {};
+  merged.biography.languages = normalizeStringList(Array.isArray(merged.biography?.languages) ? merged.biography.languages : []);
   merged.biography.physical ??= {};
 
   const rawHeightCm = Number(merged.biography.physical.heightCm);

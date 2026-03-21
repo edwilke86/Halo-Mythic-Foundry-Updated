@@ -123,6 +123,31 @@ function _formatModifier(m) {
   return `${sign}${m.value} ${keyLabel}`;
 }
 
+const MYTHIC_ADVANCEMENT_LUCK_XP_COST = 1500;
+const MYTHIC_ADVANCEMENT_LANGUAGE_XP_COST = 150;
+const MYTHIC_ADVANCEMENT_SKILL_STEP_COSTS = Object.freeze({
+  basic: Object.freeze([0, 100, 200, 300]),
+  advanced: Object.freeze([0, 150, 300, 450])
+});
+const MYTHIC_ADVANCEMENT_WEAPON_TRAINING_COSTS = Object.freeze({
+  basic: 150,
+  infantry: 200,
+  heavy: 200,
+  advanced: 300,
+  launcher: 150,
+  longRange: 150,
+  ordnance: 300,
+  cannon: 250,
+  melee: 150
+});
+const MYTHIC_ADVANCEMENT_WOUND_TIERS = Object.freeze([
+  { key: "iron", label: "Iron", xpCost: 500, wounds: 10 },
+  { key: "copper", label: "Copper", xpCost: 750, wounds: 10 },
+  { key: "bronze", label: "Bronze", xpCost: 1250, wounds: 10 },
+  { key: "steel", label: "Steel", xpCost: 2000, wounds: 10 },
+  { key: "titanium", label: "Titanium", xpCost: 3000, wounds: 10 }
+]);
+
 // ─── Class ────────────────────────────────────────────────────────────────────
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -304,25 +329,38 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _getCharacterCreationAdvancementViewData() {
-    const raw = String(this.actor.getFlag("Halo-Mythic-Foundry-Updated", "ccAdvSubtab") ?? "creation").trim().toLowerCase();
-    let active = raw === "advancement" ? "advancement" : "creation";
+    const stored = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "ccAdvSubtab");
+    const raw = String(stored ?? "").trim().toLowerCase();
+    const isCharacterCreationComplete = Boolean(this.actor.system?.characterCreation?.isComplete ?? false);
+    const hasStoredSubtab = raw === "creation" || raw === "advancement";
+    let active = hasStoredSubtab
+      ? raw
+      : (isCharacterCreationComplete ? "advancement" : "creation");
+    
     try {
       if (game.user && !game.user.isGM) {
         const opened = game.user.getFlag("Halo-Mythic-Foundry-Updated", "openedActors") ?? {};
         const hasOpened = Boolean(opened?.[String(this.actor?.id ?? "")] );
-        if (!hasOpened) {
+        if (!hasOpened && !isCharacterCreationComplete) {
           active = "creation";
         }
       }
     } catch (_err) {
       /* ignore flag read errors and fallback to actor-level flag */
     }
+    
+    const userIsGM = Boolean(game.user?.isGM);
     const canEditStartingXp = canCurrentUserEditStartingXp();
+    const isCreationLocked = isCharacterCreationComplete && !userIsGM;
+    
     return {
       active,
       isCreationActive: active === "creation",
       isAdvancementActive: active === "advancement",
-      canEditStartingXp
+      canEditStartingXp,
+      isCharacterCreationComplete,
+      userIsGM,
+      isCreationLocked
     };
   }
 
@@ -582,6 +620,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _getAdvancementViewData(systemData, creationPathOutcome = null) {
     const earned = toNonNegativeWhole(systemData?.advancements?.xpEarned, 0);
     const spent = toNonNegativeWhole(systemData?.advancements?.xpSpent, 0);
+    const queueView = await this._getAdvancementQueueViewData(systemData, { earned, spent });
     const creationPath = normalizeCharacterSystemData({ advancements: systemData?.advancements ?? {} }).advancements.creationPath;
     const resolvedOutcome = (creationPathOutcome && typeof creationPathOutcome === "object")
       ? creationPathOutcome
@@ -678,6 +717,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       earned,
       spent,
       available: Math.max(0, earned - spent),
+      xpSummary: queueView.xpSummary,
+      queue: queueView,
       creationPath: {
         selectedUpbringingId: creationPath.upbringingItemId,
         selectedEnvironmentId: creationPath.environmentItemId,
@@ -707,6 +748,416 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         }
       }
     };
+  }
+
+  _skillTierToRank(tier) {
+    const marker = String(tier ?? "").trim().toLowerCase();
+    if (marker === "plus20") return 3;
+    if (marker === "plus10") return 2;
+    if (marker === "trained") return 1;
+    return 0;
+  }
+
+  _skillRankToTier(rank) {
+    const value = Math.max(0, Math.min(3, Math.floor(Number(rank ?? 0))));
+    if (value >= 3) return "plus20";
+    if (value === 2) return "plus10";
+    if (value === 1) return "trained";
+    return "untrained";
+  }
+
+  _getDefaultAdvancementQueueState() {
+    return {
+      abilities: [],
+      educations: [],
+      skillRanks: {},
+      weaponTraining: {},
+      factionTraining: {},
+      luckPoints: 0,
+      woundUpgrades: 0,
+      characteristicAdvancements: {},
+      characteristicOther: {},
+      languages: []
+    };
+  }
+
+  _normalizeAdvancementQueueState(queueSource) {
+    const queue = (queueSource && typeof queueSource === "object")
+      ? foundry.utils.deepClone(queueSource)
+      : this._getDefaultAdvancementQueueState();
+    const base = this._getDefaultAdvancementQueueState();
+    const merged = foundry.utils.mergeObject(base, queue, {
+      inplace: false,
+      insertKeys: true,
+      insertValues: true,
+      overwrite: true,
+      recursive: true
+    });
+
+    const normalizeQueueEntries = (value) => {
+      const list = Array.isArray(value) ? value : [];
+      return list.map((entry) => ({
+        uuid: String(entry?.uuid ?? "").trim(),
+        name: String(entry?.name ?? "").trim(),
+        cost: toNonNegativeWhole(entry?.cost, 0),
+        tier: String(entry?.tier ?? "").trim().toLowerCase(),
+        img: String(entry?.img ?? "").trim()
+      })).filter((entry) => entry.name);
+    };
+
+    const normalizeBoolMap = (value) => {
+      const src = (value && typeof value === "object" && !Array.isArray(value)) ? value : {};
+      return Object.fromEntries(Object.entries(src)
+        .map(([key, entryValue]) => [String(key ?? "").trim(), Boolean(entryValue)])
+        .filter(([key]) => key));
+    };
+
+    const normalizeNumberMap = (value, max = null) => {
+      const src = (value && typeof value === "object" && !Array.isArray(value)) ? value : {};
+      return Object.fromEntries(Object.entries(src)
+        .map(([key, entryValue]) => [String(key ?? "").trim(), Number(entryValue ?? 0)])
+        .filter(([key, numeric]) => key && Number.isFinite(numeric))
+        .map(([key, numeric]) => {
+          const floor = Math.max(0, Math.floor(numeric));
+          const clamped = Number.isFinite(max) ? Math.min(max, floor) : floor;
+          return [key, clamped];
+        }));
+    };
+
+    merged.abilities = normalizeQueueEntries(merged.abilities);
+    merged.educations = normalizeQueueEntries(merged.educations);
+    merged.skillRanks = normalizeNumberMap(merged.skillRanks, 3);
+    merged.weaponTraining = normalizeBoolMap(merged.weaponTraining);
+    merged.factionTraining = normalizeBoolMap(merged.factionTraining);
+    merged.luckPoints = toNonNegativeWhole(merged.luckPoints, 0);
+    merged.woundUpgrades = toNonNegativeWhole(merged.woundUpgrades, 0);
+    merged.characteristicAdvancements = normalizeNumberMap(merged.characteristicAdvancements);
+    merged.characteristicOther = normalizeNumberMap(merged.characteristicOther);
+    merged.languages = normalizeStringList(Array.isArray(merged.languages) ? merged.languages : []);
+    return merged;
+  }
+
+  _getAdvancementTierCumulativeXp(value) {
+    const numeric = toNonNegativeWhole(value, 0);
+    const exact = MYTHIC_ADVANCEMENT_TIERS.find((entry) => Number(entry?.value ?? -1) === numeric);
+    if (exact) return toNonNegativeWhole(exact?.xpCumulative, 0);
+    const sorted = [...MYTHIC_ADVANCEMENT_TIERS].sort((a, b) => Number(a.value ?? 0) - Number(b.value ?? 0));
+    let best = sorted[0] ?? { xpCumulative: 0 };
+    for (const entry of sorted) {
+      const tierValue = Number(entry?.value ?? 0);
+      if (tierValue <= numeric) best = entry;
+    }
+    return toNonNegativeWhole(best?.xpCumulative, 0);
+  }
+
+  _getSkillStepCost(category, targetRank) {
+    const bucket = String(category ?? "").trim().toLowerCase() === "advanced" ? "advanced" : "basic";
+    const table = MYTHIC_ADVANCEMENT_SKILL_STEP_COSTS[bucket] ?? MYTHIC_ADVANCEMENT_SKILL_STEP_COSTS.basic;
+    const rank = Math.max(0, Math.min(3, Math.floor(Number(targetRank ?? 0))));
+    return toNonNegativeWhole(table?.[rank] ?? 0, 0);
+  }
+
+  _buildAdvancementSkillRows(systemData, queue) {
+    const normalizedSkills = normalizeSkillsData(systemData?.skills ?? {});
+    const rows = [];
+
+    const pushEntry = (entry, label, path, category = "basic") => {
+      const officialRank = this._skillTierToRank(entry?.tier ?? "untrained");
+      const queuedRaw = Number(queue?.skillRanks?.[path]);
+      const queuedRank = Number.isFinite(queuedRaw)
+        ? Math.max(officialRank, Math.min(3, Math.floor(queuedRaw)))
+        : officialRank;
+      let queuedCost = 0;
+      for (let rank = officialRank + 1; rank <= queuedRank; rank += 1) {
+        queuedCost += this._getSkillStepCost(category, rank);
+      }
+      const statusLabel = (rank) => {
+        if (rank >= 3) return "+20";
+        if (rank === 2) return "+10";
+        if (rank === 1) return "T";
+        return "Untrained";
+      };
+      rows.push({
+        key: path,
+        label,
+        category,
+        officialRank,
+        queuedRank,
+        officialLabel: statusLabel(officialRank),
+        queuedLabel: statusLabel(queuedRank),
+        changed: queuedRank !== officialRank,
+        queuedCost
+      });
+    };
+
+    for (const definition of MYTHIC_BASE_SKILL_DEFINITIONS) {
+      const baseEntry = normalizedSkills?.base?.[definition.key];
+      if (!baseEntry) continue;
+      pushEntry(baseEntry, definition.label, `base.${definition.key}`, baseEntry.category);
+      const variants = baseEntry.variants && typeof baseEntry.variants === "object" ? baseEntry.variants : {};
+      const variantDefs = Array.isArray(definition.variants) ? definition.variants : [];
+      for (const variantDef of variantDefs) {
+        const variantEntry = variants?.[variantDef.key];
+        if (!variantEntry) continue;
+        pushEntry(
+          variantEntry,
+          `${definition.label} (${variantDef.label})`,
+          `base.${definition.key}.variants.${variantDef.key}`,
+          baseEntry.category
+        );
+      }
+    }
+
+    const customSkills = Array.isArray(normalizedSkills?.custom) ? normalizedSkills.custom : [];
+    customSkills.forEach((entry, index) => {
+      pushEntry(entry, String(entry?.label ?? `Custom ${index + 1}`), `custom.${index}`, entry?.category ?? "basic");
+    });
+
+    rows.sort((a, b) => a.label.localeCompare(b.label));
+    return rows;
+  }
+
+  async _getAdvancementQueueViewData(systemData, xpData = null) {
+    const normalizedSystem = normalizeCharacterSystemData(systemData ?? this.actor.system ?? {});
+    const queue = this._normalizeAdvancementQueueState(normalizedSystem?.advancements?.queue ?? {});
+    const totalXp = toNonNegativeWhole(xpData?.earned ?? normalizedSystem?.advancements?.xpEarned, 0);
+    const spentXp = toNonNegativeWhole(xpData?.spent ?? normalizedSystem?.advancements?.xpSpent, 0);
+    const freeXp = Math.max(0, totalXp - spentXp);
+
+    const ownedAbilityNames = new Set(this.actor.items
+      .filter((item) => item.type === "ability")
+      .map((item) => normalizeLookupText(item.name ?? ""))
+      .filter(Boolean));
+    const queuedAbilities = [];
+    const queuedAbilitySeen = new Set();
+    for (const entry of queue.abilities) {
+      const normalizedName = normalizeLookupText(entry?.name ?? "");
+      if (!normalizedName) continue;
+      if (ownedAbilityNames.has(normalizedName)) continue;
+      if (queuedAbilitySeen.has(normalizedName)) continue;
+      queuedAbilitySeen.add(normalizedName);
+      queuedAbilities.push({
+        uuid: String(entry?.uuid ?? "").trim(),
+        name: String(entry?.name ?? "").trim(),
+        img: String(entry?.img ?? "").trim() || MYTHIC_ABILITY_DEFAULT_ICON,
+        cost: toNonNegativeWhole(entry?.cost, 0)
+      });
+    }
+    const abilityQueuedXp = queuedAbilities.reduce((sum, entry) => sum + toNonNegativeWhole(entry.cost, 0), 0);
+
+    const ownedEducationNames = new Set(this.actor.items
+      .filter((item) => item.type === "education")
+      .map((item) => normalizeLookupText(item.name ?? ""))
+      .filter(Boolean));
+    const queuedEducations = [];
+    const queuedEducationSeen = new Set();
+    for (const entry of queue.educations) {
+      const normalizedName = normalizeLookupText(entry?.name ?? "");
+      if (!normalizedName) continue;
+      if (ownedEducationNames.has(normalizedName)) continue;
+      if (queuedEducationSeen.has(normalizedName)) continue;
+      queuedEducationSeen.add(normalizedName);
+      const tier = String(entry?.tier ?? "plus5").trim().toLowerCase() === "plus10" ? "plus10" : "plus5";
+      queuedEducations.push({
+        uuid: String(entry?.uuid ?? "").trim(),
+        name: String(entry?.name ?? "").trim(),
+        tier,
+        isPlus5: tier === "plus5",
+        isPlus10: tier === "plus10",
+        img: String(entry?.img ?? "").trim() || MYTHIC_EDUCATION_DEFAULT_ICON,
+        cost: toNonNegativeWhole(entry?.cost, 0)
+      });
+    }
+    const educationQueuedXp = queuedEducations.reduce((sum, entry) => sum + toNonNegativeWhole(entry.cost, 0), 0);
+
+    const skillRows = this._buildAdvancementSkillRows(normalizedSystem, queue);
+    const skillQueuedXp = skillRows.reduce((sum, row) => sum + toNonNegativeWhole(row.queuedCost, 0), 0);
+
+    const lockData = await this._getAutoTrainingLockData(normalizedSystem);
+    const purchasedTrainingLocks = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
+    const purchasedWeaponLocks = normalizeStringList(Array.isArray(purchasedTrainingLocks?.weaponKeys) ? purchasedTrainingLocks.weaponKeys : []);
+    const purchasedFactionLocks = normalizeStringList(Array.isArray(purchasedTrainingLocks?.factionKeys) ? purchasedTrainingLocks.factionKeys : []);
+    const lockedWeaponKeys = new Set([...lockData.weaponKeys, ...purchasedWeaponLocks]);
+    const lockedFactionKeys = new Set([...lockData.factionKeys, ...purchasedFactionLocks]);
+
+    const normalizedTraining = normalizeTrainingData(normalizedSystem?.training ?? {});
+    const weaponTrainingRows = MYTHIC_WEAPON_TRAINING_DEFINITIONS.map((definition) => {
+      const baseline = lockedWeaponKeys.has(definition.key) || Boolean(normalizedTraining?.weapon?.[definition.key]);
+      const queued = baseline ? true : Boolean(queue?.weaponTraining?.[definition.key]);
+      return {
+        key: definition.key,
+        label: definition.label,
+        baseline,
+        queued,
+        changed: queued !== baseline,
+        queuedCost: (!baseline && queued) ? toNonNegativeWhole(MYTHIC_ADVANCEMENT_WEAPON_TRAINING_COSTS[definition.key] ?? definition.xpCost ?? 0, 0) : 0
+      };
+    });
+    const factionTrainingRows = MYTHIC_FACTION_TRAINING_DEFINITIONS.map((definition) => {
+      const baseline = lockedFactionKeys.has(definition.key) || Boolean(normalizedTraining?.faction?.[definition.key]);
+      const queued = baseline ? true : Boolean(queue?.factionTraining?.[definition.key]);
+      return {
+        key: definition.key,
+        label: definition.label,
+        baseline,
+        queued,
+        changed: queued !== baseline,
+        queuedCost: (!baseline && queued) ? toNonNegativeWhole(definition.xpCost ?? 300, 0) : 0
+      };
+    });
+    const trainingQueuedXp = [...weaponTrainingRows, ...factionTrainingRows]
+      .reduce((sum, row) => sum + toNonNegativeWhole(row.queuedCost, 0), 0);
+
+    const officialLuckMax = toNonNegativeWhole(normalizedSystem?.combat?.luck?.max, 0);
+    const maxLuckQueue = Math.max(0, 13 - officialLuckMax);
+    const queuedLuckPoints = Math.max(0, Math.min(maxLuckQueue, toNonNegativeWhole(queue.luckPoints, 0)));
+    const luckQueuedXp = queuedLuckPoints * MYTHIC_ADVANCEMENT_LUCK_XP_COST;
+
+    const officialWoundPurchasesFromFlag = toNonNegativeWhole(normalizedSystem?.advancements?.purchases?.woundUpgrades, 0);
+    const officialWoundPurchasesFromMisc = Math.max(0, Math.floor(Number(normalizedSystem?.mythic?.miscWoundsModifier ?? 0) / 10));
+    const officialWoundPurchases = Math.max(officialWoundPurchasesFromFlag, officialWoundPurchasesFromMisc);
+    const maxWoundQueue = Math.max(0, MYTHIC_ADVANCEMENT_WOUND_TIERS.length - officialWoundPurchases);
+    const queuedWoundUpgrades = Math.max(0, Math.min(maxWoundQueue, toNonNegativeWhole(queue.woundUpgrades, 0)));
+    const queuedWoundTiers = MYTHIC_ADVANCEMENT_WOUND_TIERS.slice(officialWoundPurchases, officialWoundPurchases + queuedWoundUpgrades);
+    const woundQueuedXp = queuedWoundTiers.reduce((sum, tier) => sum + toNonNegativeWhole(tier?.xpCost, 0), 0);
+
+    const officialAdvancements = MYTHIC_CHARACTERISTIC_KEYS.reduce((acc, key) => {
+      acc[key] = toNonNegativeWhole(normalizedSystem?.charBuilder?.advancements?.[key], 0);
+      return acc;
+    }, {});
+    const queuedAdvancements = MYTHIC_CHARACTERISTIC_KEYS.reduce((acc, key) => {
+      const queuedRaw = Number(queue?.characteristicAdvancements?.[key]);
+      const queuedValue = Number.isFinite(queuedRaw)
+        ? Math.max(officialAdvancements[key], Math.floor(queuedRaw))
+        : officialAdvancements[key];
+      acc[key] = queuedValue;
+      return acc;
+    }, {});
+    const characteristicOtherQueue = MYTHIC_CHARACTERISTIC_KEYS.reduce((acc, key) => {
+      acc[key] = toNonNegativeWhole(queue?.characteristicOther?.[key], 0);
+      return acc;
+    }, {});
+    const characteristicQueuedXp = MYTHIC_CHARACTERISTIC_KEYS.reduce((sum, key) => {
+      const baseline = this._getAdvancementTierCumulativeXp(officialAdvancements[key]);
+      const next = this._getAdvancementTierCumulativeXp(queuedAdvancements[key]);
+      return sum + Math.max(0, next - baseline);
+    }, 0);
+    const officialCharacteristics = normalizedSystem?.characteristics ?? {};
+    const characteristicRows = MYTHIC_CHARACTERISTIC_KEYS.map((key) => {
+      const officialScore = toNonNegativeWhole(officialCharacteristics?.[key], 0);
+      const advDelta = Math.max(0, queuedAdvancements[key] - officialAdvancements[key]);
+      const otherDelta = toNonNegativeWhole(characteristicOtherQueue[key], 0);
+      return {
+        key,
+        label: key.toUpperCase(),
+        officialScore,
+        officialAdvancement: officialAdvancements[key],
+        queuedAdvancement: queuedAdvancements[key],
+        queuedOther: otherDelta,
+        previewScore: officialScore + advDelta + otherDelta,
+        changed: advDelta > 0 || otherDelta > 0
+      };
+    });
+
+    const officialLanguages = normalizeStringList(Array.isArray(normalizedSystem?.biography?.languages) ? normalizedSystem.biography.languages : []);
+    const queuedLanguages = [];
+    const languageSeen = new Set(officialLanguages.map((entry) => normalizeLookupText(entry)));
+    for (const entry of queue.languages) {
+      const text = String(entry ?? "").trim();
+      const normalized = normalizeLookupText(text);
+      if (!normalized) continue;
+      if (languageSeen.has(normalized)) continue;
+      languageSeen.add(normalized);
+      queuedLanguages.push(text);
+    }
+    const languageCapacityBonus = toNonNegativeWhole(normalizedSystem?.advancements?.purchases?.languageCapacityBonus, 0);
+    const intModifier = Math.max(0, Number(computeCharacteristicModifiers(normalizedSystem?.characteristics ?? {}).int ?? 0));
+    const languageCapacity = Math.max(0, intModifier + languageCapacityBonus);
+    const maxQueuedLanguages = Math.max(0, languageCapacity - officialLanguages.length);
+    const clampedQueuedLanguages = queuedLanguages.slice(0, maxQueuedLanguages);
+    const languageQueuedXp = clampedQueuedLanguages.reduce((sum, _entry, index) => {
+      const ordinal = officialLanguages.length + index + 1;
+      return sum + (ordinal <= 1 ? 0 : MYTHIC_ADVANCEMENT_LANGUAGE_XP_COST);
+    }, 0);
+
+    const queuedTotalXp = abilityQueuedXp
+      + skillQueuedXp
+      + educationQueuedXp
+      + luckQueuedXp
+      + woundQueuedXp
+      + trainingQueuedXp
+      + characteristicQueuedXp
+      + languageQueuedXp;
+
+    const summaryRows = [
+      { label: "Abilities", cost: abilityQueuedXp },
+      { label: "Skill Trainings", cost: skillQueuedXp },
+      { label: "Educations", cost: educationQueuedXp },
+      { label: "Luck", cost: luckQueuedXp },
+      { label: "Wound Upgrades", cost: woundQueuedXp },
+      { label: "Faction / Weapon Trainings", cost: trainingQueuedXp },
+      { label: "Characteristic Advancements", cost: characteristicQueuedXp },
+      { label: "Languages", cost: languageQueuedXp }
+    ].filter((entry) => entry.cost > 0);
+
+    return {
+      queuedAbilities,
+      queuedEducations,
+      skills: {
+        rows: skillRows,
+        queuedXp: skillQueuedXp
+      },
+      training: {
+        weaponRows: weaponTrainingRows,
+        factionRows: factionTrainingRows,
+        queuedXp: trainingQueuedXp
+      },
+      luck: {
+        official: officialLuckMax,
+        queued: queuedLuckPoints,
+        maxTotal: 13,
+        maxQueue: maxLuckQueue,
+        queuedXp: luckQueuedXp
+      },
+      wounds: {
+        officialPurchases: officialWoundPurchases,
+        queuedPurchases: queuedWoundUpgrades,
+        queuedTiers: queuedWoundTiers,
+        queuedXp: woundQueuedXp,
+        maxTiers: MYTHIC_ADVANCEMENT_WOUND_TIERS.length
+      },
+      characteristics: {
+        rows: characteristicRows,
+        queuedXp: characteristicQueuedXp
+      },
+      languages: {
+        official: officialLanguages,
+        queued: clampedQueuedLanguages,
+        capacity: languageCapacity,
+        intModifier,
+        capacityBonus: languageCapacityBonus,
+        queuedXp: languageQueuedXp
+      },
+      summaryRows,
+      hasQueuedPurchases: queuedTotalXp > 0,
+      isOverFreeXp: queuedTotalXp > freeXp,
+      xpSummary: {
+        total: totalXp,
+        spent: spentXp,
+        free: freeXp,
+        queued: queuedTotalXp,
+        remainingAfterQueue: freeXp - queuedTotalXp
+      }
+    };
+  }
+
+  async _updateAdvancementQueue(mutator) {
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const queue = this._normalizeAdvancementQueueState(normalized?.advancements?.queue ?? {});
+    if (typeof mutator === "function") {
+      await mutator(queue, normalized);
+    }
+    await this.actor.update({ "system.advancements.queue": queue });
   }
 
   _emptyCreationPathOutcome() {
@@ -2488,8 +2939,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _getTrainingViewData(trainingData, normalizedSystem = null) {
     const normalized = normalizeTrainingData(trainingData);
     const lockData = await this._getAutoTrainingLockData(normalizedSystem);
-    const lockedWeaponKeys = new Set(lockData.weaponKeys);
-    const lockedFactionKeys = new Set(lockData.factionKeys);
+    const purchasedLocks = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
+    const purchasedWeaponKeys = normalizeStringList(Array.isArray(purchasedLocks?.weaponKeys) ? purchasedLocks.weaponKeys : []);
+    const purchasedFactionKeys = normalizeStringList(Array.isArray(purchasedLocks?.factionKeys) ? purchasedLocks.factionKeys : []);
+    const lockedWeaponKeys = new Set([...lockData.weaponKeys, ...purchasedWeaponKeys]);
+    const lockedFactionKeys = new Set([...lockData.factionKeys, ...purchasedFactionKeys]);
     const weaponCategories = MYTHIC_WEAPON_TRAINING_DEFINITIONS.map((definition) => {
       const locked = lockedWeaponKeys.has(definition.key);
       return {
@@ -2516,9 +2970,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       customText: normalized.custom.join("\n"),
       notes: normalized.notes,
       lockSummary: {
-        hasLocks: lockData.weaponKeys.length > 0 || lockData.factionKeys.length > 0,
-        weaponCount: lockData.weaponKeys.length,
-        factionCount: lockData.factionKeys.length,
+        hasLocks: lockedWeaponKeys.size > 0 || lockedFactionKeys.size > 0,
+        weaponCount: lockedWeaponKeys.size,
+        factionCount: lockedFactionKeys.size,
         sourceLabel: lockData.sourceLabel
       },
       summary: {
@@ -3536,7 +3990,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const hasOpenedActorSheet = Boolean(this.actor.getFlag("Halo-Mythic-Foundry-Updated", MYTHIC_ACTOR_SHEET_OPENED_FLAG_KEY));
-    const initialTab = hasOpenedActorSheet ? (this.tabGroups.primary ?? "main") : "advancements";
+    const isCharacterCreationComplete = Boolean(this.actor.system?.characterCreation?.isComplete ?? false);
+    const initialTab = hasOpenedActorSheet 
+      ? (this.tabGroups.primary ?? (isCharacterCreationComplete ? "main" : "advancements"))
+      : (isCharacterCreationComplete ? "main" : "advancements");
     this.tabGroups.primary = initialTab; // lock in before setFlag re-render changes hasOpenedActorSheet
     const tabs = new foundry.applications.ux.Tabs({
       group: "primary",
@@ -4120,6 +4577,120 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    // Character Creation finalization: Move to Part Two button
+    root.querySelectorAll(".cc-move-to-part-two-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onMoveToPartTwo(event);
+      });
+    });
+
+    // Character Creation finalization: Finalize CC button (in Advancement subtab)
+    root.querySelectorAll(".cc-finalize-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onFinalizeCharacterCreation(event);
+      });
+    });
+
+    // Character Creation lock toggle: GM-only button
+    root.querySelectorAll(".cc-toggle-lock-btn").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this._onToggleCcLock(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-add-xp-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvAddXp(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-open-abilities-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openCompendiumPack("Halo-Mythic-Foundry-Updated.abilities", "Abilities");
+      });
+    });
+
+    root.querySelectorAll(".adv-open-educations-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._openCompendiumPack("Halo-Mythic-Foundry-Updated.educations", "Educations");
+      });
+    });
+
+    root.querySelectorAll(".adv-queue-remove-ability[data-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvRemoveQueuedAbility(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-queue-remove-education[data-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvRemoveQueuedEducation(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-queue-education-tier[data-index]").forEach((select) => {
+      select.addEventListener("change", (event) => {
+        void this._onAdvQueuedEducationTierChange(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-skill-adjust-btn[data-skill-key][data-direction]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvAdjustSkillQueue(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-luck-queue-input").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onAdvLuckQueueChange(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-wound-adjust-btn[data-direction]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvAdjustWoundQueue(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-training-toggle[data-training-kind][data-training-key]").forEach((checkbox) => {
+      checkbox.addEventListener("change", (event) => {
+        void this._onAdvToggleTrainingQueue(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-char-adv-select[data-characteristic-key]").forEach((select) => {
+      select.addEventListener("change", (event) => {
+        void this._onAdvCharacteristicQueueChange(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-char-other-input[data-characteristic-key]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onAdvCharacteristicOtherQueueChange(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-language-add-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvAddQueuedLanguage(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-language-remove-btn[data-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvRemoveQueuedLanguage(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-purchase-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onPurchaseAdvancements(event);
+      });
+    });
+
     this._showTokenPortrait = this._getBiographyPreviewIsToken();
     this._refreshPortraitTokenControls(root);
   }
@@ -4155,6 +4726,464 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       current.push(this._newBiographyEntry(path));
     }
     await this.actor.update({ [`system.${path}`]: current });
+  }
+
+  async _onMoveToPartTwo(event) {
+    event.preventDefault();
+
+    // Ensure Part Two opens at the top instead of reusing the creation scroll position.
+    this._ccAdvScrollTop = 0;
+    const ccAdvScrollable = this.element?.querySelector(".ccadv-content-scroll");
+    if (ccAdvScrollable) {
+      ccAdvScrollable.scrollTop = 0;
+    }
+
+    await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "ccAdvSubtab", "advancement");
+  }
+
+  async _onFinalizeCharacterCreation(event) {
+    event.preventDefault();
+    
+    if (!this.isEditable) return;
+    
+    const confirmed = await Dialog.confirm({
+      title: "Finalize Character Creation",
+      content: `<p style="margin-bottom: 1rem;">Are you ready to finalize character creation? Once confirmed, the Character Creation subtab will be locked.</p>
+        <p>You can proceed to advancement or ask a GM to unlock it if you need to make changes.</p>`,
+      yes: () => true,
+      no: () => false
+    });
+    
+    if (confirmed) {
+      await this._finalizeQueuedAdvancements({ markCharacterCreationComplete: true });
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "ccAdvSubtab", "advancement");
+    }
+  }
+
+  async _onToggleCcLock(event) {
+    event.preventDefault();
+    
+    if (!game.user?.isGM) {
+      ui.notifications?.warn("Only GMs can toggle character creation lock.");
+      return;
+    }
+    
+    const currentState = Boolean(this.actor.system?.characterCreation?.isComplete ?? false);
+    await this.actor.update({
+      "system.characterCreation.isComplete": !currentState
+    });
+    
+    const newState = !currentState;
+    ui.notifications?.info(
+      newState 
+        ? "Character creation locked. Player can no longer edit this section."
+        : "Character creation unlocked. Player may edit this section again."
+    );
+  }
+
+  async _onAdvAddXp(event) {
+  event.preventDefault();
+
+  if (!canCurrentUserEditStartingXp()) {
+    ui.notifications?.warn("You do not have permission to add Total XP.");
+    return;
+  }
+
+  const gained = await foundry.applications.api.DialogV2.prompt({
+    window: { title: "Add XP To Total XP" },
+    content: `
+      <div class="mythic-modal-body">
+        <p>How much XP would you like to add to Total XP?</p>
+        <div class="form-group">
+          <label for="adv-add-xp-amount">XP Amount</label>
+          <input id="adv-add-xp-amount" name="xpAmount" type="number" min="1" step="1" value="0" />
+        </div>
+      </div>
+    `,
+    ok: {
+      label: "Add XP",
+      callback: (_event, _button, dialogApp) => {
+        const dialogElement = dialogApp?.element instanceof HTMLElement
+          ? dialogApp.element
+          : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+        const input = dialogElement?.querySelector('[name="xpAmount"]')
+          ?? document.getElementById("adv-add-xp-amount");
+        const amount = Number(input instanceof HTMLInputElement ? input.value : 0);
+        if (!Number.isFinite(amount) || amount <= 0) return 0;
+        return Math.floor(amount);
+      }
+    }
+  }).catch(() => 0);
+
+  if (!Number.isFinite(gained) || gained <= 0) return;
+
+  const current = toNonNegativeWhole(this.actor.system?.advancements?.xpEarned, 0);
+  await this.actor.update({ "system.advancements.xpEarned": current + gained });
+  ui.notifications?.info(`Added ${gained.toLocaleString()} XP to Total XP.`);
+}
+
+  async _queueAdvancementItem(itemDoc, kind) {
+    if (!itemDoc) return;
+    const kindKey = String(kind ?? "").trim().toLowerCase();
+    const itemType = String(itemDoc.type ?? "").trim().toLowerCase();
+    if (kindKey === "ability" && itemType !== "ability") {
+      ui.notifications?.warn("Only Ability items can be queued here.");
+      return;
+    }
+    if (kindKey === "education" && itemType !== "education") {
+      ui.notifications?.warn("Only Education items can be queued here.");
+      return;
+    }
+
+    const itemObject = itemDoc?.toObject?.() ?? null;
+    if (!itemObject) return;
+
+    const normalizedName = normalizeLookupText(itemObject?.name ?? "");
+    if (!normalizedName) return;
+    const owned = this.actor.items.some((entry) => (
+      entry.type === itemType && normalizeLookupText(entry.name ?? "") === normalizedName
+    ));
+    if (owned) {
+      ui.notifications?.warn(`${itemObject.name} is already owned.`);
+      return;
+    }
+
+    let cost = 0;
+    let tier = "";
+    if (kindKey === "ability") {
+      const normalizedAbility = normalizeAbilitySystemData(itemObject.system ?? {}, itemObject.name ?? "");
+      cost = toNonNegativeWhole(normalizedAbility?.cost, 0);
+    } else if (kindKey === "education") {
+      const normalizedEducation = normalizeEducationSystemData(itemObject.system ?? {}, itemObject.name ?? "");
+      tier = "plus5";
+      cost = toNonNegativeWhole(normalizedEducation?.costPlus5, 0);
+    }
+
+    const uuid = String(itemDoc.uuid ?? "").trim();
+    await this._updateAdvancementQueue((queue) => {
+      const target = kindKey === "ability" ? queue.abilities : queue.educations;
+      const exists = target.some((entry) => normalizeLookupText(entry?.name ?? "") === normalizedName);
+      if (exists) return;
+      target.push({
+        uuid,
+        name: String(itemObject.name ?? "").trim(),
+        cost,
+        tier,
+        img: String(itemObject.img ?? "")
+      });
+    });
+  }
+
+  async _onAdvRemoveQueuedAbility(event) {
+    event.preventDefault();
+    const index = Math.max(-1, Math.floor(Number(event.currentTarget?.dataset?.index ?? -1)));
+    if (index < 0) return;
+    await this._updateAdvancementQueue((queue) => {
+      queue.abilities.splice(index, 1);
+    });
+  }
+
+  async _onAdvRemoveQueuedEducation(event) {
+    event.preventDefault();
+    const index = Math.max(-1, Math.floor(Number(event.currentTarget?.dataset?.index ?? -1)));
+    if (index < 0) return;
+    await this._updateAdvancementQueue((queue) => {
+      queue.educations.splice(index, 1);
+    });
+  }
+
+  async _onAdvQueuedEducationTierChange(event) {
+    event.preventDefault();
+    const index = Math.max(-1, Math.floor(Number(event.currentTarget?.dataset?.index ?? -1)));
+    if (index < 0) return;
+    const tier = String(event.currentTarget?.value ?? "plus5").trim().toLowerCase() === "plus10" ? "plus10" : "plus5";
+    await this._updateAdvancementQueue(async (queue) => {
+      const entry = queue.educations[index];
+      if (!entry) return;
+      entry.tier = tier;
+      const uuid = String(entry.uuid ?? "").trim();
+      if (!uuid) return;
+      const doc = await fromUuid(uuid);
+      if (!doc) return;
+      const normalizedEducation = normalizeEducationSystemData(doc.system ?? {}, doc.name ?? "");
+      entry.cost = tier === "plus10"
+        ? toNonNegativeWhole(normalizedEducation?.costPlus10, 0)
+        : toNonNegativeWhole(normalizedEducation?.costPlus5, 0);
+    });
+  }
+
+  async _onAdvAdjustSkillQueue(event) {
+    event.preventDefault();
+    const skillKey = String(event.currentTarget?.dataset?.skillKey ?? "").trim();
+    const direction = String(event.currentTarget?.dataset?.direction ?? "").trim();
+    if (!skillKey || !["plus", "minus"].includes(direction)) return;
+
+    const queueView = await this._getAdvancementQueueViewData(normalizeCharacterSystemData(this.actor.system ?? {}));
+    const row = (queueView?.skills?.rows ?? []).find((entry) => entry.key === skillKey);
+    if (!row) return;
+
+    await this._updateAdvancementQueue((queue) => {
+      const current = Number(queue?.skillRanks?.[skillKey]);
+      const baseline = Math.max(0, Math.min(3, Math.floor(Number(row.officialRank ?? 0))));
+      const queued = Number.isFinite(current)
+        ? Math.max(baseline, Math.min(3, Math.floor(current)))
+        : Math.max(baseline, Math.min(3, Math.floor(Number(row.queuedRank ?? baseline))));
+      const next = direction === "plus"
+        ? Math.min(3, queued + 1)
+        : Math.max(baseline, queued - 1);
+      queue.skillRanks[skillKey] = next;
+    });
+  }
+
+  async _onAdvLuckQueueChange(event) {
+    event.preventDefault();
+    const raw = Number(event.currentTarget?.value ?? 0);
+    await this._updateAdvancementQueue((queue, normalized) => {
+      const official = toNonNegativeWhole(normalized?.combat?.luck?.max, 0);
+      const maxQueue = Math.max(0, 13 - official);
+      const value = Number.isFinite(raw) ? Math.max(0, Math.min(maxQueue, Math.floor(raw))) : 0;
+      queue.luckPoints = value;
+    });
+  }
+
+  async _onAdvAdjustWoundQueue(event) {
+    event.preventDefault();
+    const direction = String(event.currentTarget?.dataset?.direction ?? "").trim();
+    if (!["plus", "minus"].includes(direction)) return;
+    await this._updateAdvancementQueue((queue, normalized) => {
+      const officialFlag = toNonNegativeWhole(normalized?.advancements?.purchases?.woundUpgrades, 0);
+      const officialMisc = Math.max(0, Math.floor(Number(normalized?.mythic?.miscWoundsModifier ?? 0) / 10));
+      const official = Math.max(officialFlag, officialMisc);
+      const maxQueue = Math.max(0, MYTHIC_ADVANCEMENT_WOUND_TIERS.length - official);
+      const current = toNonNegativeWhole(queue.woundUpgrades, 0);
+      queue.woundUpgrades = direction === "plus"
+        ? Math.min(maxQueue, current + 1)
+        : Math.max(0, current - 1);
+    });
+  }
+
+  async _onAdvToggleTrainingQueue(event) {
+    event.preventDefault();
+    const kind = String(event.currentTarget?.dataset?.trainingKind ?? "").trim().toLowerCase();
+    const key = String(event.currentTarget?.dataset?.trainingKey ?? "").trim();
+    const checked = Boolean(event.currentTarget?.checked);
+    if (!key || !["weapon", "faction"].includes(kind)) return;
+    await this._updateAdvancementQueue((queue, normalized) => {
+      const training = normalizeTrainingData(normalized?.training ?? {});
+      const lockFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks") ?? {};
+      const purchasedLockFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
+      const lockedKeys = new Set([
+        ...(Array.isArray(lockFlag?.[`${kind}Keys`]) ? lockFlag[`${kind}Keys`] : []),
+        ...(Array.isArray(purchasedLockFlag?.[`${kind}Keys`]) ? purchasedLockFlag[`${kind}Keys`] : [])
+      ]);
+      const baseline = lockedKeys.has(key) || Boolean(training?.[kind]?.[key]);
+      if (baseline) {
+        queue[`${kind}Training`][key] = true;
+      } else {
+        queue[`${kind}Training`][key] = checked;
+      }
+    });
+  }
+
+  async _onAdvCharacteristicQueueChange(event) {
+    event.preventDefault();
+    const key = String(event.currentTarget?.dataset?.characteristicKey ?? "").trim().toLowerCase();
+    const next = toNonNegativeWhole(event.currentTarget?.value, 0);
+    if (!MYTHIC_CHARACTERISTIC_KEYS.includes(key)) return;
+    await this._updateAdvancementQueue((queue, normalized) => {
+      const baseline = toNonNegativeWhole(normalized?.charBuilder?.advancements?.[key], 0);
+      queue.characteristicAdvancements[key] = Math.max(baseline, next);
+    });
+  }
+
+  async _onAdvCharacteristicOtherQueueChange(event) {
+    event.preventDefault();
+    const key = String(event.currentTarget?.dataset?.characteristicKey ?? "").trim().toLowerCase();
+    const next = toNonNegativeWhole(event.currentTarget?.value, 0);
+    if (!MYTHIC_CHARACTERISTIC_KEYS.includes(key)) return;
+    await this._updateAdvancementQueue((queue) => {
+      queue.characteristicOther[key] = next;
+    });
+  }
+
+  async _onAdvAddQueuedLanguage(event) {
+    event.preventDefault();
+    const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+    const input = root?.querySelector?.(".adv-language-input");
+    const raw = input instanceof HTMLInputElement ? input.value : "";
+    const name = String(raw ?? "").trim();
+    if (!name) return;
+    await this._updateAdvancementQueue((queue, normalized) => {
+      const official = normalizeStringList(Array.isArray(normalized?.biography?.languages) ? normalized.biography.languages : []);
+      const intModifier = Math.max(0, Number(computeCharacteristicModifiers(normalized?.characteristics ?? {}).int ?? 0));
+      const capBonus = toNonNegativeWhole(normalized?.advancements?.purchases?.languageCapacityBonus, 0);
+      const cap = Math.max(0, intModifier + capBonus);
+      const currentTotal = official.length + normalizeStringList(queue.languages).length;
+      if (currentTotal >= cap) {
+        ui.notifications?.warn(`Language cap reached (${cap}).`);
+        return;
+      }
+      const normalizedName = normalizeLookupText(name);
+      const alreadyKnown = official.some((entry) => normalizeLookupText(entry) === normalizedName)
+        || normalizeStringList(queue.languages).some((entry) => normalizeLookupText(entry) === normalizedName);
+      if (alreadyKnown) return;
+      queue.languages.push(name);
+    });
+    if (input instanceof HTMLInputElement) input.value = "";
+  }
+
+  async _onAdvRemoveQueuedLanguage(event) {
+    event.preventDefault();
+    const index = Math.max(-1, Math.floor(Number(event.currentTarget?.dataset?.index ?? -1)));
+    if (index < 0) return;
+    await this._updateAdvancementQueue((queue) => {
+      queue.languages.splice(index, 1);
+    });
+  }
+
+  async _onPurchaseAdvancements(event) {
+    event.preventDefault();
+    await this._finalizeQueuedAdvancements({ markCharacterCreationComplete: false });
+  }
+
+  async _finalizeQueuedAdvancements({ markCharacterCreationComplete = false } = {}) {
+    if (!this.isEditable) return false;
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const queueView = await this._getAdvancementQueueViewData(normalized, {
+      earned: normalized?.advancements?.xpEarned,
+      spent: normalized?.advancements?.xpSpent
+    });
+    const queuedXp = toNonNegativeWhole(queueView?.xpSummary?.queued, 0);
+    const freeXp = toNonNegativeWhole(queueView?.xpSummary?.free, 0);
+    if (!markCharacterCreationComplete && queuedXp <= 0) {
+      ui.notifications?.warn("No queued advancements to purchase.");
+      return false;
+    }
+    if (queuedXp > freeXp) {
+      ui.notifications?.warn("Not enough Free XP to finalize queued purchases.");
+      return false;
+    }
+
+    if (!markCharacterCreationComplete || queuedXp > 0) {
+      const title = markCharacterCreationComplete ? "Finalize Character Creation" : "Purchase Advancements";
+      const confirmed = await Dialog.confirm({
+        title,
+        content: `<p>Finalize queued purchases for <strong>${queuedXp.toLocaleString()} XP</strong>?</p>`,
+        yes: () => true,
+        no: () => false
+      });
+      if (!confirmed) return false;
+    }
+
+    const abilityCreates = [];
+    for (const entry of queueView.queuedAbilities) {
+      const uuid = String(entry?.uuid ?? "").trim();
+      if (!uuid) continue;
+      const doc = await fromUuid(uuid);
+      if (!doc) continue;
+      const obj = doc.toObject();
+      obj.system = normalizeAbilitySystemData(obj.system ?? {}, obj.name ?? "");
+      abilityCreates.push(obj);
+    }
+
+    const educationCreates = [];
+    for (const entry of queueView.queuedEducations) {
+      const uuid = String(entry?.uuid ?? "").trim();
+      if (!uuid) continue;
+      const doc = await fromUuid(uuid);
+      if (!doc) continue;
+      const obj = doc.toObject();
+      const normalizedEducation = normalizeEducationSystemData(obj.system ?? {}, obj.name ?? "");
+      const tier = String(entry?.tier ?? "plus5").trim().toLowerCase() === "plus10" ? "plus10" : "plus5";
+      normalizedEducation.tier = tier;
+      normalizedEducation.modifier = tier === "plus10" ? 10 : 5;
+      obj.system = normalizedEducation;
+      educationCreates.push(obj);
+    }
+
+    if (abilityCreates.length) {
+      await this.actor.createEmbeddedDocuments("Item", abilityCreates);
+    }
+    if (educationCreates.length) {
+      await this.actor.createEmbeddedDocuments("Item", educationCreates);
+    }
+
+    const updateData = {
+      "system.advancements.xpSpent": toNonNegativeWhole(normalized?.advancements?.xpSpent, 0) + queuedXp,
+      "system.advancements.queue": this._getDefaultAdvancementQueueState()
+    };
+
+    for (const row of queueView.skills.rows) {
+      if (!row.changed) continue;
+      updateData[`system.skills.${row.key}.tier`] = this._skillRankToTier(row.queuedRank);
+    }
+
+    for (const row of queueView.training.weaponRows) {
+      if (!row.queued) continue;
+      updateData[`system.training.weapon.${row.key}`] = true;
+    }
+    for (const row of queueView.training.factionRows) {
+      if (!row.queued) continue;
+      updateData[`system.training.faction.${row.key}`] = true;
+    }
+
+    if (queueView.luck.queued > 0) {
+      const currentLuck = toNonNegativeWhole(normalized?.combat?.luck?.current, 0);
+      const maxLuck = toNonNegativeWhole(normalized?.combat?.luck?.max, 0);
+      updateData["system.combat.luck.current"] = currentLuck + queueView.luck.queued;
+      updateData["system.combat.luck.max"] = maxLuck + queueView.luck.queued;
+    }
+
+    if (queueView.wounds.queuedPurchases > 0) {
+      const misc = Number(normalized?.mythic?.miscWoundsModifier ?? 0);
+      const safeMisc = Number.isFinite(misc) ? misc : 0;
+      updateData["system.mythic.miscWoundsModifier"] = safeMisc + (queueView.wounds.queuedPurchases * 10);
+      updateData["system.advancements.purchases.woundUpgrades"] = toNonNegativeWhole(normalized?.advancements?.purchases?.woundUpgrades, 0)
+        + queueView.wounds.queuedPurchases;
+    }
+
+    for (const row of queueView.characteristics.rows) {
+      updateData[`system.charBuilder.advancements.${row.key}`] = toNonNegativeWhole(row.queuedAdvancement, 0);
+      if (row.queuedOther > 0) {
+        const currentMisc = toNonNegativeWhole(normalized?.charBuilder?.misc?.[row.key], 0);
+        updateData[`system.charBuilder.misc.${row.key}`] = currentMisc + row.queuedOther;
+      }
+    }
+
+    if (queueView.languages.queued.length) {
+      updateData["system.biography.languages"] = [...queueView.languages.official, ...queueView.languages.queued];
+    }
+
+    if (markCharacterCreationComplete) {
+      updateData["system.characterCreation.isComplete"] = true;
+    }
+
+    await this.actor.update(updateData);
+
+    const purchasedWeaponKeys = queueView.training.weaponRows.filter((row) => !row.baseline && row.queued).map((row) => row.key);
+    const purchasedFactionKeys = queueView.training.factionRows.filter((row) => !row.baseline && row.queued).map((row) => row.key);
+    if (purchasedWeaponKeys.length || purchasedFactionKeys.length) {
+      const existing = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
+      const nextWeaponKeys = Array.from(new Set([
+        ...(Array.isArray(existing?.weaponKeys) ? existing.weaponKeys : []),
+        ...purchasedWeaponKeys
+      ]));
+      const nextFactionKeys = Array.from(new Set([
+        ...(Array.isArray(existing?.factionKeys) ? existing.factionKeys : []),
+        ...purchasedFactionKeys
+      ]));
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks", {
+        weaponKeys: nextWeaponKeys,
+        factionKeys: nextFactionKeys
+      });
+    }
+
+    if (markCharacterCreationComplete) {
+      ui.notifications?.info(`Character Creation finalized. ${queuedXp.toLocaleString()} XP recorded as spent.`);
+    } else {
+      ui.notifications?.info(`Purchased queued advancements for ${queuedXp.toLocaleString()} XP.`);
+    }
+    return true;
   }
 
   _openCompendiumPack(packKey, label) {
@@ -5050,6 +6079,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onDropItem(event, data) {
     if (!this.isEditable) return false;
+
+    const queueDropTarget = event?.target instanceof HTMLElement
+      ? event.target.closest("[data-adv-queue-drop]")
+      : null;
+    if (queueDropTarget instanceof HTMLElement) {
+      const queueKind = String(queueDropTarget.dataset.advQueueDrop ?? "").trim().toLowerCase();
+      const droppedItem = await fromUuid(data?.uuid ?? "");
+      if (!droppedItem) return false;
+      if (queueKind === "ability" || queueKind === "education") {
+        await this._queueAdvancementItem(droppedItem, queueKind);
+        return false;
+      }
+    }
+
     const item = await fromUuid(data?.uuid ?? "");
     if (!item) return false;
 
@@ -6597,25 +7640,52 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!chosenName) return;
 
-    // Search all Item packs for a gear item matching this name
-    let armorItemData = null;
+    // Search all Item packs for a gear/armor item matching this name (with aliases and fuzzy fallback).
+    const preferredNames = this._getMjolnirArmorMatchCandidates(chosenName);
+    const preferredSet = new Set(preferredNames.map((entry) => this._normalizeArmorMatchText(entry)).filter(Boolean));
+    let exactMatch = null;
+    let fuzzyMatch = null;
+
     for (const candidatePack of game.packs) {
       if (candidatePack.documentName !== "Item") continue;
       try {
         const index = await candidatePack.getIndex();
-        const entry = index.find(e => String(e?.name ?? "").toLowerCase() === chosenName.toLowerCase());
-        if (entry?._id) {
+        for (const entry of index) {
+          const entryName = String(entry?.name ?? "").trim();
+          const entryNorm = this._normalizeArmorMatchText(entryName);
+          if (!entryNorm) continue;
+
+          const isExact = preferredSet.has(entryNorm);
+          const isFuzzy = !isExact && Array.from(preferredSet).some((preferred) => (
+            preferred.length >= 6
+            && (entryNorm.includes(preferred) || preferred.includes(entryNorm))
+          ));
+
+          if (!isExact && !isFuzzy) continue;
+          if (!entry?._id) continue;
+
           const doc = await candidatePack.getDocument(entry._id);
           const obj = doc?.toObject?.() ?? null;
-          if (obj && obj.type === "gear") {
-            armorItemData = obj;
+          if (!obj || obj.type !== "gear") continue;
+
+          const normalized = normalizeGearSystemData(obj.system ?? {}, obj.name ?? entryName);
+          if (String(normalized?.itemClass ?? "").trim().toLowerCase() !== "armor") continue;
+
+          if (isExact) {
+            exactMatch = obj;
             break;
           }
+          if (!fuzzyMatch) {
+            fuzzyMatch = obj;
+          }
         }
+        if (exactMatch) break;
       } catch (_err) {
         // skip packs that fail to load
       }
     }
+
+    const armorItemData = exactMatch ?? fuzzyMatch;
 
     if (!armorItemData) {
       ui.notifications.warn(`Could not find "${chosenName}" in any compendium. Add it manually from your armor compendium and equip it.`);
@@ -6636,6 +7706,57 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.equipment.equipped.armorId": newId
     });
     ui.notifications.info(`Equipped "${chosenName}" as Spartan armor.`);
+  }
+
+  _normalizeArmorMatchText(value) {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\bgen\s+2\b/g, "gen ii")
+      .replace(/\bgen\s+3\b/g, "gen iii")
+      .replace(/\bmjolnir\b/g, "mjolnir")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  _getMjolnirArmorMatchCandidates(chosenName) {
+    const base = String(chosenName ?? "").trim();
+    const key = this._normalizeArmorMatchText(base);
+    const variants = new Set([base]);
+
+    if (key === "spi mark i") {
+      variants.add("Mark I Semi-Powered Infiltration Armor");
+      variants.add("SPI Mark I Semi-Powered Infiltration Armor");
+    } else if (key === "spi mark ii") {
+      variants.add("Mark II Semi-Powered Infiltration Armor");
+      variants.add("SPI Mark II Semi-Powered Infiltration Armor");
+    } else if (key === "spi headhunter") {
+      variants.add("Headhunter Variant Mark II Semi-Powered Infiltration Armor");
+      variants.add("SPI Headhunter Variant Mark II Semi-Powered Infiltration Armor");
+      variants.add("Headhunter Mark II Semi-Powered Infiltration Armor");
+    } else if (key === "mjolnir mark iv") {
+      variants.add("Mjolnir Mark IV Powered Assault Armor");
+      variants.add("Mark IV Mjolnir Powered Assault Armor");
+    } else if (key === "mjolnir mark v") {
+      variants.add("Mjolnir Mark V Powered Assault Armor");
+      variants.add("Mark V Mjolnir Powered Assault Armor");
+    } else if (key === "mjolnir mark vi") {
+      variants.add("Mjolnir Mark VI Powered Assault Armor");
+      variants.add("Mark VI Mjolnir Powered Assault Armor");
+    } else if (key === "gen ii mjolnir") {
+      variants.add("GEN II Mjolnir Powered Assault Armor");
+      variants.add("GEN 2 Mjolnir Powered Assault Armor");
+      variants.add("Mjolnir GEN II Powered Assault Armor");
+    } else if (key === "gen iii mjolnir") {
+      variants.add("GEN III Mjolnir Powered Assault Armor");
+      variants.add("GEN 3 Mjolnir Powered Assault Armor");
+      variants.add("Mjolnir GEN III Powered Assault Armor");
+    } else if (key === "black body suit") {
+      variants.add("Black Body Suit");
+    }
+
+    return Array.from(variants);
   }
 
   async _promptAndApplyKigYarPointDefenseShield() {

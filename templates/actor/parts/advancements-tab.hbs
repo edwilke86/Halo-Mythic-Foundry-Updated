@@ -6,6 +6,19 @@
 
   <div class="ccadv-content-scroll">
     <div class="ccadv-panel {{#unless mythicCcAdv.isCreationActive}}is-hidden{{/unless}}" data-subtab-panel="creation">
+      <div class="mythic-phase4-card full-width ccadv-creation-lock-status {{#if mythicCcAdv.isCharacterCreationComplete}}is-finalized{{else}}is-open{{/if}}">
+        {{#if mythicCcAdv.isCharacterCreationComplete}}
+          <p class="ccadv-note"><strong>Character Creation Status:</strong> Finalized and locked for players.</p>
+          <p class="ccadv-note">Players can still view this tab, but only a GM can unlock edits.</p>
+        {{else}}
+          <p class="ccadv-note"><strong>Character Creation Status:</strong> Open for editing.</p>
+        {{/if}}
+        {{#if mythicCcAdv.userIsGM}}
+          <button type="button" class="action-btn cc-toggle-lock-btn">{{#if mythicCcAdv.isCharacterCreationComplete}}Unlock Character Creation{{else}}Lock Character Creation{{/if}} (GM)</button>
+        {{/if}}
+      </div>
+
+      <div class="ccadv-creation-lockable {{#if mythicCcAdv.isCreationLocked}}is-locked{{/if}}" {{#if mythicCcAdv.isCreationLocked}}inert{{/if}}>
       <details class="ccadv-stage" data-collapse-key="ccadv-creation-starting-xp" open>
         <summary>1. Starting XP</summary>
         <div class="mythic-phase4-card full-width">
@@ -274,91 +287,243 @@
             <div class="mythic-phase4-stat"><span>XP Remaining</span><strong>{{mythicCreationFinalizeSummary.xpAvailable}}</strong></div>
           </div>
           <p class="ccadv-note">Luck Summary: Burned from Outliers {{mythicCreationFinalizeSummary.burnedLuckCount}} | Current {{mythicCreationFinalizeSummary.luckCurrent}} / Max {{mythicCreationFinalizeSummary.luckMax}}</p>
-          <p class="ccadv-note">Finalize lock flow scaffold. After finalization, spend remaining XP in the Advancement subtab.</p>
-          <button type="button" class="action-btn" disabled>Finalize Character Creation (Coming Soon)</button>
+          {{#if mythicCcAdv.isCharacterCreationComplete}}
+            <div class="mythic-phase4-card full-width" style="border: 2px solid var(--mythic-accent); background: rgba(var(--mythic-accent-rgb, 255,200,0), 0.1);">
+              <p class="ccadv-note" style="font-weight: bold; color: var(--mythic-accent);">🔒 Character Creation is Finalized</p>
+              <p class="ccadv-note">This section is now locked. Changes require GM approval.</p>
+              {{#if mythicCcAdv.userIsGM}}
+                <button type="button" class="action-btn cc-toggle-lock-btn">🔓 Unlock for Player (GM Only)</button>
+              {{/if}}
+            </div>
+          {{else}}
+            <button type="button" class="action-btn cc-move-to-part-two-btn">Move to Part Two</button>
+          {{/if}}
         </div>
       </details>
+      </div>
     </div>
 
     <div class="ccadv-panel {{#unless mythicCcAdv.isAdvancementActive}}is-hidden{{/unless}}" data-subtab-panel="advancement">
+      <div class="mythic-phase4-card full-width">
+        <h3>Part Two: Advancement</h3>
+        <p class="ccadv-note">This section handles everything that advances your character both during Character Creation and after Character Creation is finalized.</p>
+        <p class="ccadv-note">The Character Creation subtab is only for Character Creation choices. The one exception is Characteristic Advancements, which are also available here in Part Two.</p>
+      </div>
+
+      <div class="mythic-phase4-card full-width ccadv-xp-summary-grid">
+        <div class="mythic-phase4-stat"><span>Total XP</span><strong>{{mythicAdvancements.xpSummary.total}}</strong></div>
+        <div class="mythic-phase4-stat"><span>Spent XP</span><strong>{{mythicAdvancements.xpSummary.spent}}</strong></div>
+        <div class="mythic-phase4-stat"><span>Queued XP</span><strong>{{mythicAdvancements.xpSummary.queued}}</strong></div>
+        <div class="mythic-phase4-stat"><span>Free XP</span><strong>{{mythicAdvancements.xpSummary.free}}</strong></div>
+        <div class="mythic-phase4-stat"><span>After Queue</span><strong>{{mythicAdvancements.xpSummary.remainingAfterQueue}}</strong></div>
+        {{#if mythicCcAdv.canEditStartingXp}}
+          <button type="button" class="action-btn adv-add-xp-btn">Add XP</button>
+        {{/if}}
+        {{#unless mythicCcAdv.canEditStartingXp}}
+           <p class="ccadv-xp-gm-only-note">Player XP Editing Disabled</p>
+        {{/unless}}
+      </div>
+
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-abilities" open>
         <summary>1. Purchase Abilities</summary>
-        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Ability purchase workflow will live here.</p></div>
+        <div class="mythic-phase4-card full-width">
+          <div class="ccadv-inline-note-action">
+            <p class="ccadv-note">Queue abilities here. They are not granted until finalization.</p>
+            <button type="button" class="action-btn adv-open-abilities-btn">Open Abilities Compendium</button>
+          </div>
+          <div class="ccadv-queue-dropzone" data-adv-queue-drop="ability">Drop Ability Here To Queue</div>
+          <div class="ccadv-queue-list">
+            {{#if mythicAdvancements.queue.queuedAbilities.length}}
+              {{#each mythicAdvancements.queue.queuedAbilities as |entry index|}}
+                <div class="ccadv-queue-row">
+                  <span>{{entry.name}}</span>
+                  <span>{{entry.cost}} XP</span>
+                  <button type="button" class="action-btn adv-queue-remove-ability" data-index="{{index}}">Remove</button>
+                </div>
+              {{/each}}
+            {{else}}
+              <p class="ccadv-note">No queued abilities.</p>
+            {{/if}}
+          </div>
+          <p class="ccadv-note">Queued XP: {{mythicAdvancements.queue.xpSummary.queued}} | Free XP: {{mythicAdvancements.queue.xpSummary.free}}</p>
+        </div>
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-skills" open>
         <summary>2. Purchase Skill Trainings</summary>
-        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Skill training purchase workflow will live here.</p></div>
+        <div class="mythic-phase4-card full-width">
+          <div class="ccadv-skill-grid-header">
+            <span>Skill</span>
+            <span>Official</span>
+            <span>Queued</span>
+            <span>Adjust</span>
+          </div>
+          <div class="ccadv-skill-grid-body">
+            {{#each mythicAdvancements.queue.skills.rows as |row|}}
+              <div class="ccadv-skill-grid-row {{#if row.changed}}is-changed{{/if}}">
+                <span>{{row.label}}</span>
+                <span>{{row.officialLabel}}</span>
+                <span>{{row.queuedLabel}}</span>
+                <span>
+                  <button type="button" class="action-btn adv-skill-adjust-btn" data-skill-key="{{row.key}}" data-direction="minus">-</button>
+                  <button type="button" class="action-btn adv-skill-adjust-btn" data-skill-key="{{row.key}}" data-direction="plus">+</button>
+                </span>
+              </div>
+            {{/each}}
+          </div>
+          <p class="ccadv-note">Queued XP: {{mythicAdvancements.queue.skills.queuedXp}} | Free XP: {{mythicAdvancements.queue.xpSummary.free}}</p>
+        </div>
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-educations" open>
         <summary>3. Education Purchases</summary>
-        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Education purchase workflow will live here.</p></div>
+        <div class="mythic-phase4-card full-width">
+          <div class="ccadv-inline-note-action">
+            <p class="ccadv-note">Queue educations here. They are not granted until finalization.</p>
+            <button type="button" class="action-btn adv-open-educations-btn">Open Educations Compendium</button>
+          </div>
+          <div class="ccadv-queue-dropzone" data-adv-queue-drop="education">Drop Education Here To Queue</div>
+          <div class="ccadv-queue-list">
+            {{#if mythicAdvancements.queue.queuedEducations.length}}
+              {{#each mythicAdvancements.queue.queuedEducations as |entry index|}}
+                <div class="ccadv-queue-row">
+                  <span>{{entry.name}}</span>
+                  <select class="adv-queue-education-tier" data-index="{{index}}">
+                    <option value="plus5"{{#if entry.isPlus5}} selected{{/if}}>+5</option>
+                    <option value="plus10"{{#if entry.isPlus10}} selected{{/if}}>+10</option>
+                  </select>
+                  <span>{{entry.cost}} XP</span>
+                  <button type="button" class="action-btn adv-queue-remove-education" data-index="{{index}}">Remove</button>
+                </div>
+              {{/each}}
+            {{else}}
+              <p class="ccadv-note">No queued educations.</p>
+            {{/if}}
+          </div>
+          <p class="ccadv-note">Queued XP: {{mythicAdvancements.queue.xpSummary.queued}} | Free XP: {{mythicAdvancements.queue.xpSummary.free}}</p>
+        </div>
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-luck" open>
         <summary>4. Purchase Luck</summary>
-        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Luck purchase workflow will live here.</p></div>
+        <div class="mythic-phase4-card full-width ccadv-luck-row">
+          <label>Queue Luck Points (1500 XP each)</label>
+          <input type="number" min="0" max="{{mythicAdvancements.queue.luck.maxQueue}}" step="1" class="adv-luck-queue-input" value="{{mythicAdvancements.queue.luck.queued}}" />
+          <span>Current Max: {{mythicAdvancements.queue.luck.official}} / 13</span>
+          <span>Queued XP: {{mythicAdvancements.queue.luck.queuedXp}}</span>
+        </div>
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-wounds" open>
         <summary>5. Purchase Wound Upgrades</summary>
-        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Wound upgrade tier purchase workflow will live here.</p></div>
+        <div class="mythic-phase4-card full-width ccadv-wounds-row">
+          <button type="button" class="action-btn adv-wound-adjust-btn" data-direction="minus">-</button>
+          <span>Queued Upgrades: {{mythicAdvancements.queue.wounds.queuedPurchases}}</span>
+          <button type="button" class="action-btn adv-wound-adjust-btn" data-direction="plus">+</button>
+          <span>Queued XP: {{mythicAdvancements.queue.wounds.queuedXp}}</span>
+        </div>
+        {{#if mythicAdvancements.queue.wounds.queuedTiers.length}}
+          <div class="mythic-phase4-card full-width">
+            {{#each mythicAdvancements.queue.wounds.queuedTiers as |tier|}}
+              <p class="ccadv-note">{{tier.label}}: +{{tier.wounds}} Wounds ({{tier.xpCost}} XP)</p>
+            {{/each}}
+          </div>
+        {{/if}}
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-training" open>
         <summary>6. Faction and Weapon Training</summary>
-        <div class="mythic-phase4-card full-width ccadv-training-compact-card">
-          <p class="ccadv-note">Auto-granted Soldier Type trainings are locked. All other options can be selected now; XP purchasing rules will be enforced later.</p>
-
-          {{#if mythicTraining.lockSummary.hasLocks}}
-            <p class="ccadv-note ccadv-training-lock-note">Locked by Soldier Type <strong>{{mythicTraining.lockSummary.sourceLabel}}</strong>: {{mythicTraining.lockSummary.weaponCount}} weapon, {{mythicTraining.lockSummary.factionCount}} faction.</p>
-          {{/if}}
-
-          <div class="ccadv-training-compact-columns">
-            <div class="ccadv-training-compact-group">
-              <h4>Weapon Training</h4>
-              <div class="ccadv-training-compact-grid">
-                {{#each mythicTraining.weaponCategories as |entry|}}
-                  <label class="ccadv-training-compact-option{{#if entry.lockedBySoldierType}} is-locked{{/if}}" title="{{entry.weaponTypesText}}">
-                    <input type="hidden" name="system.training.weapon.{{entry.key}}" value="{{#if entry.lockedBySoldierType}}true{{else}}false{{/if}}" />
-                    <input type="checkbox" name="system.training.weapon.{{entry.key}}" value="true" {{checked entry.checked}} {{#if entry.lockedBySoldierType}}disabled{{/if}} />
-                    <span class="ccadv-training-compact-label">{{entry.label}}</span>
-                    {{#if entry.lockedBySoldierType}}
-                      <span class="ccadv-training-compact-tag">Auto</span>
-                    {{/if}}
-                  </label>
-                {{/each}}
-              </div>
-            </div>
-
-            <div class="ccadv-training-compact-group">
-              <h4>Faction Training</h4>
-              <div class="ccadv-training-compact-grid faction">
-                {{#each mythicTraining.factionCategories as |entry|}}
-                  <label class="ccadv-training-compact-option{{#if entry.lockedBySoldierType}} is-locked{{/if}}" title="{{entry.coverage}}">
-                    <input type="hidden" name="system.training.faction.{{entry.key}}" value="{{#if entry.lockedBySoldierType}}true{{else}}false{{/if}}" />
-                    <input type="checkbox" name="system.training.faction.{{entry.key}}" value="true" {{checked entry.checked}} {{#if entry.lockedBySoldierType}}disabled{{/if}} />
-                    <span class="ccadv-training-compact-label">{{entry.label}}</span>
-                    {{#if entry.lockedBySoldierType}}
-                      <span class="ccadv-training-compact-tag">Auto</span>
-                    {{/if}}
-                  </label>
-                {{/each}}
-              </div>
-            </div>
+        <div class="mythic-phase4-card full-width ccadv-training-queue-columns">
+          <div>
+            <h4>Weapon Training</h4>
+            {{#each mythicAdvancements.queue.training.weaponRows as |row|}}
+              <label class="ccadv-training-queue-row {{#if row.baseline}}is-locked{{/if}}">
+                <input type="checkbox" class="adv-training-toggle" data-training-kind="weapon" data-training-key="{{row.key}}" {{checked row.queued}} {{#if row.baseline}}disabled{{/if}} />
+                <span>{{row.label}}</span>
+                <span>{{#if row.baseline}}Locked{{else if row.queued}}{{row.queuedCost}} XP{{else}}-{{/if}}</span>
+              </label>
+            {{/each}}
+          </div>
+          <div>
+            <h4>Faction Training</h4>
+            {{#each mythicAdvancements.queue.training.factionRows as |row|}}
+              <label class="ccadv-training-queue-row {{#if row.baseline}}is-locked{{/if}}">
+                <input type="checkbox" class="adv-training-toggle" data-training-kind="faction" data-training-key="{{row.key}}" {{checked row.queued}} {{#if row.baseline}}disabled{{/if}} />
+                <span>{{row.label}}</span>
+                <span>{{#if row.baseline}}Locked{{else if row.queued}}{{row.queuedCost}} XP{{else}}-{{/if}}</span>
+              </label>
+            {{/each}}
           </div>
         </div>
+        <p class="ccadv-note">Queued XP: {{mythicAdvancements.queue.training.queuedXp}} | Free XP: {{mythicAdvancements.queue.xpSummary.free}}</p>
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-characteristics" open>
-        <summary>7. Characteristic Advancements</summary>
-        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Characteristic advancement purchases will live here.</p></div>
+        <summary>7. Characteristic Advancements (Preview Only Until Finalized)</summary>
+        <div class="mythic-phase4-card full-width">
+          <div class="ccadv-char-grid-header">
+            <span>Characteristic</span>
+            <span>Official</span>
+            <span>Advancement</span>
+            <span>Other</span>
+            <span>Preview</span>
+          </div>
+          {{#each mythicAdvancements.queue.characteristics.rows as |row|}}
+            <div class="ccadv-char-grid-row {{#if row.changed}}is-changed{{/if}}">
+              <span>{{row.label}}</span>
+              <span>{{row.officialScore}}</span>
+              <span>
+                <input type="number" min="{{row.officialAdvancement}}" step="5" class="adv-char-adv-select" data-characteristic-key="{{row.key}}" value="{{row.queuedAdvancement}}" />
+              </span>
+              <span>
+                <input type="number" min="0" step="1" class="adv-char-other-input" data-characteristic-key="{{row.key}}" value="{{row.queuedOther}}" />
+              </span>
+              <span>{{row.previewScore}}</span>
+            </div>
+          {{/each}}
+          <p class="ccadv-note">Queued XP: {{mythicAdvancements.queue.characteristics.queuedXp}} | Free XP: {{mythicAdvancements.queue.xpSummary.free}}</p>
+        </div>
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-languages" open>
         <summary>8. Languages</summary>
-        <div class="mythic-phase4-card full-width"><p class="ccadv-note">Language purchase and cap logic will live here.</p></div>
+        <div class="mythic-phase4-card full-width">
+          <p class="ccadv-note">Language Cap: {{mythicAdvancements.queue.languages.capacity}} (INT Mod {{mythicAdvancements.queue.languages.intModifier}} + Bonus {{mythicAdvancements.queue.languages.capacityBonus}})</p>
+          {{#if mythicCcAdv.isCharacterCreationComplete}}
+            <p class="ccadv-note">Be sure there is enough in-character time to justify learning a new language.</p>
+          {{/if}}
+          <div class="ccadv-language-input-row">
+            <input type="text" class="adv-language-input" placeholder="Type language name" />
+            <button type="button" class="action-btn adv-language-add-btn">Queue Language</button>
+          </div>
+          <div class="ccadv-language-columns">
+            <div>
+              <h4>Known Languages</h4>
+              {{#if mythicAdvancements.queue.languages.official.length}}
+                <ul>
+                  {{#each mythicAdvancements.queue.languages.official as |language|}}
+                    <li>{{language}}</li>
+                  {{/each}}
+                </ul>
+              {{else}}
+                <p class="ccadv-note">No known languages yet.</p>
+              {{/if}}
+            </div>
+            <div>
+              <h4>Queued Languages</h4>
+              {{#if mythicAdvancements.queue.languages.queued.length}}
+                <ul>
+                  {{#each mythicAdvancements.queue.languages.queued as |language index|}}
+                    <li>{{language}} <button type="button" class="action-btn adv-language-remove-btn" data-index="{{index}}">Remove</button></li>
+                  {{/each}}
+                </ul>
+              {{else}}
+                <p class="ccadv-note">No queued languages.</p>
+              {{/if}}
+            </div>
+          </div>
+          <p class="ccadv-note">Queued XP: {{mythicAdvancements.queue.languages.queuedXp}} | Free XP: {{mythicAdvancements.queue.xpSummary.free}}</p>
+        </div>
       </details>
 
       <details class="ccadv-stage" data-collapse-key="ccadv-adv-rank-support" open>
@@ -375,57 +540,33 @@
         </div>
       </details>
 
-      {{#if mythicSoldierTypeAdvancementScaffold.enabled}}
-        <details class="ccadv-stage" data-collapse-key="ccadv-adv-soldier-type-advancements" open>
-          <summary>10. Soldier Type Advancements</summary>
-          <div class="mythic-phase4-grid two-column">
-            <div class="mythic-phase4-card">
-              <h3>{{mythicSoldierTypeAdvancementScaffold.soldierTypeName}} Options</h3>
-              <label class="mythic-training-stack">
-                <span>Advancement Option</span>
-                <select class="soldier-type-advancement-select">
-                  {{#each mythicSoldierTypeAdvancementScaffold.options as |opt|}}
-                    <option value="{{opt.key}}"{{#if opt.selected}} selected{{/if}}{{#if opt.disabled}} disabled{{/if}}>{{opt.label}}{{#if opt.disabled}} ({{opt.lockedReason}}){{/if}}</option>
-                  {{/each}}
-                </select>
-              </label>
-              <p class="ccadv-note">Scaffold only: this selector records intent and displays requirements/details. Purchase and auto-application logic will be added in a later pass.</p>
-            </div>
+      <details class="ccadv-stage" data-collapse-key="ccadv-adv-finalize-cc" open>
+        <summary>FINALIZATION / PURCHASE</summary>
+        <div class="mythic-phase4-card full-width">
+          <h3>Queued Purchases Summary</h3>
+          {{#if mythicAdvancements.queue.summaryRows.length}}
+            <ul>
+              {{#each mythicAdvancements.queue.summaryRows as |row|}}
+                <li>{{row.label}}: {{row.cost}} XP</li>
+              {{/each}}
+            </ul>
+          {{else}}
+            <p class="ccadv-note">No queued purchases yet.</p>
+          {{/if}}
 
-            <div class="mythic-phase4-card">
-              <h3>Option Details</h3>
-              {{#if mythicSoldierTypeAdvancementScaffold.selected}}
-                <div class="mythic-specialization-detail-block">
-                  <div><strong>{{mythicSoldierTypeAdvancementScaffold.selected.label}}</strong></div>
-                  {{#if mythicSoldierTypeAdvancementScaffold.selected.summary}}
-                    <p class="ccadv-note">{{mythicSoldierTypeAdvancementScaffold.selected.summary}}</p>
-                  {{/if}}
-                  {{#if mythicSoldierTypeAdvancementScaffold.selected.requirements}}
-                    <p><strong>Requirements:</strong> {{mythicSoldierTypeAdvancementScaffold.selected.requirements}}</p>
-                  {{/if}}
-                  {{#if mythicSoldierTypeAdvancementScaffold.selected.details}}
-                    <p><strong>Details:</strong> {{mythicSoldierTypeAdvancementScaffold.selected.details}}</p>
-                  {{/if}}
-                  <p><strong>XP Cost:</strong> {{mythicSoldierTypeAdvancementScaffold.selected.xpCost}}</p>
-                  {{#if mythicSoldierTypeAdvancementScaffold.selected.traitGrants.length}}
-                    <h4>Trait Grants</h4>
-                    <ul>
-                      {{#each mythicSoldierTypeAdvancementScaffold.selected.traitGrants as |traitName|}}
-                        <li>{{traitName}}</li>
-                      {{/each}}
-                    </ul>
-                  {{/if}}
-                  {{#if mythicSoldierTypeAdvancementScaffold.selected.notes}}
-                    <p class="ccadv-note">{{mythicSoldierTypeAdvancementScaffold.selected.notes}}</p>
-                  {{/if}}
-                </div>
-              {{else}}
-                <p class="ccadv-note">No Soldier Type Advancement selected.</p>
-              {{/if}}
-            </div>
-          </div>
-        </details>
-      {{/if}}
+          <p class="ccadv-note">Queued XP: <strong>{{mythicAdvancements.queue.xpSummary.queued}}</strong> | Free XP: <strong>{{mythicAdvancements.queue.xpSummary.free}}</strong> | Remaining After Queue: <strong>{{mythicAdvancements.queue.xpSummary.remainingAfterQueue}}</strong></p>
+
+          {{#if mythicCcAdv.isCharacterCreationComplete}}
+            {{#if mythicAdvancements.queue.hasQueuedPurchases}}
+              <button type="button" class="action-btn adv-purchase-btn">Purchase Advancements</button>
+            {{else}}
+              <p class="ccadv-note">Character Creation is finalized. Queue purchases above, then click <strong>Purchase Advancements</strong>.</p>
+            {{/if}}
+          {{else}}
+            <button type="button" class="action-btn cc-finalize-btn">Finalize Character Creation</button>
+          {{/if}}
+        </div>
+      </details>
     </div>
   </div>
 </div>

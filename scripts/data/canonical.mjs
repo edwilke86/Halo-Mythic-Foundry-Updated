@@ -166,6 +166,21 @@ export function getCanonicalCharacterSystemData() {
       xpSpent: 0,
       unlockedFeatures: "",
       spendLog: "",
+      purchases: {
+        woundUpgrades: 0
+      },
+      queue: {
+        abilities: [],
+        educations: [],
+        skillRanks: {},
+        weaponTraining: {},
+        factionTraining: {},
+        luckPoints: 0,
+        woundUpgrades: 0,
+        characteristicAdvancements: {},
+        characteristicOther: {},
+        languages: []
+      },
       outliers: {
         purchases: []
       },
@@ -213,6 +228,7 @@ export function getCanonicalCharacterSystemData() {
     training: getCanonicalTrainingData(),
     skills: buildCanonicalSkillsSchema(),
     biography: {
+      languages: [],
       physical: {
         heightCm: 0,
         heightImperial: "",

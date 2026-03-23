@@ -6075,6 +6075,84 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (item?.sheet) item.sheet.render(true);
   }
 
+  _getAvailableFreeXp() {
+    const earned = toNonNegativeWhole(this.actor.system?.advancements?.xpEarned, 0);
+    const spent = toNonNegativeWhole(this.actor.system?.advancements?.xpSpent, 0);
+    return Math.max(0, earned - spent);
+  }
+
+  _getDroppedItemXpCost(itemData = {}) {
+    const type = String(itemData?.type ?? "").trim().toLowerCase();
+    if (type === "ability") {
+      const normalizedAbility = normalizeAbilitySystemData(itemData?.system ?? {}, itemData?.name ?? "");
+      return toNonNegativeWhole(normalizedAbility?.cost, 0);
+    }
+    if (type === "education") {
+      const normalizedEducation = normalizeEducationSystemData(itemData?.system ?? {}, itemData?.name ?? "");
+      const tier = String(normalizedEducation?.tier ?? "plus5").trim().toLowerCase() === "plus10" ? "plus10" : "plus5";
+      return tier === "plus10"
+        ? toNonNegativeWhole(normalizedEducation?.costPlus10, 0)
+        : toNonNegativeWhole(normalizedEducation?.costPlus5, 0);
+    }
+    return 0;
+  }
+
+  async _confirmXpPurchaseForDrop(itemData = {}) {
+    const type = String(itemData?.type ?? "").trim().toLowerCase();
+    if (type !== "ability" && type !== "education") return true;
+
+    const cost = this._getDroppedItemXpCost(itemData);
+    if (cost <= 0) return true;
+
+    const itemName = String(itemData?.name ?? "Item").trim() || "Item";
+    const typeLabel = type === "education" ? "Education" : "Ability";
+    const availableXp = this._getAvailableFreeXp();
+    const leftoverXp = Math.max(0, availableXp - cost);
+
+    if (cost > availableXp) {
+      await foundry.applications.api.DialogV2.wait({
+        window: { title: `Not Enough XP For ${typeLabel}` },
+        content: `
+          <p><strong>${foundry.utils.escapeHTML(itemName)}</strong> costs <strong>${cost} XP</strong>.</p>
+          <p>You only have <strong>${availableXp} Free XP</strong>.</p>
+        `,
+        buttons: [
+          { action: "ok", label: "OK", callback: () => true }
+        ],
+        rejectClose: false,
+        modal: true
+      });
+      return false;
+    }
+
+    const confirmed = await foundry.applications.api.DialogV2.wait({
+      window: { title: `Confirm ${typeLabel} Purchase` },
+      content: `
+        <p>This will cost <strong>${cost} XP</strong>.</p>
+        <p>You will have <strong>${leftoverXp} XP</strong> leftover to spend.</p>
+        <p>Add <strong>${foundry.utils.escapeHTML(itemName)}</strong> to this character?</p>
+      `,
+      buttons: [
+        { action: "confirm", label: "Purchase", callback: () => true },
+        { action: "cancel", label: "Cancel", callback: () => false }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+
+    return confirmed === true;
+  }
+
+  async _applyDroppedItemXpCost(itemData = {}) {
+    const cost = this._getDroppedItemXpCost(itemData);
+    if (cost <= 0) return;
+
+    const currentSpent = toNonNegativeWhole(this.actor.system?.advancements?.xpSpent, 0);
+    await this.actor.update({
+      "system.advancements.xpSpent": currentSpent + cost
+    });
+  }
+
   // ── Drop handling ──────────────────────────────────────────────────────────
 
   async _onDropItem(event, data) {
@@ -6546,9 +6624,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ui.notifications.warn(`${itemData.name} is already on this character.`);
         return false;
       }
+
+      const confirmed = await this._confirmXpPurchaseForDrop(itemData);
+      if (!confirmed) return false;
+
       itemData.system.tier     = String(itemData.system.tier ?? "plus5");
       itemData.system.modifier = Number(itemData.system.modifier ?? 0);
-      return this.actor.createEmbeddedDocuments("Item", [itemData]);
+      const created = await this.actor.createEmbeddedDocuments("Item", [itemData]);
+      if (Array.isArray(created) && created.length > 0) {
+        await this._applyDroppedItemXpCost(itemData);
+      }
+      return created;
     }
 
     if (item.type === "ability") {
@@ -6570,8 +6656,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         }
       }
 
+      const confirmed = await this._confirmXpPurchaseForDrop(itemData);
+      if (!confirmed) return false;
+
       itemData.system = normalizeAbilitySystemData(itemData.system ?? {});
-      return this.actor.createEmbeddedDocuments("Item", [itemData]);
+      const created = await this.actor.createEmbeddedDocuments("Item", [itemData]);
+      if (Array.isArray(created) && created.length > 0) {
+        await this._applyDroppedItemXpCost(itemData);
+      }
+      return created;
     }
 
     if (item.type === "trait") {

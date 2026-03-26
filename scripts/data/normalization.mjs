@@ -5,16 +5,16 @@
 
 import {
   MYTHIC_ACTOR_SCHEMA_VERSION, MYTHIC_GEAR_SCHEMA_VERSION,
-  MYTHIC_ABILITY_SCHEMA_VERSION, MYTHIC_TRAIT_SCHEMA_VERSION,
-  MYTHIC_EDUCATION_SCHEMA_VERSION, MYTHIC_ARMOR_VARIANT_SCHEMA_VERSION,
-  MYTHIC_SOLDIER_TYPE_SCHEMA_VERSION, MYTHIC_EQUIPMENT_PACK_SCHEMA_VERSION,
+  MYTHIC_SOLDIER_TYPE_SCHEMA_VERSION,
   MYTHIC_UPBRINGING_SCHEMA_VERSION, MYTHIC_ENVIRONMENT_SCHEMA_VERSION,
   MYTHIC_LIFESTYLE_SCHEMA_VERSION,
   MYTHIC_CONTENT_SYNC_VERSION,
-  MYTHIC_SKILL_BONUS_BY_TIER, MYTHIC_BASE_SKILL_DEFINITIONS,
+  MYTHIC_BASE_SKILL_DEFINITIONS,
   MYTHIC_CHARACTERISTIC_KEYS, MYTHIC_DEFAULT_HEIGHT_RANGE_CM,
   MYTHIC_DEFAULT_WEIGHT_RANGE_KG, MYTHIC_SIZE_CATEGORIES,
-  MYTHIC_ADVANCEMENT_TIERS
+  MYTHIC_ADVANCEMENT_TIERS,
+  MYTHIC_AMMO_COMPAT_CODE_SET,
+  MYTHIC_MELEE_WEAPON_TYPE_OPTIONS
 } from '../config.mjs';
 import {
   toNonNegativeNumber, toNonNegativeWhole, toSlug,
@@ -23,9 +23,44 @@ import {
   coerceSchemaVersion
 } from '../utils/helpers.mjs';
 import { getCanonicalTrainingData, normalizeTrainingData } from '../mechanics/training.mjs';
-import { buildSkillRankDefaults, buildCanonicalSkillsSchema } from '../mechanics/skills.mjs';
+import { buildSkillRankDefaults } from '../mechanics/skills.mjs';
 import { computeCharacterDerivedValues } from '../mechanics/derived.mjs';
 import { getCanonicalCharacterSystemData } from './canonical.mjs';
+import { normalizeSkillEntry, normalizeSkillsData } from './normalization-skills.mjs';
+import {
+  getCanonicalAbilitySystemData,
+  normalizeAbilitySystemData,
+  getCanonicalTraitSystemData,
+  normalizeTraitSystemData,
+  getCanonicalArmorVariantSystemData,
+  normalizeArmorVariantSystemData,
+  getCanonicalEducationSystemData,
+  normalizeEducationSystemData
+} from './normalization-item-types.mjs';
+import {
+  getCanonicalSoldierTypeSystemData,
+  normalizeSoldierTypeSpecPack,
+  normalizeSoldierTypeSkillChoice,
+  normalizeSoldierTypeEducationChoice,
+  normalizeSoldierTypeTrainingPathChoice,
+  normalizeSoldierTypeAdvancementOption,
+  normalizeSoldierTypeEquipmentPack,
+  getCanonicalEquipmentPackSystemData,
+  normalizeEquipmentPackOption,
+  normalizeEquipmentPackSystemData,
+  normalizeSoldierTypeSkillPatch
+} from './normalization-soldier-types.mjs';
+import {
+  normalizeModifierOption,
+  normalizeModifierGroup,
+  getCanonicalUpbringingSystemData,
+  normalizeUpbringingSystemData,
+  getCanonicalEnvironmentSystemData,
+  normalizeEnvironmentSystemData,
+  normalizeLifestyleVariant,
+  getCanonicalLifestyleSystemData,
+  normalizeLifestyleSystemData
+} from './normalization-creation-paths.mjs';
 import {
   getSizeCategoryFromHeightCm, hasOutlierPurchase,
   getOutlierDefinitionByKey, normalizeRangeObject,
@@ -34,81 +69,62 @@ import {
   getCanonicalSizeCategoryLabel
 } from '../mechanics/size.mjs';
 
-// ─── Skill Normalization ─────────────────────────────────────────────────────
+const MYTHIC_BATTERY_SUBTYPES = Object.freeze(new Set(["plasma", "ionized-particle", "unsc-cell", "grindell"]));
 
-export function normalizeSkillEntry(entry, fallback) {
-  const category = String(entry?.category ?? fallback.category ?? "basic").toLowerCase();
-  const allowedCategory = category === "advanced" ? "advanced" : "basic";
-  const options = Array.isArray(entry?.characteristicOptions) && entry.characteristicOptions.length
-    ? entry.characteristicOptions
-    : foundry.utils.deepClone(fallback.characteristicOptions ?? ["int"]);
-  const selected = String(entry?.selectedCharacteristic ?? fallback.selectedCharacteristic ?? options[0] ?? "int");
-  const selectedCharacteristic = options.includes(selected) ? selected : (options[0] ?? "int");
-  const tier = String(entry?.tier ?? fallback.tier ?? "untrained");
-
-  const modRaw = Number(entry?.modifier ?? fallback.modifier ?? 0);
-  const xpPlus10Raw = Number(entry?.xpPlus10 ?? fallback.xpPlus10 ?? 0);
-  const xpPlus20Raw = Number(entry?.xpPlus20 ?? fallback.xpPlus20 ?? 0);
-  return {
-    key: String(entry?.key ?? fallback.key ?? "custom-skill"),
-    label: String(entry?.label ?? fallback.label ?? "Custom Skill"),
-    category: allowedCategory,
-    group: String(entry?.group ?? fallback.group ?? "custom"),
-    characteristicOptions: options,
-    selectedCharacteristic,
-    tier: MYTHIC_SKILL_BONUS_BY_TIER[tier] !== undefined ? tier : "untrained",
-    modifier: Number.isFinite(modRaw) ? Math.round(modRaw) : 0,
-    xpPlus10: Number.isFinite(xpPlus10Raw) ? Math.max(0, Math.round(xpPlus10Raw)) : 0,
-    xpPlus20: Number.isFinite(xpPlus20Raw) ? Math.max(0, Math.round(xpPlus20Raw)) : 0,
-    notes: String(entry?.notes ?? fallback.notes ?? "")
-  };
+function normalizeBatterySubtype(value = "", ammoMode = "") {
+  if (String(ammoMode ?? "").trim().toLowerCase() !== "plasma-battery") return "plasma";
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw) return "plasma";
+  if (["ionized", "ionized-particles", "ionized-particle"].includes(raw)) return "ionized-particle";
+  if (["unsc", "unsc-cell", "unsc-battery-cell"].includes(raw)) return "unsc-cell";
+  if (raw === "grindell") return "grindell";
+  if (MYTHIC_BATTERY_SUBTYPES.has(raw)) return raw;
+  return "plasma";
 }
 
-export function normalizeSkillsData(skills) {
-  const fallback = buildCanonicalSkillsSchema();
-  const source = foundry.utils.deepClone(skills ?? {});
-
-  const normalized = {
-    base: {},
-    custom: []
-  };
-
-  for (const [key, fallbackEntry] of Object.entries(fallback.base)) {
-    const incoming = source?.base?.[key] ?? {};
-    const normalizedEntry = normalizeSkillEntry(incoming, fallbackEntry);
-
-    if (fallbackEntry.variants) {
-      normalizedEntry.variants = {};
-      for (const [variantKey, variantFallback] of Object.entries(fallbackEntry.variants)) {
-        const incomingVariant = incoming?.variants?.[variantKey] ?? {};
-        normalizedEntry.variants[variantKey] = normalizeSkillEntry(incomingVariant, variantFallback);
-      }
-    }
-
-    normalized.base[key] = normalizedEntry;
+function getEnergyCellLabel(ammoMode = "", batterySubtype = "plasma") {
+  if (String(ammoMode ?? "").trim().toLowerCase() !== "plasma-battery") {
+    return "Forerunner Magazine";
   }
-
-  const customSkills = Array.isArray(source?.custom) ? source.custom : [];
-  normalized.custom = customSkills.map((entry, index) => {
-    const fallbackCustom = {
-      key: String(entry?.key ?? `custom-${index + 1}`),
-      label: String(entry?.label ?? `Custom Skill ${index + 1}`),
-      category: String(entry?.category ?? "basic"),
-      group: "custom",
-      characteristicOptions: Array.isArray(entry?.characteristicOptions) && entry.characteristicOptions.length
-        ? entry.characteristicOptions
-        : ["int"],
-      selectedCharacteristic: String(entry?.selectedCharacteristic ?? "int"),
-      tier: String(entry?.tier ?? "untrained"),
-      xpPlus10: Number(entry?.xpPlus10 ?? 0),
-      xpPlus20: Number(entry?.xpPlus20 ?? 0),
-      notes: String(entry?.notes ?? "")
-    };
-    return normalizeSkillEntry(entry, fallbackCustom);
-  });
-
-  return normalized;
+  const normalizedSubtype = normalizeBatterySubtype(batterySubtype, ammoMode);
+  if (normalizedSubtype === "ionized-particle") return "Ionized Particles";
+  if (normalizedSubtype === "unsc-cell") return "UNSC Battery Cell";
+  if (normalizedSubtype === "grindell") return "Grindell Battery";
+  return "Plasma Battery";
 }
+
+// ─── Skill Normalization ─────────────────────────────────────────────────────
+export { normalizeSkillEntry, normalizeSkillsData };
+export {
+  getCanonicalAbilitySystemData,
+  normalizeAbilitySystemData,
+  getCanonicalTraitSystemData,
+  normalizeTraitSystemData,
+  getCanonicalArmorVariantSystemData,
+  normalizeArmorVariantSystemData,
+  getCanonicalEducationSystemData,
+  normalizeEducationSystemData,
+  getCanonicalSoldierTypeSystemData,
+  normalizeSoldierTypeSpecPack,
+  normalizeSoldierTypeSkillChoice,
+  normalizeSoldierTypeEducationChoice,
+  normalizeSoldierTypeTrainingPathChoice,
+  normalizeSoldierTypeAdvancementOption,
+  normalizeSoldierTypeEquipmentPack,
+  getCanonicalEquipmentPackSystemData,
+  normalizeEquipmentPackOption,
+  normalizeEquipmentPackSystemData,
+  normalizeSoldierTypeSkillPatch,
+  normalizeModifierOption,
+  normalizeModifierGroup,
+  getCanonicalUpbringingSystemData,
+  normalizeUpbringingSystemData,
+  getCanonicalEnvironmentSystemData,
+  normalizeEnvironmentSystemData,
+  normalizeLifestyleVariant,
+  getCanonicalLifestyleSystemData,
+  normalizeLifestyleSystemData
+};
 
 // ─── Character Normalization ─────────────────────────────────────────────────
 
@@ -307,6 +323,121 @@ export function normalizeCharacterSystemData(systemData) {
   }
   merged.equipment.ammoPools = normalizedAmmoPools;
 
+  const rawBallisticContainers = (merged.equipment?.ballisticContainers && typeof merged.equipment.ballisticContainers === "object")
+    ? merged.equipment.ballisticContainers
+    : {};
+  const normalizedBallisticContainers = {};
+  for (const [rawGroupKey, rawContainers] of Object.entries(rawBallisticContainers)) {
+    const groupKey = String(rawGroupKey ?? "").trim();
+    if (!groupKey) continue;
+    const sourceContainers = Array.isArray(rawContainers) ? rawContainers : [];
+    const containers = sourceContainers
+      .map((entry) => {
+        const container = (entry && typeof entry === "object") ? entry : {};
+        const capacity = toNonNegativeWhole(container.capacity, 0);
+        const currentRaw = toNonNegativeWhole(container.current, 0);
+        const current = capacity > 0 ? Math.min(capacity, currentRaw) : currentRaw;
+        const typeRaw = String(container.type ?? "magazine").trim().toLowerCase();
+        const type = typeRaw === "belt" ? "belt" : "magazine";
+        const weightKg = toNonNegativeNumber(container.weightKg, 0);
+        return {
+          id: String(container.id ?? foundry.utils.randomID()).trim(),
+          weaponId: String(container.weaponId ?? "").trim(),
+          ammoUuid: String(container.ammoUuid ?? "").trim(),
+          ammoName: String(container.ammoName ?? "").trim(),
+          type,
+          label: String(container.label ?? "").trim() || (type === "belt" ? "Belt" : "Magazine"),
+          capacity,
+          current,
+          isCarried: container.isCarried !== false,
+          createdAt: String(container.createdAt ?? "").trim(),
+          sourceWeaponName: String(container.sourceWeaponName ?? "").trim(),
+          compatibilitySignature: String(container.compatibilitySignature ?? "").trim() || groupKey,
+          weightKg
+        };
+      })
+      .filter((entry) => entry.id);
+
+    if (containers.length) {
+      normalizedBallisticContainers[groupKey] = containers;
+    }
+  }
+  merged.equipment.ballisticContainers = normalizedBallisticContainers;
+
+    const rawIndependentAmmo = (merged.equipment?.independentAmmo && typeof merged.equipment.independentAmmo === "object")
+      ? merged.equipment.independentAmmo
+      : {};
+    const normalizedIndependentAmmo = {};
+    const rawKeys = Object.keys(rawIndependentAmmo);
+    for (const [uuid, entry] of Object.entries(rawIndependentAmmo)) {
+      const storageKey = String(uuid ?? "").trim();
+      if (!storageKey) continue;
+      const ammoEntry = (entry && typeof entry === "object") ? entry : {};
+      const ammoUuid = String(ammoEntry?.ammoUuid ?? storageKey).trim();
+      const quantity = Math.max(0, toNonNegativeWhole(ammoEntry?.quantity, 0));
+      const ammoName = String(ammoEntry?.ammoName ?? "").trim() || "Unknown Ammo";
+      const ammoImg = String(ammoEntry?.ammoImg ?? "").trim() || "icons/svg/item-bag.svg";
+      const isCarried = ammoEntry?.isCarried !== false;
+      if (quantity > 0) {
+        normalizedIndependentAmmo[storageKey] = {
+          ammoUuid,
+          ammoName,
+          ammoImg,
+          isCarried,
+          quantity
+        };
+      } else if (quantity === 0) {
+        console.log(`[NORMALIZATION] Filtering out ammo with 0 quantity:`, ammoName);
+      }
+    }
+    const normalizedKeys = Object.keys(normalizedIndependentAmmo);
+    if (rawKeys.length !== normalizedKeys.length) {
+      console.log(`[NORMALIZATION] Independent ammo: ${rawKeys.length} raw entries → ${normalizedKeys.length} normalized entries`);
+    }
+    merged.equipment.independentAmmo = normalizedIndependentAmmo;
+
+  const rawEnergyCells = (merged.equipment?.energyCells && typeof merged.equipment.energyCells === "object")
+    ? merged.equipment.energyCells
+    : {};
+  const normalizedEnergyCells = {};
+  for (const [rawWeaponId, rawCells] of Object.entries(rawEnergyCells)) {
+    const weaponId = String(rawWeaponId ?? "").trim();
+    if (!weaponId) continue;
+    const sourceCells = Array.isArray(rawCells) ? rawCells : [];
+    const cells = sourceCells
+      .map((entry) => {
+        const cell = (entry && typeof entry === "object") ? entry : {};
+        const capacity = toNonNegativeWhole(cell.capacity, 0);
+        const current = Math.min(capacity || toNonNegativeWhole(cell.current, 0), toNonNegativeWhole(cell.current, 0));
+        const ammoMode = String(cell.ammoMode ?? "").trim().toLowerCase();
+        const batteryType = normalizeBatterySubtype(cell.batteryType, ammoMode);
+        const sourceWeaponName = String(cell.sourceWeaponName ?? "").trim();
+        const sourceWeaponType = String(cell.sourceWeaponType ?? "").trim().toLowerCase();
+        const sourceTraining = String(cell.sourceTraining ?? "").trim().toLowerCase();
+        const compatibilitySignature = String(cell.compatibilitySignature ?? "").trim();
+        return {
+          id: String(cell.id ?? foundry.utils.randomID()).trim(),
+          weaponId,
+          ammoMode,
+          batteryType,
+          capacity,
+          current,
+          isCarried: cell.isCarried !== false,
+          createdAt: String(cell.createdAt ?? "").trim(),
+          label: String(cell.label ?? "").trim() || getEnergyCellLabel(ammoMode, batteryType),
+          sourceWeaponName,
+          sourceWeaponType,
+          sourceTraining,
+          compatibilitySignature
+        };
+      })
+      .filter((entry) => entry.id);
+    if (cells.length) {
+      normalizedEnergyCells[weaponId] = cells;
+    }
+  }
+  merged.equipment.energyCells = normalizedEnergyCells;
+
   const rawWeaponState = (merged.equipment?.weaponState && typeof merged.equipment.weaponState === "object")
     ? merged.equipment.weaponState
     : {};
@@ -321,7 +452,13 @@ export function normalizeCharacterSystemData(systemData) {
     };
     normalizedWeaponState[itemId] = {
       magazineCurrent: toNonNegativeWhole(state.magazineCurrent, 0),
+      magazineTrackingMode: String(state.magazineTrackingMode ?? "abstract").trim().toLowerCase() || "abstract",
+      activeMagazineId: String(state.activeMagazineId ?? "").trim(),
+      activeEnergyCellId: String(state.activeEnergyCellId ?? "").trim(),
+      chamberRoundCount: toNonNegativeWhole(state.chamberRoundCount, 0),
       chargeLevel: toNonNegativeWhole(state.chargeLevel, 0),
+      rechargeRemaining: toNonNegativeWhole(state.rechargeRemaining, 0),
+      variantIndex: toNonNegativeWhole(state.variantIndex, 0),
       scopeMode: String(state.scopeMode ?? "none").trim().toLowerCase() || "none",
       fireMode: String(state.fireMode ?? "").trim().toLowerCase(),
       toHitModifier: toModifier(state.toHitModifier),
@@ -365,6 +502,23 @@ export function normalizeCharacterSystemData(systemData) {
   for (const key of ["unlockedFeatures", "spendLog"]) {
     merged.advancements[key] = String(merged.advancements?.[key] ?? "");
   }
+  merged.advancements.transactionNotes = String(merged.advancements?.transactionNotes ?? "");
+  merged.advancements.transactions = (Array.isArray(merged.advancements?.transactions) ? merged.advancements.transactions : [])
+    .map((entry, index) => {
+      if (!entry || typeof entry !== "object") return null;
+      const label = String(entry?.label ?? "").trim();
+      const amount = Number(entry?.amount ?? 0);
+      const createdAt = Number(entry?.createdAt ?? Date.now());
+      if (!label || !Number.isFinite(amount) || amount <= 0) return null;
+      return {
+        id: String(entry?.id ?? `txn-${createdAt}-${index + 1}`).trim() || `txn-${createdAt}-${index + 1}`,
+        label,
+        amount: toNonNegativeWhole(amount, 0),
+        createdAt: Number.isFinite(createdAt) ? Math.max(0, Math.floor(createdAt)) : Date.now(),
+        source: String(entry?.source ?? "manual").trim().toLowerCase() || "manual"
+      };
+    })
+    .filter(Boolean);
   merged.advancements.purchases = (merged.advancements?.purchases && typeof merged.advancements.purchases === "object")
     ? merged.advancements.purchases
     : {};
@@ -587,458 +741,6 @@ export function normalizeCharacterSystemData(systemData) {
   return merged;
 }
 
-// ─── Ability Normalization ───────────────────────────────────────────────────
-
-export function getCanonicalAbilitySystemData() {
-  return {
-    schemaVersion: MYTHIC_ABILITY_SCHEMA_VERSION,
-    cost: 0,
-    prerequisiteText: "",
-    prerequisiteRules: [],
-    prerequisites: [],
-    shortDescription: "",
-    benefit: "",
-    category: "general",
-    actionType: "passive",
-    activation: {
-      enabled: false,
-      maxUsesPerEncounter: 0,
-      usesSpent: 0,
-      cooldownTurns: 0,
-      cooldownRemaining: 0
-    },
-    frequency: "",
-    repeatable: false,
-    editMode: false,
-    tags: [],
-    sourcePage: 97,
-    notes: ""
-  };
-}
-
-export function normalizeAbilitySystemData(systemData, itemName = "") {
-  const source = foundry.utils.deepClone(systemData ?? {});
-  const defaults = getCanonicalAbilitySystemData();
-
-  const merged = foundry.utils.mergeObject(defaults, source, {
-    inplace: false,
-    insertKeys: true,
-    insertValues: true,
-    overwrite: true,
-    recursive: true
-  });
-
-  const costRaw = Number(merged.cost ?? 0);
-  merged.cost = Number.isFinite(costRaw) ? Math.max(0, Math.floor(costRaw)) : 0;
-  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ABILITY_SCHEMA_VERSION);
-
-  merged.prerequisiteText = String(merged.prerequisiteText ?? "").trim();
-  merged.shortDescription = String(merged.shortDescription ?? "").trim();
-  merged.benefit = String(merged.benefit ?? "").trim();
-  merged.category = String(merged.category ?? "general").trim().toLowerCase() || "general";
-  merged.frequency = String(merged.frequency ?? "").trim();
-  merged.notes = String(merged.notes ?? "");
-
-  const actionType = String(merged.actionType ?? "passive").toLowerCase();
-  const allowedActionTypes = new Set(["passive", "free", "reaction", "half", "full", "special"]);
-  merged.actionType = allowedActionTypes.has(actionType) ? actionType : "passive";
-
-  const activationSource = merged?.activation && typeof merged.activation === "object"
-    ? merged.activation
-    : {};
-  merged.activation = {
-    enabled: Boolean(activationSource?.enabled),
-    maxUsesPerEncounter: toNonNegativeWhole(activationSource?.maxUsesPerEncounter, 0),
-    usesSpent: toNonNegativeWhole(activationSource?.usesSpent, 0),
-    cooldownTurns: toNonNegativeWhole(activationSource?.cooldownTurns, 0),
-    cooldownRemaining: toNonNegativeWhole(activationSource?.cooldownRemaining, 0)
-  };
-  if (merged.activation.maxUsesPerEncounter > 0) {
-    merged.activation.usesSpent = Math.min(merged.activation.usesSpent, merged.activation.maxUsesPerEncounter);
-  }
-  if (merged.activation.cooldownTurns > 0) {
-    merged.activation.cooldownRemaining = Math.min(merged.activation.cooldownRemaining, merged.activation.cooldownTurns);
-  }
-
-  const pageRaw = Number(merged.sourcePage ?? 97);
-  merged.sourcePage = Number.isFinite(pageRaw) ? Math.max(1, Math.floor(pageRaw)) : 97;
-
-  merged.repeatable = Boolean(merged.repeatable);
-  merged.editMode = Boolean(merged.editMode);
-
-  const ruleArray = Array.isArray(merged.prerequisiteRules) ? merged.prerequisiteRules : [];
-  merged.prerequisiteRules = ruleArray
-    .map((rule) => ({
-      variable: String(rule?.variable ?? "").trim().toLowerCase(),
-      qualifier: String(rule?.qualifier ?? "").trim().toLowerCase(),
-      value: rule?.value,
-      values: Array.isArray(rule?.values) ? rule.values.map((v) => String(v ?? "").trim()).filter(Boolean) : []
-    }))
-    .filter((rule) => rule.variable && rule.qualifier);
-
-  const prereqArray = Array.isArray(merged.prerequisites) ? merged.prerequisites : [];
-  merged.prerequisites = prereqArray
-    .map((entry) => String(entry ?? "").trim())
-    .filter(Boolean);
-
-  const tagArray = Array.isArray(merged.tags) ? merged.tags : [];
-  merged.tags = tagArray
-    .map((entry) => String(entry ?? "").trim().toLowerCase())
-    .filter(Boolean);
-
-  merged.sync = normalizeItemSyncData(merged.sync, "ability", itemName, { sourcePage: merged.sourcePage });
-
-  return merged;
-}
-
-// ─── Trait Normalization ─────────────────────────────────────────────────────
-
-export function getCanonicalTraitSystemData() {
-  return {
-    schemaVersion: MYTHIC_TRAIT_SCHEMA_VERSION,
-    shortDescription: "",
-    benefit: "",
-    category: "general",
-    grantOnly: true,
-    editMode: false,
-    tags: [],
-    sourcePage: 97,
-    notes: ""
-  };
-}
-
-export function normalizeTraitSystemData(systemData, itemName = "") {
-  const source = foundry.utils.deepClone(systemData ?? {});
-  const defaults = getCanonicalTraitSystemData();
-
-  const merged = foundry.utils.mergeObject(defaults, source, {
-    inplace: false,
-    insertKeys: true,
-    insertValues: true,
-    overwrite: true,
-    recursive: true
-  });
-
-  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_TRAIT_SCHEMA_VERSION);
-  merged.shortDescription = String(merged.shortDescription ?? "").trim();
-  merged.benefit = String(merged.benefit ?? "").trim();
-  merged.category = String(merged.category ?? "general").trim().toLowerCase() || "general";
-  merged.notes = String(merged.notes ?? "");
-
-  const pageRaw = Number(merged.sourcePage ?? 97);
-  merged.sourcePage = Number.isFinite(pageRaw) ? Math.max(1, Math.floor(pageRaw)) : 97;
-  merged.grantOnly = merged.grantOnly !== false;
-  merged.editMode = Boolean(merged.editMode);
-
-  const tagArray = Array.isArray(merged.tags) ? merged.tags : [];
-  merged.tags = tagArray
-    .map((entry) => String(entry ?? "").trim().toLowerCase())
-    .filter(Boolean);
-
-  merged.sync = normalizeItemSyncData(merged.sync, "trait", itemName, { sourcePage: merged.sourcePage });
-
-  delete merged.actionType;
-  delete merged.frequency;
-  delete merged.repeatable;
-
-  return merged;
-}
-
-// ─── Armor Variant Normalization ─────────────────────────────────────────────
-
-export function getCanonicalArmorVariantSystemData() {
-  return {
-    schemaVersion: MYTHIC_ARMOR_VARIANT_SCHEMA_VERSION,
-    shortDescription: "",
-    description: "",
-    notes: "",
-    editMode: false,
-    generation: "gen1",
-    compatibleFamilies: ["mjolnir"],
-    modifiers: {
-      protection: {
-        head: 0,
-        arms: 0,
-        chest: 0,
-        legs: 0
-      },
-      shields: {
-        integrity: 0,
-        delay: 0,
-        rechargeRate: 0
-      },
-      weightKg: 0
-    },
-    tags: []
-  };
-}
-
-export function normalizeArmorVariantSystemData(systemData, itemName = "") {
-  const source = foundry.utils.deepClone(systemData ?? {});
-  const defaults = getCanonicalArmorVariantSystemData();
-  const merged = foundry.utils.mergeObject(defaults, source, {
-    inplace: false,
-    insertKeys: true,
-    insertValues: true,
-    overwrite: true,
-    recursive: true
-  });
-
-  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ARMOR_VARIANT_SCHEMA_VERSION);
-  merged.shortDescription = String(merged.shortDescription ?? "").trim();
-  merged.description = String(merged.description ?? "").trim();
-  merged.notes = String(merged.notes ?? "").trim();
-  merged.editMode = Boolean(merged.editMode);
-
-  const generation = String(merged.generation ?? "gen1").trim().toLowerCase();
-  merged.generation = ["gen1", "gen2", "gen3", "other"].includes(generation) ? generation : "other";
-
-  const families = Array.isArray(merged.compatibleFamilies)
-    ? merged.compatibleFamilies
-    : String(merged.compatibleFamilies ?? "")
-      .split(",")
-      .map((entry) => String(entry ?? "").trim().toLowerCase())
-      .filter(Boolean);
-  merged.compatibleFamilies = Array.from(new Set(families.length ? families : ["mjolnir"]));
-
-  merged.modifiers.protection.head = Number.isFinite(Number(merged.modifiers?.protection?.head)) ? Number(merged.modifiers.protection.head) : 0;
-  merged.modifiers.protection.arms = Number.isFinite(Number(merged.modifiers?.protection?.arms)) ? Number(merged.modifiers.protection.arms) : 0;
-  merged.modifiers.protection.chest = Number.isFinite(Number(merged.modifiers?.protection?.chest)) ? Number(merged.modifiers.protection.chest) : 0;
-  merged.modifiers.protection.legs = Number.isFinite(Number(merged.modifiers?.protection?.legs)) ? Number(merged.modifiers.protection.legs) : 0;
-  merged.modifiers.shields.integrity = Number.isFinite(Number(merged.modifiers?.shields?.integrity)) ? Number(merged.modifiers.shields.integrity) : 0;
-  merged.modifiers.shields.delay = Number.isFinite(Number(merged.modifiers?.shields?.delay)) ? Number(merged.modifiers.shields.delay) : 0;
-  merged.modifiers.shields.rechargeRate = Number.isFinite(Number(merged.modifiers?.shields?.rechargeRate)) ? Number(merged.modifiers.shields.rechargeRate) : 0;
-  merged.modifiers.weightKg = Number.isFinite(Number(merged.modifiers?.weightKg)) ? Number(merged.modifiers.weightKg) : 0;
-
-  const tags = Array.isArray(merged.tags) ? merged.tags : String(merged.tags ?? "").split(",");
-  merged.tags = Array.from(new Set(tags.map((entry) => String(entry ?? "").trim().toLowerCase()).filter(Boolean)));
-
-  merged.sync = normalizeItemSyncData(merged.sync, "armorVariant", itemName);
-  return merged;
-}
-
-// ─── Education Normalization ─────────────────────────────────────────────────
-
-export function getCanonicalEducationSystemData() {
-  return {
-    schemaVersion: MYTHIC_EDUCATION_SCHEMA_VERSION,
-    difficulty: "basic",
-    skills: [],
-    characteristic: "int",
-    costPlus5: 50,
-    costPlus10: 100,
-    restricted: false,
-    category: "general",
-    description: "",
-    tier: "plus5",
-    modifier: 0,
-    editMode: false
-  };
-}
-
-export function normalizeEducationSystemData(systemData, itemName = "") {
-  const source = foundry.utils.deepClone(systemData ?? {});
-  const defaults = getCanonicalEducationSystemData();
-
-  const merged = foundry.utils.mergeObject(defaults, source, {
-    inplace: false,
-    insertKeys: true,
-    insertValues: true,
-    overwrite: true,
-    recursive: true
-  });
-
-  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_EDUCATION_SCHEMA_VERSION);
-
-  const difficulty = String(merged.difficulty ?? "basic").toLowerCase();
-  merged.difficulty = difficulty === "advanced" ? "advanced" : "basic";
-
-  const characteristic = String(merged.characteristic ?? "int").trim().toLowerCase();
-  merged.characteristic = characteristic || "int";
-
-  const tier = String(merged.tier ?? "plus5").toLowerCase();
-  merged.tier = tier === "plus10" ? "plus10" : "plus5";
-
-  const toWhole = (value, fallback = 0) => {
-    const numeric = Number(value ?? fallback);
-    return Number.isFinite(numeric) ? Math.floor(numeric) : fallback;
-  };
-
-  merged.costPlus5 = Math.max(0, toWhole(merged.costPlus5, 50));
-  merged.costPlus10 = Math.max(0, toWhole(merged.costPlus10, 100));
-  merged.modifier = toWhole(merged.modifier, 0);
-  merged.restricted = Boolean(merged.restricted);
-  merged.editMode = Boolean(merged.editMode);
-  merged.category = String(merged.category ?? "general").trim().toLowerCase() || "general";
-  merged.description = String(merged.description ?? "");
-
-  const skills = Array.isArray(merged.skills)
-    ? merged.skills
-    : String(merged.skills ?? "")
-      .split(",")
-      .map((entry) => String(entry ?? "").trim())
-      .filter(Boolean);
-  merged.skills = skills;
-  merged.sync = normalizeItemSyncData(merged.sync, "education", itemName);
-
-  return merged;
-}
-
-// ─── Upbringing Normalization ────────────────────────────────────────────────
-
-/**
- * A modifier group option: one selectable set of characteristic/wound changes.
- * @typedef {{ label: string, modifiers: Array<{kind: string, key?: string, value: number}> }} MythicModifierOption
- */
-
-/**
- * A modifier group: either a "fixed" bundle (always applied) or a "choice" (player picks one option).
- * @typedef {{ id: string, label: string, type: "fixed"|"choice", options: MythicModifierOption[] }} MythicModifierGroup
- */
-
-export function normalizeModifierOption(opt) {
-  const label = String(opt?.label ?? "").trim();
-  const modifiers = Array.isArray(opt?.modifiers)
-    ? opt.modifiers.map((m) => ({
-        kind:  String(m?.kind ?? "stat"),
-        key:   m?.key  != null ? String(m.key).toLowerCase()  : undefined,
-        value: Number.isFinite(Number(m?.value)) ? Number(m.value) : 0
-      }))
-    : [];
-  return { label, modifiers };
-}
-
-export function normalizeModifierGroup(group) {
-  const id    = String(group?.id    ?? foundry.utils.randomID()).trim();
-  const label = String(group?.label ?? "").trim();
-  const type  = String(group?.type  ?? "choice").toLowerCase() === "fixed" ? "fixed" : "choice";
-  const options = Array.isArray(group?.options)
-    ? group.options.map(normalizeModifierOption)
-    : [];
-  return { id, label, type, options };
-}
-
-export function getCanonicalUpbringingSystemData() {
-  return {
-    schemaVersion: MYTHIC_UPBRINGING_SCHEMA_VERSION,
-    editMode: false,
-    description: "",
-    allowedEnvironments: [],  // empty = any; values: "city","country","forest","town","wasteland"
-    modifierGroups: [],       // MythicModifierGroup[]
-    sync: {}
-  };
-}
-
-export function normalizeUpbringingSystemData(systemData, itemName = "") {
-  const source   = foundry.utils.deepClone(systemData ?? {});
-  const defaults = getCanonicalUpbringingSystemData();
-  const merged   = foundry.utils.mergeObject(defaults, source, {
-    inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true
-  });
-  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_UPBRINGING_SCHEMA_VERSION);
-  merged.editMode = Boolean(merged.editMode);
-  merged.description = String(merged.description ?? "");
-  merged.allowedEnvironments = Array.isArray(merged.allowedEnvironments)
-    ? merged.allowedEnvironments.map((e) => String(e).toLowerCase().trim()).filter(Boolean)
-    : [];
-  merged.modifierGroups = Array.isArray(merged.modifierGroups)
-    ? merged.modifierGroups.map(normalizeModifierGroup)
-    : [];
-  merged.sync = normalizeItemSyncData(merged.sync, "upbringing", itemName);
-  return merged;
-}
-
-// ─── Environment Normalization ───────────────────────────────────────────────
-
-export function getCanonicalEnvironmentSystemData() {
-  return {
-    schemaVersion: MYTHIC_ENVIRONMENT_SCHEMA_VERSION,
-    editMode: false,
-    description: "",
-    modifierGroups: [],  // MythicModifierGroup[]
-    sync: {}
-  };
-}
-
-export function normalizeEnvironmentSystemData(systemData, itemName = "") {
-  const source   = foundry.utils.deepClone(systemData ?? {});
-  const defaults = getCanonicalEnvironmentSystemData();
-  const merged   = foundry.utils.mergeObject(defaults, source, {
-    inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true
-  });
-  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ENVIRONMENT_SCHEMA_VERSION);
-  merged.editMode = Boolean(merged.editMode);
-  merged.description = String(merged.description ?? "");
-  merged.modifierGroups = Array.isArray(merged.modifierGroups)
-    ? merged.modifierGroups.map(normalizeModifierGroup)
-    : [];
-  merged.sync = normalizeItemSyncData(merged.sync, "environment", itemName);
-  return merged;
-}
-
-// ─── Lifestyle Normalization ─────────────────────────────────────────────────
-
-/**
- * One roll-range variant of a lifestyle.
- * @typedef {{
- *   id: string,
- *   rollMin: number,
- *   rollMax: number,
- *   label: string,
- *   modifiers: Array<{kind:string, key?:string, value:number}>,
- *   choiceGroups: MythicModifierGroup[]
- * }} MythicLifestyleVariant
- */
-
-export function normalizeLifestyleVariant(v) {
-  const rollMin = Number.isFinite(Number(v?.rollMin)) ? Number(v.rollMin) : 1;
-  const rollMax = Number.isFinite(Number(v?.rollMax)) ? Number(v.rollMax) : 10;
-  const fallbackWeight = Math.max(1, (Math.floor(rollMax) - Math.floor(rollMin)) + 1);
-  return {
-    id:       String(v?.id    ?? foundry.utils.randomID()).trim(),
-    rollMin,
-    rollMax,
-    weight: Number.isFinite(Number(v?.weight)) ? Math.max(1, Math.floor(Number(v.weight))) : fallbackWeight,
-    label:    String(v?.label ?? "").trim(),
-    modifiers: Array.isArray(v?.modifiers)
-      ? v.modifiers.map((m) => ({
-          kind:  String(m?.kind ?? "stat"),
-          key:   m?.key != null ? String(m.key).toLowerCase() : undefined,
-          value: Number.isFinite(Number(m?.value)) ? Number(m.value) : 0
-        }))
-      : [],
-    choiceGroups: Array.isArray(v?.choiceGroups)
-      ? v.choiceGroups.map(normalizeModifierGroup)
-      : []
-  };
-}
-
-export function getCanonicalLifestyleSystemData() {
-  return {
-    schemaVersion: MYTHIC_LIFESTYLE_SCHEMA_VERSION,
-    editMode: false,
-    description: "",
-    variants: [],  // MythicLifestyleVariant[]
-    sync: {}
-  };
-}
-
-export function normalizeLifestyleSystemData(systemData, itemName = "") {
-  const source   = foundry.utils.deepClone(systemData ?? {});
-  const defaults = getCanonicalLifestyleSystemData();
-  const merged   = foundry.utils.mergeObject(defaults, source, {
-    inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true
-  });
-  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_LIFESTYLE_SCHEMA_VERSION);
-  merged.editMode = Boolean(merged.editMode);
-  merged.description = String(merged.description ?? "");
-  merged.variants = Array.isArray(merged.variants)
-    ? merged.variants.map(normalizeLifestyleVariant)
-    : [];
-  merged.sync = normalizeItemSyncData(merged.sync, "lifestyle", itemName);
-  return merged;
-}
-
 // ─── Dispatch ────────────────────────────────────────────────────────────────
 
 export function normalizeSupportedItemSystemData(itemType, systemData, itemName = "") {
@@ -1055,379 +757,6 @@ export function normalizeSupportedItemSystemData(itemType, systemData, itemName 
 }
 
 // ─── Soldier Type Normalization ──────────────────────────────────────────────
-
-export function getCanonicalSoldierTypeSystemData() {
-  return {
-    schemaVersion: MYTHIC_SOLDIER_TYPE_SCHEMA_VERSION,
-    editMode: false,
-    description: "",
-    notes: "",
-    creation: {
-      xpCost: 0
-    },
-    header: {
-      faction: "",
-      soldierType: "",
-      rank: "",
-      specialisation: "",
-      race: "",
-      buildSize: "",
-      upbringing: "",
-      environment: "",
-      lifestyle: ""
-    },
-    heightRangeCm: {
-      min: MYTHIC_DEFAULT_HEIGHT_RANGE_CM.min,
-      max: MYTHIC_DEFAULT_HEIGHT_RANGE_CM.max
-    },
-    weightRangeKg: {
-      min: MYTHIC_DEFAULT_WEIGHT_RANGE_KG.min,
-      max: MYTHIC_DEFAULT_WEIGHT_RANGE_KG.max
-    },
-    characteristics: {
-      str: 0,
-      tou: 0,
-      agi: 0,
-      wfm: 0,
-      wfr: 0,
-      int: 0,
-      per: 0,
-      crg: 0,
-      cha: 0,
-      ldr: 0
-    },
-    characteristicAdvancements: {
-      str: 0,
-      tou: 0,
-      agi: 0,
-      wfm: 0,
-      wfr: 0,
-      int: 0,
-      per: 0,
-      crg: 0,
-      cha: 0,
-      ldr: 0
-    },
-    mythic: {
-      str: 0,
-      tou: 0,
-      agi: 0
-    },
-    skills: {
-      base: {},
-      custom: []
-    },
-    skillChoices: [],
-    training: [],
-    abilities: [],
-    traits: [],
-    educations: [],
-    educationChoices: [],
-    trainingPathChoice: {
-      enabled: false,
-      prompt: "Choose training path for this Soldier Type.",
-      defaultKey: "",
-      choices: []
-    },
-    advancementOptions: [],
-    ruleFlags: {
-      airForceVehicleBenefit: false,
-      fixedCarryWeight: 0,
-      chargeRunAgiBonus: 0,
-      carryMultipliers: {
-        str: 1,
-        tou: 1
-      },
-      toughMultiplier: 1,
-      leapMultiplier: 1,
-      leapModifier: 0,
-      branchTransition: {
-        enabled: false,
-        advancementOnly: false,
-        appliesInCharacterCreation: true,
-        transitionGroup: "",
-        fromSoldierTypes: [],
-        notes: ""
-      },
-      orionAugmentation: {
-        enabled: false,
-        advancementOnly: false,
-        appliesInCharacterCreation: true,
-        transitionGroup: "",
-        fromSoldierTypes: [],
-        notes: ""
-      },
-      oniSectionOne: {
-        requiresGmApproval: false,
-        gmApprovalText: "",
-        rankScaffold: {
-          enabled: false,
-          startRank: "",
-          commandSpecializationAllowed: false,
-          notes: ""
-        },
-        supportScaffold: {
-          enabled: false,
-          bonusPerAward: 0,
-          grantAtCharacterCreation: false,
-          regenerates: true,
-          notes: ""
-        },
-        unscSupportCostScaffold: {
-          enabled: false,
-          infantryMultiplier: 1,
-          ordnanceMultiplier: 1,
-          notes: ""
-        }
-      },
-      smartAi: {
-        enabled: false,
-        coreIdentityLabel: "Cognitive Pattern",
-        notes: ""
-      },
-      naturalArmorScaffold: {
-        enabled: false,
-        baseValue: 0,
-        halvedWhenArmored: true,
-        halvedOnHeadshot: true,
-        notes: ""
-      },
-      spartanCarryWeight: {
-        enabled: false
-      },
-      phenomeChoice: {
-        enabled: false,
-        prompt: "Choose a Lekgolo phenome culture.",
-        defaultKey: "",
-        choices: []
-      }
-    },
-    specPacks: [],
-    equipmentPacks: [],
-    equipment: {
-      credits: 0,
-      primaryWeapon: "",
-      secondaryWeapon: "",
-      armorName: "",
-      utilityLoadout: "",
-      inventoryNotes: ""
-    }
-  };
-}
-
-export function normalizeSoldierTypeSpecPack(entry, index = 0) {
-  const optionsRaw = Array.isArray(entry?.options) ? entry.options : [];
-  const options = optionsRaw
-    .map((option, optionIndex) => normalizeSoldierTypeEquipmentPack(option, optionIndex))
-    .filter((option) => option.name || option.items.length || option.description);
-
-  return {
-    name: String(entry?.name ?? `Spec Pack ${index + 1}`).trim() || `Spec Pack ${index + 1}`,
-    description: String(entry?.description ?? "").trim(),
-    options
-  };
-}
-
-export function normalizeSoldierTypeSkillChoice(entry) {
-  const count = toNonNegativeWhole(entry?.count, 0);
-  const tier = String(entry?.tier ?? "trained").trim().toLowerCase();
-  const allowedTier = ["trained", "plus10", "plus20"].includes(tier) ? tier : "trained";
-  return {
-    count,
-    tier: allowedTier,
-    label: String(entry?.label ?? "Skills of choice").trim() || "Skills of choice",
-    notes: String(entry?.notes ?? "").trim(),
-    source: String(entry?.source ?? "").trim()
-  };
-}
-
-export function normalizeSoldierTypeEducationChoice(entry) {
-  const count = toNonNegativeWhole(entry?.count, 0);
-  const tier = String(entry?.tier ?? "plus5").trim().toLowerCase();
-  const allowedTier = ["plus5", "plus10"].includes(tier) ? tier : "plus5";
-  return {
-    count,
-    tier: allowedTier,
-    label: String(entry?.label ?? "Educations of choice").trim() || "Educations of choice",
-    notes: String(entry?.notes ?? "").trim(),
-    source: String(entry?.source ?? "").trim()
-  };
-}
-
-export function normalizeSoldierTypeTrainingPathChoice(systemData) {
-  const source = systemData?.trainingPathChoice;
-  if (!source || typeof source !== "object") {
-    return {
-      enabled: false,
-      prompt: "Choose training path for this Soldier Type.",
-      defaultKey: "",
-      choices: []
-    };
-  }
-
-  const rawChoices = Array.isArray(source.choices) ? source.choices : [];
-  const choices = rawChoices
-    .map((entry, index) => {
-      const key = String(entry?.key ?? `path-${index + 1}`).trim().toLowerCase();
-      const label = String(entry?.label ?? key).trim();
-      if (!key || !label) return null;
-      return {
-        key,
-        label,
-        trainingGrants: normalizeStringList(Array.isArray(entry?.trainingGrants) ? entry.trainingGrants : []),
-        grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : []),
-        skillChoices: (Array.isArray(entry?.skillChoices) ? entry.skillChoices : [])
-          .map((choice) => normalizeSoldierTypeSkillChoice(choice))
-          .filter((choice) => choice.count > 0),
-        creationXpCost: Number.isFinite(Number(entry?.creationXpCost))
-          ? toNonNegativeWhole(entry?.creationXpCost, 0)
-          : null,
-        characteristicAdvancements: (entry?.characteristicAdvancements && typeof entry.characteristicAdvancements === "object")
-          ? MYTHIC_CHARACTERISTIC_KEYS.reduce((acc, key) => {
-            acc[key] = Math.max(0, Math.floor(Number(entry?.characteristicAdvancements?.[key] ?? 0)));
-            return acc;
-          }, {})
-          : null,
-        notes: String(entry?.notes ?? "").trim()
-      };
-    })
-    .filter(Boolean);
-
-  const requestedDefault = String(source.defaultKey ?? "").trim().toLowerCase();
-  const fallbackDefault = choices.some((entry) => entry.key === "combat") ? "combat" : (choices[0]?.key ?? "");
-  const defaultKey = choices.some((entry) => entry.key === requestedDefault) ? requestedDefault : fallbackDefault;
-
-  return {
-    enabled: source.enabled === false ? false : choices.length > 0,
-    prompt: String(source.prompt ?? "Choose training path for this Soldier Type.").trim() || "Choose training path for this Soldier Type.",
-    defaultKey,
-    choices
-  };
-}
-
-export function normalizeSoldierTypeAdvancementOption(entry, index = 0) {
-  const key = String(entry?.key ?? `advancement-${index + 1}`).trim().toLowerCase();
-  const label = String(entry?.label ?? key).trim();
-  if (!key || !label) return null;
-  return {
-    key,
-    label,
-    requiresKey: String(entry?.requiresKey ?? "").trim().toLowerCase(),
-    requirements: String(entry?.requirements ?? "").trim(),
-    details: String(entry?.details ?? "").trim(),
-    summary: String(entry?.summary ?? "").trim(),
-    xpCost: toNonNegativeWhole(entry?.xpCost, 0),
-    traitGrants: normalizeStringList(Array.isArray(entry?.traitGrants) ? entry.traitGrants : []),
-    notes: String(entry?.notes ?? "").trim()
-  };
-}
-
-export function normalizeSoldierTypeEquipmentPack(entry, index = 0) {
-  const items = Array.isArray(entry?.items)
-    ? entry.items.map((value) => String(value ?? "").trim()).filter(Boolean)
-    : String(entry?.items ?? "")
-      .split(/\r?\n|,/)
-      .map((value) => String(value ?? "").trim())
-      .filter(Boolean);
-
-  return {
-    name: String(entry?.name ?? `Equipment Pack ${index + 1}`).trim() || `Equipment Pack ${index + 1}`,
-    description: String(entry?.description ?? "").trim(),
-    items
-  };
-}
-
-// ─── Equipment Pack Normalization ────────────────────────────────────────────
-
-export function getCanonicalEquipmentPackSystemData() {
-  return {
-    schemaVersion: MYTHIC_EQUIPMENT_PACK_SCHEMA_VERSION,
-    packType: "equipment",
-    faction: "",
-    description: "",
-    tags: [],
-    // Canonical soldierType IDs this pack can be used by (shared packs can target many).
-    soldierTypes: [],
-    options: [],
-    sourceReference: {
-      table: "",
-      rowNumber: 0
-    },
-    sync: {}
-  };
-}
-
-export function normalizeEquipmentPackOption(entry, index = 0) {
-  const optionName = String(entry?.name ?? entry?.label ?? `Option ${index + 1}`).trim() || `Option ${index + 1}`;
-  const items = Array.isArray(entry?.items)
-    ? entry.items
-    : String(entry?.items ?? "").split(/\r?\n|,/);
-  const choices = Array.isArray(entry?.choices)
-    ? entry.choices
-    : String(entry?.choices ?? "").split(/\r?\n|,/);
-
-  return {
-    key: String(entry?.key ?? "").trim(),
-    name: optionName,
-    description: String(entry?.description ?? "").trim(),
-    notes: String(entry?.notes ?? "").trim(),
-    items: normalizeStringList(items),
-    choices: normalizeStringList(choices)
-  };
-}
-
-export function normalizeEquipmentPackSystemData(systemData, itemName = "") {
-  const source = foundry.utils.deepClone(systemData ?? {});
-  const defaults = getCanonicalEquipmentPackSystemData();
-  const merged = foundry.utils.mergeObject(defaults, source, {
-    inplace: false,
-    insertKeys: true,
-    insertValues: true,
-    overwrite: true,
-    recursive: true
-  });
-
-  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_EQUIPMENT_PACK_SCHEMA_VERSION);
-  merged.packType = String(merged.packType ?? "equipment").trim().toLowerCase() || "equipment";
-  merged.faction = String(merged.faction ?? "").trim();
-  merged.description = String(merged.description ?? "").trim();
-
-  const tagsSource = Array.isArray(merged.tags)
-    ? merged.tags
-    : String(merged.tags ?? "").split(/\r?\n|,/);
-  merged.tags = normalizeStringList(tagsSource);
-
-  const soldierTypeSource = Array.isArray(merged.soldierTypes)
-    ? merged.soldierTypes
-    : String(merged.soldierTypes ?? "").split(/\r?\n|,/);
-  merged.soldierTypes = normalizeStringList(soldierTypeSource);
-
-  const rawOptions = Array.isArray(merged.options) ? merged.options : [];
-  merged.options = rawOptions
-    .map((entry, index) => normalizeEquipmentPackOption(entry, index))
-    .filter((entry) => entry.name || entry.items.length || entry.choices.length || entry.description || entry.notes);
-
-  merged.sourceReference.table = String(merged.sourceReference?.table ?? "").trim();
-  merged.sourceReference.rowNumber = toNonNegativeWhole(merged.sourceReference?.rowNumber, 0);
-  merged.sync = normalizeItemSyncData(merged.sync, "equipmentPack", itemName);
-  return merged;
-}
-
-// ─── Soldier Type Skill Patch ────────────────────────────────────────────────
-
-export function normalizeSoldierTypeSkillPatch(entry) {
-  const characteristic = String(entry?.selectedCharacteristic ?? "int").trim().toLowerCase();
-  const selectedCharacteristic = MYTHIC_CHARACTERISTIC_KEYS.includes(characteristic) ? characteristic : "int";
-  const tier = String(entry?.tier ?? "untrained").toLowerCase();
-  const allowedTier = Object.prototype.hasOwnProperty.call(MYTHIC_SKILL_BONUS_BY_TIER, tier) ? tier : "untrained";
-  return {
-    tier: allowedTier,
-    selectedCharacteristic,
-    modifier: toNonNegativeWhole(entry?.modifier, 0),
-    xpPlus10: toNonNegativeWhole(entry?.xpPlus10, 0),
-    xpPlus20: toNonNegativeWhole(entry?.xpPlus20, 0)
-  };
-}
 
 export function normalizeSoldierTypeSystemData(systemData, itemName = "") {
   const source = foundry.utils.deepClone(systemData ?? {});
@@ -1766,16 +1095,87 @@ export function normalizeSoldierTypeSystemData(systemData, itemName = "") {
 
 export function normalizeGearSystemData(systemData, itemName = "") {
   const source = foundry.utils.deepClone(systemData ?? {});
+  const allowedEquipmentTypes = new Set([
+    "ranged-weapon",
+    "melee-weapon",
+    "armor",
+    "ammunition",
+    "container",
+    "weapon-modification",
+    "armor-modification",
+    "ammo-modification",
+    "general"
+  ]);
+  const resolveEquipmentTypeFromLegacy = (value = {}) => {
+    const itemClass = String(value?.itemClass ?? "").trim().toLowerCase();
+    const weaponClass = String(value?.weaponClass ?? "").trim().toLowerCase();
+    const category = String(value?.category ?? "").trim().toLowerCase();
+    const weaponType = String(value?.weaponType ?? "").trim().toLowerCase();
+    const hint = [itemClass, weaponClass, category, weaponType, itemName]
+      .map((entry) => String(entry ?? "").trim().toLowerCase())
+      .join(" ");
+
+    if (itemClass === "armor" || weaponClass === "armor") return "armor";
+    if (itemClass === "weapon") {
+      return weaponClass === "melee" ? "melee-weapon" : "ranged-weapon";
+    }
+    if (itemClass === "ammo" || itemClass === "ammunition") return "ammunition";
+    if (itemClass === "container") return "container";
+    if (itemClass === "weapon-modification" || itemClass === "weapon_modification" || itemClass === "weaponmod") return "weapon-modification";
+    if (itemClass === "armor-modification" || itemClass === "armor_modification" || itemClass === "armormod") return "armor-modification";
+    if (itemClass === "armor-permutation" || itemClass === "armor_permutation" || itemClass === "armorpermutation") return "armor-modification";
+    if (itemClass === "ammo-modification" || itemClass === "ammo_modification" || itemClass === "ammomod" || itemClass === "ammo-mod") return "ammo-modification";
+
+    if (/\bammo\b|\bammunition\b/u.test(hint)) return "ammunition";
+    if (/\bcontainer\b|\bcrate\b|\bcase\b|\bpack\b/u.test(hint)) return "container";
+    if (/\bweapon\s*mod\b|\bweapon\s*modification\b/u.test(hint)) return "weapon-modification";
+    if (/\barmor\s*mod\b|\barmou?r\s*modification\b|\barmou?r\s*permutation(s)?\b/u.test(hint)) return "armor-modification";
+    if (/\bammo\s*mod\b|\bammunition\s*modification\b/u.test(hint)) return "ammo-modification";
+
+    return "general";
+  };
+  const applyLegacyClassFromEquipmentType = (value = {}, equipmentType = "general") => {
+    if (equipmentType === "ranged-weapon") {
+      value.itemClass = "weapon";
+      value.weaponClass = "ranged";
+      return;
+    }
+    if (equipmentType === "melee-weapon") {
+      value.itemClass = "weapon";
+      value.weaponClass = "melee";
+      return;
+    }
+    if (equipmentType === "armor") {
+      value.itemClass = "armor";
+      value.weaponClass = "other";
+      return;
+    }
+
+    value.itemClass = "other";
+    value.weaponClass = "other";
+  };
   const merged = foundry.utils.mergeObject({
     schemaVersion: MYTHIC_GEAR_SCHEMA_VERSION,
+    equipmentType: "ranged-weapon",
     itemClass: "weapon",
     weaponClass: "ranged",
     faction: "",
+    armorySelection: "",
     source: "mythic",
     category: "",
+    training: "",
+    baseToHitModifier: 0,
     weaponType: "",
     wieldingType: "",
+    ammoId: null,
     ammoName: "",
+    specialAmmoCategory: "Standard",
+    ammoMode: "magazine",
+    batteryType: "plasma",
+    singleLoading: false,
+    batteryCapacity: 0,
+    weightPerRoundKg: 0,
+    costPer100: 0,
     nicknames: [],
     fireModes: [],
     charge: {
@@ -1784,16 +1184,24 @@ export function normalizeGearSystemData(systemData, itemName = "") {
       maxLevel: 0
     },
     damage: {
+      diceCount: 0,
+      diceType: "d10",
       baseRollD5: 0,
       baseRollD10: 0,
       baseDamage: 0,
-      pierce: 0
+      baseDamageModifierMode: "full-str-mod",
+      pierce: 0,
+      pierceModifierMode: "full-str-mod"
     },
+    nickname: "",
+    attackName: "",
+    variantAttacks: [],
     range: {
       close: 0,
       max: 0,
       reload: 0,
-      magazine: 0
+      magazine: 0,
+      reach: "0"
     },
     price: {
       amount: 0,
@@ -1801,16 +1209,63 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     },
     weightKg: 0,
     specialRules: "",
+    weaponSpecialRuleKeys: [],
+    weaponTagKeys: [],
     attachments: "",
     description: "",
+    // Quantity (primarily for ammo sold in units)
+    quantity: 1,
     // Armor-specific fields (ignored for weapons)
     armorWeightProfile: "standard",
+    isPoweredArmor: false,
+    isCurrentlyUnpowered: false,
+    powerStateOverride: "default",
+    armorSpecialRuleKeys: [],
+    armorAbilityKeys: [],
+    powerArmorTraitKeys: [],
+    builtInItemIds: [],
+    powerArmorTraitIds: [],
+    photoReactivePanelsBonus: 0,
+    characteristicMods: {
+      base: {
+        str: 0,
+        tou: 0,
+        agi: 0,
+        wfm: 0,
+        wfr: 0,
+        int: 0,
+        per: 0,
+        crg: 0,
+        cha: 0,
+        ldr: 0
+      },
+      mythic: {
+        str: 0,
+        tou: 0,
+        agi: 0
+      }
+    },
+    pierceReductions: [],
     modifiers: "",
+    // Ammo-modification-specific fields (ignored for other subtypes)
+    modifierCode: "",
+    modifierLabel: "",
+    damageDelta: 0,
+    pierceDelta: 0,
+    compatibilityCodes: [],
+    compatibilityMode: "allowlist",
+    compatibilityRaw: "",
+    abilityText: "",
+    costMultiplier: 1,
+    costMode: "per100",
+    sourceCategory: "",
     protection: {
       head: 0,
-      arms: 0,
       chest: 0,
-      legs: 0
+      lArm: 0,
+      rArm: 0,
+      lLeg: 0,
+      rLeg: 0
     },
     shields: {
       integrity: 0,
@@ -1838,6 +1293,15 @@ export function normalizeGearSystemData(systemData, itemName = "") {
       .map((entry) => String(entry ?? "").trim())
       .filter(Boolean);
   };
+  const parseFlexibleList = (value) => {
+    if (Array.isArray(value)) return value;
+    const text = String(value ?? "").trim();
+    if (!text) return [];
+    return text
+      .split(/[\r\n,;]+/u)
+      .map((entry) => String(entry ?? "").trim())
+      .filter(Boolean);
+  };
 
   const schemaRaw = Number(merged.schemaVersion ?? MYTHIC_GEAR_SCHEMA_VERSION);
   merged.schemaVersion = Number.isFinite(schemaRaw)
@@ -1850,12 +1314,47 @@ export function normalizeGearSystemData(systemData, itemName = "") {
   const weaponClass = String(merged.weaponClass ?? "ranged").trim().toLowerCase();
   merged.weaponClass = ["ranged", "melee", "armor", "vehicle", "other"].includes(weaponClass) ? weaponClass : "other";
 
+  const requestedEquipmentType = String(merged.equipmentType ?? "").trim().toLowerCase();
+  const canonicalEquipmentType = ["armor-permutation", "armor-permutations"].includes(requestedEquipmentType)
+    ? "armor-modification"
+    : requestedEquipmentType;
+  merged.equipmentType = allowedEquipmentTypes.has(canonicalEquipmentType)
+    ? canonicalEquipmentType
+    : resolveEquipmentTypeFromLegacy(merged);
+  applyLegacyClassFromEquipmentType(merged, merged.equipmentType);
+
   merged.faction = String(merged.faction ?? "").trim();
+  const requestedArmorySelection = String(merged.armorySelection ?? "").trim().toUpperCase();
+  merged.armorySelection = ["UNSC", "COVENANT", "BANISHED", "FORERUNNER"].includes(requestedArmorySelection)
+    ? requestedArmorySelection
+    : "";
+  if (!merged.faction && merged.armorySelection) {
+    merged.faction = merged.armorySelection;
+  } else if (!merged.armorySelection) {
+    const factionUpper = String(merged.faction ?? "").trim().toUpperCase();
+    merged.armorySelection = ["UNSC", "COVENANT", "BANISHED", "FORERUNNER"].includes(factionUpper)
+      ? factionUpper
+      : "";
+  }
+  if (merged.equipmentType === "ammunition") {
+    merged.armorySelection = "";
+  }
   merged.source = String(merged.source ?? "mythic").trim().toLowerCase() || "mythic";
   merged.category = String(merged.category ?? "").trim();
+  merged.training = String(merged.training ?? "").trim().toLowerCase();
+  merged.baseToHitModifier = Number.isFinite(Number(merged.baseToHitModifier)) ? Math.round(Number(merged.baseToHitModifier)) : 0;
   merged.weaponType = String(merged.weaponType ?? "").trim();
   merged.wieldingType = String(merged.wieldingType ?? "").trim();
+  const legacyAmmoType = String(merged.ammoType ?? "").trim();
+  const requestedSpecialAmmoCategory = String(merged.specialAmmoCategory ?? legacyAmmoType).trim();
+  merged.specialAmmoCategory = requestedSpecialAmmoCategory || "Standard";
+  if (Object.hasOwn(merged, "ammoType")) delete merged.ammoType;
   merged.ammoName = String(merged.ammoName ?? "").trim();
+  const rawWeightPerRoundKg = Number(merged.weightPerRoundKg ?? merged.weightKg ?? 0);
+  merged.weightPerRoundKg = Number.isFinite(rawWeightPerRoundKg)
+    ? Math.max(0, rawWeightPerRoundKg)
+    : 0;
+  merged.costPer100 = toNonNegativeWhole(merged.costPer100 ?? merged.price?.amount ?? 0, 0);
   merged.nicknames = normalizeStringList(Array.isArray(merged.nicknames) ? merged.nicknames : parseList(merged.nicknames));
   merged.fireModes = normalizeStringList(Array.isArray(merged.fireModes) ? merged.fireModes : parseList(merged.fireModes));
   merged.charge.damagePerLevel = toNonNegativeWhole(merged.charge?.damagePerLevel, 0);
@@ -1864,21 +1363,138 @@ export function normalizeGearSystemData(systemData, itemName = "") {
 
   merged.damage.baseRollD5 = toNonNegativeWhole(merged.damage?.baseRollD5, 0);
   merged.damage.baseRollD10 = toNonNegativeWhole(merged.damage?.baseRollD10, 0);
+  merged.damage.diceCount = toNonNegativeWhole(merged.damage?.diceCount, 0);
+  const requestedDiceType = String(merged.damage?.diceType ?? "d10").trim().toLowerCase();
+  merged.damage.diceType = requestedDiceType === "d5" ? "d5" : "d10";
+
+  // Backward compatibility: infer new fields from legacy dual-roll fields for older data.
+  if (merged.damage.diceCount <= 0 && (merged.damage.baseRollD10 > 0 || merged.damage.baseRollD5 > 0)) {
+    if (merged.damage.baseRollD5 > merged.damage.baseRollD10) {
+      merged.damage.diceType = "d5";
+      merged.damage.diceCount = merged.damage.baseRollD5;
+    } else {
+      merged.damage.diceType = "d10";
+      merged.damage.diceCount = merged.damage.baseRollD10;
+    }
+  }
+
+  // Canonical mapping: new UI fields drive runtime damage dice fields.
+  if (merged.damage.diceCount > 0) {
+    if (merged.damage.diceType === "d5") {
+      merged.damage.baseRollD5 = merged.damage.diceCount;
+      merged.damage.baseRollD10 = 0;
+    } else {
+      merged.damage.baseRollD10 = merged.damage.diceCount;
+      merged.damage.baseRollD5 = 0;
+    }
+  }
   merged.damage.baseDamage = toNonNegativeWhole(merged.damage?.baseDamage, 0);
+  const requestedBaseDamageModifierMode = String(merged.damage?.baseDamageModifierMode ?? "full-str-mod").trim().toLowerCase();
+  merged.damage.baseDamageModifierMode = ["full-str-mod", "half-str-mod", "none"].includes(requestedBaseDamageModifierMode)
+    ? requestedBaseDamageModifierMode
+    : "full-str-mod";
   merged.damage.pierce = Number.isFinite(Number(merged.damage?.pierce)) ? Number(merged.damage.pierce) : 0;
+  const requestedPierceModifierMode = String(merged.damage?.pierceModifierMode ?? "full-str-mod").trim().toLowerCase();
+  merged.damage.pierceModifierMode = ["full-str-mod", "half-str-mod", "none"].includes(requestedPierceModifierMode)
+    ? requestedPierceModifierMode
+    : "full-str-mod";
 
   merged.range.close = toNonNegativeWhole(merged.range?.close, 0);
   merged.range.max = toNonNegativeWhole(merged.range?.max, 0);
   merged.range.reload = toNonNegativeWhole(merged.range?.reload, 0);
   merged.range.magazine = toNonNegativeWhole(merged.range?.magazine, 0);
+  merged.range.reach = String(merged.range?.reach ?? "0").trim() || "0";
 
   merged.price.amount = toNonNegativeWhole(merged.price?.amount, 0);
   merged.price.currency = String(merged.price?.currency ?? "cr").trim().toLowerCase() || "cr";
   merged.weightKg = Number.isFinite(Number(merged.weightKg)) ? Math.max(0, Number(merged.weightKg)) : 0;
 
+  if (merged.equipmentType === "ammunition") {
+    // Keep legacy fields mirrored for compatibility with existing pack imports and calculations.
+    merged.weightKg = merged.weightPerRoundKg;
+    merged.price.amount = merged.costPer100;
+  }
+
   merged.specialRules = String(merged.specialRules ?? "").trim();
+  merged.weaponSpecialRuleKeys = normalizeStringList(parseFlexibleList(merged.weaponSpecialRuleKeys));
+  merged.weaponTagKeys = normalizeStringList(parseFlexibleList(merged.weaponTagKeys));
   merged.attachments = String(merged.attachments ?? "").trim();
   merged.description = String(merged.description ?? "").trim();
+  merged.nickname = String(merged.nickname ?? "").trim();
+  merged.attackName = String(merged.attackName ?? "").trim();
+  merged.ammoId = String(merged.ammoId ?? "").trim() || null;
+  const ammoModeRaw = String(merged.ammoMode ?? "magazine").trim().toLowerCase();
+  merged.ammoMode = ["magazine", "belt", "tube", "plasma-battery", "light-mass"].includes(ammoModeRaw)
+    ? ammoModeRaw
+    : "magazine";
+  merged.batteryType = normalizeBatterySubtype(merged.batteryType, merged.ammoMode);
+  merged.singleLoading = Boolean(merged.singleLoading);
+  merged.variantAttacks = Array.isArray(merged.variantAttacks)
+    ? merged.variantAttacks.map((v) => {
+        if (!v || typeof v !== "object") return null;
+        const vDiceCount = toNonNegativeWhole(v.diceCount, 0);
+        const vDiceType = String(v.diceType ?? "d10").trim().toLowerCase() === "d5" ? "d5" : "d10";
+        const vBaseDmgMode = ["full-str-mod", "half-str-mod", "none"].includes(String(v.baseDamageModifierMode ?? "").trim().toLowerCase())
+          ? String(v.baseDamageModifierMode).trim().toLowerCase()
+          : "full-str-mod";
+        const vPierceMode = ["full-str-mod", "half-str-mod", "none"].includes(String(v.pierceModifierMode ?? "").trim().toLowerCase())
+          ? String(v.pierceModifierMode).trim().toLowerCase()
+          : "full-str-mod";
+        return {
+          name: String(v.name ?? "").trim(),
+          diceCount: vDiceCount,
+          diceType: vDiceType,
+          baseDamage: Number.isFinite(Number(v.baseDamage)) ? Number(v.baseDamage) : 0,
+          baseDamageModifierMode: vBaseDmgMode,
+          pierce: Number.isFinite(Number(v.pierce)) ? Number(v.pierce) : 0,
+          pierceModifierMode: vPierceMode,
+          ammoId: String(v.ammoId ?? "").trim() || null
+        };
+      }).filter(Boolean)
+    : [];
+
+  if (merged.equipmentType === "ranged-weapon") {
+    const rawTraining = String(merged.training ?? "").trim().toLowerCase();
+    const rangedTrainingMap = {
+      basic: "basic",
+      infantry: "infantry",
+      heavy: "heavy",
+      advanced: "advanced",
+      launcher: "launcher",
+      "long-range": "long range",
+      "long range": "long range",
+      longrange: "long range",
+      ordnance: "ordnance",
+      ordinance: "ordnance",
+      cannon: "cannon"
+    };
+    merged.training = rangedTrainingMap[rawTraining] ?? "basic";
+
+    if (merged.damage.baseRollD5 === 0 && merged.damage.baseRollD10 === 0) {
+      merged.damage.diceType = "d10";
+      merged.damage.diceCount = 3;
+      merged.damage.baseRollD10 = 3;
+    }
+  }
+
+  if (merged.equipmentType === "melee-weapon") {
+    const meleeWeaponTypeValues = new Set(MYTHIC_MELEE_WEAPON_TYPE_OPTIONS.map((entry) => String(entry?.value ?? "").trim().toLowerCase()).filter(Boolean));
+    const requestedWeaponType = String(merged.weaponType ?? "").trim();
+    const weaponTypeLower = requestedWeaponType.toLowerCase();
+    if (!meleeWeaponTypeValues.has(weaponTypeLower)) {
+      merged.weaponType = requestedWeaponType;
+    }
+
+    const trainingHint = String(merged.training ?? "").trim().toLowerCase();
+    merged.training = ["basic", "melee"].includes(trainingHint) ? trainingHint : "basic";
+
+    merged.category = merged.training === "basic" ? "Basic" : "Melee";
+    if (merged.damage.baseRollD5 === 0 && merged.damage.baseRollD10 === 0) {
+      merged.damage.diceType = "d10";
+      merged.damage.diceCount = 2;
+      merged.damage.baseRollD10 = 2;
+    }
+  }
 
   // Armor variants are now their own item type and are no longer stored inline on armor.
   if (Object.hasOwn(merged, "armorVariant")) delete merged.armorVariant;
@@ -1900,17 +1516,127 @@ export function normalizeGearSystemData(systemData, itemName = "") {
   } else {
     merged.armorWeightProfile = "standard";
   }
+  // isPoweredArmor — for legacy items without this field, derive from armorWeightProfile once
+  if (!Object.hasOwn(source, "isPoweredArmor")) {
+    merged.isPoweredArmor = ["powered", "semi-powered"].includes(merged.armorWeightProfile);
+  } else {
+    merged.isPoweredArmor = Boolean(merged.isPoweredArmor);
+  }
+  // isCurrentlyUnpowered — for legacy items, derive from powerStateOverride once
+  const powerStateOverrideRaw = String(merged.powerStateOverride ?? "default").trim().toLowerCase();
+  if (!Object.hasOwn(source, "isCurrentlyUnpowered")) {
+    merged.isCurrentlyUnpowered = powerStateOverrideRaw === "forced-off";
+  } else {
+    merged.isCurrentlyUnpowered = Boolean(merged.isCurrentlyUnpowered);
+  }
+  // Keep powerStateOverride in sync for backwards compat with equip pipeline
+  merged.powerStateOverride = merged.isCurrentlyUnpowered ? "forced-off" : "default";
+  merged.armorSpecialRuleKeys = normalizeStringList(parseFlexibleList(merged.armorSpecialRuleKeys));
+  merged.armorAbilityKeys = normalizeStringList(parseFlexibleList(merged.armorAbilityKeys));
+  merged.powerArmorTraitKeys = normalizeStringList(parseFlexibleList(merged.powerArmorTraitKeys));
+  merged.quantity = toNonNegativeWhole(merged.quantity ?? 1, 1);
+  merged.builtInItemIds = normalizeStringList(parseFlexibleList(merged.builtInItemIds));
+  merged.powerArmorTraitIds = normalizeStringList(parseFlexibleList(merged.powerArmorTraitIds));
+  merged.photoReactivePanelsBonus = Math.max(0, Math.min(99, toNonNegativeWhole(merged.photoReactivePanelsBonus, 0)));
+  const rawCharacteristicMods = (merged.characteristicMods && typeof merged.characteristicMods === "object")
+    ? merged.characteristicMods
+    : {};
+  const rawBaseMods = (rawCharacteristicMods.base && typeof rawCharacteristicMods.base === "object")
+    ? rawCharacteristicMods.base
+    : {};
+  const rawMythicMods = (rawCharacteristicMods.mythic && typeof rawCharacteristicMods.mythic === "object")
+    ? rawCharacteristicMods.mythic
+    : {};
+  merged.characteristicMods = {
+    base: Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((key) => {
+      const raw = Number(rawBaseMods?.[key] ?? 0);
+      return [key, Number.isFinite(raw) ? raw : 0];
+    })),
+    mythic: Object.fromEntries(["str", "tou", "agi"].map((key) => {
+      const raw = Number(rawMythicMods?.[key] ?? 0);
+      return [key, Number.isFinite(raw) ? raw : 0];
+    }))
+  };
+  const rawPierceReductions = Array.isArray(merged.pierceReductions)
+    ? merged.pierceReductions
+    : parseFlexibleList(merged.pierceReductions).map((entry) => {
+      const text = String(entry ?? "").trim();
+      const fromDelimited = text.match(/^([^:=]+)[:=]\s*(-?\d+(?:\.\d+)?)$/u);
+      if (fromDelimited) {
+        return {
+          weaponType: String(fromDelimited[1] ?? "").trim(),
+          pierceIgnore: Number(fromDelimited[2] ?? 0)
+        };
+      }
+      const fromSentence = text.match(/^(-?\d+(?:\.\d+)?)\s+(.+)$/u);
+      if (fromSentence) {
+        return {
+          weaponType: String(fromSentence[2] ?? "").trim(),
+          pierceIgnore: Number(fromSentence[1] ?? 0)
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  merged.pierceReductions = rawPierceReductions
+    .map((entry) => {
+      const weaponType = String(entry?.weaponType ?? "").trim();
+      const pierceIgnoreRaw = Number(entry?.pierceIgnore ?? 0);
+      return {
+        weaponType,
+        pierceIgnore: Number.isFinite(pierceIgnoreRaw) ? Math.max(0, pierceIgnoreRaw) : 0
+      };
+    })
+    .filter((entry) => entry.weaponType);
   merged.modifiers = String(merged.modifiers ?? "").trim();
   merged.protection.head = toNonNegativeWhole(merged.protection?.head, 0);
-  merged.protection.arms = toNonNegativeWhole(merged.protection?.arms, 0);
-  merged.protection.chest = toNonNegativeWhole(merged.protection?.chest, 0);
-  merged.protection.legs = toNonNegativeWhole(merged.protection?.legs, 0);
+  // Backwards compat: old items stored combined arms/legs; migrate to per-limb fields.
+  {
+    const srcProtection = source?.protection ?? {};
+    const oldArms = toNonNegativeWhole(srcProtection.arms, 0);
+    const oldLegs = toNonNegativeWhole(srcProtection.legs, 0);
+    merged.protection = {
+      head:  toNonNegativeWhole(merged.protection?.head, 0),
+      chest: toNonNegativeWhole(merged.protection?.chest, 0),
+      lArm:  toNonNegativeWhole(Object.hasOwn(srcProtection, "lArm") ? srcProtection.lArm : oldArms, 0),
+      rArm:  toNonNegativeWhole(Object.hasOwn(srcProtection, "rArm") ? srcProtection.rArm : oldArms, 0),
+      lLeg:  toNonNegativeWhole(Object.hasOwn(srcProtection, "lLeg") ? srcProtection.lLeg : oldLegs, 0),
+      rLeg:  toNonNegativeWhole(Object.hasOwn(srcProtection, "rLeg") ? srcProtection.rLeg : oldLegs, 0)
+    };
+  }
   merged.shields.integrity = toNonNegativeWhole(merged.shields?.integrity, 0);
   merged.shields.delay = toNonNegativeWhole(merged.shields?.delay, 0);
   merged.shields.rechargeRate = toNonNegativeWhole(merged.shields?.rechargeRate, 0);
 
   merged.sourceReference.table = String(merged.sourceReference?.table ?? "").trim();
   merged.sourceReference.rowNumber = toNonNegativeWhole(merged.sourceReference?.rowNumber, 0);
+
+  // ── Ammo-modification field normalization ─────────────────────────────────
+  merged.modifierCode = String(merged.modifierCode ?? "").trim().toUpperCase();
+  merged.modifierLabel = String(merged.modifierLabel ?? "").trim();
+  const rawDamageDelta = Number(merged.damageDelta ?? 0);
+  merged.damageDelta = Number.isFinite(rawDamageDelta) ? Math.trunc(rawDamageDelta) : 0;
+  const rawPierceDelta = Number(merged.pierceDelta ?? 0);
+  merged.pierceDelta = Number.isFinite(rawPierceDelta) ? Math.trunc(rawPierceDelta) : 0;
+  // Validate compatibility codes against the canonical enum set.
+  const rawCompatCodes = Array.isArray(merged.compatibilityCodes)
+    ? merged.compatibilityCodes
+    : String(merged.compatibilityCodes ?? "").split(/[,\s]+/u).filter(Boolean);
+  merged.compatibilityCodes = rawCompatCodes
+    .map((c) => String(c).trim().toUpperCase())
+    .filter((c) => MYTHIC_AMMO_COMPAT_CODE_SET.has(c));
+  merged.compatibilityMode = ["allowlist", "blocklist"].includes(merged.compatibilityMode)
+    ? merged.compatibilityMode
+    : "allowlist";
+  merged.compatibilityRaw = String(merged.compatibilityRaw ?? "").trim();
+  merged.abilityText = String(merged.abilityText ?? "").trim();
+  const rawCostMultiplier = Number(merged.costMultiplier ?? 1);
+  merged.costMultiplier = Number.isFinite(rawCostMultiplier) && rawCostMultiplier > 0
+    ? Math.round(rawCostMultiplier * 1000) / 1000
+    : 1;
+  merged.costMode = ["per100", "per-round", "flat"].includes(merged.costMode)
+    ? merged.costMode
+    : "per100";
+  merged.sourceCategory = String(merged.sourceCategory ?? "").trim();
 
   merged.sync = normalizeItemSyncData(merged.sync, "gear", itemName);
   return merged;

@@ -1,0 +1,79 @@
+<div class="ccadv-panel {{#unless mythicCcAdv.isAdvancementActive}}is-hidden{{/unless}}" data-subtab-panel="advancement">
+  <div class="mythic-phase4-card full-width ccadv-wip-notice">
+    <p class="ccadv-note"><strong>⚠ Work In Progress:</strong> This section is actively being developed. Some features are incomplete and may change.</p>
+  </div>
+  <div class="mythic-phase4-card full-width">
+    <h3>Part Two: Advancement</h3>
+    <p class="ccadv-note">This section handles everything that advances your character both during Character Creation and after Character Creation is finalized.</p>
+    <p class="ccadv-note">The Character Creation subtab is only for Character Creation choices. The one exception is Characteristic Advancements, which are also available here in Part Two.</p>
+  </div>
+
+  <details class="ccadv-stage" data-collapse-key="ccadv-adv-training" open>
+    <summary>1. Weapon and Faction Training</summary>
+    <div class="mythic-phase4-card full-width ccadv-training-queue-columns">
+      <div>
+        <h4>Weapon Training</h4>
+        {{#each mythicAdvancements.queue.training.weaponRows as |row|}}
+          <label class="ccadv-training-queue-row {{#if row.baseline}}is-locked{{/if}}">
+            <input type="checkbox" class="adv-training-toggle" data-training-kind="weapon" data-training-key="{{row.key}}" {{checked row.queued}} {{#if row.baseline}}disabled{{/if}} />
+            <span>{{row.label}}</span>
+            <span>{{#if row.baseline}}Locked{{else if row.queued}}{{row.queuedCost}} XP{{else}}-{{/if}}</span>
+          </label>
+        {{/each}}
+      </div>
+      <div>
+        <h4>Faction Training</h4>
+        {{#each mythicAdvancements.queue.training.factionRows as |row|}}
+          <label class="ccadv-training-queue-row {{#if row.baseline}}is-locked{{/if}}">
+            <input type="checkbox" class="adv-training-toggle" data-training-kind="faction" data-training-key="{{row.key}}" {{checked row.queued}} {{#if row.baseline}}disabled{{/if}} />
+            <span>{{row.label}}</span>
+            <span>{{#if row.baseline}}Locked{{else if row.queued}}{{row.queuedCost}} XP{{else}}-{{/if}}</span>
+          </label>
+        {{/each}}
+      </div>
+    </div>
+    <p class="ccadv-note">Queued XP: {{mythicAdvancements.queue.training.queuedXp}} | Free XP: {{mythicAdvancements.queue.xpSummary.free}}</p>
+  </details>
+
+  <details class="ccadv-stage" data-collapse-key="ccadv-adv-languages" open>
+    <summary>2. Languages</summary>
+    <div class="mythic-phase4-card full-width">
+      <p class="ccadv-note">Language Cap: {{mythicAdvancements.queue.languages.capacity}} (INT Mod {{mythicAdvancements.queue.languages.intModifier}} + Bonus {{mythicAdvancements.queue.languages.capacityBonus}})</p>
+      {{#if mythicCcAdv.isCharacterCreationComplete}}
+        <p class="ccadv-note">Be sure there is enough in-character time to justify learning a new language.</p>
+      {{/if}}
+      <div class="ccadv-language-input-row">
+        <input type="text" class="adv-language-input" placeholder="Type language name" />
+        <button type="button" class="action-btn adv-language-add-btn">Queue Language</button>
+      </div>
+      <div class="ccadv-language-columns">
+        <div>
+          <h4>Known Languages</h4>
+          {{#if mythicAdvancements.queue.languages.official.length}}
+            <ul>
+              {{#each mythicAdvancements.queue.languages.official as |language|}}
+                <li>{{language}}</li>
+              {{/each}}
+            </ul>
+          {{else}}
+            <p class="ccadv-note">No known languages yet.</p>
+          {{/if}}
+        </div>
+        <div>
+          <h4>Queued Languages</h4>
+          {{#if mythicAdvancements.queue.languages.queued.length}}
+            <ul>
+              {{#each mythicAdvancements.queue.languages.queued as |language index|}}
+                <li>{{language}} <button type="button" class="action-btn adv-language-remove-btn" data-index="{{index}}">Remove</button></li>
+              {{/each}}
+            </ul>
+          {{else}}
+            <p class="ccadv-note">No queued languages.</p>
+          {{/if}}
+        </div>
+      </div>
+      <p class="ccadv-note">Queued XP: {{mythicAdvancements.queue.languages.queuedXp}} | Free XP: {{mythicAdvancements.queue.xpSummary.free}}</p>
+    </div>
+  </details>
+
+</div>

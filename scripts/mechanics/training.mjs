@@ -44,6 +44,17 @@ export function normalizeTrainingData(trainingData) {
     return false;
   };
 
+  const getCanonicalFactionFlag = (factionMap, canonicalKey) => {
+    const source = (factionMap && typeof factionMap === "object") ? factionMap : {};
+    const legacyKeyMap = {
+      unsc: ["human", "civilian", "police"],
+      covenant: ["banished", "swordsOfSanghelios"],
+      forerunner: []
+    };
+    const legacyKeys = Array.isArray(legacyKeyMap[canonicalKey]) ? legacyKeyMap[canonicalKey] : [];
+    return [canonicalKey, ...legacyKeys].some((key) => coerceTrainingBoolean(source?.[key]));
+  };
+
   merged.weapon ??= {};
   for (const definition of MYTHIC_WEAPON_TRAINING_DEFINITIONS) {
     merged.weapon[definition.key] = coerceTrainingBoolean(merged.weapon?.[definition.key]);
@@ -51,7 +62,7 @@ export function normalizeTrainingData(trainingData) {
 
   merged.faction ??= {};
   for (const definition of MYTHIC_FACTION_TRAINING_DEFINITIONS) {
-    merged.faction[definition.key] = coerceTrainingBoolean(merged.faction?.[definition.key]);
+    merged.faction[definition.key] = getCanonicalFactionFlag(merged.faction, definition.key);
   }
 
   merged.vehicles = normalizeStringList(merged.vehicles);

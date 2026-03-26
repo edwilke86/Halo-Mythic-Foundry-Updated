@@ -1,9 +1,9 @@
 # Halo Mythic Foundry TODO Roadmap
 
-Last updated: 2026-03-13
+Last updated: 2026-03-26
 Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 
-## Current Status Snapshot (2026-03-13)
+## Current Status Snapshot (2026-03-26)
 
 Completed recently (Phases 2-4):
 
@@ -18,15 +18,15 @@ Completed recently (Phases 2-4):
   - prefer token preview
   - keep sidebar collapsed setting persistence
 - Completed major left-nav redesign to icon-based protruding tab rail with hover labels
+- Added called-shot attack targeting flow (location/sublocation selection, penalties, and fallback handling)
+- Added shield-first damage application with special-rule-aware penetration branches (Hardlight, Kinetic, Penetrating, Headshot)
+- Added alpha startup notice with dismiss option and focused bug-report guidance
 
 Current direction (next):
 
-- Move into Milestone 5 (Compendium-Driven Character Building)
-- First implementation target:
-  - Soldier Type compendium format definition
-  - drag-and-drop application flow with overwrite/merge/cancel prompt
-  - safe-apply preview/conflict handling scaffold
-- Keep Milestone 4 remaining P0 depth tasks as active backfill while Milestone 5 is underway
+- Stabilize the unified Character Creation and Advancement flow for wider alpha use
+- Convert known in-tab bugs into tracked P0/P1 fixes with regression checks
+- Keep Milestone 4 depth tasks as active backfill while Milestone 5 polish is underway
 - Treat Warzone content as in-scope for base system compendia and rules support (not deferred to a separate expansion module)
 - Add clickable resource/section labels (e.g., Luck title) that can post concise stat snapshots to chat; awaiting curated list of labels to enable
 - Add per-turn action economy tracking (free/half/full spent state + reset hooks) to gate actions like wield-and-attack based on remaining actions
@@ -52,10 +52,9 @@ Current direction (next):
 
 ## Milestone 2: Characteristics and Derived Values
 
-- [ ] P0 Lock down characteristic score flow (base, modifiers, temporary effects)
+- [x] P0 Lock down characteristic score flow (base, modifiers, temporary effects)
 - [x] P0 Confirm modifier formula implementation everywhere: floor(score / 10)
-- [ ] P0 Implement calculated-only mode toggle for characteristic totals when ready
-- [ ] P1 Build derived stats pipeline:
+- [x] P1 Build derived stats pipeline:
   - movement
   - wounds / max wounds
   - fatigue thresholds
@@ -70,10 +69,10 @@ Current direction (next):
 - [x] P0 Implement universal test resolver with configurable success/failure outputs
 - [ ] P0 Degrees of success/failure handling aligned with Mythic 7.0 CU1 wording
 - [x] P0 Centralize roll card rendering templates for consistency
-- [ ] P1 Add roll modifiers dialog (situational bonuses/penalties)
+- [x] P1 Add roll modifiers dialog (situational bonuses/penalties)
 - [ ] P1 Add quick-roll buttons for common checks from each relevant tab
 - [ ] P1 Add critical/fumble handling with configurable thresholds
-- [ ] P1 Add damage, armor penetration, and mitigation automation
+- [x] P1 Add damage, armor penetration, and mitigation automation
 - [ ] P1 Add status effect hooks (conditions affecting rolls/stats)
 - [ ] P2 Add optional GM secret roll mode controls
 
@@ -87,7 +86,7 @@ Implementation note:
 - [ ] P0 Build out Core tab sections (skills, education, languages, abilities)
 - [ ] P0 Build Equipment tab (weapons, armor, inventory, encumbrance if used)
 - [ ] P0 Build Medical tab (wounds, treatment, statuses, recovery trackers)
-- [ ] P0 Build Advancements tab (XP/spend log, unlocked features)
+- [x] P0 Build Advancements tab (XP/spend log, unlocked features)
 - [x] P1 Build Journal/Notes tab with structured and freeform notes
 - [ ] P1 Build Vehicles tab (if rules include pilot/vehicle interactions)
 - [x] P1 Build Settings tab for per-actor toggles and automation preferences
@@ -98,47 +97,52 @@ Implementation note:
 
 ### Character Creation and Advancement Tab Migration (2026-03-15)
 
-Implementation intent:
+Implementation status update (2026-03-24):
 
-- Consolidate all character setup into one location by renaming the current Advancements tab to Character Creation and Advancement.
-- Add two always-visible subtabs inside this main tab:
-  - Character Creation
-  - Advancement
-- All sections in Character Creation should be collapsible and start expanded during setup.
+- Design direction changed from dual subtabs to one unified collapsible flow in a single tab.
+- Current in-tab order:
+  1. XP Tracking
+  2. Soldier Type Selection
+  3. Upbringing / Environment / Lifestyle
+  4. Characteristics Builder
+  5. Spec Pack Selection Outliers
+  6. Weapon and Faction Training
+  7. Languages
+- All sections default collapsed.
+- WIP and known bug badges are shown in-tab for alpha users.
 
 Core migration tasks:
 
-- [ ] P0 Rename Advancements tab to Character Creation and Advancement
-- [ ] P0 Add internal subtab switcher with persistent state:
-  - Character Creation
-  - Advancement
-- [ ] P0 Move creation-related controls out of fragmented tabs into Character Creation flow
-- [ ] P0 Lock most Character Creation sections after finalize (with GM override controls)
+- [x] P0 Rename Advancements tab to Character Creation and Advancement
+- [x] P0 Move creation-related controls out of fragmented tabs into Character Creation flow
+- [x] P0 Consolidate to one unified CC/Adv tab flow (replaces subtab approach)
+- [ ] P1 Reintroduce finalize/lock model in a way that fits unified flow (deferred from current alpha UI)
 
 Character Creation ordered flow (single-page staged process):
 
-- [ ] P0 Starting XP stage:
+- [x] P0 Starting XP stage:
   - if world setting allows player-set XP, provide editable starting XP input
   - if world setting is GM-fixed, show read-only starting XP
   - this value drives affordability checks in all downstream creation stages
-- [ ] P0 Soldier Type stage:
+- [x] P0 Soldier Type stage:
   - add button to open Soldier Type compendium
-  - select/apply Soldier Type in-flow (not by sheet drop as primary UX)
+  - select/apply Soldier Type in-flow (currently compendium-driven drop UX)
   - enforce that Soldier Type has XP cost and is included in spend/remaining display
 - [ ] P1 Refine Height/Weight Randomizer:
   - include gender as an input factor for height/weight generation
   - keep results believable for selected body type and allowed soldier-type ranges
   - tune low-mass outcomes (e.g., Compact/Light) to avoid implausible weights
-- [ ] P0 Upbringing + Environment + Lifestyle stage
-- [ ] P0 Characteristics Builder stage:
+- [x] P0 Upbringing + Environment + Lifestyle stage
+- [x] P0 Characteristics Builder stage:
   - retain managed builder workflow
   - show unmet-prerequisite warning for Soldier Type granted abilities (when currently unqualified)
   - add post-builder recheck button to grant previously blocked Soldier Type abilities once prerequisites are met
-- [ ] P0 Specialization Pack stage:
+- [x] P0 Specialization Pack stage:
   - show prerequisite warnings in pack details at selection time
   - keep limited-pack warning/ack behavior
-- [ ] P1 Outliers stage scaffold (placeholder for later full rules)
-- [ ] P0 Languages stage:
+  - BUG: GM override must fully remove prior Specialization Pack grants (skills and abilities) before applying the new pack
+- [x] P1 Outliers stage scaffold (placeholder for later full rules)
+- [x] P0 Languages stage:
   - one free language selected by GM
   - paid languages cost 150 XP each
   - enforce language count cap by Intellect Modifier
@@ -149,9 +153,9 @@ Character Creation ordered flow (single-page staged process):
   - use specialization-style picker UX for pack selection
   - write selected pack grants into a dedicated equipment/gear section on Equipment tab
 - [ ] P1 Rank and Support Points stage scaffold (placeholder for later full rules)
-- [ ] P0 Finalization stage:
-  - add Finalize Character Creation button
-  - display completion guidance that further XP spending happens in Advancement subtab
+- [ ] P0 Finalization stage (unified-tab variant):
+  - add Finalize Character Creation action and status display inside unified CC/Adv flow
+  - define post-finalize edit behavior (GM override, player view, unlock path)
 
 Creation rule constraints (must preserve):
 
@@ -162,7 +166,7 @@ Creation rule constraints (must preserve):
   - duplicate ability grants from Specialization may be exchanged
   - replacement must be equal-or-lower XP cost and still satisfy prerequisite checks
 
-Advancement subtab scope:
+Unified CC/Adv purchasing scope:
 
 - [ ] P0 Luck purchases:
   - 1500 XP each, maximum total Luck 13
@@ -174,21 +178,21 @@ Advancement subtab scope:
   - Titanium 3000
   - each tier grants +10 Wounds
   - previous tier required before next tier
-- [ ] P0 Faction and Weapon Training purchases:
-  - move training purchasing UX here
+- [x] P0 Faction and Weapon Training purchases:
+  - include training purchasing UX in unified CC/Adv flow
   - Soldier Type granted trainings auto-applied and locked checked
-- [ ] P0 Skills purchases:
-  - remove direct training-level selection as primary path on Skills tab
-  - purchase/confirm workflow from Advancement with XP affordability checks
-- [ ] P0 Ability purchases:
-  - move add/buy flow into Advancement
-  - support drag/drop and compendium-open button
-- [ ] P0 Education purchases:
-  - move add/buy flow into Advancement
-  - support drag/drop and compendium-open button
-- [ ] P0 Characteristic Advancements purchases:
-  - allow buying during Character Creation and later in Advancement
-  - always confirm XP cost and affordability before apply
+- [ ] P0 Skills purchases in unified flow:
+  - currently removed from unified tab during UX reset
+  - reintroduce with affordability + purchase confirmation
+- [ ] P0 Ability purchases in unified flow:
+  - currently removed from unified tab during UX reset
+  - reintroduce with drag/drop + compendium-open support
+- [ ] P0 Education purchases in unified flow:
+  - currently removed from unified tab during UX reset
+  - reintroduce with drag/drop + compendium-open support
+- [ ] P0 Characteristic advancement purchases in unified flow:
+  - currently removed from unified tab during UX reset
+  - reintroduce with explicit XP confirmation and affordability checks
 
 Data/locking behavior:
 
@@ -202,8 +206,21 @@ Data/locking behavior:
 UX/content notes:
 
 - [ ] P1 Add inline notes explaining why a grant is blocked and what stat/prereq is missing
-- [ ] P1 Add compact running XP ledger in Character Creation and Advancement views
+- [x] P1 Add compact running XP ledger in Character Creation and Advancement views
 - [ ] P1 Add clear source badges (Soldier Type, Creation Path, Specialization, Purchased)
+
+Alpha-known issues tracked in UI:
+
+- [ ] P0 Soldier Type application occasionally requires two drops (in-tab bug badge present)
+- [ ] P0 GM specialization override can leave prior specialization grants
+- [x] P0 CRITICAL (Alpha Release): Ionized Particle needs Plasma Battery-style support path (energy-cell-like handling, UI, and reload/combat behavior parity) - investigate and implement
+- [ ] P1 Ability drop XP handling not 100% reliable
+
+Alpha communications and reporting quality:
+
+- [x] P0 Add startup alpha playtest notice with "Don't show again" per-user persistence
+- [x] P0 Add README guidance with focused bug-report criteria and DM contact
+- [ ] P1 Add concise in-app "Report Bug" helper action that pre-fills report template
 
 ### Soldier Type drag-and-drop starter templates
 
@@ -214,8 +231,8 @@ Implementation note:
 
 - [ ] P0 Create compendium pack for Soldier Types
 - [ ] P0 Define Soldier Type data format (starting characteristics, skills, talents, gear, notes)
-- [ ] P0 Implement drag-and-drop handler onto actor sheet
-- [ ] P0 Prompt for apply mode on drop: overwrite / merge / cancel
+- [x] P0 Implement drag-and-drop handler onto actor sheet
+- [ ] P0 Prompt for apply mode on drop: overwrite / merge / cancel (currently overwrite-focused flow)
 - [ ] P0 Add safe-apply logic with conflict detection and preview
 - [ ] P1 Add undo support for last template application
 
@@ -236,14 +253,14 @@ Implementation note:
 
 ### Drag-and-drop background packages (race/specialisation/lifestyle/environment/upbringing)
 
-- [X] P0 Create separate compendium entries for:
+- [x] P0 Create separate compendium entries for:
   - race
   - specialisation
   - lifestyle
   - environment
   - upbringing
-- [C] P0 Define package schema: skill adjustments, abilities, features, proficiencies, notes
-- [ ] P0 Implement drop handlers for each package type
+- [x] P0 Define package schema: skill adjustments, abilities, features, proficiencies, notes
+- [ ] P0 Implement drop handlers for each package type (Upbringing/Environment/Lifestyle implemented; race/specialization pending)
 - [ ] P0 Auto-apply appropriate abilities, skills, and features on drop
 - [ ] P1 Add stacking rules and incompatibility warnings
 - [ ] P1 Add source attribution panel (what came from which package)
@@ -409,6 +426,59 @@ Live content sync and update propagation:
 - [ ] P1 Map each sheet section to relevant CU1 chapters/rules references
 - [ ] P1 Mark house-rule deviations explicitly so users can toggle/understand differences
 
+## AMMO Systems Roadmap (Optional Advanced Detail)
+
+Implementation intent:
+
+- Support deep optional ammunition logistics for tables that want it, while keeping standard ammo workflows simple for everyone else.
+- Keep this feature set behind optional world/GM toggles and do not make it required for baseline play.
+
+### Ammo Builder (Dedicated Sheet)
+
+- [ ] P1 Add dedicated Ammo Builder item/sheet type
+- [ ] P1 Base ammo selection flow:
+  - select one base ammunition profile as the foundation
+  - display base stats and running totals for price, weight, and mechanical effects
+- [ ] P1 Ammo modification composition flow:
+  - allow drag-and-drop of ammo modification items onto the builder
+  - support multiple applied modifications within defined mechanical limits
+  - show validation warnings/errors when limits are exceeded
+- [ ] P1 Totals and derived stat computation:
+  - compute final per-round and per-batch values (price, weight, effects)
+  - show source breakdown so users can see what each mod changed
+- [ ] P1 Purchase/export flow to actors:
+  - allow entering desired quantity (round count)
+  - generate purchasable ammo output from builder configuration
+  - support drag-and-drop from builder output to actor sheet to complete acquisition
+- [ ] P1 Buying safeguards:
+  - affordability checks against actor resources where applicable
+  - configurable behavior when insufficient funds/resources (block, warn, or GM override)
+
+### Magazine Builder (Dedicated Sheet)
+
+- [ ] P2 Add dedicated Magazine Builder item/sheet type
+- [ ] P2 Magazine/container definition:
+  - set capacity (e.g., 32-round mag, 200-round belt)
+  - define compatible ammo constraints if needed by weapon/caliber rules
+- [ ] P2 Pattern-based loading rules:
+  - support repeating patterns (example: Normal, AP, JHP repeating)
+  - support interval inserts (example: every 4th round is Tracer)
+  - preview expanded sequence before finalize
+- [ ] P2 Mixed-load accounting:
+  - compute total cost/weight from mixed composition
+  - summarize round-type counts and percentages
+- [ ] P2 Actor integration:
+  - allow drag-and-drop of finalized magazines/belts to actor inventory
+  - preserve internal round order for firing/consumption tracking when enabled
+
+### Optionality, Scope, and Priority
+
+- [ ] P1 Add world-level optional rule toggle: Advanced Ammo Logistics (default OFF)
+- [ ] P1 Ensure all advanced ammo/magazine controls are hidden/disabled when toggle is OFF
+- [ ] P2 Keep existing simple ammo purchase/use flow as first-class default
+- [ ] P3 Add lightweight migration path so existing worlds are unaffected when this remains disabled
+- [ ] P3 Add docs section: "Advanced Ammo Logistics" with setup examples for common patterns
+
 ## Backlog (Not Urgent Yet)
 
 - [ ] P2 NPC/Enemy optimized sheet variant
@@ -426,3 +496,4 @@ Live content sync and update propagation:
 
 - [ ] Fix Huragok Infustion attack to use special rules
 - [ ] Add Huragok Overshield trait and rules
+- [ ] Make it so we can drop all compendium items anywhere on the sheet to create them in the correct section (e.g., drop a weapon item and it goes into the weapons section with correct type)

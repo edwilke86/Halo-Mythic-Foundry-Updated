@@ -8,11 +8,15 @@
       "group": "Group"
     },
     "Item": {
-      "gear": "Gear",
+      "gear": "Equipment",
       "ability": "Ability",
       "education": "Education",
+      "armorVariant": "Armor Variant",
       "soldierType": "Soldier Type",
-      "trait": "Trait"
+      "trait": "Trait",
+      "upbringing": "Upbringing",
+      "environment": "Environment",
+      "lifestyle": "Lifestyle"
     }
   },
   "MYTHIC_GROUP": {

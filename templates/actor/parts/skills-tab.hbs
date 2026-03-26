@@ -19,7 +19,7 @@
         {{#if skill.variantList.length}}
           {{#each skill.variantList as |variant|}}
             <div class="mythic-skills-row">
-              <div class="skills-col-name">{{skill.label}} ({{variant.label}})</div>
+              <div class="skills-col-name">{{skill.label}} ({{variant.label}}){{#if variant.notes}}<div class="skills-inline-note">{{variant.notes}}</div>{{/if}}</div>
               <div class="skills-col-difficulty">{{variant.categoryLabel}}</div>
               <div class="skills-col-type">{{variant.groupLabel}}</div>
               <div class="skills-col-characteristic">
@@ -42,7 +42,7 @@
         {{else}}
           {{!-- Skills without variants: render the skill itself --}}
           <div class="mythic-skills-row">
-            <div class="skills-col-name">{{skill.label}}</div>
+            <div class="skills-col-name">{{skill.label}}{{#if skill.notes}}<div class="skills-inline-note">{{skill.notes}}</div>{{/if}}</div>
             <div class="skills-col-difficulty">{{skill.categoryLabel}}</div>
             <div class="skills-col-type">{{skill.groupLabel}}</div>
             <div class="skills-col-characteristic">
@@ -66,7 +66,7 @@
 
       {{#each mythicSkills.custom as |skill|}}
         <div class="mythic-skills-row">
-          <div class="skills-col-name">{{skill.label}} <span class="skills-custom-tag">Custom</span></div>
+          <div class="skills-col-name">{{skill.label}} <span class="skills-custom-tag">Custom</span>{{#if skill.notes}}<div class="skills-inline-note">{{skill.notes}}</div>{{/if}}</div>
           <div class="skills-col-difficulty">{{skill.categoryLabel}}</div>
           <div class="skills-col-type">{{skill.groupLabel}}</div>
           <div class="skills-col-characteristic">

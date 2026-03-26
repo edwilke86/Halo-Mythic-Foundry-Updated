@@ -1,127 +1,7 @@
-<div class="tab main" data-group="primary" data-tab="main">
-  <section class="panel">
-    <div class="mythic-char-strip-header">
-      <h2>Characteristics</h2>
-      {{#if mythicCharBuilder.managed}}
-        {{#if mythicSystem.settings.automation.showWorkflowGuidance}}
-          <span class="mythic-workflow-guidance-tag" title="Manage these values from Character Creation and Advancement.">
-            <span>Manage from</span>
-            <i class="fas fa-arrow-trend-up" aria-hidden="true"></i>
-          </span>
-        {{/if}}
-      {{/if}}
-    </div>
+﻿<div class="tab main" data-group="primary" data-tab="main">
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab-characteristics-panel.hbs" }}
 
-    <div class="characteristics-strip">
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="str" data-label="STR" title="Strength | Score: @system.characteristics.str | Modifier: floor(@system.characteristics.str / 10)">STR</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.str" type="number" min="0" value="{{lookup mythicCharacteristicScores 'str'}}" readonly title="Score variable: @system.characteristics.str" />
-        {{else}}
-          <input name="system.characteristics.str" type="number" min="0" value="{{lookup mythicCharacteristicScores 'str'}}" title="Score variable: @system.characteristics.str" />
-        {{/if}}
-        <div class="characteristic-modifier" title="Modifier variable: @STR_MOD (sheet alias), macro path: floor(@system.characteristics.str / 10)">{{lookup mythicCharacteristicModifiers "str"}}</div>
-      </div>
-
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="tou" data-label="TOU" title="Toughness | Score: @system.characteristics.tou | Modifier: floor(@system.characteristics.tou / 10)">TOU</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.tou" type="number" min="0" value="{{lookup mythicCharacteristicScores 'tou'}}" readonly title="Score variable: @system.characteristics.tou" />
-        {{else}}
-          <input name="system.characteristics.tou" type="number" min="0" value="{{lookup mythicCharacteristicScores 'tou'}}" title="Score variable: @system.characteristics.tou" />
-        {{/if}}
-        <div class="characteristic-modifier" title="Modifier variable: @TOU_MOD (sheet alias), macro path: floor(@system.characteristics.tou / 10)">{{lookup mythicCharacteristicModifiers "tou"}}</div>
-      </div>
-
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="agi" data-label="AGI" title="Agility | Score: @system.characteristics.agi | Modifier: floor(@system.characteristics.agi / 10)">AGI</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.agi" type="number" min="0" value="{{lookup mythicCharacteristicScores 'agi'}}" readonly title="{{#if mythicGravityAgilityPenalty}}Gravity Penalty Active — Effective: {{lookup mythicCharacteristicScores 'agi'}}{{else}}Score variable: @system.characteristics.agi{{/if}}" />
-        {{else}}
-          <input name="system.characteristics.agi" type="number" min="0" value="{{lookup mythicCharacteristicScores 'agi'}}" {{#if mythicGravityAgilityPenalty}}title="Gravity Penalty Active: −{{mythicGravityAgilityPenalty}}. Effective AGI = {{lookup mythicEffectiveCharacteristics 'agi'}}"{{else}}title="Score variable: @system.characteristics.agi"{{/if}} />
-        {{/if}}
-        <div class="characteristic-modifier{{#if mythicGravityAgilityPenalty}} gravity-penalized{{/if}}" title="Modifier variable: @AGI_MOD (sheet alias), macro path: floor(@system.characteristics.agi / 10)">{{lookup mythicCharacteristicModifiers "agi"}}</div>
-      </div>
-
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="wfm" data-label="WFM" title="Warfare Melee | Score: @system.characteristics.wfm | Modifier: floor(@system.characteristics.wfm / 10)">WFM</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.wfm" type="number" min="0" value="{{lookup mythicCharacteristicScores 'wfm'}}" readonly title="Score variable: @system.characteristics.wfm" />
-        {{else}}
-          <input name="system.characteristics.wfm" type="number" min="0" value="{{lookup mythicCharacteristicScores 'wfm'}}" title="Score variable: @system.characteristics.wfm" />
-        {{/if}}
-        <div class="characteristic-modifier" title="Modifier variable: @WFM_MOD (sheet alias), macro path: floor(@system.characteristics.wfm / 10)">{{lookup mythicCharacteristicModifiers "wfm"}}</div>
-      </div>
-
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="wfr" data-label="WFR" title="Warfare Ranged | Score: @system.characteristics.wfr | Modifier: floor(@system.characteristics.wfr / 10)">WFR</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.wfr" type="number" min="0" value="{{lookup mythicCharacteristicScores 'wfr'}}" readonly title="Score variable: @system.characteristics.wfr" />
-        {{else}}
-          <input name="system.characteristics.wfr" type="number" min="0" value="{{lookup mythicCharacteristicScores 'wfr'}}" title="Score variable: @system.characteristics.wfr" />
-        {{/if}}
-        <div class="characteristic-modifier" title="Modifier variable: @WFR_MOD (sheet alias), macro path: floor(@system.characteristics.wfr / 10)">{{lookup mythicCharacteristicModifiers "wfr"}}</div>
-      </div>
-
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="int" data-label="INT" title="Intellect | Score: @system.characteristics.int | Modifier: floor(@system.characteristics.int / 10)">INT</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.int" type="number" min="0" value="{{lookup mythicCharacteristicScores 'int'}}" readonly title="Score variable: @system.characteristics.int" />
-        {{else}}
-          <input name="system.characteristics.int" type="number" min="0" value="{{lookup mythicCharacteristicScores 'int'}}" title="Score variable: @system.characteristics.int" />
-        {{/if}}
-        <div class="characteristic-modifier" title="Modifier variable: @INT_MOD (sheet alias), macro path: floor(@system.characteristics.int / 10)">{{lookup mythicCharacteristicModifiers "int"}}</div>
-      </div>
-
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="per" data-label="PER" title="Perception | Score: @system.characteristics.per | Modifier: floor(@system.characteristics.per / 10)">PER</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.per" type="number" min="0" value="{{lookup mythicCharacteristicScores 'per'}}" readonly title="Score variable: @system.characteristics.per" />
-        {{else}}
-          <input name="system.characteristics.per" type="number" min="0" value="{{lookup mythicCharacteristicScores 'per'}}" title="Score variable: @system.characteristics.per" />
-        {{/if}}
-        <div class="characteristic-modifier" title="Modifier variable: @PER_MOD (sheet alias), macro path: floor(@system.characteristics.per / 10)">{{lookup mythicCharacteristicModifiers "per"}}</div>
-      </div>
-
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="crg" data-label="CRG" title="Courage | Score: @system.characteristics.crg | Modifier: floor(@system.characteristics.crg / 10)">CRG</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.crg" type="number" min="0" value="{{lookup mythicCharacteristicScores 'crg'}}" readonly title="Score variable: @system.characteristics.crg" />
-        {{else}}
-          <input name="system.characteristics.crg" type="number" min="0" value="{{lookup mythicCharacteristicScores 'crg'}}" title="Score variable: @system.characteristics.crg" />
-        {{/if}}
-        <div class="characteristic-modifier" title="Modifier variable: @CRG_MOD (sheet alias), macro path: floor(@system.characteristics.crg / 10)">{{lookup mythicCharacteristicModifiers "crg"}}</div>
-      </div>
-
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="cha" data-label="CHA" title="Charisma | Score: @system.characteristics.cha | Modifier: floor(@system.characteristics.cha / 10)">CHA</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.cha" type="number" min="0" value="{{lookup mythicCharacteristicScores 'cha'}}" readonly title="Score variable: @system.characteristics.cha" />
-        {{else}}
-          <input name="system.characteristics.cha" type="number" min="0" value="{{lookup mythicCharacteristicScores 'cha'}}" title="Score variable: @system.characteristics.cha" />
-        {{/if}}
-        <div class="characteristic-modifier" title="Modifier variable: @CHA_MOD (sheet alias), macro path: floor(@system.characteristics.cha / 10)">{{lookup mythicCharacteristicModifiers "cha"}}</div>
-      </div>
-
-      <div class="characteristic-block">
-        <button class="roll-characteristic" type="button" data-characteristic="ldr" data-label="LDR" title="Leadership | Score: @system.characteristics.ldr | Modifier: floor(@system.characteristics.ldr / 10)">LDR</button>
-        {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.ldr" type="number" min="0" value="{{lookup mythicCharacteristicScores 'ldr'}}" readonly title="Score variable: @system.characteristics.ldr" />
-        {{else}}
-          <input name="system.characteristics.ldr" type="number" min="0" value="{{lookup mythicCharacteristicScores 'ldr'}}" title="Score variable: @system.characteristics.ldr" />
-        {{/if}}
-        <div class="characteristic-modifier" title="Modifier variable: @LDR_MOD (sheet alias), macro path: floor(@system.characteristics.ldr / 10)">{{lookup mythicCharacteristicModifiers "ldr"}}</div>
-      </div>
-    </div>
-    {{#if mythicGravityAgilityPenalty}}
-      <div class="mythic-gravity-penalty-notice">
-        <i class="fas fa-weight-hanging" aria-hidden="true"></i>
-        Gravity Penalty Active — AGI −{{mythicGravityAgilityPenalty}} ({{mythicGravityValue}}g environment, equip Gravity Belt to resist)
-      </div>
-    {{/if}}
-  </section>
-
-  <section class="panel mythic-derived-panel">
+<section class="panel mythic-derived-panel">
     <div class="mythic-derived-4col">
 
       <details class="mythic-derived-card" data-collapse-key="mythic-card" open>
@@ -152,8 +32,8 @@
           {{#if mythicHasBlurAbility}}
             <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flySprint}}{{else}}{{mythicDerived.movement.sprint}}{{/if}}</div><div class="movement-label movement-label-sprint">Sprint</div></div>
           {{/if}}
-          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}—{{else}}{{mythicDerived.movement.jump}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Jump{{else}}Jump{{/if}}</div></div>
-          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}—{{else}}{{mythicDerived.movement.leap}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Leap{{else}}Leap{{/if}}</div></div>
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}â€”{{else}}{{mythicDerived.movement.jump}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Jump{{else}}Jump{{/if}}</div></div>
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}â€”{{else}}{{mythicDerived.movement.leap}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Leap{{else}}Leap{{/if}}</div></div>
         </div>
         {{#if mythicDerived.movement.hasFlightTrait}}
         {{#unless mythicIsHuragok}}
@@ -169,11 +49,11 @@
               <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flySprint}}</div><div class="movement-label movement-label-sprint">Sprint</div></div>
             {{/if}}
             <div class="movement-block movement-block-wide movement-fly-action-block">
-              <button type="button" class="action-btn movement-fly-action-btn {{#if mythicSystem.mythic.flyCombatActive}}fly-mode-active{{/if}}" title="{{#if mythicSystem.mythic.flyCombatActive}}Disable fly mode{{else}}Enable fly mode{{/if}}">{{#if mythicSystem.mythic.flyCombatActive}}✓ FLY{{else}}Fly{{/if}}</button>
+              <button type="button" class="action-btn movement-fly-action-btn {{#if mythicSystem.mythic.flyCombatActive}}fly-mode-active{{/if}}" title="{{#if mythicSystem.mythic.flyCombatActive}}Disable fly mode{{else}}Enable fly mode{{/if}}">{{#if mythicSystem.mythic.flyCombatActive}}âœ“ FLY{{else}}Fly{{/if}}</button>
             </div>
           </div>
           {{else}}
-          <div class="movement-fly-unavailable">Unable to fly — carrying capacity over 75%</div>
+          <div class="movement-fly-unavailable">Unable to fly â€” carrying capacity over 75%</div>
           {{/if}}
           <div class="movement-fly-encumbrance">Carry: {{mythicDerived.movement.carryPercentage}}%</div>
         </div>
@@ -192,12 +72,12 @@
             <p><strong>Ruler Color Key:</strong> Half = green, Full = blue, Charge = yellow, Run = orange, Sprint = red. These colors match token movement banding while measuring.</p>
             <p><strong>No Grid Maps:</strong> If the Scene grid type is set to No Grid, the ruler path line itself changes color by movement band, but no grid squares or hexes are highlighted.</p>
             <hr />
-            <p><strong>Simple Climb:</strong> Hands-free = no test. Hurried or one-handed: −10 Test. Fail = no progress; 2+ DOF = fall.</p>
+            <p><strong>Simple Climb:</strong> Hands-free = no test. Hurried or one-handed: âˆ’10 Test. Fail = no progress; 2+ DOF = fall.</p>
             <p><strong>Difficult Climb:</strong> Climb Test required. Abseiling/harnessing: +40 and doubles Climb Speed.</p>
             <hr />
-            <p><strong>Simple Swim:</strong> Hands-free, calm water = no test. Hurried or carrying: −10 Test. Fail = Speed halved; 2+ DOF = no distance.</p>
-            <p><strong>Swim Weight Penalties:</strong> &gt;50% Carry: −10 / −1 spd &nbsp;·&nbsp; &gt;75%: −30 / −2 spd &nbsp;·&nbsp; ≥90%: −50 / −3 spd &nbsp;·&nbsp; Over-encumbered: can't swim without flotation.</p>
-            <p><strong>Swim Endurance:</strong> TOU MOD hours; then Toughness Test per hour (cumulative −10). Fail: +1 Fatigue per DOF.</p>
+            <p><strong>Simple Swim:</strong> Hands-free, calm water = no test. Hurried or carrying: âˆ’10 Test. Fail = Speed halved; 2+ DOF = no distance.</p>
+            <p><strong>Swim Weight Penalties:</strong> &gt;50% Carry: âˆ’10 / âˆ’1 spd &nbsp;Â·&nbsp; &gt;75%: âˆ’30 / âˆ’2 spd &nbsp;Â·&nbsp; â‰¥90%: âˆ’50 / âˆ’3 spd &nbsp;Â·&nbsp; Over-encumbered: can't swim without flotation.</p>
+            <p><strong>Swim Endurance:</strong> TOU MOD hours; then Toughness Test per hour (cumulative âˆ’10). Fail: +1 Fatigue per DOF.</p>
           </div>
         </details>
       </details>
@@ -217,10 +97,10 @@
           <div class="movement-ref-content">
             <div class="movement-ref-row"><span>Bright / Low-Light</span><span>{{mythicDerived.perceptiveRange.brightOrLowLight}} m</span></div>
             <div class="movement-ref-row"><span>Blinding / Darkness</span><span>{{mythicDerived.perceptiveRange.blindingOrDarkness}} m</span></div>
-            <div class="movement-ref-row"><span>−20 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty20Max}} m</span></div>
-            <div class="movement-ref-row"><span>−60 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty60Max}} m</span></div>
-            <p>Scopes and sights multiply Perceptive Range (e.g. 2× Scope doubles range).</p>
-            <p>Attacks beyond 3× Perceptive Range are impossible.</p>
+            <div class="movement-ref-row"><span>âˆ’20 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty20Max}} m</span></div>
+            <div class="movement-ref-row"><span>âˆ’60 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty60Max}} m</span></div>
+            <p>Scopes and sights multiply Perceptive Range (e.g. 2Ã— Scope doubles range).</p>
+            <p>Attacks beyond 3Ã— Perceptive Range are impossible.</p>
           </div>
         </details>
       </details>
@@ -238,10 +118,10 @@
             <div class="movement-ref-row gravity-input-row">
               <label>Current Gravity</label>
               <input type="number" name="system.gravity" min="0" max="4" step="0.1" value="{{mythicGravityValue}}" readonly
-                title="{{#if mythicIsGM}}World gravity is set in Game Settings → Configure Settings → System Settings → World Gravity Level.{{else}}Set by the Game Master via Game Settings.{{/if}}" />
+                title="{{#if mythicIsGM}}World gravity is set in Game Settings â†’ Configure Settings â†’ System Settings â†’ World Gravity Level.{{else}}Set by the Game Master via Game Settings.{{/if}}" />
               {{#if mythicIsGM}}<span class="mythic-gravity-gm-hint">Set in <strong>Game Settings</strong></span>{{/if}}
             </div>
-            <p>Gravity modifies Carry, Lift, Push, Jump, Leap, and Climb Speed (÷ gravity). Ultra-High/Low gravity also applies AGI penalties. Zero-G: normal movement requires a surface or propulsion to push off.</p>
+            <p>Gravity modifies Carry, Lift, Push, Jump, Leap, and Climb Speed (Ã· gravity). Ultra-High/Low gravity also applies AGI penalties. Zero-G: normal movement requires a surface or propulsion to push off.</p>
           </div>
         </details>
       </details>
@@ -341,7 +221,7 @@
             <div class="mythic-reaction-penalty">Cumulative Penalty: <strong>{{mythicCombat.reactions.penalty}}</strong></div>
             <div class="mythic-reaction-controls">
               <button type="button" class="action-btn reaction-add-btn">+ Use Reaction</button>
-              <button type="button" class="action-btn reaction-reset-btn">↺ Reset</button>
+              <button type="button" class="action-btn reaction-reset-btn">â†º Reset</button>
             </div>
           </div>
         </div>
@@ -359,7 +239,11 @@
                 {{#if weapon.hasTrainingWarning}}
                 <div class="mythic-ready-weapon-warning" title="{{weapon.trainingWarningText}}">{{weapon.trainingWarningText}}</div>
                 {{/if}}
-                <div class="mythic-ready-weapon-name">{{weapon.name}}</div>
+                <div class="mythic-ready-weapon-name-row">
+                  <div class="mythic-ready-weapon-name">{{weapon.name}}</div>
+                  <button type="button" class="action-btn gear-open-btn mythic-ready-weapon-edit-btn" data-item-id="{{weapon.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+                </div>
+                  {{#if weapon.nickname}}<div class="mythic-ready-weapon-nickname">"{{weapon.nickname}}"</div>{{/if}}
                 <div class="mythic-ready-weapon-meta">
                   {{weapon.displayWeaponClass}}
                   {{#if weapon.isSmartLinkCapable}}
@@ -387,12 +271,28 @@
             </div>
             {{/if}}
 
+            {{#if weapon.showVariantSelector}}
+            <div class="mythic-ready-weapon-modes mythic-variant-selector" aria-label="Attack variant">
+              {{#each weapon.variantOptions as |opt|}}
+              <button
+                type="button"
+                class="action-btn weapon-variant-btn {{#if opt.isSelected}}is-active{{/if}}"
+                data-item-id="{{weapon.id}}"
+                data-variant-index="{{opt.index}}"
+                aria-pressed="{{#if opt.isSelected}}true{{else}}false{{/if}}"
+                title="Switch to {{opt.label}}">{{opt.label}}</button>
+              {{/each}}
+            </div>
+            {{/if}}
+
             <div class="mythic-ready-weapon-attacks">
+              {{#if weapon.showSustainedAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="single">Attack</button>{{/if}}
               {{#if weapon.showSingleAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="single">Single Attack</button>{{/if}}
-              <button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="half">Half Action ({{weapon.halfActionAttackCount}})</button>
+              {{#if weapon.showHalfAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="half">Half Action ({{weapon.halfActionAttackCount}})</button>{{/if}}
               {{#if weapon.showFullAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="full">Full Action ({{weapon.fullActionAttackCount}})</button>{{/if}}
               {{#if weapon.showExecutionAttack}}<button type="button" class="action-btn weapon-attack-btn weapon-execution-btn" data-item-id="{{weapon.id}}" data-action="execution" aria-label="Execution Attack">&#9760;</button>{{/if}}
               {{#if weapon.showButtstrokeAttack}}<button type="button" class="action-btn weapon-attack-btn weapon-buttstroke-btn" data-item-id="{{weapon.id}}" data-action="buttstroke" aria-label="Buttstroke">Butt</button>{{/if}}
+              {{#if weapon.showPumpReactionAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="pump-reaction">Reaction Shot</button>{{/if}}
             </div>
 
             {{#if weapon.isInfusionRadius}}
@@ -427,17 +327,45 @@
               {{#if weapon.isMelee}}
               <div class="mythic-ready-weapon-row-inline">
                 <span><strong>Reach:</strong> {{weapon.reach}} m</span>
-                <span><strong>Damage:</strong> +{{weapon.damageD10}}d10 +{{weapon.damageD5}}d5 +{{weapon.damageBase}} (P {{weapon.damagePierce}})</span>
+                <span><strong>Damage:</strong> {{weapon.damageDiceLabel}} + {{weapon.displayDamageBase}}</span>
+                <span><strong>Pierce:</strong> {{weapon.displayDamagePierce}}</span>
+                {{#if weapon.currentAttackName}}<span class="mythic-attack-type-badge">{{weapon.currentAttackName}}</span>{{/if}}
+              </div>
+              {{else}}
+              {{#if weapon.isEnergyWeapon}}
+              <div class="mythic-ready-weapon-row-inline mythic-energy-weapon-row">
+                <div class="mythic-energy-meter-wrap" title="{{weapon.energyCellCurrent}} / {{weapon.energyCellCapacity}}">
+                  <span class="mythic-energy-meter-label"><strong>{{weapon.ammoLabel}}:</strong></span>
+                  <div class="mythic-energy-meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{weapon.energyCellPercent}}">
+                    <div class="mythic-energy-meter-fill" style="width: {{weapon.energyCellPercent}}%;"></div>
+                    <span class="mythic-energy-meter-text">{{weapon.energyCellPercentDisplay}}%</span>
+                  </div>
+                </div>
+                <span><strong>Charge:</strong> {{weapon.energyCellCurrent}} / {{weapon.energyCellCapacity}}</span>
+                <span><strong>Inventory:</strong> {{weapon.energyCellInventoryTotal}}</span>
+                <button type="button" class="action-btn weapon-reload-btn" data-item-id="{{weapon.id}}">Reload</button>
+                <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>
               </div>
               {{else}}
               <div class="mythic-ready-weapon-row-inline">
                 <label>Ammo ({{weapon.ammoLabel}})
                   <input type="number" min="0" max="{{weapon.magazineMax}}" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="magazineCurrent" value="{{weapon.magazineCurrent}}" />
                 </label>
+                <span><strong>{{weapon.ammoLoadLabel}}:</strong> {{weapon.magazineCurrent}} / {{weapon.magazineMax}}</span>
+                <span><strong>Inventory:</strong> {{weapon.ammoInventoryTotal}}</span>
                 <button type="button" class="action-btn weapon-reload-btn" data-item-id="{{weapon.id}}">Reload</button>
                 <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>
               </div>
               {{/if}}
+              {{/if}}
+            {{/if}}
+
+            {{#if weapon.hasReadyBadges}}
+            <div class="mythic-ready-weapon-badges" aria-label="Weapon tags and special rules">
+              {{#each weapon.readyBadges as |badge|}}
+              <span class="mythic-ready-weapon-badge {{#if (eq badge.kind "rule")}}is-rule{{else}}is-tag{{/if}}" title="{{badge.fullLabel}}">{{badge.shortLabel}}</span>
+              {{/each}}
+            </div>
             {{/if}}
 
             <div class="mythic-ready-weapon-controls">
@@ -464,8 +392,8 @@
             {{#unless weapon.isMelee}}
             {{#unless weapon.isInfusionRadius}}
             <div class="mythic-ready-weapon-row-inline">
-              <span><strong>Reload:</strong> {{weapon.rangeReload}}</span>
-              <span><strong>Magazine:</strong> {{weapon.magazineMax}}</span>
+              <span><strong>Reload:</strong> {{#if weapon.isSingleLoadWeapon}}{{weapon.singleLoadPerHalfAction}}/HA{{else}}{{weapon.rangeReload}}{{/if}}</span>
+              <span><strong>{{weapon.ammoCapacityLabel}}:</strong> {{weapon.magazineMax}}</span>
             </div>
             {{/unless}}
             {{/unless}}
@@ -489,3 +417,4 @@
     </details>
   </section>
 </div>
+

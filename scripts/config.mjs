@@ -99,11 +99,14 @@ export const MYTHIC_BASE_SKILL_DEFINITIONS = [
 export const MYTHIC_ACTOR_PARTIAL_TEMPLATES = [
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/header.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab-characteristics-panel.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/skills-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/abilities-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/equipment-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/medical-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/advancements-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/advancements-creation-panel.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/advancements-advancement-panel.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/notes-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicles-tab.hbs",
@@ -111,59 +114,18 @@ export const MYTHIC_ACTOR_PARTIAL_TEMPLATES = [
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/characteristics-builder.hbs"
 ];
 
-// --- Education Definitions (Halo Mythic rulebook p.106) ---
-export const MYTHIC_EDUCATION_DEFINITIONS = [
-  // ── General Educations ────────────────────────────────────────────────────
-  { name: "Aeronautics",               difficulty: "advanced", skills: ["Stunting", "Pilot", "Evasion", "Technology"],                                          costPlus5: 100, costPlus10: 150 },
-  { name: "Agriculture",               difficulty: "basic",    skills: ["Technology", "Survival"],                                                              costPlus5:  50, costPlus10: 100 },
-  { name: "Architecture",              difficulty: "advanced", skills: ["Technology", "Security"],                                                              costPlus5:  75, costPlus10: 125 },
-  { name: "Armor Smithing",            difficulty: "basic",    skills: ["Technology"],                                                                          costPlus5: 100, costPlus10: 150 },
-  { name: "Astronautics",              difficulty: "advanced", skills: ["Pilot", "Technology", "Stunting", "Evasion"],                                          costPlus5: 100, costPlus10: 150 },
-  { name: "Astrophysics",              difficulty: "advanced", skills: ["Pilot", "Technology"],                                                                 costPlus5: 100, costPlus10: 150 },
-  { name: "Bartering",                 difficulty: "basic",    skills: ["Appeal", "Investigation", "Deception"],                                                costPlus5:  50, costPlus10: 100 },
-  { name: "Brewing",                   difficulty: "basic",    skills: ["Survival"],                                                                            costPlus5:  50, costPlus10: 100 },
-  { name: "Carpentry",                 difficulty: "basic",    skills: ["Technology"],                                                                          costPlus5:  50, costPlus10: 100 },
-  { name: "Computer Security",         difficulty: "advanced", skills: ["Security", "Cryptography"],                                                            costPlus5:  50, costPlus10: 100 },
-  { name: "Construction",              difficulty: "basic",    skills: ["Technology", "Demolition"],                                                            costPlus5: 100, costPlus10: 150 },
-  { name: "Culinary",                  difficulty: "basic",    skills: ["Survival"],                                                                            costPlus5:  50, costPlus10: 100 },
-  { name: "Demolitions Assembly",      difficulty: "basic",    skills: ["Demolition"],                                                                          costPlus5: 100, costPlus10: 150 },
-  { name: "Economics",                 difficulty: "advanced", skills: ["Appeal", "Command", "Deception", "Interrogation", "Intimidation", "Negotiation"],      costPlus5:  75, costPlus10: 125 },
-  { name: "Etiquette",                 difficulty: "basic",    skills: ["Appeal", "Deception"],                                                                 costPlus5:  50, costPlus10: 100 },
-  { name: "Faction Culture",           difficulty: "basic",    skills: ["Appeal", "Investigation"],                                                             costPlus5:  50, costPlus10: 100 },
-  { name: "Faction History",           difficulty: "basic",    skills: ["Appeal", "Command", "Investigation"],                                                  costPlus5:  50, costPlus10: 100 },
-  { name: "Faction Law",               difficulty: "advanced", skills: ["Command", "Investigation", "Deception", "Negotiation"],                                costPlus5: 100, costPlus10: 150 },
-  { name: "Faction Linguistics",       difficulty: "basic",    skills: ["Cryptography", "Technology"],                                                          costPlus5:  50, costPlus10: 100 },
-  { name: "Faction Literature",        difficulty: "basic",    skills: ["Appeal", "Command", "Investigation"],                                                  costPlus5:  50, costPlus10: 100 },
-  { name: "Faction Medical Science",   difficulty: "advanced", skills: ["Medication", "Survival", "Interrogation"],                                             costPlus5: 100, costPlus10: 150 },
-  { name: "Faction Military",          difficulty: "advanced", skills: ["Command", "Appeal", "Investigation", "Deception", "Interrogation", "Security"],        costPlus5: 100, costPlus10: 150 },
-  { name: "Faction Psychology",        difficulty: "advanced", skills: ["Appeal", "Command", "Deception", "Interrogation", "Intimidation", "Negotiation"],      costPlus5: 150, costPlus10: 200 },
-  { name: "Faction Religion",          difficulty: "basic",    skills: ["Appeal", "Command", "Deception", "Interrogation", "Intimidation", "Negotiation"],      costPlus5:  50, costPlus10: 100 },
-  { name: "Faction Vehicle Maintenance", difficulty: "basic",  skills: ["Technology"],                                                                          costPlus5: 100, costPlus10: 150 },
-  { name: "Faction Weaponry",          difficulty: "basic",    skills: ["Technology"],                                                                          costPlus5: 100, costPlus10: 150 },
-  { name: "Flood Biology",             difficulty: "advanced", skills: ["Medication"],                                                                          costPlus5: 200, costPlus10: 250, restricted: true },
-  { name: "Forerunner Artifacts",      difficulty: "advanced", skills: ["Technology"],                                                                          costPlus5: 250, costPlus10: 300, restricted: true },
-  { name: "Forerunner Linguistics",    difficulty: "advanced", skills: ["Technology", "Cryptography", "Investigation"],                                         costPlus5: 150, costPlus10: 200, restricted: true },
-  { name: "Forerunner Weaponry",       difficulty: "advanced", skills: ["Technology"],                                                                          costPlus5: 200, costPlus10: 250, restricted: true },
-  { name: "Ground Vehicle Dynamics",   difficulty: "basic",    skills: ["Pilot", "Technology", "Stunting", "Evasion"],                                          costPlus5: 100, costPlus10: 150 },
-  { name: "Hunting and Fishing",       difficulty: "basic",    skills: ["Investigation", "Deception", "Athletics", "Technology", "Security", "Survival"],       costPlus5:  50, costPlus10: 100 },
-  { name: "Locksmith",                 difficulty: "basic",    skills: ["Technology", "Security"],                                                              costPlus5:  50, costPlus10: 100 },
-  { name: "Martial Arts",              difficulty: "basic",    skills: ["Evasion", "Athletics"],                                                                costPlus5: 100, costPlus10: 150 },
-  { name: "Mathematics",               difficulty: "basic",    skills: ["Security", "Cryptography", "Gambling"],                                                costPlus5: 100, costPlus10: 150 },
-  { name: "Merchant",                  difficulty: "basic",    skills: ["Appeal", "Negotiation", "Deception"],                                                  costPlus5:  50, costPlus10: 100 },
-  { name: "Military Command",          difficulty: "advanced", skills: ["Command", "Appeal", "Interrogation", "Negotiation", "Deception"],                      costPlus5: 100, costPlus10: 150 },
-  { name: "Mount Training",            difficulty: "basic",    skills: ["Appeal", "Command", "Deception", "Intimidation", "Investigation", "Stunting"],         costPlus5:  50, costPlus10: 100 },
-  { name: "Musical Training (Chosen Instrument)", difficulty: "basic", skills: ["Appeal"],                                                                      costPlus5:  25, costPlus10:  50 },
-  { name: "Planetary Science",         difficulty: "advanced", skills: ["Survival", "Camouflage"],                                                              costPlus5: 100, costPlus10: 150 },
-  { name: "Slipspace Travel",          difficulty: "advanced", skills: ["Pilot (Space)", "Navigation", "Technology", "Stunting"],                               costPlus5: 250, costPlus10: 300 },
-  { name: "Tailor",                    difficulty: "basic",    skills: ["Survival", "Technology"],                                                              costPlus5:  50, costPlus10: 100 },
-  { name: "Tanning (Leather)",         difficulty: "basic",    skills: ["Technology"],                                                                          costPlus5:  50, costPlus10: 100 },
-  { name: "Weapon Smithing",           difficulty: "advanced", skills: ["Technology"],                                                                          costPlus5:  75, costPlus10: 125 },
-  // ── Street Smarts ─────────────────────────────────────────────────────────
-  { name: "Black Market",              difficulty: "advanced", skills: ["Investigation", "Appeal", "Negotiation"],                                               costPlus5: 100, costPlus10: 150, restricted: true, category: "street-smarts" },
-  { name: "Crime Organizations",       difficulty: "advanced", skills: ["All Social Skills"],                                                                   costPlus5: 100, costPlus10: 150, category: "street-smarts" },
-  { name: "Streetwise",                difficulty: "basic",    skills: ["Investigation", "Charisma"],                                                           costPlus5:  25, costPlus10:  50, category: "street-smarts" },
-  { name: "Subculture",                difficulty: "basic",    skills: ["All Social Skills"],                                                                   costPlus5:  50, costPlus10: 100, category: "street-smarts" },
+export const MYTHIC_ITEM_PARTIAL_TEMPLATES = [
+  "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/armor-protection-grid.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-armor.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-ammo.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-ammo-mod.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-melee-weapon.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-ranged-weapon.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-generic.hbs"
 ];
+
+// --- Education Definitions (Halo Mythic rulebook p.106) ---
+export { MYTHIC_EDUCATION_DEFINITIONS } from "./config/education-and-cognitive.mjs";
 
 // --- Data Paths ---
 export const MYTHIC_ABILITY_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/abilities.json";
@@ -182,34 +144,230 @@ export const MYTHIC_WEAPON_TRAINING_DEFINITIONS = [
   { key: "melee", label: "Melee", xpCost: 150, weaponTypes: ["All non-knife Melee Weapons", "Physical Shields"], aliases: ["melee", "melee weapons", "physical shield", "physical shields"] }
 ];
 
-// --- Faction Training Definitions ---
 export const MYTHIC_FACTION_TRAINING_DEFINITIONS = [
   {
     key: "unsc",
     label: "UNSC",
     xpCost: 300,
-    coverage: "UNSC weapons and gear patterns.",
-    aliases: ["unsc", "united nations space command"]
+    aliases: [
+      "unsc",
+      "human unsc",
+      "human",
+      "humans",
+      "united nations space command",
+      "office of naval intelligence",
+      "oni",
+      "civilian",
+      "civilians",
+      "united earth government",
+      "ueg",
+      "police",
+      "policeman",
+      "policemen",
+      "police force",
+      "united earth government police",
+      "united earth government police force",
+      "insurrection",
+      "insurrectionist",
+      "united rebel front",
+      "urf"
+    ]
   },
   {
     key: "covenant",
     label: "Covenant",
     xpCost: 300,
-    coverage: "Covenant and Banished weapons.",
-    aliases: ["covenant", "banished"]
+    aliases: [
+      "covenant",
+      "banished",
+      "swords of sangheilios",
+      "sangheilios",
+      "swords"
+    ]
   },
   {
     key: "forerunner",
     label: "Forerunner",
     xpCost: 300,
-    coverage: "Forerunner weapons and relic interfaces.",
-    note: "GM approval only.",
-    aliases: ["forerunner"]
+    aliases: ["forerunner", "forerunners", "promethean", "prometheans"]
   }
 ];
 
+export const MYTHIC_RANGED_TRAINING_OPTIONS = Object.freeze([
+  { value: "basic", label: "Basic" },
+  { value: "infantry", label: "Infantry" },
+  { value: "heavy", label: "Heavy" },
+  { value: "advanced", label: "Advanced" },
+  { value: "launcher", label: "Launcher" },
+  { value: "longRange", label: "Long Range" },
+  { value: "ordnance", label: "Ordnance" },
+  { value: "cannon", label: "Cannon" }
+]);
+
+// These represent weapon classification tags like wielding type, damage type, and pricing tags.
+export const MYTHIC_WEAPON_TAG_DEFINITIONS = Object.freeze([
+  // Wielding Type Tags
+  { key: "[DW]", label: "DW" }, // Dual Wielding
+  { key: "[OH]", label: "OH" }, // One-Handed
+  { key: "[TH]", label: "TH" }, // Two-Handed
+  { key: "[HW]", label: "HW" }, // Heavy Weapon
+  // Damage Type Tags
+  { key: "[BD]", label: "BD" }, // Blunt(or Bludgeoning) Damage
+  { key: "[PD]", label: "PD" }, // Piercing Damage
+  { key: "[SD]", label: "SD" }, // Slashing Damage
+  { key: "[UD]", label: "UD" }, // Universal Damage
+  // Special Pricing Tags
+  { key: "[U]", label: "U" }, // No upcharge for civilians or insurrectionists
+  { key: "[I]", label: "I" }, // No upcharge for insurrectionists only
+  // These two are not tags that are defined in the rulebook, but are common in weapons, so I'm not
+  // not going to give them a "tag" label, because the user might not understand what it is
+  { key: "[P]", label: "No police upcharge" }, // No Police Upcharge
+  { key: "[NC]", label: "No civilian upcharge" } // No Civilian Upcharge
+]);
+
+// --- Melee Training & Weapon Type Options ---
+export const MYTHIC_MELEE_TRAINING_OPTIONS = Object.freeze([
+  { value: "basic", label: "Basic" },
+  { value: "melee", label: "Melee" }
+]);
+
+export const MYTHIC_MELEE_WEAPON_TYPE_OPTIONS = Object.freeze([
+  { value: "knife", label: "Knife" },
+  { value: "dagger", label: "Dagger" },
+  { value: "one-handed-sword", label: "One-Handed Sword" },
+  { value: "two-handed-sword", label: "Two-Handed Sword" },
+  { value: "axe", label: "Axe" },
+  { value: "club", label: "Club" },
+  { value: "shovel", label: "Shovel" },
+  { value: "hammer", label: "Hammer" },
+  { value: "spear", label: "Spear" },
+  { value: "polearm-axe", label: "Polearm Axe" },
+  { value: "polearm-spike", label: "Polearm Spike" },
+  { value: "garrote", label: "Garrote" },
+  { value: "fist-weapon", label: "Fist Weapon" },
+  { value: "spray-weapon", label: "Spray Weapon" },
+  { value: "taser", label: "Taser" },
+  { value: "melee-shield", label: "Melee Shield" }
+]);
+
+// --- Ranged Weapon Types by Training ---
+export const MYTHIC_RANGED_WEAPON_TYPES_BY_TRAINING = Object.freeze({
+  basic: ["Pistol", "Knife", "Shotgun"],
+  infantry: ["Rifle", "Carbine", "SMG", "Grenade"],
+  heavy: ["Light Machine Gun", "Machine Gun", "Heavy Machine Gun"],
+  advanced: ["Energy Weapon", "Railgun", "Chemical Sprayer", "Beam"],
+  launcher: ["Missile Launcher", "Rocket Launcher", "Grenade Launcher"],
+  "long-range": ["Sniper Rifle"],
+  ordnance: ["Satchel Charge", "Demolition", "Ordinance", "Landmine"],
+  cannon: ["Cannon", "Mortar Cannon", "Autocannon", "Coilgun", "Energy Cannon"]
+});
+
+// --- Melee Damage Modifier Options ---
+export const MYTHIC_MELEE_DAMAGE_MODIFIER_OPTIONS = Object.freeze([
+  { value: "full-str-mod", label: "Full STR Modifier" },
+  { value: "half-str-mod", label: "Half STR Modifier" },
+  { value: "no-str-mod", label: "No STR Modifier" }
+]);
+
+// --- Melee Special Rule Definitions ---
+export const MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS = Object.freeze([
+  { key: "acid", label: "Acid" },
+  { key: "cauterize", label: "Cauterize" },
+  { key: "cryo", label: "Cryo" },
+  { key: "dice minimum", label: "Dice Minimum" },
+  { key: "electrified", label: "Electrified" },
+  { key: "emp", label: "EMP" }, 
+  { key: "flame", label: "Flame" },
+  { key: "hardlight", label: "Hardlight" },
+  { key: "headshot", label: "Headshot" },
+  { key: "homing", label: "Homing" },
+  { key: "kinetic", label: "Kinetic" },
+  { key: "long barrel", label: "Long Barrel" },
+  { key: "needle", label: "Needle" },
+  { key: "nonlethal", label: "Nonlethal" },
+  { key: "overheat", label: "Overheat" },
+  { key: "penetrating", label: "Penetrating" },
+  { key: "recharge rate", label: "Recharge Rate" },
+  { key: "slow", label: "Slow" },
+  { key: "spike", label: "Spike" },
+  { key: "spread", label: "Spread" },
+  { key: "sticky", label: "Sticky" },
+  { key: "stun", label: "Stun" },
+  { key: "tranquilize", label: "Tranquilize" },
+  { key: "vehicle lock", label: "Vehicle Lock" },
+  { key: "night vision", label: "Night Vision" },
+  { key: "thermal imaging", label: "Thermal Imaging" },
+  { key: "infrared imaging", label: "Infrared Imaging" },  
+  { key: "airburst", label: "Airburst" },
+  { key: "blast radius", label: "Blast Radius" },
+  { key: "concussive grenades", label: "Concussive Grenades" },
+  { key: "explosive knockback", label: "Explosive Knockback" },
+  { key: "gravimetric pulse", label: "Gravimetric Pulse" },
+  { key: "gravity", label: "Gravity" },
+  { key: "kill radius", label: "Kill Radius" },
+  { key: "pepper spray", label: "Pepper Spray" },
+  { key: "smoke", label: "Smoke" },
+  { key: "tear gas", label: "Tear Gas" }
+]);
+
 // --- Schema Versions ---
 export const MYTHIC_ACTOR_SCHEMA_VERSION = 2;
+// --- Ammo Modifier Compatibility Codes ---
+// Canonical short-code dictionary for validating ammo-modification compatibility lists.
+// Each entry: code → { label, description }
+export const MYTHIC_AMMO_COMPAT_CODES = Object.freeze({
+  // Damage-type modifiers
+  "HE":    { label: "High Explosive",             description: "High-explosive warhead ammo families." },
+  "AP":    { label: "Armor Piercing",              description: "Standard armor-piercing projectiles." },
+  "HV":    { label: "High Velocity",               description: "High-velocity propellant ammunition." },
+  "HVY":   { label: "Heavy",                       description: "Heavy-caliber or oversized projectile rounds." },
+  "IN":    { label: "Incendiary",                  description: "Incendiary / fire-based warhead families." },
+  "CYN":   { label: "Cyanogen",                    description: "Cyanogen chemical / toxin projectile families." },
+  "HP":    { label: "Hollow Point",                description: "Expanding hollow-point projectile families." },
+  "SP":    { label: "Soft Point",                  description: "Soft-point projectile families." },
+  "JSP":   { label: "Jacketed Soft Point",         description: "Jacketed soft-point projectile variants." },
+  "T":     { label: "Tracer",                      description: "Tracer-marked projectile families." },
+  "DT":    { label: "Dual Tracer",                 description: "Dual-tagged tracer projectile families." },
+  "SLAP":  { label: "Sabot Light Armor Piercing",  description: "Sub-caliber SLAP projectile families." },
+  "SAP":   { label: "Semi-Armor Piercing",         description: "Semi-armor-piercing projectile families." },
+  "APFDS": { label: "APFDS (Sabot)",               description: "Armor-Piercing Fin-Stabilized Discarding Sabot families." },
+  "MG":    { label: "Match Grade",                 description: "Match-grade precision projectile families." },
+  "DU":    { label: "Depleted Uranium",             description: "Depleted-uranium penetrator projectile families." },
+  "DX":    { label: "Duplex",                      description: "Dual-projectile duplex round families." },
+  "CL":    { label: "Cluster",                     description: "Cluster / flechette projectile families." },
+  "EG":    { label: "Explosive Gas",               description: "Explosive gas-charge projectile families." },
+  "BOL":   { label: "Bolt",                        description: "Energy bolt / plasma bolt projectile families." },
+  "BO":    { label: "Bolt (Short)",                description: "Short-form bolt variant families." },
+  "FR":    { label: "Frangible",                   description: "Frangible / fragmenting projectile families." },
+  "STRD":  { label: "Standard",                    description: "Standard base-load projectile families." },
+  // Pressure / load modifiers
+  "+P":    { label: "Overpressure (+P)",           description: "+P overpressure loading." },
+  "+P+":   { label: "Overpressure (++P)",          description: "++P double-overpressure loading." },
+  "-P":    { label: "Underpressure (-P)",          description: "-P reduced-pressure loading." },
+  // Training / non-lethal
+  "TTR":   { label: "Training Round",              description: "Training / non-lethal training round families." }
+});
+
+export const MYTHIC_AMMO_COMPAT_CODE_SET = Object.freeze(new Set(Object.keys(MYTHIC_AMMO_COMPAT_CODES)));
+
+export const MYTHIC_BASE_AMMO_TYPE_OPTIONS = Object.freeze([
+  { value: "", label: "Select Ammo Type" },
+  { value: "handgun", label: "Handgun" },
+  { value: "smg", label: "SMG" },
+  { value: "rifle", label: "Rifle" },
+  { value: "shotgun", label: "Shotgun" },
+  { value: "sniper", label: "Sniper" },
+  { value: "launcher", label: "Launcher" },
+  { value: "heavy", label: "Heavy" },
+  { value: "energy", label: "Energy" },
+  { value: "special", label: "Special" }
+]);
+export const MYTHIC_BASE_AMMO_TYPE_SET = Object.freeze(new Set(
+  MYTHIC_BASE_AMMO_TYPE_OPTIONS
+    .map((entry) => String(entry?.value ?? "").trim())
+    .filter(Boolean)
+));
+
 export const MYTHIC_GEAR_SCHEMA_VERSION = 1;
 export const MYTHIC_ABILITY_SCHEMA_VERSION = 1;
 export const MYTHIC_TRAIT_SCHEMA_VERSION = 1;
@@ -228,6 +386,8 @@ export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION = 1;
 export const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
 export const MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY = "covenantPlasmaPistolChargePatchVersion";
 export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY = "compendiumCanonicalMigrationVersion";
+export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY = "useAmmoWeightOptionalRule";
+export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY = "ammoWeightOptionalRuleMigrationVersion";
 export const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
 export const MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY = "ignoreBasicAmmoCounts";
 export const MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY = "tokenBarVisibilityDefault";
@@ -401,7 +561,7 @@ export const MYTHIC_REFERENCE_ARMOR_CSV = "systems/Halo-Mythic-Foundry-Updated/d
 export const MYTHIC_REFERENCE_EQUIPMENT_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - CR costing items.csv";
 export const MYTHIC_REFERENCE_SOLDIER_TYPES_JSON = "systems/Halo-Mythic-Foundry-Updated/data/soldier-types.json";
 export const MYTHIC_EQUIPMENT_PACK_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/equipment-packs-human.json";
-export const MYTHIC_AMMO_TYPE_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/ammo-types.json";
+export const MYTHIC_AMMO_TYPE_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/ammos.json";
 
 // --- Token Ruler Colors ---
 export const MYTHIC_TOKEN_RULER_COLORS = Object.freeze({
@@ -427,115 +587,10 @@ export const MYTHIC_TRAIT_TEXT_TO_STAT = Object.freeze({
 });
 
 // --- Cognitive Pattern Fragments (Smart AI) ---
-export const MYTHIC_COGNITIVE_PATTERN_FRAGMENTS = {
-  social: {
-    descriptors: [
-      "Influence", "Diplomatic", "Psychological", "Persuasion", "Consensus",
-      "Authority", "Manipulative", "Behavioral", "Charismatic", "Coercive",
-      "Adaptive", "Empathic", "Governance", "Social", "Command"
-    ],
-    architectures: [
-      "Influence Matrix", "Consensus Engine", "Negotiation Framework",
-      "Authority Protocol", "Social Nexus", "Behavioral Lattice",
-      "Persuasion Core", "Command Array", "Diplomatic System",
-      "Psychology Network", "Charisma Kernel", "Leadership Construct"
-    ]
-  },
-  movement: {
-    descriptors: [
-      "Kinetic", "Trajectory", "Reflexive", "Dynamic", "Reactive",
-      "Velocity", "Mobile", "Evasive", "Agile", "Responsive",
-      "Momentum", "Angular", "Acceleration", "Vector", "Combat"
-    ],
-    architectures: [
-      "Navigation Matrix", "Motion Engine", "Trajectory Lattice",
-      "Velocity Framework", "Flight Core", "Evasion Protocol",
-      "Kinetic System", "Agility Nexus", "Dynamic Array",
-      "Reflex Network", "Mobility Kernel", "Combat Grid"
-    ]
-  },
-  fieldcraft: {
-    descriptors: [
-      "Operational", "Strategic", "Stealth", "Encrypted", "Systems",
-      "Analytical", "Deductive", "Defensive", "Systematic", "Predictive",
-      "Recursive", "Distributed", "Probabilistic", "Heuristic", "Tactical"
-    ],
-    architectures: [
-      "Battleflow Matrix", "Predictive Cascade", "Optimization Engine",
-      "Resource Nexus", "Security Protocol", "Logic Fractal",
-      "Operational Core", "Data Lattice", "Stealth Architecture",
-      "Tactical System", "Cipher Framework", "Recon Array",
-      "Strategic Construct", "Infiltration Network", "Field Intelligence Kernel"
-    ]
-  },
-  "technology:human": {
-    descriptors: ["Engineering", "Systematic", "Algorithmic", "Hardware", "Integration"],
-    architectures: [
-      "Systems Engineering Matrix", "Hardware Optimization Engine",
-      "Operational Logic Core", "Integration Architecture", "Systems Array"
-    ]
-  },
-  "technology:covenant": {
-    descriptors: ["Plasma", "Resonant", "Crystalline", "Harmonic", "Covenant"],
-    architectures: [
-      "Plasma Systems Nexus", "Energy Lattice",
-      "Covenant Resonance Framework", "Crystal Logic Core", "Plasma Array"
-    ]
-  },
-  "technology:forerunner": {
-    descriptors: ["Quantum", "Ancilla", "Primordial", "Spectral", "Transcendent"],
-    architectures: [
-      "Quantum Lattice", "Ancilla Architecture",
-      "Forerunner Logic Core", "Primordial Systems Matrix", "Transcendent Array"
-    ]
-  },
-  "medication:human": {
-    descriptors: ["Biocognitive", "Diagnostic", "Biomonitor", "Regenerative", "Medical"],
-    architectures: [
-      "Medical Nexus", "Physiology Engine", "Diagnostic Framework",
-      "Biomonitor Core", "Regeneration Array"
-    ]
-  },
-  "medication:covenant": {
-    descriptors: ["Symbiotic", "Biovital", "Restorative", "Curative", "Mending"],
-    architectures: ["Covenant Physiology Nexus", "Vital Signs Engine", "Restorative Core"]
-  },
-  "medication:xenobiology": {
-    descriptors: ["Xenoanalysis", "Exobiological", "Symbiotic", "Xenobiotic", "Alien"],
-    architectures: [
-      "Alien Physiology Matrix", "Symbiotic Diagnostic Pattern",
-      "Xenobiotic Lattice", "Exobiology Core", "Xenoanalysis Array"
-    ]
-  },
-  "navigation:ground-air": {
-    descriptors: ["Terrain", "Atmospheric", "Topographic", "Geospatial", "Aerial"],
-    architectures: [
-      "Terrain Mapping Matrix", "Atmospheric Trajectory Engine",
-      "Ground Navigation Nexus", "Topographic Core", "Aerial Systems Array"
-    ]
-  },
-  "navigation:space": {
-    descriptors: ["Astrogation", "Slipspace", "Orbital", "Stellar", "Navigational"],
-    architectures: [
-      "Astrogation Matrix", "Slipspace Navigation Core",
-      "Orbital Trajectory Lattice", "Stellar Navigation Framework", "Deep Space Array"
-    ]
-  },
-  "pilot:space": {
-    descriptors: ["Void", "Interstellar", "Cosmic"],
-    architectures: ["Slipspace Nexus", "Orbital Control Matrix", "Void Navigation Core"]
-  }
-};
-
-export const MYTHIC_COGNITIVE_PATTERN_SKILL_GROUP_MAP = {
-  appeal: "social", command: "social", deception: "social",
-  gambling: "social", interrogation: "social", intimidation: "social", negotiation: "social",
-  athletics: "movement", evasion: "movement", stunting: "movement",
-  pilot: "movement", navigation: "movement",
-  camouflage: "fieldcraft", cryptography: "fieldcraft", demolition: "fieldcraft",
-  investigation: "fieldcraft", security: "fieldcraft", survival: "fieldcraft",
-  medication: "fieldcraft", technology: "fieldcraft"
-};
+export {
+  MYTHIC_COGNITIVE_PATTERN_FRAGMENTS,
+  MYTHIC_COGNITIVE_PATTERN_SKILL_GROUP_MAP
+} from "./config/education-and-cognitive.mjs";
 
 // --- Default Item Icons ---
 export const MYTHIC_EDUCATION_DEFAULT_ICON = "icons/svg/item-bag.svg";
@@ -546,6 +601,15 @@ export const MYTHIC_ENVIRONMENT_DEFAULT_ICON = MYTHIC_CREATION_PATHS_DEFAULT_ICO
 export const MYTHIC_LIFESTYLE_DEFAULT_ICON = MYTHIC_CREATION_PATHS_DEFAULT_ICON;
 export const MYTHIC_RANGED_WEAPON_DEFAULT_ICON = "icons/svg/item-bag.svg";
 export const MYTHIC_MELEE_WEAPON_DEFAULT_ICON = "icons/svg/item-bag.svg";
+
+// --- Armor Special Rules Catalog ---
+// These are the general armor special rules, power-armor traits, and armor abilities.
+// Keep keys stable so armor items can store references safely across updates.
+export {
+  MYTHIC_ARMOR_SPECIAL_RULE_DEFINITIONS,
+  MYTHIC_POWER_ARMOR_TRAIT_DEFINITIONS,
+  MYTHIC_ARMOR_ABILITY_DEFINITIONS
+} from "./config/armor-catalogs.mjs";
 
 // --- Allowed Weapon Sources ---
 export const MYTHIC_ALLOWED_WEAPON_SOURCES = Object.freeze(new Set(["mythic", "warzone"]));

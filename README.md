@@ -7,8 +7,50 @@ This project is actively in development and currently tracks Foundry v12/v13 com
 ## Current Status
 
 - Implemented: core actor sheet scaffold, faction logos, faction background switching, characteristic rolls, computed characteristic modifiers, responsive header tuning, collapsible sidebar, and ongoing UI parity work.
-- In progress: data model completion, full tab build-out, automation engine, compendium-driven character building.
+- In progress: data model completion, automation engine depth, and compendium-driven character building polish.
 - Roadmap: see [TODO.md](TODO.md).
+
+## Alpha Readiness
+
+Current build target: `0.2.0-alpha.1` (playtest-ready alpha)
+
+Known alpha limitations:
+
+- Soldier Type application may require dropping the same Soldier Type twice in some cases.
+- GM specialization override can leave prior specialization grants behind.
+- Ability-drop XP handling is not fully reliable yet.
+- Ammo cannot always be manually deleted (still removed when emptied by firing).
+- Battery reload time currently does not receive characteristic-based reduction (temporary alpha behavior; remove this caveat if final rules differ).
+
+Recommended alpha test focus:
+
+1. Character Creation and Advancement flow end-to-end on a new actor.
+2. Soldier Type apply behavior (including first-drop/second-drop behavior).
+3. XP tracking + transaction notes + manual transaction add/remove persistence.
+4. Collapse-state persistence and scroll-position stability during rerenders.
+
+Alpha bug reporting focus (important):
+
+- On system load, players are shown an alpha bug-report notice with this guidance and a "Don't show again" option.
+
+- Report calculation/rules breakages and clearly broken intended behavior.
+	- Examples: "This damage calculation is incorrect." / "This flow should work but crashes or applies the wrong result."
+- Do not report content coverage gaps on this pass.
+	- Examples: "This item is missing from a compendium." / "Vehicles are not usable yet."
+
+Where to report:
+
+- Send bug reports by Discord DM to: `.neoshain`
+
+Bug report format (copy/paste):
+
+1. Build/version: `0.2.0-alpha.1`
+2. Actor type and whether newly created or existing
+3. Exact steps to reproduce
+4. Expected result
+5. Actual result
+6. Whether issue is consistent or intermittent
+7. Screenshot/video if available
 
 ## Versioning Policy
 
@@ -21,7 +63,7 @@ Format:
 
 Current working version:
 
-- `0.1.0-alpha.1`
+- `0.2.0-alpha.1`
 
 Rules used:
 
@@ -33,11 +75,14 @@ Rules used:
 
 Use this section for short public-facing updates as development progresses.
 
-### 0.1.0-alpha.1
+### 0.2.0-alpha.1
 
 - Established first pre-release SemVer baseline
 - Added significant sheet UI and interaction improvements
 - Added structured roadmap and milestone planning in [TODO.md](TODO.md)
+- Consolidated Character Creation + Advancement into one unified collapsible flow
+- Added XP transactions ledger with notes and automated spend entries
+- Added known-bug surfacing in-tab to support alpha testers
 
 ## Planned Major Features
 

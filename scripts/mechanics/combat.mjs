@@ -29,28 +29,38 @@ export function getFireModeToHitBonus(modeValue) {
 export function parseFireModeProfile(modeValue) {
   const raw = String(modeValue ?? "single").trim();
   const lower = raw.toLowerCase();
-  const countMatch = lower.match(/\((\d+)\)/);
-  const count = countMatch ? Math.max(1, Math.floor(Number(countMatch[1]))) : 1;
+  const normalized = lower.replace(/[\u2013\u2014]/gu, "-");
+
+  const countHints = [
+    normalized.match(/\((\d+)\)/u),
+    normalized.match(/[x*]\s*(\d+)/u),
+    normalized.match(/\b(?:rof|rate\s*of\s*fire|shots?|rounds?)\s*[:=]?\s*(\d+)\b/u),
+    normalized.match(/\b(\d+)\s*(?:round|shot|burst)s?\b/u)
+  ];
+  const hintedCount = countHints
+    .map((match) => Number(match?.[1] ?? NaN))
+    .find((value) => Number.isFinite(value) && value > 0);
+  const count = hintedCount ? Math.max(1, Math.floor(hintedCount)) : 1;
 
   let kind = "single";
-  if (lower.includes("semi")) kind = "semi";
-  else if (lower.includes("burst")) kind = "burst";
-  else if (lower.includes("auto")) kind = "auto";
-  else if (lower.includes("sustained")) kind = "sustained";
-  else if (lower.includes("pump")) kind = "pump";
-  else if (lower.includes("flintlock")) kind = "flintlock";
-  else if (lower.includes("drawback")) kind = "drawback";
-  else if (lower.includes("charge")) kind = "charge";
+  if (/\bsemi\b|\bsa\b/u.test(normalized)) kind = "semi";
+  else if (/\bburst\b|\bbf\b/u.test(normalized)) kind = "burst";
+  else if (/\bfull\s*auto\b|\bfa\b|\bauto\b/u.test(normalized)) kind = "auto";
+  else if (/\bsustained\b/u.test(normalized)) kind = "sustained";
+  else if (/\bpump\b/u.test(normalized)) kind = "pump";
+  else if (/\bflintlock\b/u.test(normalized)) kind = "flintlock";
+  else if (/\bdrawback\b/u.test(normalized)) kind = "drawback";
+  else if (/\bcharge\b/u.test(normalized)) kind = "charge";
 
   return { raw, kind, count };
 }
 
 export function getAttackIterationsForProfile(profile, actionType) {
   const action = String(actionType ?? "single").toLowerCase();
+  if (profile.kind === "flintlock") return action === "full" ? 1 : 0;
   if (action === "single") return 1;
 
   const perHalf = Math.max(1, profile.count);
-  if (profile.kind === "flintlock") return action === "full" ? 1 : 0;
   if (profile.kind === "charge" || profile.kind === "drawback") return 1;
   if (profile.kind === "auto" || profile.kind === "sustained") {
     return action === "full" ? perHalf : Math.max(1, Math.floor(perHalf / 2));

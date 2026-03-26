@@ -1,0 +1,85 @@
+Ammo Type,Cost,Weight,Weight Basis,Special Ammo Limitations
+12.7x40mm,10 cR,0.02 KG,Direct from page 329 image,Standard
+10x25mm,10 cR,0.015 KG,Direct from page 329 image,Standard
+5x23mm,5 cR,0.005 KG,Direct from page 329 image,Standard
+8x27mm,5 cR,0.015 KG,Inferred from 10mm Auto / small pistol class,Standard
+10x31mm,10 cR,0.015 KG,Inferred from 10mm Auto,Standard
+9.9x56mm,10 cR,0.025 KG,Inferred from 7.62x51mm,Standard
+12x41mm,10 cR,0.02 KG,Inferred from 12.7x40mm,Standard
+Narq Dart,15 cR,0.15 KG,Direct from page 329 image,No Special Ammo
+9.5x40mm,10 cR,0.01 KG,Direct from page 329 image,Standard
+8.35x56mm,10 cR,0.025 KG,Inferred from 7.62x51mm,Standard
+7.62x51mm,10 cR,0.025 KG,Direct from page 329 image,Standard
+9.3x55mm,10 cR,0.025 KG,Inferred from 7.62x51mm,Standard
+6.5x55mm,10 cR,0.025 KG,Inferred from 7.62x51mm,Standard
+12.7x99mm,20 cR,0.095 KG,Direct from page 329 image,Standard
+14.5x114mm,20 cR,0.23 KG,Direct from page 329 image,Standard
+8 Gauge Shell,10 cR,0.05 KG,Direct from page 329 image,Shotgun
+10 Gauge Shell,10 cR,0.05 KG,Inferred from 12 Gauge Shell / 8 Gauge Shell midpoint,Shotgun
+12 Gauge Shell,5 cR,0.05 KG,Direct from page 329 image,Shotgun
+20 Gauge Shell,5 cR,0.05 KG,Inferred from 12 Gauge Shell,Shotgun
+M19 102mm Rocket,340 cR,23 KG,Inferred from 102mm Rocket,"Missiles, Rockets & Cannon Shells"
+50x137mm HEMP Rocket,370 cR,1 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+M18 100mm Missile,380 cR,5 KG,Inferred from M19 102mm Missile,"Missiles, Rockets & Cannon Shells"
+M19-B 102mm Missile,320 cR,5 KG,Inferred from M19 102mm Missile,"Missiles, Rockets & Cannon Shells"
+9X-G HEAB Gyroc,235 cR,1 KG,Inferred from Lancet Micro Missile / 50x137mm HEMP,"Missiles, Rockets & Cannon Shells"
+M9030 12cm Grenade,340 cR,24.6 KG,Inferred from 120mm Shell,"Missiles, Rockets & Cannon Shells"
+ASGM-4 Missile,375 cR,150 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+65mm Rocket,315 cR,2.5 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+40mm Grenade,255 cR,0.25 KG,Direct from page 329 image,40mm Grenades
+60mm Grenade,290 cR,2.1 KG,Inferred from 40mm Shell scaled downward,40mm Grenades
+120mm Grenade,350 cR,24.6 KG,Inferred from 120mm Shell,40mm Grenades
+Argent V Missile,315 cR,400 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+M19 102mm Missile,340 cR,5 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+M19B 119mm Missile,495 cR,5 KG,Inferred from M19 102mm Missile / 120mm class,"Missiles, Rockets & Cannon Shells"
+ANVIL-II ASM,305 cR,257 KG,Inferred from ANVIL-IV ASM as nearest listed variant,"Missiles, Rockets & Cannon Shells"
+ANVIL-IV ASM,320 cR,257 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+90mm Medusa,245 cR,500 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+ASGM-10 Missile,320 cR,250 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+Lancet Micro Missile,225 cR,1 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+Scorpion Missile,535 cR,674 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+Pheonix Missile,850 cR,674 KG,Inferred from Scorpion Missile as closest heavy missile class,"Missiles, Rockets & Cannon Shells"
+Shockwave Missile,315 cR,250 KG,Inferred from ASGM-10 Missile,"Missiles, Rockets & Cannon Shells"
+60mm Mortar Shell,300 cR,2.1 KG,Inferred from 40mm Shell and shell progression,"Missiles, Rockets & Cannon Shells"
+82mm Mortar Shell,355 cR,4.7 KG,Inferred from 70mm Shell / 90mm Shell progression,"Missiles, Rockets & Cannon Shells"
+112mm Mortar Shell,455 cR,23 KG,Inferred from 110mm Shell,"Missiles, Rockets & Cannon Shells"
+4x63mm Gauss Slug,405 cR,0.12 KG,Inferred from 5.4mm Gauss Slug as nearest gauss entry,"Missiles, Rockets & Cannon Shells"
+178mm Rocket,390 cR,48.5 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+102mm Rocket,325 cR,23 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+M23 35mm Rocket,260 cR,0.25 KG,Inferred from 40x53mm Grenade,"Missiles, Rockets & Cannon Shells"
+150mm APBC Shell,835 cR,43.5 KG,Inferred from 150mm Shell,"Missiles, Rockets & Cannon Shells"
+120mm APBC Shell,840 cR,24.5 KG,Inferred from 120mm Shell,"Missiles, Rockets & Cannon Shells"
+105mm APBC Shell,720 cR,18 KG,Direct from page 329 image,"Missiles, Rockets & Cannon Shells"
+90mm APBC Shell,640 cR,10.7 KG,Inferred from 90mm Shell,
+VacEM Shell,725 cR,10.7 KG,Inferred from 90mm Shell as nearest listed shell class,
+175x800mm,855 cR,65 KG,Inferred from 175mm Shell,
+152x400mm,675 cR,43.5 KG,Inferred from 150mm Shell,
+120x570mm,130 cR,24.5 KG,Inferred from 120mm Shell,
+110x550mm,125 cR,23 KG,Direct from page 329 image,
+70x438mm,90 cR,4.7 KG,Inferred from 70mm Shell,
+50x419mm,70 cR,3 KG,Direct from page 329 image,
+40x365mm,60 cR,2.1 KG,Inferred from 40mm Shell,
+40x521mm,70 cR,2.1 KG,Inferred from 40mm Shell,
+40x300mm,55 cR,2.1 KG,Inferred from 40mm Shell,
+35x227mm,45 cR,0.86 KG,Direct from page 329 image,
+30x189mm,40 cR,0.7 KG,Inferred from 30x173mm,Standard
+30x173mm,35 cR,0.7 KG,Direct from page 329 image,Standard
+20x102mm,25 cR,0.26 KG,Direct from page 329 image,Standard
+20x97mm,20 cR,0.26 KG,Inferred from 20x102mm,Standard
+5.4mm Slug,30 cR,0.12 KG,Direct from page 329 image,Standard
+16x65mm Slug,425 cR,0.035 KG,Direct from page 329 image,Standard
+25x130mm Slug,595 cR,0.47 KG,Direct from page 329 image,Standard
+30mm ELA,450 cR,0.7 KG,Inferred from 30x173mm,
+105mm ELA,620 cR,18 KG,Inferred from 105mm Shell,
+10x90mm Slug,360 cR,0.12 KG,Inferred from 5.4mm Gauss Slug / slug class,Limited Standard
+90mm Slug,790 cR,10.7 KG,Inferred from 90mm Shell,Limited Standard
+15cm HRG,825 cR,43.5 KG,Inferred from 150mm Shell,Limited Standard
+200mm ELA,825 cR,65 KG,Inferred from 175mm Shell as nearest larger shell class,Limited Standard
+35cm HRG,7500 cR,458 KG,Direct from page 329 image,Limited Standard
+Ionized Particles,10 cR per Battery,1.5 KG,Inferred from UNSC Battery Cell,No Special Ammo
+UNSC Battery Cell,10 cR per Battery,1.5 KG,Direct from page 329 image,No Special Ammo
+Grindell Battery,8 cR per Battery,1.33 KG,Direct from page 329 image,No Special Ammo
+ChemSpray Tank,15 cR per Tank,1.5 KG,Inferred from UNSC Battery Cell / small tank-sized item,Flamethrower or Cryosprayer
+Heavy Tank,25 cR per Tank,3 KG,Inferred from 50x419mm / larger tank-sized item,Flamethrower or Cryosprayer
+Cryoshell,45 cR,10.7 KG,Inferred from 90mm Shell,
+,,,,

@@ -1,5 +1,6 @@
 // Halo Mythic Foundry — Utility Helpers
 import {
+  MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY,
   MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY,
   MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY,
   MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY,
@@ -55,13 +56,25 @@ export function isPlaceholderCanonicalId(canonicalId, itemType = "") {
 
 export function getAmmoConfig() {
   const result = {
+    useAmmoWeightOptionalRule: false,
+    // Legacy alias retained for existing call sites and templates.
     ignoreBasicAmmoWeight: true,
     ignoreBasicAmmoCounts: false
   };
 
   try {
     if (game?.settings) {
-      result.ignoreBasicAmmoWeight = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY));
+      const useOptionalRule = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY));
+      result.useAmmoWeightOptionalRule = useOptionalRule;
+      result.ignoreBasicAmmoWeight = !useOptionalRule;
+      // Keep reading legacy key as a fallback for worlds where migration has not run yet.
+      if (game.settings.settings?.has?.(`Halo-Mythic-Foundry-Updated.${MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY}`)) {
+        const legacyIgnore = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY));
+        if (!game.settings.settings?.has?.(`Halo-Mythic-Foundry-Updated.${MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY}`)) {
+          result.ignoreBasicAmmoWeight = legacyIgnore;
+          result.useAmmoWeightOptionalRule = !legacyIgnore;
+        }
+      }
       result.ignoreBasicAmmoCounts = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY));
     }
   } catch (_error) {

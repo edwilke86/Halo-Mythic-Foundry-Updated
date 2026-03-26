@@ -1,4 +1,4 @@
-// ─── Compendium management: equipment, soldier types, traits, abilities ───────
+// G��G��G�� Compendium management: equipment, soldier types, traits, abilities G��G��G��G��G��G��G��
 import {
   MYTHIC_CONTENT_SYNC_VERSION,
   MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY,
@@ -1115,7 +1115,7 @@ export async function removeExcludedArmorRowsFromCompendiums(options = {}) {
   return { removed, packsTouched, dryRun };
 }
 
-// ─── Legacy weapon compendium cleanup ─────────────────────────────────────────
+// G��G��G�� Legacy weapon compendium cleanup G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��
 
 /**
  *   - mythic-weapons-flood-ranged / mythic-weapons-flood-melee  (merged into flood)

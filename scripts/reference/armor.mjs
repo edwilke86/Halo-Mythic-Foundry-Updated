@@ -6,7 +6,7 @@ import {
   MYTHIC_ABILITY_DEFAULT_ICON
 } from '../config.mjs';
 import { splitCsvText, findHeaderRowIndex, buildHeaderMap } from '../utils/csv-parser.mjs';
-import { normalizeGearSystemData, normalizeArmorVariantSystemData } from '../data/normalization.mjs';
+import { normalizeGearSystemData } from '../data/normalization.mjs';
 import {
   getCell,
   parseWholeOrZero,
@@ -61,7 +61,7 @@ export function parseReferenceArmorRows(rows) {
     const source = getCell(row, headerMap, "Source").toLowerCase() || "mythic";
     if (!MYTHIC_ALLOWED_ARMOR_SOURCES.has(source)) continue;
 
-    // Armor variants are now their own item type and should not be imported as armor.
+    // Armor variant rows are imported as Equipment subtype "armor-modification".
     const variantFlag = parseWholeOrZero(getCell(row, headerMap, "Armor Variant"));
     if (variantFlag > 0) continue;
 
@@ -124,8 +124,8 @@ export function getArmorVariantCompendiumDescriptor(itemData) {
   if (faction.key === "other") return null;
   return {
     key: faction.key,
-    name: `mythic-armor-variants-${faction.key}`,
-    label: `${faction.label} Armor Variants`
+    name: `mythic-equipment-armor-mods-${faction.key}`,
+    label: `${faction.label} Armor Permutations`
   };
 }
 
@@ -177,21 +177,22 @@ export function parseReferenceArmorVariantRows(rows) {
 
     parsed.push({
       name: fullName,
-      type: "armorVariant",
+      type: "gear",
       img: MYTHIC_ABILITY_DEFAULT_ICON,
-      system: normalizeArmorVariantSystemData({
+      system: normalizeGearSystemData({
+        itemClass: "other",
+        weaponClass: "other",
+        equipmentType: "armor-modification",
         faction,
         source,
-        shortDescription: String(modifiers ?? "").trim(),
+        category: "Armor Permutation",
+        modifiers,
         description,
-        notes: specialRules,
-        generation: inferGeneration(fullName),
-        compatibleFamilies: ["mjolnir"],
-        modifiers: {
-          protection: { head: protHead, arms: protArms, chest: protChest, legs: protLegs },
-          shields: { integrity: shieldIntegrity, delay: shieldDelay, rechargeRate: shieldRecharge },
-          weightKg
-        },
+        specialRules,
+        weaponType: inferGeneration(fullName),
+        protection: { head: protHead, arms: protArms, chest: protChest, legs: protLegs },
+        shields: { integrity: shieldIntegrity, delay: shieldDelay, rechargeRate: shieldRecharge },
+        weightKg,
         sourceReference: { table: "armor-variants", rowNumber: i - headerIndex },
         sync: {
           sourceScope: source,
@@ -217,13 +218,13 @@ export async function loadReferenceArmorVariantItems() {
 
 export async function importReferenceArmorVariants(options = {}) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can import armor variants.");
+    ui.notifications?.warn("Only a GM can import armor permutations.");
     return { created: 0, updated: 0, skipped: 0 };
   }
 
   const rows = await loadReferenceArmorVariantItems();
   if (!rows.length) {
-    ui.notifications?.warn("No armor variant rows were loaded from the CSV file.");
+    ui.notifications?.warn("No armor permutation rows were loaded from the CSV file.");
     return { created: 0, updated: 0, skipped: 0 };
   }
 
@@ -249,7 +250,7 @@ export async function importReferenceArmorVariants(options = {}) {
     try {
       pack = await ensureReferenceWeaponsCompendium(descriptor.name, descriptor.label);
     } catch (error) {
-      console.error("[mythic-system] Failed to prepare armor variant compendium.", error);
+      console.error("[mythic-system] Failed to prepare armor permutation compendium.", error);
       ui.notifications?.error(`Could not prepare compendium ${descriptor.label}. See console.`);
       continue;
     }
@@ -271,7 +272,7 @@ export async function importReferenceArmorVariants(options = {}) {
         continue;
       }
 
-      const nextSystem = normalizeArmorVariantSystemData(itemData.system ?? {}, itemData.name);
+      const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name);
       nextSystem.sync.sourceCollection = descriptor.name;
       const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
       const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
@@ -294,8 +295,8 @@ export async function importReferenceArmorVariants(options = {}) {
   }
 
   if (!dryRun) {
-    ui.notifications?.info(`Armor variant import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
-    console.log("[mythic-system] Imported armor variant compendium buckets:", processedPacks);
+    ui.notifications?.info(`Armor permutation import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+    console.log("[mythic-system] Imported armor permutation compendium buckets:", processedPacks);
     await organizeEquipmentCompendiumFolders();
   }
 

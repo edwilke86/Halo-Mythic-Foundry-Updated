@@ -10,6 +10,7 @@ let mythicAbilityDefinitionsCache = null;
 let mythicTraitDefinitionsCache = null;
 let mythicEquipmentPackDefinitionsCache = null;
 let mythicAmmoTypeDefinitionsCache = null;
+let mythicSpecialAmmoCategoryOptionsCache = null;
 
 export async function loadMythicAbilityDefinitions() {
   if (Array.isArray(mythicAbilityDefinitionsCache)) return mythicAbilityDefinitionsCache;
@@ -66,15 +67,29 @@ export async function loadMythicAmmoTypeDefinitions() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const json = await response.json();
     const defs = Array.isArray(json) ? json : [];
+    const parseNumeric = (value, fallback = 0) => {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      const text = String(value ?? "").trim();
+      if (!text) return fallback;
+      const match = text.match(/\d+(?:\.\d+)?/u);
+      if (!match) return fallback;
+      const numeric = Number(match[0]);
+      return Number.isFinite(numeric) ? numeric : fallback;
+    };
     const parsed = defs
       .map((entry) => {
         if (!entry || typeof entry !== 'object') return null;
         const name = String(entry.name ?? '').trim();
         if (!name) return null;
-        const unitWeightKg = Number(entry.unitWeightKg ?? 0);
+        const unitWeightKg = parseNumeric(entry.unitWeightKg ?? entry.weightPerRoundKg ?? entry.weightKg, 0);
+        const costPer100 = Math.max(0, Math.floor(parseNumeric(entry.costPer100 ?? entry.price?.amount ?? entry.cost, 0)));
+        const specialAmmoCategory = String(entry.specialAmmoCategory ?? entry.specialAmmoAllowance ?? entry.specialAmmoAllowances ?? "").trim() || "Standard";
         return {
           name,
-          unitWeightKg: Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0
+          unitWeightKg: Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0,
+          weightPerRoundKg: Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0,
+          costPer100,
+          specialAmmoCategory
         };
       })
       .filter(Boolean);
@@ -87,6 +102,32 @@ export async function loadMythicAmmoTypeDefinitions() {
     // Do NOT cache on failure — allow retry on next render.
     return [];
   }
+}
+
+export async function loadMythicSpecialAmmoCategoryOptions() {
+  if (Array.isArray(mythicSpecialAmmoCategoryOptionsCache) && mythicSpecialAmmoCategoryOptionsCache.length > 0) {
+    return mythicSpecialAmmoCategoryOptionsCache;
+  }
+
+  const defs = await loadMythicAmmoTypeDefinitions();
+  const categories = new Set(["None", "Standard"]);
+  for (const entry of defs) {
+    const category = String(entry?.specialAmmoCategory ?? "").trim();
+    if (!category) continue;
+    categories.add(category);
+  }
+
+  const rest = Array.from(categories)
+    .filter((entry) => entry !== "Standard" && entry !== "None")
+    .sort((a, b) => a.localeCompare(b));
+
+  mythicSpecialAmmoCategoryOptionsCache = [
+    { value: "Standard", label: "Standard" },
+    { value: "None", label: "None" },
+    ...rest.map((entry) => ({ value: entry, label: entry }))
+  ];
+
+  return mythicSpecialAmmoCategoryOptionsCache;
 }
 
 export function parseTraitTextStatBonuses(text) {

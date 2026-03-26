@@ -1,0 +1,111 @@
+<div class="mythic-phase4-card full-width">
+  <h3>Weapons</h3>
+  {{#if mythicEquipment.weaponItems.length}}
+    <div class="mythic-equipment-list mythic-equipment-table">
+      <div class="mythic-equipment-row mythic-equipment-header-row">
+        <span class="mythic-equipment-header-name">Name</span>
+        <span>CARR</span>
+        <span>EQP</span>
+        <span>MULT</span>
+        <span>QTY</span>
+        <span>TOTAL<br>WEIGHT</span>
+        <span>EFF.<br>WEIGHT</span>
+      </div>
+      {{#each mythicEquipment.weaponItems as |item|}}
+      <div class="mythic-equipment-row mythic-equipment-data-row">
+        <span class="mythic-equipment-name-cell">
+          <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+          <span class="mythic-equipment-name">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
+          <span class="mythic-equipment-meta">{{item.weaponClass}}</span>
+          <span class="mythic-equipment-actions-inline">
+            <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+            <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
+          </span>
+        </span>
+        <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
+        <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" {{#if item.isEquipped}}checked{{/if}} /></span>
+        <span>{{item.weightMultiplierDisplay}}</span>
+        <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" value="{{item.quantity}}" /></span>
+        <span>{{item.totalWeightLabel}}</span>
+        <span>{{item.effectiveWeightLabel}}</span>
+      </div>
+      {{/each}}
+    </div>
+  {{else}}
+    <p>No weapon items on this actor yet. Drag weapons from compendiums onto the actor.</p>
+  {{/if}}
+</div>
+
+<div class="mythic-phase4-card full-width">
+  <h3>Armor</h3>
+  {{#if mythicEquipment.armorItems.length}}
+    <div class="mythic-equipment-list mythic-equipment-table">
+      <div class="mythic-equipment-row mythic-equipment-header-row">
+        <span class="mythic-equipment-header-name">Name</span>
+        <span>CARR</span>
+        <span>EQP</span>
+        <span>MULT</span>
+        <span>QTY</span>
+        <span>TOTAL<br>WEIGHT</span>
+        <span>EFF.<br>WEIGHT</span>
+      </div>
+      {{#each mythicEquipment.armorItems as |item|}}
+      <div class="mythic-equipment-row mythic-equipment-data-row">
+        <span class="mythic-equipment-name-cell">
+          <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+          <span class="mythic-equipment-name">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
+          <span class="mythic-equipment-meta">armor</span>
+          <span class="mythic-equipment-actions-inline">
+            <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+            <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
+          </span>
+        </span>
+        <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
+        <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" {{#if item.isEquipped}}checked{{/if}} /></span>
+        <span>{{item.weightMultiplierDisplay}}</span>
+        <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" value="{{item.quantity}}" /></span>
+        <span>{{item.totalWeightLabel}}</span>
+        <span>{{item.effectiveWeightLabel}}</span>
+      </div>
+      {{/each}}
+    </div>
+  {{else}}
+    <p>No armor items on this actor yet. Drag armor from compendiums onto the actor.</p>
+  {{/if}}
+</div>
+
+{{#if mythicEquipment.otherItems.length}}
+<div class="mythic-phase4-card full-width">
+  <h3>Other Gear</h3>
+  <div class="mythic-equipment-list mythic-equipment-table">
+    <div class="mythic-equipment-row mythic-equipment-header-row">
+      <span class="mythic-equipment-header-name">Name</span>
+      <span>CARR</span>
+      <span>EQP</span>
+      <span>MULT</span>
+      <span>QTY</span>
+      <span>TOTAL<br>WEIGHT</span>
+      <span>EFF.<br>WEIGHT</span>
+    </div>
+    {{#each mythicEquipment.otherItems as |item|}}
+    <div class="mythic-equipment-row mythic-equipment-data-row">
+      <span class="mythic-equipment-name-cell">
+        <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+        <span class="mythic-equipment-name">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
+        <span class="mythic-equipment-meta">{{item.itemClass}}</span>
+        <span class="mythic-equipment-actions-inline">
+          <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+          <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
+        </span>
+      </span>
+      <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
+      <span>{{#if item.canEquip}}<input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} />{{else}}-{{/if}}</span>
+      <span>{{item.weightMultiplierDisplay}}</span>
+      <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" value="{{item.quantity}}" /></span>
+      <span>{{item.totalWeightLabel}}</span>
+      <span>{{item.effectiveWeightLabel}}</span>
+    </div>
+    {{/each}}
+  </div>
+</div>
+{{/if}}

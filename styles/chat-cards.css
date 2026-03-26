@@ -1,0 +1,457 @@
+/* Extracted from system.css: chat cards, attack/evasion cards, and GM attack panel. */
+
+/* ============================================================
+   ATTACK / EVASION CHAT CARDS
+   ============================================================ */
+.mythic-attack-card,
+.mythic-evasion-card,
+.mythic-damage-applied {
+  font-family: 'Saira Semi Condensed', sans-serif;
+  background: #222e3e;
+  border: 1px solid #3a5070;
+  border-radius: 4px;
+  padding: 8px 10px;
+  color: #c8d4e8;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.mythic-attack-header,
+.mythic-evasion-header {
+  font-size: 0.88rem;
+  margin-bottom: 5px;
+  color: #d4dff0;
+}
+
+.mythic-attack-roll-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 6px;
+  margin-bottom: 5px;
+}
+
+/* Inline dice result bubble */
+.mythic-attack-card .mythic-roll-inline,
+.mythic-evasion-card .mythic-roll-inline {
+  display: inline-block;
+  background: #2e4060;
+  border: 1px solid #4a6488;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #e8f0ff;
+  min-width: 2.2ch;
+  text-align: center;
+  cursor: help;
+}
+
+.mythic-charge-release-note {
+  color: #ffcf9b;
+  font-weight: 600;
+}
+
+.mythic-roll-target {
+  font-weight: bold;
+  color: #9fd4ff;
+}
+
+.mythic-vs {
+  color: #667788;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mythic-stat-label {
+  color: #778899;
+  font-size: 0.76rem;
+  flex-basis: 100%;
+}
+
+.mythic-stat-mods {
+  color: #6aadcc;
+}
+
+/* Verdict labels */
+.mythic-attack-verdict {
+  font-weight: bold;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mythic-attack-verdict.success   { color: #62df84; }
+.mythic-attack-verdict.failure   { color: #e05050; }
+.mythic-attack-verdict.crit-fail { color: #ff3838; letter-spacing: 0.08em; }
+
+/* Detail rows */
+.mythic-attack-details,
+.mythic-evasion-compare {
+  margin: 4px 0;
+  font-size: 0.83rem;
+}
+
+.mythic-dmg-row,
+.mythic-loc-row {
+  margin: 2px 0;
+}
+
+.mythic-dice-formula {
+  color: #778899;
+  font-size: 0.76rem;
+}
+
+.mythic-zone-label { color: #778899; }
+.mythic-subloc     { color: #c8d4e8; }
+
+.mythic-special-dmg {
+  color: #ffd040;
+  font-weight: bold;
+  font-size: 0.8rem;
+  margin-left: 4px;
+}
+
+/* Collapsible miss details */
+.mythic-miss-details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 2px 0;
+  color: #cc6666;
+}
+
+.mythic-miss-details > summary::marker,
+.mythic-miss-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mythic-miss-details[open] > summary {
+  color: #dd8888;
+}
+
+/* Ammo note, reaction note */
+.mythic-ammo-note,
+.mythic-reaction-note {
+  color: #778899;
+  font-size: 0.76rem;
+  margin-left: 4px;
+}
+
+.mythic-attack-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 6px;
+}
+
+.mythic-attack-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.mythic-attack-badge.is-tag {
+  background: rgba(22, 69, 114, 0.45);
+  border-color: rgba(118, 192, 255, 0.65);
+  color: #d9efff;
+}
+
+.mythic-attack-badge.is-rule {
+  background: rgba(87, 53, 15, 0.45);
+  border-color: rgba(255, 198, 114, 0.65);
+  color: #ffeccc;
+}
+
+/* Divider inside chat card */
+.mythic-card-hr {
+  border: none;
+  border-top: 1px solid #2e4458;
+  margin: 6px 0 0;
+}
+
+/* Wound calculation block in evasion card */
+.mythic-wound-calc {
+  margin: 5px 0;
+  font-size: 0.83rem;
+}
+
+.mythic-wound-total {
+  color: #e05050;
+  font-size: 1rem;
+}
+
+/* Damage applied notification */
+.mythic-damage-applied {
+  font-size: 0.85rem;
+  padding: 6px 10px;
+}
+
+.mythic-attack-line,
+.mythic-evasion-line {
+  margin: 3px 0;
+}
+
+.mythic-attack-mainline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.mythic-attack-subline {
+  margin-left: 12px;
+  font-size: 0.8rem;
+}
+
+.mythic-evasion-target {
+  margin: 4px 0;
+}
+
+.mythic-evasion-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mythic-evasion-detail-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.mythic-evasion-detail-row > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mythic-evasion-detail-row > summary::marker,
+.mythic-evasion-detail-row > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mythic-evasion-chevron {
+  display: inline-block;
+  font-size: 0.66rem;
+  color: #9ab9dd;
+  transition: transform 0.12s ease;
+  margin-right: 2px;
+}
+
+.mythic-evasion-detail-row[open] .mythic-evasion-chevron {
+  transform: rotate(90deg);
+}
+
+.mythic-evasion-roll-detail {
+  margin: 3px 0 0 14px;
+  font-size: 0.78rem;
+  color: #9fb0c7;
+}
+
+.mythic-evasion-line.is-shield-pierce-active {
+  border-left: 3px solid #ffb84d;
+  padding-left: 6px;
+}
+
+.mythic-evasion-roll-detail.is-shield-pierce-active {
+  color: #ffd899;
+}
+
+.mythic-evasion-line .mythic-apply-dmg-btn {
+  margin-left: auto;
+  padding: 1px 7px;
+  min-height: 22px;
+  font-size: 0.72rem;
+  flex: 0 0 auto;
+}
+
+.mythic-evasion-line .mythic-apply-dmg-btn.is-shield-pierce-active {
+  border-color: #ffb84d !important;
+  color: #ffe1b3 !important;
+  box-shadow: 0 0 0 1px rgba(255, 184, 77, 0.35), inset 0 0 0 1px rgba(255, 184, 77, 0.2);
+}
+
+/* ============================================================
+   GM PANEL (injected below attack cards for GMs only)
+   ============================================================ */
+.mythic-gm-attack-panel {
+  background: #18232e;
+  border: 1px solid #50708a;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #c8d4e8;
+}
+
+.mythic-gm-panel-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #5a9bcc;
+  margin-bottom: 5px;
+}
+
+.mythic-gm-target-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+}
+
+.mythic-gm-target-row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+/* ============================================================
+   Chat card — roll template styling
+   ============================================================ */
+.chat-message .mythic-chat-card {
+  background: var(--mythic-table-bg);
+  border-radius: 10px;
+  border: 1px solid grey;
+  overflow: hidden;
+  color: var(--mythic-text);
+  line-height: 1.6em;
+  font-size: 1.1em;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  padding: 0;
+}
+
+.chat-message .mythic-chat-card.success {
+  box-shadow: inset 0 0 0 2px #3FB315;
+}
+
+.chat-message .mythic-chat-card.failure {
+  box-shadow: inset 0 0 0 2px #B31515;
+}
+
+.chat-message .mythic-chat-header {
+  border-top: 1px solid grey;
+  background: var(--mythic-input-bg);
+  text-align: center;
+  text-decoration: underline;
+  padding: 4px 8px;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-size: 13px;
+}
+
+.chat-message .mythic-chat-title {
+  color: var(--mythic-text);
+  font-weight: 700;
+}
+
+.chat-message .mythic-chat-subheader {
+  text-align: center;
+  padding: 2px 8px 4px;
+  font-size: 11px;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.04em;
+  background: var(--mythic-input-bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.chat-message .mythic-chat-outcome {
+  font-weight: 700;
+  text-align: right;
+  margin-right: 5px;
+}
+
+.chat-message .mythic-chat-outcome.success {
+  color: #3FB315;
+}
+
+.chat-message .mythic-chat-outcome.failure {
+  color: #B31515;
+}
+
+.chat-message .mythic-chat-inline-stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.chat-message .mythic-chat-inline-stats span {
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--mythic-input-bg);
+}
+
+.chat-message .mythic-chat-inline-stats .stat.success {
+  border: 3px solid #3FB315;
+}
+
+.chat-message .mythic-chat-inline-stats .stat.failure {
+  border: 3px solid #B31515;
+}
+
+.chat-message .mythic-chat-inline-stats .stat.important {
+  border: 3px solid #4A57ED;
+}
+
+.chat-message .mythic-chat-inline-stats strong {
+  margin-right: 4px;
+  color: var(--mythic-text);
+}
+
+.chat-message .mythic-chat-ability-body {
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px 8px;
+  font-size: 12px;
+}
+
+.chat-message .mythic-chat-ability-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+
+.chat-message .mythic-chat-ability-row strong {
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.chat-message .mythic-chat-ability-row span {
+  color: var(--mythic-text);
+  white-space: pre-wrap;
+}
+
+/* Inline roll result pip — matches Roll20 .inlinerollresult */
+.chat-message .mythic-inline-result {
+  display: inline-block;
+  min-width: 1.5em;
+  text-align: center;
+  border: 1px solid white;
+  border-radius: 3px;
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  line-height: 1.6em;
+  font-size: 1.2em;
+  font-family: 'Saira Semi Condensed', sans-serif;
+  font-weight: bold;
+  padding: 0 4px;
+}

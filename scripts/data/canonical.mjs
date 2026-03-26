@@ -132,6 +132,8 @@ export function getCanonicalCharacterSystemData() {
       utilityLoadout: "",
       carriedIds: [],
       ammoPools: {},
+      ballisticContainers: {},
+      energyCells: {},
       weaponState: {},
       activePackSelection: {
         value: "",
@@ -166,6 +168,8 @@ export function getCanonicalCharacterSystemData() {
       xpSpent: 0,
       unlockedFeatures: "",
       spendLog: "",
+      transactionNotes: "",
+      transactions: [],
       purchases: {
         woundUpgrades: 0
       },

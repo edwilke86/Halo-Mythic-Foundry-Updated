@@ -1,5 +1,5 @@
-// ─── MythicActorSheet ─────────────────────────────────────────────────────────
-// Extracted from system.mjs — the main character sheet application for the
+﻿// â”€â”€â”€ MythicActorSheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Extracted from system.mjs â€” the main character sheet application for the
 // Halo Mythic Foundry system.
 
 import {
@@ -19,9 +19,12 @@ import {
   MYTHIC_CAMPAIGN_YEAR_SETTING_KEY,
   MYTHIC_MJOLNIR_ARMOR_LIST,
   MYTHIC_KIG_YAR_POINT_DEFENSE_SHIELDS,
+  MYTHIC_HIT_LOCATION_TABLE,
   MYTHIC_ABILITY_DEFAULT_ICON,
   MYTHIC_EDUCATION_DEFAULT_ICON,
-  MYTHIC_SPECIALIZATION_SKILL_TIER_STEPS
+  MYTHIC_SPECIALIZATION_SKILL_TIER_STEPS,
+  MYTHIC_WEAPON_TAG_DEFINITIONS,
+  MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS
 } from "../config.mjs";
 
 import {
@@ -111,17 +114,30 @@ import {
   getSkillTierBonus
 } from "../reference/ref-utils.mjs";
 
-// ── Module-level utility (shared with item sheets in system.mjs) ─────────────
-
-function _formatModifier(m) {
-  const sign = m.value >= 0 ? "+" : "";
-  if (m.kind === "wound") return `${sign}${m.value} Wounds`;
-  const keyLabel = {
-    str: "STR", tou: "TOU", agi: "AGI", wfm: "WFM (Melee)", wfr: "WFR (Ranged)",
-    int: "INT", per: "PER", crg: "CRG", cha: "CHA", ldr: "LDR"
-  }[String(m.key ?? "").toLowerCase()] ?? String(m.key ?? m.kind ?? "?").toUpperCase();
-  return `${sign}${m.value} ${keyLabel}`;
-}
+import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
+import {
+  buildInitiativeChatCard,
+  buildUniversalTestChatCard
+} from "./actor-sheet-chat-builders.mjs";
+import { soldierTypeChoiceMethods } from "./actor-sheet-soldier-type-choices.mjs";
+import { creationPathChoiceMethods } from "./actor-sheet-creation-path-choices.mjs";
+import { creationPathAssignmentMethods } from "./actor-sheet-creation-path-assignment.mjs";
+import { creationPathDropMethods } from "./actor-sheet-creation-path-drop.mjs";
+import { creationPathLifestyleMethods } from "./actor-sheet-creation-path-lifestyles.mjs";
+import {
+  formatCreationPathModifier,
+  isSanShyuumActor,
+  isHuragokActor,
+  hasSanShyuumGravityBeltBypass,
+  getSanShyuumGravityPenaltyValue,
+  getDroppedAmmoReferenceFromItem,
+  buildSafeIndependentAmmoKey,
+  isAmmoLikeGearData,
+  skillTierToRank,
+  skillRankToTier,
+  collectCreationPathGroupModifiers,
+  addCreationPathModifiersToOutcome
+} from "./actor-sheet-helpers.mjs";
 
 const MYTHIC_ADVANCEMENT_LUCK_XP_COST = 1500;
 const MYTHIC_ADVANCEMENT_LANGUAGE_XP_COST = 150;
@@ -148,7 +164,616 @@ const MYTHIC_ADVANCEMENT_WOUND_TIERS = Object.freeze([
   { key: "titanium", label: "Titanium", xpCost: 3000, wounds: 10 }
 ]);
 
-// ─── Class ────────────────────────────────────────────────────────────────────
+const MYTHIC_ENERGY_CELL_AMMO_MODES = Object.freeze(new Set(["plasma-battery", "light-mass"]));
+const MYTHIC_BATTERY_SUBTYPES = Object.freeze(new Set(["plasma", "ionized-particle", "unsc-cell", "grindell"]));
+const MYTHIC_FIXED_BATTERY_COSTS = Object.freeze({
+  "ionized-particle": 10,
+  "unsc-cell": 10,
+  grindell: 8
+});
+
+function isEnergyCellAmmoMode(ammoMode = "") {
+  return MYTHIC_ENERGY_CELL_AMMO_MODES.has(String(ammoMode ?? "").trim().toLowerCase());
+}
+
+function normalizeBatterySubtype(value = "", ammoMode = "") {
+  if (String(ammoMode ?? "").trim().toLowerCase() !== "plasma-battery") return "plasma";
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw) return "plasma";
+  if (["ionized", "ionized-particles", "ionized-particle"].includes(raw)) return "ionized-particle";
+  if (["unsc", "unsc-cell", "unsc-battery-cell"].includes(raw)) return "unsc-cell";
+  if (raw === "grindell") return "grindell";
+  if (MYTHIC_BATTERY_SUBTYPES.has(raw)) return raw;
+  return "plasma";
+}
+
+function normalizeBallisticAmmoMode(ammoMode = "") {
+  const normalized = String(ammoMode ?? "").trim().toLowerCase();
+  if (!normalized || normalized === "standard") return "magazine";
+  if (normalized === "belt") return "belt";
+  if (normalized === "tube") return "tube";
+  return "magazine";
+}
+
+function isBallisticAmmoMode(ammoMode = "") {
+  const normalized = String(ammoMode ?? "").trim().toLowerCase();
+  return !normalized || normalized === "standard" || normalized === "magazine" || normalized === "belt" || normalized === "tube";
+}
+
+function isDetachableBallisticAmmoMode(ammoMode = "") {
+  const normalized = normalizeBallisticAmmoMode(ammoMode);
+  return normalized === "magazine" || normalized === "belt";
+}
+
+function getEnergyCellLabel(ammoMode = "", batterySubtype = "plasma") {
+  if (String(ammoMode ?? "").trim().toLowerCase() !== "plasma-battery") {
+    return "Forerunner Magazine";
+  }
+
+  const normalizedSubtype = normalizeBatterySubtype(batterySubtype, ammoMode);
+  if (normalizedSubtype === "ionized-particle") return "Ionized Particles";
+  if (normalizedSubtype === "unsc-cell") return "UNSC Battery Cell";
+  if (normalizedSubtype === "grindell") return "Grindell Battery";
+  return "Plasma Battery";
+}
+
+function shouldIgnoreBatteryWeight(ammoMode = "", batterySubtype = "plasma") {
+  return String(ammoMode ?? "").trim().toLowerCase() === "plasma-battery"
+    && normalizeBatterySubtype(batterySubtype, ammoMode) === "ionized-particle";
+}
+
+function getEnergyCellPurchaseCost(weaponPrice = 0, ammoMode = "", batterySubtype = "plasma") {
+  if (String(ammoMode ?? "").trim().toLowerCase() !== "plasma-battery") {
+    return Math.max(5, Math.ceil(Math.max(0, Number(weaponPrice ?? 0) || 0) / 4));
+  }
+
+  const normalizedSubtype = normalizeBatterySubtype(batterySubtype, ammoMode);
+  const fixedCost = MYTHIC_FIXED_BATTERY_COSTS[normalizedSubtype];
+  if (Number.isFinite(Number(fixedCost))) return Math.max(0, Number(fixedCost));
+  return Math.max(5, Math.ceil(Math.max(0, Number(weaponPrice ?? 0) || 0) / 4));
+}
+
+function buildEnergyCellCompatibilitySignature(gear = {}, weaponName = "") {
+  const ammoMode = String(gear?.ammoMode ?? "").trim().toLowerCase();
+  if (!isEnergyCellAmmoMode(ammoMode)) return "";
+  const capacity = getWeaponEnergyCellCapacity(gear);
+  if (capacity <= 0) return "";
+  const weaponType = String(gear?.weaponType ?? "").trim().toLowerCase();
+  const training = String(gear?.training ?? "").trim().toLowerCase();
+  const nameKey = normalizeLookupText(weaponName);
+  return [ammoMode, weaponType, training, String(capacity), nameKey].join("|");
+}
+
+function getWeaponEnergyCellCapacity(gear = {}) {
+  const batteryCapacity = toNonNegativeWhole(gear?.batteryCapacity, 0);
+  if (batteryCapacity > 0) return batteryCapacity;
+  return toNonNegativeWhole(gear?.range?.magazine, 0);
+}
+
+function getWeaponBallisticCapacity(gear = {}) {
+  return toNonNegativeWhole(gear?.range?.magazine, 0);
+}
+
+function getBallisticContainerType(ammoMode = "", fallbackType = "magazine") {
+  const normalized = normalizeBallisticAmmoMode(ammoMode);
+  if (normalized === "belt") return "belt";
+  if (normalized === "magazine") return "magazine";
+  return String(fallbackType ?? "").trim().toLowerCase() === "belt" ? "belt" : "magazine";
+}
+
+function getBallisticContainerLabel(ammoMode = "", fallbackType = "magazine") {
+  return getBallisticContainerType(ammoMode, fallbackType) === "belt" ? "Belt" : "Magazine";
+}
+
+function getBallisticContainerPluralLabel(ammoMode = "", fallbackType = "magazine") {
+  return getBallisticContainerType(ammoMode, fallbackType) === "belt" ? "Belts" : "Magazines";
+}
+
+const STANDARD_MAG_BODY_PER_ROUND_WEIGHT_KG = 0.03;
+const SPECIAL_EXTENSION_WEIGHT_PER_BASE_ROUND_KG = 0.05;
+
+function roundWeightKg(value = 0) {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.round(numeric * 1000) / 1000;
+}
+
+function inferBallisticContainerBaseCapacity(capacity = 0, optionId = "standard") {
+  const resolvedCapacity = toNonNegativeWhole(capacity, 0);
+  const normalizedOptionId = String(optionId ?? "standard").trim().toLowerCase() || "standard";
+  if (resolvedCapacity <= 0) return 0;
+  switch (normalizedOptionId) {
+    case "reduced":
+      return resolvedCapacity * 2;
+    case "extended":
+    case "dual-sided":
+    case "extended-belt":
+      return Math.max(1, Math.round(resolvedCapacity / 2));
+    case "drum":
+      return Math.max(1, Math.round(resolvedCapacity / 3));
+    default:
+      return resolvedCapacity;
+  }
+}
+
+function getBallisticContainerMetrics({
+  ammoMode = "magazine",
+  optionId = "standard",
+  baseCapacity = 0,
+  currentRounds = 0,
+  currentCapacity = 0,
+  ammoPerRoundWeightKg = 0,
+  includeAmmoWeight = false
+} = {}) {
+  const normalizedAmmoMode = String(ammoMode ?? "magazine").trim().toLowerCase() || "magazine";
+  const normalizedOptionId = String(optionId ?? "standard").trim().toLowerCase() || "standard";
+  const resolvedBaseCapacity = toNonNegativeWhole(baseCapacity, 0);
+  const resolvedCurrentRounds = toNonNegativeWhole(currentRounds, 0);
+  const resolvedAmmoPerRoundWeightKg = Math.max(0, Number(ammoPerRoundWeightKg ?? 0) || 0);
+
+  if (normalizedAmmoMode === "magazine") {
+    const standardCapacity = resolvedBaseCapacity;
+    const standardCost = Math.ceil(standardCapacity / 4);
+    const standardMagBodyWeight = roundWeightKg(standardCapacity * STANDARD_MAG_BODY_PER_ROUND_WEIGHT_KG);
+
+    let capacity = standardCapacity;
+    let magBodyWeightKg = standardMagBodyWeight;
+    let cost = standardCost;
+
+    switch (normalizedOptionId) {
+      case "reduced":
+        capacity = Math.max(2, Math.floor(standardCapacity / 2));
+        magBodyWeightKg = roundWeightKg(standardMagBodyWeight * 0.5);
+        cost = Math.ceil(capacity / 4);
+        break;
+      case "extended":
+        capacity = standardCapacity * 2;
+        magBodyWeightKg = roundWeightKg(standardMagBodyWeight + (standardCapacity * SPECIAL_EXTENSION_WEIGHT_PER_BASE_ROUND_KG));
+        cost = Math.ceil(standardCost + 50);
+        break;
+      case "drum":
+        capacity = standardCapacity * 3;
+        magBodyWeightKg = roundWeightKg(standardMagBodyWeight + (standardCapacity * SPECIAL_EXTENSION_WEIGHT_PER_BASE_ROUND_KG * 2));
+        cost = Math.ceil(standardCost + 65);
+        break;
+      case "dual-sided":
+        capacity = standardCapacity * 2;
+        magBodyWeightKg = roundWeightKg(standardMagBodyWeight * 2);
+        cost = Math.max(2, Math.ceil(capacity / 3));
+        break;
+      default:
+        capacity = standardCapacity;
+        magBodyWeightKg = standardMagBodyWeight;
+        cost = standardCost;
+        break;
+    }
+
+    const ammoWeightKg = includeAmmoWeight
+      ? roundWeightKg(resolvedCurrentRounds * resolvedAmmoPerRoundWeightKg)
+      : 0;
+    const totalCarriedMagWeightKg = roundWeightKg(magBodyWeightKg + ammoWeightKg);
+    const includedLoadedMagBodyWeightKg = standardMagBodyWeight;
+    const includedLoadedAmmoWeightKg = includeAmmoWeight
+      ? roundWeightKg(standardCapacity * resolvedAmmoPerRoundWeightKg)
+      : 0;
+    // Negative effective loaded magazine weight is intentional. The weapon's
+    // base weight assumes a loaded standard magazine; reduced-capacity magazines
+    // can therefore reduce effective loaded weapon weight below baseline.
+    const effectiveLoadedMagWeightKg = roundWeightKg(
+      totalCarriedMagWeightKg - includedLoadedMagBodyWeightKg - includedLoadedAmmoWeightKg
+    );
+
+    return {
+      capacity,
+      currentRounds: resolvedCurrentRounds,
+      magBodyWeightKg,
+      ammoWeightKg,
+      totalCarriedMagWeightKg,
+      effectiveLoadedMagWeightKg,
+      cost,
+      standardMagBodyWeightKg: standardMagBodyWeight,
+      includedLoadedMagBodyWeightKg,
+      includedLoadedAmmoWeightKg
+    };
+  }
+
+  const optionData = BALLISTIC_CONTAINER_OPTIONS[normalizedOptionId] ?? BALLISTIC_CONTAINER_OPTIONS.standard;
+  const capacity = toNonNegativeWhole(currentCapacity, 0) || optionData.capacityFn(resolvedBaseCapacity);
+  const ammoWeightKg = includeAmmoWeight
+    ? roundWeightKg(resolvedCurrentRounds * resolvedAmmoPerRoundWeightKg)
+    : 0;
+  const extensionBodyWeightKg = normalizedOptionId === "extended-belt"
+    ? roundWeightKg(resolvedBaseCapacity * SPECIAL_EXTENSION_WEIGHT_PER_BASE_ROUND_KG)
+    : 0;
+  const totalCarriedMagWeightKg = roundWeightKg(extensionBodyWeightKg + ammoWeightKg);
+  const includedLoadedAmmoWeightKg = includeAmmoWeight
+    ? roundWeightKg(resolvedBaseCapacity * resolvedAmmoPerRoundWeightKg)
+    : 0;
+  const effectiveLoadedMagWeightKg = roundWeightKg(totalCarriedMagWeightKg - includedLoadedAmmoWeightKg);
+
+  return {
+    capacity,
+    currentRounds: resolvedCurrentRounds,
+    magBodyWeightKg: extensionBodyWeightKg,
+    ammoWeightKg,
+    totalCarriedMagWeightKg,
+    effectiveLoadedMagWeightKg,
+    cost: optionData.priceFn(capacity),
+    standardMagBodyWeightKg: 0,
+    includedLoadedMagBodyWeightKg: 0,
+    includedLoadedAmmoWeightKg
+  };
+}
+
+// ─── Ballistic container option variants ────────────────────────────────────
+// Each entry describes one purchasable variant available when adding a non-Forerunner
+// magazine or belt. "validModes" restricts which ammoMode values may select the option.
+// capacityFn: (baseRounds) → effectiveRounds
+// priceFn / extraWeightPerRoundKg remain as fallback metadata for non-magazine paths.
+// Detachable magazine pricing/weight is derived by getBallisticContainerMetrics()
+// from the standard-magazine baseline model above.
+const BALLISTIC_CONTAINER_OPTIONS = {
+  standard: {
+    id: "standard",
+    label: "Standard",
+    description: "Standard factory configuration — no modifications.",
+    validModes: ["magazine", "belt"],
+    capacityFn: (base) => base,
+    priceFn: (eff) => Math.max(2, Math.ceil(eff / 4)),
+    reloadMod: 0,
+    pronePenalty: 0,
+    extraWeightPerRoundKg: 0,
+    unlicensed: false
+  },
+  drum: {
+    id: "drum",
+    label: "Drum Magazine",
+    description: "3× capacity drum. Heavier — +0.1 kg per extra round.",
+    validModes: ["magazine"],
+    capacityFn: (base) => base * 3,
+    priceFn: (eff) => Math.max(2, Math.ceil(eff / 4)),
+    reloadMod: 0,
+    pronePenalty: 0,
+    extraWeightPerRoundKg: 0.1,
+    unlicensed: false
+  },
+  "dual-sided": {
+    id: "dual-sided",
+    label: "Dual-Sided Magazine",
+    description: "Two linked magazines (×2 capacity). Reload −2, Prone −5.",
+    validModes: ["magazine"],
+    capacityFn: (base) => base * 2,
+    priceFn: (eff) => Math.max(2, Math.ceil(eff / 3)),
+    reloadMod: -2,
+    pronePenalty: -5,
+    extraWeightPerRoundKg: 0,
+    unlicensed: false
+  },
+  "extended-belt": {
+    id: "extended-belt",
+    label: "Extended Belt",
+    description: "×2 belt capacity. +0.05 kg per extra round.",
+    validModes: ["belt"],
+    capacityFn: (base) => base * 2,
+    priceFn: (eff) => Math.max(2, Math.ceil(eff / 4)),
+    reloadMod: 0,
+    pronePenalty: 0,
+    extraWeightPerRoundKg: 0.05,
+    unlicensed: false
+  },
+  extended: {
+    id: "extended",
+    label: "Extended Magazine",
+    description: "[U] ×2 capacity. +0.05 kg per extra round. Prone −5.",
+    validModes: ["magazine"],
+    capacityFn: (base) => base * 2,
+    priceFn: (eff) => Math.max(2, Math.ceil(eff / 4)),
+    reloadMod: 0,
+    pronePenalty: -5,
+    extraWeightPerRoundKg: 0.05,
+    unlicensed: true
+  },
+  reduced: {
+    id: "reduced",
+    label: "Reduced-Capacity Magazine",
+    description: "[U] ½ capacity (min 2). Reload −2 (floor 2). Lighter.",
+    validModes: ["magazine"],
+    capacityFn: (base) => Math.max(2, Math.floor(base / 2)),
+    priceFn: (eff) => Math.max(2, Math.ceil(eff / 4)),
+    reloadMod: -2,
+    pronePenalty: 0,
+    extraWeightPerRoundKg: -0.02,
+    unlicensed: true
+  }
+};
+
+function getAvailableBallisticOptions(ammoMode = "") {
+  const mode = String(ammoMode ?? "").trim().toLowerCase();
+  return Object.values(BALLISTIC_CONTAINER_OPTIONS).filter((opt) => opt.validModes.includes(mode));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildBallisticCompatibilitySignature(gear = {}, weaponName = "", ammoData = null, fallbackType = "magazine") {
+  if (!isBallisticAmmoMode(gear?.ammoMode)) return "";
+  const capacity = getWeaponBallisticCapacity(gear);
+  if (capacity <= 0) return "";
+  const ammoRef = String(ammoData?.uuid ?? gear?.ammoId ?? "").trim() || String(ammoData?.name ?? "ammo").trim();
+  const containerType = getBallisticContainerType(gear?.ammoMode, fallbackType);
+  const weaponType = String(gear?.weaponType ?? "").trim().toLowerCase();
+  const training = String(gear?.training ?? "").trim().toLowerCase();
+  const nameKey = normalizeLookupText(weaponName);
+  return [normalizeLookupText(ammoRef), containerType, String(capacity), weaponType, training, nameKey].join("|");
+}
+
+function buildBallisticContainerEntry(weaponId = "", gear = {}, weaponName = "", ammoData = null, options = {}) {
+  const itemId = String(weaponId ?? "").trim();
+  if (!itemId || !isBallisticAmmoMode(gear?.ammoMode)) return null;
+
+  const capacity = getWeaponBallisticCapacity(gear);
+  if (capacity <= 0) return null;
+
+  const containerType = getBallisticContainerType(gear?.ammoMode, options.type);
+  const label = String(options.label ?? "").trim() || getBallisticContainerLabel(gear?.ammoMode, containerType);
+  const ammoWeightPerRoundKg = Number(ammoData?.weightKg ?? ammoData?.weightPerRoundKg ?? 0);
+  const totalWeightKg = Number.isFinite(ammoWeightPerRoundKg) && ammoWeightPerRoundKg > 0
+    ? Math.max(0, ammoWeightPerRoundKg * capacity)
+    : 0;
+
+  return {
+    id: String(options.id ?? "").trim() || foundry.utils.randomID(),
+    weaponId: itemId,
+    ammoUuid: String(ammoData?.uuid ?? gear?.ammoId ?? "").trim(),
+    ammoName: String(ammoData?.name ?? "").trim() || "Ammo",
+    type: containerType,
+    label,
+    capacity,
+    current: toNonNegativeWhole(options.current, 0),
+    isCarried: options.isCarried !== false,
+    createdAt: String(options.createdAt ?? "").trim() || new Date().toISOString(),
+    sourceWeaponName: String(options.sourceWeaponName ?? weaponName).trim() || String(weaponName ?? "").trim(),
+    baseCapacity: toNonNegativeWhole(options.baseCapacity, capacity),
+    compatibilitySignature: String(options.compatibilitySignature ?? "").trim()
+      || buildBallisticCompatibilitySignature(gear, weaponName, ammoData, containerType),
+    weightKg: Math.max(0, Number(options.weightKg ?? totalWeightKg) || 0)
+  };
+}
+
+function buildDefaultWeaponStateEntry(state = {}) {
+  const source = (state && typeof state === "object") ? state : {};
+  const toModifier = (value) => {
+    const numeric = Number(value ?? 0);
+    return Number.isFinite(numeric) ? Math.round(numeric) : 0;
+  };
+  return {
+    magazineCurrent: toNonNegativeWhole(source.magazineCurrent, 0),
+    magazineTrackingMode: String(source.magazineTrackingMode ?? "abstract").trim().toLowerCase() || "abstract",
+    activeMagazineId: String(source.activeMagazineId ?? "").trim(),
+    activeEnergyCellId: String(source.activeEnergyCellId ?? "").trim(),
+    chamberRoundCount: toNonNegativeWhole(source.chamberRoundCount, 0),
+    chargeLevel: toNonNegativeWhole(source.chargeLevel, 0),
+    rechargeRemaining: toNonNegativeWhole(source.rechargeRemaining, 0),
+    variantIndex: toNonNegativeWhole(source.variantIndex, 0),
+    scopeMode: String(source.scopeMode ?? "none").trim().toLowerCase() || "none",
+    fireMode: String(source.fireMode ?? "single").trim().toLowerCase() || "single",
+    toHitModifier: toModifier(source.toHitModifier),
+    damageModifier: toModifier(source.damageModifier)
+  };
+}
+
+function ensureWeaponEnergyCells(energyCells = {}, weaponState = {}, weaponId = "", gear = {}, weaponNameOverride = "") {
+  const itemId = String(weaponId ?? "").trim();
+  if (!itemId) return null;
+
+  const ammoMode = String(gear?.ammoMode ?? "").trim().toLowerCase();
+  if (!isEnergyCellAmmoMode(ammoMode)) {
+    delete energyCells[itemId];
+    if (weaponState[itemId] && typeof weaponState[itemId] === "object") {
+      weaponState[itemId] = {
+        ...buildDefaultWeaponStateEntry(weaponState[itemId]),
+        activeEnergyCellId: ""
+      };
+    }
+    return null;
+  }
+
+  const capacity = getWeaponEnergyCellCapacity(gear);
+  if (capacity <= 0) return null;
+
+  const weaponName = String(weaponNameOverride ?? "").trim() || String(gear?.name ?? "").trim();
+  const batterySubtype = normalizeBatterySubtype(gear?.batteryType, ammoMode);
+  const cellLabel = getEnergyCellLabel(ammoMode, batterySubtype);
+  const compatibilitySignature = buildEnergyCellCompatibilitySignature(gear, weaponName);
+  const sourceWeaponType = String(gear?.weaponType ?? "").trim().toLowerCase();
+  const sourceTraining = String(gear?.training ?? "").trim().toLowerCase();
+
+  const stateEntry = buildDefaultWeaponStateEntry(weaponState[itemId]);
+  const cells = Array.isArray(energyCells[itemId]) ? [...energyCells[itemId]] : [];
+  if (!cells.length) {
+    cells.push({
+      id: foundry.utils.randomID(),
+      weaponId: itemId,
+      ammoMode,
+      capacity,
+      current: capacity,
+      isCarried: true,
+      createdAt: new Date().toISOString(),
+      batteryType: batterySubtype,
+      label: cellLabel,
+      sourceWeaponName: weaponName,
+      sourceWeaponType,
+      sourceTraining,
+      compatibilitySignature
+    });
+  }
+
+  energyCells[itemId] = cells.map((entry) => ({
+    ...(entry && typeof entry === "object" ? entry : {}),
+    weaponId: itemId,
+    ammoMode,
+    capacity: toNonNegativeWhole(entry?.capacity, capacity) || capacity,
+    current: toNonNegativeWhole(entry?.current, capacity),
+    isCarried: entry?.isCarried !== false,
+    batteryType: normalizeBatterySubtype(entry?.batteryType ?? batterySubtype, ammoMode),
+    label: String(entry?.label ?? "").trim() || cellLabel,
+    sourceWeaponName: String(entry?.sourceWeaponName ?? "").trim() || weaponName,
+    sourceWeaponType: String(entry?.sourceWeaponType ?? "").trim().toLowerCase() || sourceWeaponType,
+    sourceTraining: String(entry?.sourceTraining ?? "").trim().toLowerCase() || sourceTraining,
+    compatibilitySignature: String(entry?.compatibilitySignature ?? "").trim() || compatibilitySignature
+  }));
+
+  if (!energyCells[itemId].some((entry) => String(entry?.id ?? "").trim() === stateEntry.activeEnergyCellId)) {
+    stateEntry.activeEnergyCellId = String(energyCells[itemId][0]?.id ?? "").trim();
+  }
+  weaponState[itemId] = stateEntry;
+  return stateEntry;
+}
+
+function migrateCompatibleOrphanEnergyCells(actor, energyCells = {}, weaponState = {}, weaponId = "", gear = {}, weaponName = "") {
+  const targetWeaponId = String(weaponId ?? "").trim();
+  if (!targetWeaponId) return false;
+
+  const ammoMode = String(gear?.ammoMode ?? "").trim().toLowerCase();
+  if (!isEnergyCellAmmoMode(ammoMode)) return false;
+
+  const targetCapacity = getWeaponEnergyCellCapacity(gear);
+  if (targetCapacity <= 0) return false;
+
+  const targetName = String(weaponName ?? "").trim();
+  const targetType = String(gear?.weaponType ?? "").trim().toLowerCase();
+  const targetTraining = String(gear?.training ?? "").trim().toLowerCase();
+  const targetSignature = buildEnergyCellCompatibilitySignature(gear, targetName);
+  if (!targetSignature) return false;
+
+  const matchesTarget = (cell = {}) => {
+    const cellSignature = String(cell?.compatibilitySignature ?? "").trim();
+    if (cellSignature) return cellSignature === targetSignature;
+    const cellAmmoMode = String(cell?.ammoMode ?? "").trim().toLowerCase();
+    const cellCapacity = toNonNegativeWhole(cell?.capacity, 0);
+    const cellType = String(cell?.sourceWeaponType ?? "").trim().toLowerCase();
+    const cellTraining = String(cell?.sourceTraining ?? "").trim().toLowerCase();
+    const cellName = normalizeLookupText(cell?.sourceWeaponName ?? "");
+    const targetNameKey = normalizeLookupText(targetName);
+    if (cellAmmoMode !== ammoMode || cellCapacity !== targetCapacity) return false;
+    if (cellType && targetType && cellType !== targetType) return false;
+    if (cellTraining && targetTraining && cellTraining !== targetTraining) return false;
+    if (cellName && targetNameKey && cellName !== targetNameKey) return false;
+    return true;
+  };
+
+  let changed = false;
+  const nextTargetCells = Array.isArray(energyCells[targetWeaponId]) ? [...energyCells[targetWeaponId]] : [];
+
+  for (const [sourceWeaponId, rawCells] of Object.entries(energyCells)) {
+    const sourceId = String(sourceWeaponId ?? "").trim();
+    if (!sourceId || sourceId === targetWeaponId) continue;
+    const sourceCells = Array.isArray(rawCells) ? rawCells : [];
+    if (!sourceCells.length) continue;
+
+    const sourceItem = actor?.items?.get?.(sourceId) ?? null;
+    const sourceGear = sourceItem ? normalizeGearSystemData(sourceItem.system ?? {}, sourceItem.name ?? "") : null;
+    const sourceIsEnergyWeapon = sourceGear && isEnergyCellAmmoMode(String(sourceGear.ammoMode ?? "").trim().toLowerCase());
+    if (sourceIsEnergyWeapon) continue;
+
+    const keepCells = [];
+    for (const entry of sourceCells) {
+      if (!matchesTarget(entry)) {
+        keepCells.push(entry);
+        continue;
+      }
+      nextTargetCells.push({
+        ...(entry && typeof entry === "object" ? entry : {}),
+        weaponId: targetWeaponId,
+        ammoMode,
+        batteryType: normalizeBatterySubtype(entry?.batteryType ?? gear?.batteryType, ammoMode),
+        sourceWeaponName: String(entry?.sourceWeaponName ?? "").trim() || targetName,
+        sourceWeaponType: String(entry?.sourceWeaponType ?? "").trim().toLowerCase() || targetType,
+        sourceTraining: String(entry?.sourceTraining ?? "").trim().toLowerCase() || targetTraining,
+        compatibilitySignature: String(entry?.compatibilitySignature ?? "").trim() || targetSignature
+      });
+      changed = true;
+    }
+
+    if (keepCells.length) {
+      energyCells[sourceId] = keepCells;
+    } else {
+      delete energyCells[sourceId];
+    }
+  }
+
+  if (!changed) return false;
+  energyCells[targetWeaponId] = nextTargetCells;
+  const stateEntry = buildDefaultWeaponStateEntry(weaponState[targetWeaponId]);
+  if (!stateEntry.activeEnergyCellId) {
+    stateEntry.activeEnergyCellId = String(nextTargetCells[0]?.id ?? "").trim();
+    weaponState[targetWeaponId] = stateEntry;
+  }
+  return true;
+}
+
+function cleanupRemovedWeaponSupportData(actor, energyCells = {}, weaponState = {}, weaponIds = [], discardActiveCell = false) {
+  const removable = Array.from(new Set((Array.isArray(weaponIds) ? weaponIds : [])
+    .map((entry) => String(entry ?? "").trim())
+    .filter(Boolean)));
+  if (!removable.length) return false;
+
+  let changed = false;
+  for (const weaponId of removable) {
+    const item = actor?.items?.get?.(weaponId) ?? null;
+    const gear = item ? normalizeGearSystemData(item.system ?? {}, item.name ?? "") : null;
+    const cells = Array.isArray(energyCells[weaponId]) ? energyCells[weaponId] : [];
+    const stateEntry = buildDefaultWeaponStateEntry(weaponState[weaponId]);
+    const activeEnergyCellId = String(stateEntry.activeEnergyCellId ?? "").trim();
+    const ammoMode = String(gear?.ammoMode ?? cells[0]?.ammoMode ?? "").trim().toLowerCase();
+    const sourceWeaponName = String(item?.name ?? cells[0]?.sourceWeaponName ?? "").trim();
+    const sourceWeaponType = String(gear?.weaponType ?? cells[0]?.sourceWeaponType ?? "").trim().toLowerCase();
+    const sourceTraining = String(gear?.training ?? cells[0]?.sourceTraining ?? "").trim().toLowerCase();
+    const batterySubtype = normalizeBatterySubtype(gear?.batteryType ?? cells[0]?.batteryType, ammoMode);
+    const compatibilitySignature = buildEnergyCellCompatibilitySignature(gear ?? {}, sourceWeaponName);
+    const cellLabel = getEnergyCellLabel(ammoMode, batterySubtype);
+
+    if (cells.length) {
+      const fallbackCapacity = getWeaponEnergyCellCapacity(gear ?? {});
+      // Only discard the active/loaded cell when explicitly requested; always keep all other cells as orphans.
+      const remainingCells = cells
+        .filter((entry) => {
+          if (!discardActiveCell) return true;
+          const id = String(entry?.id ?? "").trim();
+          return !id || id !== activeEnergyCellId;
+        })
+        .map((entry) => ({
+          ...(entry && typeof entry === "object" ? entry : {}),
+          weaponId,
+          ammoMode: String(entry?.ammoMode ?? ammoMode).trim().toLowerCase() || ammoMode,
+          capacity: toNonNegativeWhole(entry?.capacity, fallbackCapacity) || fallbackCapacity,
+          current: toNonNegativeWhole(entry?.current, 0),
+          isCarried: entry?.isCarried !== false,
+          batteryType: normalizeBatterySubtype(entry?.batteryType ?? batterySubtype, ammoMode),
+          label: String(entry?.label ?? "").trim() || cellLabel,
+          sourceWeaponName: String(entry?.sourceWeaponName ?? "").trim() || sourceWeaponName,
+          sourceWeaponType: String(entry?.sourceWeaponType ?? "").trim().toLowerCase() || sourceWeaponType,
+          sourceTraining: String(entry?.sourceTraining ?? "").trim().toLowerCase() || sourceTraining,
+          compatibilitySignature: String(entry?.compatibilitySignature ?? "").trim() || compatibilitySignature
+        }));
+
+      if (remainingCells.length) {
+        energyCells[weaponId] = remainingCells;
+      } else if (Object.prototype.hasOwnProperty.call(energyCells, weaponId)) {
+        delete energyCells[weaponId];
+      }
+      changed = true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(weaponState, weaponId)) {
+      delete weaponState[weaponId];
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
+// â”€â”€â”€ Class â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -184,8 +809,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _ccAdvScrollTop = 0;
   _outliersListScrollTop = 0;
   _showTokenPortrait = false;
+  _batteryGroupExpanded = {};
+  _ballisticGroupExpanded = {};
 
   async _prepareContext(options) {
+    await this._backfillEnergyCellsForExistingWeapons();
     const context = await super._prepareContext(options);
     const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
     const creationPathOutcome = await this._resolveCreationPathOutcome(normalizedSystem);
@@ -284,48 +912,53 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return context;
   }
 
+  async _backfillEnergyCellsForExistingWeapons() {
+    if (!this.actor || this.actor.type !== "character") return;
+
+    const originalEnergyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
+    const originalWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    const nextEnergyCells = foundry.utils.deepClone(originalEnergyCells);
+    const nextWeaponState = foundry.utils.deepClone(originalWeaponState);
+
+    const rangedWeapons = (this.actor.items ?? [])
+      .filter((entry) => entry.type === "gear")
+      .map((entry) => ({ item: entry, gear: normalizeGearSystemData(entry.system ?? {}, entry.name ?? "") }))
+      .filter((entry) => String(entry.gear?.itemClass ?? "").trim().toLowerCase() === "weapon")
+      .filter((entry) => String(entry.gear?.weaponClass ?? "").trim().toLowerCase() === "ranged");
+
+    for (const { item, gear } of rangedWeapons) {
+      migrateCompatibleOrphanEnergyCells(this.actor, nextEnergyCells, nextWeaponState, String(item.id ?? ""), gear, String(item.name ?? "").trim());
+      ensureWeaponEnergyCells(nextEnergyCells, nextWeaponState, String(item.id ?? ""), gear, String(item.name ?? "").trim());
+    }
+
+    const hasEnergyCellChanges = JSON.stringify(originalEnergyCells) !== JSON.stringify(nextEnergyCells);
+    const hasWeaponStateChanges = JSON.stringify(originalWeaponState) !== JSON.stringify(nextWeaponState);
+    if (!hasEnergyCellChanges && !hasWeaponStateChanges) return;
+
+    await this.actor.update({
+      "system.equipment.energyCells": nextEnergyCells,
+      "system.equipment.weaponState": nextWeaponState
+    });
+  }
+
   _isSanShyuumActor(systemData = null) {
-    const source = systemData ?? this.actor?.system ?? {};
-    const race = String(source?.header?.race ?? "").trim().toLowerCase();
-    if (!/san.?shyuum/.test(race)) return false;
-    // Prelates are genetically modified and do not take the San'Shyuum AGI gravity penalty.
-    const isPrelate = /prelate/.test(race)
-      || /prelate/.test(String(source?.header?.soldierType ?? "").trim().toLowerCase());
-    return !isPrelate;
+    return isSanShyuumActor(systemData ?? this.actor?.system ?? {});
   }
 
   _isHuragokActor(systemData = null) {
-    const source = systemData ?? this.actor?.system ?? {};
-    const race = String(source?.header?.race ?? "").trim().toLowerCase();
-    const soldierType = String(source?.header?.soldierType ?? "").trim().toLowerCase();
-    return race.includes("huragok") || soldierType.includes("huragok");
+    return isHuragokActor(systemData ?? this.actor?.system ?? {});
   }
 
   _hasSanShyuumGravityBeltBypass() {
-    // Gravity Belt bypass
-    const belt = this.actor.items.find((entry) => (
-      entry.type === "gear"
-      && String(entry.name ?? "").trim().toLowerCase() === "gravity belt"
-    ));
-    const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
-      ? this.actor.system.equipment.carriedIds
-      : [];
-    const equippedArmorId = String(this.actor.system?.equipment?.equipped?.armorId ?? "").trim();
-    if (belt) {
-      const bypassFlag = Boolean(belt.getFlag("Halo-Mythic-Foundry-Updated", "gravityPenaltyBypass"));
-      if (carriedIds.includes(belt.id) || equippedArmorId === belt.id || bypassFlag) return true;
-    }
-    return false;
+    return hasSanShyuumGravityBeltBypass(this.actor);
   }
 
   _getSanShyuumGravityPenaltyValue(systemData = null) {
-    if (!this._isSanShyuumActor(systemData)) return 0;
-    const worldGravity = getWorldGravity();
-    const source = systemData ?? this.actor?.system ?? {};
-    const gravity = worldGravity !== null ? worldGravity : Number(source?.gravity ?? 1);
-    if (!Number.isFinite(gravity) || gravity < 1) return 0;
-    if (this._hasSanShyuumGravityBeltBypass()) return 0;
-    return 10;
+    return getSanShyuumGravityPenaltyValue({
+      actor: this.actor,
+      systemData,
+      worldGravity: getWorldGravity()
+    });
   }
 
   _getCharacterCreationAdvancementViewData() {
@@ -477,9 +1110,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       // --- Prerequisite-chain gating ---
       // An option is unlocked if its requiresKey is satisfied:
-      //   (a) empty requiresKey → always available
-      //   (b) requiresKey === "combat-training" → need isCombatTrained
-      //   (c) any other requiresKey → actor must own (as an item) one of the
+      //   (a) empty requiresKey â†’ always available
+      //   (b) requiresKey === "combat-training" â†’ need isCombatTrained
+      //   (c) any other requiresKey â†’ actor must own (as an item) one of the
       //       traitGrants from the referenced prerequisite option
       const hasActorItem = (name) => this.actor.items.some(
         (item) => String(item.name ?? "").trim().toLowerCase() === name.trim().toLowerCase()
@@ -713,12 +1346,22 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : "Any"}`,
     ...environmentChoiceState.displayPills];
 
+    const transactionNotes = String(systemData?.advancements?.transactionNotes ?? "");
+    const transactions = this._normalizeAdvancementTransactions(systemData?.advancements?.transactions ?? [])
+      .sort((a, b) => Number(b?.createdAt ?? 0) - Number(a?.createdAt ?? 0))
+      .map((entry) => ({
+        ...entry,
+        amountLabel: toNonNegativeWhole(entry?.amount, 0).toLocaleString()
+      }));
+
     return {
       earned,
       spent,
       available: Math.max(0, earned - spent),
       xpSummary: queueView.xpSummary,
       queue: queueView,
+      transactionNotes,
+      transactions,
       creationPath: {
         selectedUpbringingId: creationPath.upbringingItemId,
         selectedEnvironmentId: creationPath.environmentItemId,
@@ -751,19 +1394,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _skillTierToRank(tier) {
-    const marker = String(tier ?? "").trim().toLowerCase();
-    if (marker === "plus20") return 3;
-    if (marker === "plus10") return 2;
-    if (marker === "trained") return 1;
-    return 0;
+    return skillTierToRank(tier);
   }
 
   _skillRankToTier(rank) {
-    const value = Math.max(0, Math.min(3, Math.floor(Number(rank ?? 0))));
-    if (value >= 3) return "plus20";
-    if (value === 2) return "plus10";
-    if (value === 1) return "trained";
-    return "untrained";
+    return skillRankToTier(rank);
   }
 
   _getDefaultAdvancementQueueState() {
@@ -976,9 +1611,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const lockData = await this._getAutoTrainingLockData(normalizedSystem);
     const purchasedTrainingLocks = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
     const purchasedWeaponLocks = normalizeStringList(Array.isArray(purchasedTrainingLocks?.weaponKeys) ? purchasedTrainingLocks.weaponKeys : []);
-    const purchasedFactionLocks = normalizeStringList(Array.isArray(purchasedTrainingLocks?.factionKeys) ? purchasedTrainingLocks.factionKeys : []);
+    const purchasedFactionLocks = this._canonicalizeFactionTrainingKeys(
+      normalizeStringList(Array.isArray(purchasedTrainingLocks?.factionKeys) ? purchasedTrainingLocks.factionKeys : [])
+    );
     const lockedWeaponKeys = new Set([...lockData.weaponKeys, ...purchasedWeaponLocks]);
-    const lockedFactionKeys = new Set([...lockData.factionKeys, ...purchasedFactionLocks]);
+    const lockedFactionKeys = new Set([
+      ...this._canonicalizeFactionTrainingKeys(lockData.factionKeys),
+      ...purchasedFactionLocks
+    ]);
 
     const normalizedTraining = normalizeTrainingData(normalizedSystem?.training ?? {});
     const weaponTrainingRows = MYTHIC_WEAPON_TRAINING_DEFINITIONS.map((definition) => {
@@ -1346,6 +1986,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     // Soldier type advancement minimums
     const soldierTypeMins = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((k) => [k, Number(cb.soldierTypeAdvancementsRow?.[k] ?? 0)]));
+    const equipmentRow = this._getEquippedCharacteristicRowFromSystemData(systemData);
 
     const poolUsed = displayKeys.reduce((sum, k) => sum + (cb.creationPoints?.[k] ?? 0), 0);
 
@@ -1386,6 +2027,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         + (environmentRow[key] ?? 0)
         + (lifestylesRow[key] ?? 0)
         + (cb.advancements?.[key] ?? 0)
+        + (equipmentRow?.[key] ?? 0)
         + (cb.misc?.[key] ?? 0)
       );
     }
@@ -1412,76 +2054,23 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       advancements: cb.advancements,
       advancementColumns,
       advancementXpTotal,
+      equipmentRow,
       misc: cb.misc,
       totals
     };
   }
 
   _collectCreationPathGroupModifiers(groups, selections = {}, sourceLabel = "") {
-    const detailLines = [];
-    const pendingLines = [];
-    const appliedModifiers = [];
-    const normalizedSource = String(sourceLabel ?? "").trim() || "Creation Path";
-    const groupList = Array.isArray(groups) ? groups : [];
-
-    const pushModifiers = (modifiers, reasonLabel) => {
-      for (const rawModifier of Array.isArray(modifiers) ? modifiers : []) {
-        const kind = String(rawModifier?.kind ?? "").trim().toLowerCase();
-        const value = Number(rawModifier?.value ?? 0);
-        if (!Number.isFinite(value) || value === 0) continue;
-        if (kind === "wound") {
-          appliedModifiers.push({ kind: "wound", value, source: normalizedSource, reason: reasonLabel });
-          continue;
-        }
-        if (kind === "stat") {
-          const key = String(rawModifier?.key ?? "").trim().toLowerCase();
-          if (!MYTHIC_CHARACTERISTIC_KEYS.includes(key)) continue;
-          appliedModifiers.push({ kind: "stat", key, value, source: normalizedSource, reason: reasonLabel });
-        }
-      }
-    };
-
-    for (const group of groupList) {
-      const groupType = String(group?.type ?? "fixed").trim().toLowerCase();
-      const groupLabel = String(group?.label ?? "Choice").trim() || "Choice";
-      const options = Array.isArray(group?.options) ? group.options : [];
-      if (!options.length) continue;
-
-      if (groupType === "choice") {
-        const resolved = this._getCreationChoiceOption(group, selections?.[group.id]);
-        if (!resolved?.option) {
-          pendingLines.push(`${normalizedSource}: ${groupLabel} (pending)`);
-          continue;
-        }
-        const optionLabel = String(resolved.option?.label ?? `Option ${resolved.index + 1}`).trim() || `Option ${resolved.index + 1}`;
-        detailLines.push(`${normalizedSource}: ${optionLabel}`);
-        pushModifiers(resolved.option?.modifiers, `${groupLabel}: ${optionLabel}`);
-        continue;
-      }
-
-      const fixed = options[0] ?? null;
-      if (!fixed) continue;
-      const optionLabel = String(fixed?.label ?? groupLabel).trim() || groupLabel;
-      detailLines.push(`${normalizedSource}: ${optionLabel}`);
-      pushModifiers(fixed?.modifiers, `${groupLabel}: ${optionLabel}`);
-    }
-
-    return { appliedModifiers, detailLines, pendingLines };
+    return collectCreationPathGroupModifiers(
+      groups,
+      selections,
+      sourceLabel,
+      (group, selection) => this._getCreationChoiceOption(group, selection)
+    );
   }
 
   _addCreationPathModifiersToOutcome(outcome, modifiers = [], perSourceMap = null) {
-    for (const modifier of Array.isArray(modifiers) ? modifiers : []) {
-      if (modifier.kind === "stat" && modifier.key && MYTHIC_CHARACTERISTIC_KEYS.includes(modifier.key)) {
-        outcome.statBonuses[modifier.key] = Number(outcome.statBonuses[modifier.key] ?? 0) + Number(modifier.value ?? 0);
-        if (perSourceMap) {
-          perSourceMap[modifier.key] = Number(perSourceMap[modifier.key] ?? 0) + Number(modifier.value ?? 0);
-        }
-      } else if (modifier.kind === "wound") {
-        outcome.woundBonus += Number(modifier.value ?? 0);
-      }
-      outcome.appliedCount += 1;
-      outcome.summaryPills.push(`${modifier.source}: ${_formatModifier(modifier)}`);
-    }
+    addCreationPathModifiersToOutcome(outcome, modifiers, perSourceMap);
   }
 
   async _resolveCreationPathOutcome(systemData) {
@@ -1561,10 +2150,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
       const value = Number(outcome.statBonuses?.[key] ?? 0);
       if (!Number.isFinite(value) || value === 0) continue;
-      netDeltaPills.push(_formatModifier({ kind: "stat", key, value }));
+      netDeltaPills.push(formatCreationPathModifier({ kind: "stat", key, value }));
     }
     if (Number.isFinite(Number(outcome.woundBonus)) && Number(outcome.woundBonus) !== 0) {
-      netDeltaPills.push(_formatModifier({ kind: "wound", value: Number(outcome.woundBonus) }));
+      netDeltaPills.push(formatCreationPathModifier({ kind: "wound", value: Number(outcome.woundBonus) }));
     }
     outcome.netDeltaPills = netDeltaPills;
     return outcome;
@@ -1738,7 +2327,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _summarizeVariantModifiers(variant) {
     if (!variant || typeof variant !== "object") return "";
-    const baseModifiers = Array.isArray(variant.modifiers) ? variant.modifiers.map((entry) => _formatModifier(entry)) : [];
+    const baseModifiers = Array.isArray(variant.modifiers) ? variant.modifiers.map((entry) => formatCreationPathModifier(entry)) : [];
     const choiceGroups = Array.isArray(variant.choiceGroups) ? variant.choiceGroups : [];
     const choiceSummary = choiceGroups.length > 0 ? [`${choiceGroups.length} choice group(s)`] : [];
     return [...baseModifiers, ...choiceSummary].filter(Boolean).join(", ");
@@ -1750,9 +2339,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const carryCapacity = Number(derived?.carryingCapacity?.carry ?? 0);
 
     const roundWeight = (value) => {
-      const numeric = Number(value ?? 0);
-      if (!Number.isFinite(numeric)) return 0;
-      return Math.round(Math.max(0, numeric) * 1000) / 1000;
+      return roundWeightKg(value);
     };
 
     const formatWeight = (value) => {
@@ -1772,6 +2359,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         .filter(Boolean)
     );
 
+    // Reload reduction: -1 for every 2 characteristic modifiers in AGI and WFR separately (min 1).
+    // modifier = floor(characteristic / 10); reduction per stat = floor(modifier / 2)
+    const _agiScore = Math.max(0, Number(systemData?.characteristics?.agi ?? 0));
+    const _wfrScore = Math.max(0, Number(systemData?.characteristics?.wfr ?? 0));
+    const _agiMod = Math.floor(Math.max(0, Number(systemData?.characteristics?.agi ?? 0)) / 10);
+    const _wfrMod = Math.floor(Math.max(0, Number(systemData?.characteristics?.wfr ?? 0)) / 10);
+    const _reloadReduction = Math.floor(_agiMod / 2) + Math.floor(_wfrMod / 2);
+    const singleLoadPerHalfAction = Math.max(0, Math.floor(_agiScore / 20) + Math.floor(_wfrScore / 20));
+    const computeEffectiveReload = (base) => {
+      const b = toNonNegativeWhole(base, 0);
+      return b > 0 ? Math.max(1, b - _reloadReduction) : 0;
+    };
+
     const baseGearItems = (this.actor?.items ?? [])
       .filter((item) => item.type === "gear")
       .map((item) => {
@@ -1782,26 +2382,44 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           id: item.id,
           name: item.name,
           img: item.img,
+          equipmentType: String(gear.equipmentType ?? "").trim().toLowerCase(),
           itemClass: gear.itemClass,
           weaponClass: gear.weaponClass,
+          training: String(gear.training ?? "").trim(),
           weaponType: String(gear.weaponType ?? "").trim(),
+          ammoMode: isEnergyCellAmmoMode(gear.ammoMode)
+            ? String(gear.ammoMode ?? "").trim().toLowerCase()
+            : (normalizeBallisticAmmoMode(gear.ammoMode) || "magazine"),
+          ammoId: String(gear.ammoId ?? "").trim(),
+          batteryCapacity: toNonNegativeWhole(gear.batteryCapacity, 0),
           faction: String(gear.faction ?? "").trim(),
           ammoName: String(gear.ammoName ?? ""),
+          singleLoading: Boolean(gear.singleLoading),
           fireModes: Array.isArray(gear.fireModes) ? gear.fireModes : [],
           rangeClose: toNonNegativeWhole(gear.range?.close, 0),
           rangeMax: toNonNegativeWhole(gear.range?.max, 0),
-          rangeReload: toNonNegativeWhole(gear.range?.reload, 0),
+          rangeReload: computeEffectiveReload(gear.range?.reload),
           rangeMagazine: toNonNegativeWhole(gear.range?.magazine, 0),
           damageBase: toNonNegativeWhole(gear.damage?.baseDamage, 0),
+          damageDiceCount: toNonNegativeWhole(gear.damage?.diceCount, 0),
+          damageDiceType: String(gear.damage?.diceType ?? "d10").trim().toLowerCase() === "d5" ? "d5" : "d10",
           damageD5: toNonNegativeWhole(gear.damage?.baseRollD5, 0),
           damageD10: toNonNegativeWhole(gear.damage?.baseRollD10, 0),
+          baseDamageModifierMode: String(gear.damage?.baseDamageModifierMode ?? "full-str-mod").trim().toLowerCase(),
+          pierceModifierMode: String(gear.damage?.pierceModifierMode ?? "full-str-mod").trim().toLowerCase(),
           damagePierce: Number(gear.damage?.pierce ?? 0),
+          nickname: String(gear.nickname ?? "").trim(),
+          attackName: String(gear.attackName ?? "").trim(),
+          variantAttacks: Array.isArray(gear.variantAttacks) ? gear.variantAttacks : [],
+          weaponTagKeys: normalizeStringList(Array.isArray(gear.weaponTagKeys) ? gear.weaponTagKeys : []),
+          weaponSpecialRuleKeys: normalizeStringList(Array.isArray(gear.weaponSpecialRuleKeys) ? gear.weaponSpecialRuleKeys : []),
           specialRules: String(gear.specialRules ?? ""),
           attachments: String(gear.attachments ?? ""),
           description: String(gear.description ?? ""),
           source: gear.source,
           weightKg: Number(gear.weightKg ?? 0),
           category: String(gear.category ?? "").trim(),
+          baseToHitModifier: Number.isFinite(Number(gear.baseToHitModifier)) ? Math.round(Number(gear.baseToHitModifier)) : 0,
           modifiers: String(gear.modifiers ?? "").trim(),
           armorWeightProfile: String(gear.armorWeightProfile ?? "").trim().toLowerCase(),
           isEquipmentPackGranted,
@@ -1925,7 +2543,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const rawWeaponItems = sortedGearItems.filter((entry) => entry.itemClass === "weapon");
     const rawArmorItems = sortedGearItems.filter((entry) => entry.itemClass === "armor");
-    const rawOtherItems = sortedGearItems.filter((entry) => entry.itemClass !== "weapon" && entry.itemClass !== "armor");
+    const isGeneralGearEntry = (entry) => {
+      if (entry.itemClass === "weapon" || entry.itemClass === "armor") return false;
+      return !entry.equipmentType || entry.equipmentType === "general";
+    };
+    const rawGeneralItems = sortedGearItems.filter((entry) => isGeneralGearEntry(entry));
+    const rawOtherItems = sortedGearItems.filter((entry) => entry.itemClass !== "weapon" && entry.itemClass !== "armor" && !isGeneralGearEntry(entry));
 
     const weaponItems = stackItemGroup(
       rawWeaponItems,
@@ -1937,6 +2560,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rawArmorItems,
       (group) => group.find((e) => e.isEquipped) ?? group.find((e) => e.isEquipmentPackGranted) ?? group[0],
       (group) => ({ isCarried: group.some((e) => e.isCarried), isEquipped: group.some((e) => e.isEquipped), isWielded: false })
+    );
+
+    const generalItems = stackItemGroup(
+      rawGeneralItems,
+      (group) => group.find((entry) => entry.isEquipmentPackGranted) ?? group[0],
+      (group) => ({ isCarried: group.some((e) => e.isCarried), isEquipped: false, canEquip: false })
     );
 
     const otherItems = stackItemGroup(
@@ -1956,10 +2585,144 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const rawWeaponState = (systemData?.equipment?.weaponState && typeof systemData.equipment.weaponState === "object")
       ? systemData.equipment.weaponState
       : {};
+    const rawEnergyCells = (systemData?.equipment?.energyCells && typeof systemData.equipment.energyCells === "object")
+      ? systemData.equipment.energyCells
+      : {};
+    const rawBallisticContainers = (systemData?.equipment?.ballisticContainers && typeof systemData.equipment.ballisticContainers === "object")
+      ? systemData.equipment.ballisticContainers
+      : {};
+    const rawIndependentAmmo = (systemData?.equipment?.independentAmmo && typeof systemData.equipment.independentAmmo === "object")
+      ? systemData.equipment.independentAmmo
+      : {};
+    const normalizeAmmoCounterKey = (value) => normalizeLookupText(String(value ?? "").trim());
+    const looseAmmoTotals = new Map();
+    for (const [rawAmmoKey, rawPool] of Object.entries(rawAmmoPools)) {
+      const ammoKey = normalizeAmmoCounterKey(rawPool?.name ?? rawAmmoKey);
+      if (!ammoKey) continue;
+      const pool = (rawPool && typeof rawPool === "object") ? rawPool : {};
+      const countFromSplit = toNonNegativeWhole(pool?.epCount, 0) + toNonNegativeWhole(pool?.purchasedCount, 0);
+      const hasSplit = Number.isFinite(Number(pool?.epCount)) || Number.isFinite(Number(pool?.purchasedCount));
+      const count = hasSplit ? countFromSplit : toNonNegativeWhole(pool?.count, 0);
+      looseAmmoTotals.set(ammoKey, (looseAmmoTotals.get(ammoKey) ?? 0) + count);
+    }
+    for (const ammoEntry of Object.values(rawIndependentAmmo)) {
+      const ammoKey = normalizeAmmoCounterKey(ammoEntry?.ammoName);
+      if (!ammoKey) continue;
+      const count = toNonNegativeWhole(ammoEntry?.quantity, 0);
+      looseAmmoTotals.set(ammoKey, (looseAmmoTotals.get(ammoKey) ?? 0) + count);
+    }
+    const loadedMagazineRoundsByWeaponId = new Map();
+    for (const rawContainers of Object.values(rawBallisticContainers)) {
+      const groupEntries = Array.isArray(rawContainers) ? rawContainers : [];
+      for (const entry of groupEntries) {
+        if (!entry || entry._stub || entry.isCarried === false) continue;
+        const weaponId = String(entry.weaponId ?? "").trim();
+        if (!weaponId) continue;
+        const current = toNonNegativeWhole(entry.current, 0);
+        loadedMagazineRoundsByWeaponId.set(weaponId, (loadedMagazineRoundsByWeaponId.get(weaponId) ?? 0) + current);
+      }
+    }
     const scopeOptions = {
       none: "No Scope",
       x2: "2x Scope",
       x4: "4x Scope"
+    };
+
+    const strModifier = Number.isFinite(Number(derived?.modifiers?.str)) ? Number(derived.modifiers.str) : 0;
+    const resolveStrengthContribution = (mode) => {
+      const normalized = String(mode ?? "").trim().toLowerCase();
+      if (normalized === "half-str-mod") return Math.floor(strModifier / 2);
+      if (normalized === "full-str-mod") return strModifier;
+      return 0;
+    };
+
+    const tagLabelByKey = new Map(MYTHIC_WEAPON_TAG_DEFINITIONS.map((entry) => [
+      String(entry?.key ?? "").trim().toLowerCase(),
+      String(entry?.label ?? entry?.key ?? "").trim()
+    ]).filter(([key, label]) => key && label));
+    const ignoredTagTokens = new Set(["u", "i", "p", "nc", "npu", "ncu"]);
+    const shouldIgnoreTagKey = (rawKey) => {
+      const normalized = String(rawKey ?? "").trim().toLowerCase();
+      if (!normalized) return false;
+      const compact = normalized.replace(/[^a-z0-9]/gu, "");
+      return ignoredTagTokens.has(compact);
+    };
+    const ruleLabelByKey = new Map(MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS.map((entry) => [
+      String(entry?.key ?? "").trim().toLowerCase(),
+      String(entry?.label ?? entry?.key ?? "").trim()
+    ]).filter(([key, label]) => key && label));
+
+    const compactBadgeText = (label) => {
+      const text = String(label ?? "").trim();
+      if (!text) return "?";
+      if (text.length <= 12) return text;
+      const words = text.split(/[\s\-_/]+/u).filter(Boolean);
+      if (words.length >= 2) return words.map((word) => word.charAt(0).toUpperCase()).join("").slice(0, 5);
+      return `${text.slice(0, 11)}...`;
+    };
+
+    const bracketTagPattern = /\[([A-Za-z0-9+\-]+)\]/gu;
+
+    const buildWeaponBadges = (item) => {
+      const badges = [];
+      const seen = new Set();
+      const pushBadge = (kind, key, label) => {
+        const normalizedKind = String(kind ?? "").trim().toLowerCase() === "rule" ? "rule" : "tag";
+        const safeKey = String(key ?? "").trim();
+        const safeLabel = String(label ?? safeKey).trim();
+        if (!safeKey && !safeLabel) return;
+        const dedupeKey = `${normalizedKind}:${safeKey.toLowerCase() || safeLabel.toLowerCase()}`;
+        if (seen.has(dedupeKey)) return;
+        seen.add(dedupeKey);
+        badges.push({
+          kind: normalizedKind,
+          shortLabel: compactBadgeText(safeLabel || safeKey),
+          fullLabel: safeLabel || safeKey,
+          key: safeKey
+        });
+      };
+
+      const weaponTags = Array.isArray(item?.weaponTagKeys) ? item.weaponTagKeys : [];
+      for (const rawKey of weaponTags) {
+        const key = String(rawKey ?? "").trim();
+        if (!key) continue;
+        if (shouldIgnoreTagKey(key)) continue;
+        const label = tagLabelByKey.get(key.toLowerCase()) ?? key;
+        pushBadge("tag", key, label);
+      }
+
+      const weaponRules = Array.isArray(item?.weaponSpecialRuleKeys) ? item.weaponSpecialRuleKeys : [];
+      for (const rawKey of weaponRules) {
+        const key = String(rawKey ?? "").trim();
+        if (!key) continue;
+        const label = ruleLabelByKey.get(key.toLowerCase()) ?? key;
+        pushBadge("rule", key, label);
+      }
+
+      const rulesText = String(item?.specialRules ?? "");
+      let match = bracketTagPattern.exec(rulesText);
+      while (match) {
+        const token = String(match[1] ?? "").trim();
+        if (token) {
+          const bracketed = `[${token}]`;
+          if (shouldIgnoreTagKey(bracketed)) {
+            match = bracketTagPattern.exec(rulesText);
+            continue;
+          }
+          const normalized = token.toLowerCase();
+          const label = tagLabelByKey.get(bracketed.toLowerCase())
+            ?? tagLabelByKey.get(normalized)
+            ?? bracketed;
+          pushBadge("tag", bracketed, label);
+        }
+        match = bracketTagPattern.exec(rulesText);
+      }
+
+      return badges.sort((a, b) => {
+        const kindCmp = (a.kind === b.kind) ? 0 : (a.kind === "tag" ? -1 : 1);
+        if (kindCmp !== 0) return kindCmp;
+        return String(a.fullLabel ?? "").localeCompare(String(b.fullLabel ?? ""), undefined, { sensitivity: "base" });
+      });
     };
 
     const readyWeaponCards = equippedWeaponItems.map((item) => {
@@ -1968,11 +2731,54 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         : {};
       const isMelee = item.weaponClass === "melee";
       const isInfusionRadius = this._isInfusionRadiusWeapon(item);
+      const ammoMode = isEnergyCellAmmoMode(item.ammoMode)
+        ? String(item.ammoMode ?? "").trim().toLowerCase()
+        : normalizeBallisticAmmoMode(item.ammoMode);
+      const isEnergyWeapon = !isMelee && !isInfusionRadius && isEnergyCellAmmoMode(ammoMode);
+      const weaponEnergyCells = Array.isArray(rawEnergyCells[item.id]) ? rawEnergyCells[item.id] : [];
+      const activeEnergyCellId = String(state.activeEnergyCellId ?? "").trim();
+      const activeEnergyCell = weaponEnergyCells.find((entry) => String(entry?.id ?? "").trim() === activeEnergyCellId)
+        ?? weaponEnergyCells[0]
+        ?? null;
+      const energyCellCapacity = toNonNegativeWhole(activeEnergyCell?.capacity, 0);
+      const energyCellCurrent = toNonNegativeWhole(activeEnergyCell?.current, 0);
+      const energyCellPercent = energyCellCapacity > 0
+        ? Math.max(0, Math.min(100, Math.round((energyCellCurrent / energyCellCapacity) * 100)))
+        : 0;
+      const energyCellPercentDisplay = energyCellCurrent > 0
+        ? Math.max(1, energyCellPercent)
+        : 0;
+      const ammoDisplayLabel = ammoMode === "plasma-battery"
+        ? "Battery"
+        : (ammoMode === "light-mass"
+            ? "Forerunner Magazine"
+            : (ammoMode === "belt"
+                ? "Belt"
+                : (ammoMode === "tube"
+                    ? "Tube"
+                    : (ammoMode === "magazine" ? "Magazine" : (String(item.ammoName ?? "").trim() || "Ammo")))));
+      const isSingleLoadWeapon = Boolean(item.singleLoading) || ammoMode === "tube";
       const magazineMax = isMelee ? 0 : toNonNegativeWhole(item.rangeMagazine, 0);
-      const fallbackMag = magazineMax > 0 ? magazineMax : 0;
+      const fallbackMag = 0;
       const magazineCurrent = isMelee
         ? 0
         : toNonNegativeWhole(state.magazineCurrent, fallbackMag);
+      const looseAmmoInventoryTotal = toNonNegativeWhole(
+        looseAmmoTotals.get(normalizeAmmoCounterKey(item.ammoName)) ?? 0,
+        0
+      );
+      const loadedMagazineInventoryTotal = toNonNegativeWhole(
+        loadedMagazineRoundsByWeaponId.get(String(item.id ?? "").trim()) ?? 0,
+        0
+      );
+      const loadedCombatRounds = Math.max(loadedMagazineInventoryTotal, toNonNegativeWhole(state?.magazineCurrent, 0));
+      const ammoInventoryTotal = isSingleLoadWeapon ? looseAmmoInventoryTotal : loadedCombatRounds;
+      const ammoLoadLabel = ammoMode === "tube"
+        ? "Tube"
+        : (isSingleLoadWeapon ? "Load" : "Mag");
+      const ammoCapacityLabel = ammoMode === "tube"
+        ? "Tube"
+        : (isSingleLoadWeapon ? "Capacity" : "Magazine");
       const rawFireModes = Array.isArray(item.fireModes) && item.fireModes.length
         ? item.fireModes
         : ["Single"];
@@ -1988,6 +2794,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
       const selectedFireModeLabel = fireModes.find((mode) => mode.isSelected)?.label ?? fireModes[0]?.label ?? "Single";
       const selectedProfile = parseFireModeProfile(selectedFireModeLabel);
+      const isSustainedFireMode = selectedProfile.kind === "sustained";
       const halfActionAttackCount = isInfusionRadius ? 1 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "half"));
       const fullActionAttackCount = isInfusionRadius ? 0 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "full"));
       const hasChargeModeSelected = selectedProfile.kind === "charge" || selectedProfile.kind === "drawback";
@@ -2006,15 +2813,81 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const smartText = `${item.specialRules ?? ""} ${item.attachments ?? ""} ${item.description ?? ""}`.toLowerCase();
       const isSmartLinkCapable = /smart\s*-?\s*link/.test(smartText);
       const trainingStatus = this._evaluateWeaponTrainingStatus(item, item.name ?? "");
+      const readyBadges = buildWeaponBadges(item);
+
+      // Variant attack support for melee weapons
+      const variantAttacksRaw = Array.isArray(item.variantAttacks) ? item.variantAttacks : [];
+      const hasVariants = isMelee && variantAttacksRaw.length > 0;
+      const selectedVariantIdx = hasVariants
+        ? Math.max(0, Math.min(toNonNegativeWhole(state.variantIndex, 0), variantAttacksRaw.length))
+        : 0;
+      // Build variant selector options (0 = primary, 1+ = variants)
+      const primaryAttackName = hasVariants
+        ? (String(item.attackName ?? "").trim() || "Primary Attack")
+        : null;
+      const variantOptions = hasVariants ? [
+        { label: primaryAttackName, index: 0, isSelected: selectedVariantIdx === 0 },
+        ...variantAttacksRaw.map((v, vi) => ({
+          label: String(v.name ?? "").trim() || `Variant ${vi + 1}`,
+          index: vi + 1,
+          isSelected: selectedVariantIdx === vi + 1
+        }))
+      ] : [];
+      // Determine active damage profile
+      const activeVariantData = hasVariants && selectedVariantIdx > 0
+        ? variantAttacksRaw[selectedVariantIdx - 1]
+        : null;
+      const activeDiceCount = activeVariantData ? toNonNegativeWhole(activeVariantData.diceCount, 0) : item.damageDiceCount;
+      const activeDiceType = activeVariantData
+        ? (String(activeVariantData.diceType ?? "d10").toLowerCase() === "d5" ? "d5" : "d10")
+        : item.damageDiceType;
+      const activeBaseDamage = activeVariantData ? Number(activeVariantData.baseDamage ?? 0) : Number(item.damageBase ?? 0);
+      const activeBaseDamageModMode = activeVariantData
+        ? String(activeVariantData.baseDamageModifierMode ?? "full-str-mod").toLowerCase()
+        : item.baseDamageModifierMode;
+      const activePierce = activeVariantData ? Number(activeVariantData.pierce ?? 0) : Number(item.damagePierce ?? 0);
+      const activePierceModMode = activeVariantData
+        ? String(activeVariantData.pierceModifierMode ?? "full-str-mod").toLowerCase()
+        : item.pierceModifierMode;
+
+      const baseDamageStrengthBonus = isMelee ? resolveStrengthContribution(activeBaseDamageModMode) : 0;
+      const pierceStrengthBonus = isMelee ? resolveStrengthContribution(activePierceModMode) : 0;
+      const displayDamageBase = isMelee
+        ? activeBaseDamage + baseDamageStrengthBonus
+        : activeBaseDamage;
+      const displayDamagePierce = isMelee
+        ? Math.max(0, activePierce + pierceStrengthBonus)
+        : Math.max(0, activePierce);
+      const displayDiceCount = activeDiceCount > 0
+        ? activeDiceCount
+        : (item.damageD10 > 0 ? item.damageD10 : item.damageD5);
+      const displayDiceType = activeDiceCount > 0
+        ? activeDiceType
+        : (item.damageD10 > 0 ? "d10" : "d5");
+      const damageDiceLabel = displayDiceCount > 0 ? `${displayDiceCount}${displayDiceType}` : "0";
+      // Current attack name label for display
+      const currentAttackName = hasVariants
+        ? (selectedVariantIdx === 0
+            ? primaryAttackName
+            : (String(variantAttacksRaw[selectedVariantIdx - 1]?.name ?? "").trim() || `Variant ${selectedVariantIdx}`))
+        : null;
 
       return {
         ...item,
         isMelee,
         isInfusionRadius,
         displayWeaponClass: isInfusionRadius ? "Special" : item.weaponClass,
-        showStandardFireModes: !isInfusionRadius && fireModes.length > 0,
-        showSingleAttack: !isInfusionRadius,
-        showFullAttack: !isInfusionRadius,
+        showStandardFireModes: !isInfusionRadius && !isMelee && fireModes.length > 0,
+        showVariantSelector: isMelee && hasVariants,
+        hasVariants,
+        variantOptions,
+        selectedVariantIdx,
+        currentAttackName,
+        showSingleAttack: !isInfusionRadius && selectedProfile.kind !== "flintlock" && !isSustainedFireMode,
+        showSustainedAttack: !isInfusionRadius && isSustainedFireMode,
+        showHalfAttack: !isInfusionRadius && selectedProfile.kind !== "flintlock" && !isSustainedFireMode,
+        showFullAttack: !isInfusionRadius && !isSustainedFireMode,
+        showPumpReactionAttack: !isInfusionRadius && selectedProfile.kind === "pump",
         showExecutionAttack: !isInfusionRadius,
         showButtstrokeAttack: !isInfusionRadius && !isMelee,
         infusionRechargeMax: isInfusionRadius ? 10 : 0,
@@ -2022,9 +2895,23 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ? toNonNegativeWhole(state.rechargeRemaining, 0)
           : 0,
         ammoKey: toSlug(String(item.ammoName ?? "")),
+        ammoInventoryTotal,
+        looseAmmoInventoryTotal,
+        loadedMagazineInventoryTotal,
         reach: Math.max(1, toNonNegativeWhole(item.rangeClose, 1)),
+        ammoMode,
+        isEnergyWeapon,
+        energyCellInventoryTotal: weaponEnergyCells.length,
+        energyCellCapacity,
+        energyCellCurrent,
+        energyCellPercent,
+        energyCellPercentDisplay,
+        activeEnergyCellId: String(activeEnergyCell?.id ?? "").trim(),
         magazineMax,
         magazineCurrent,
+        magazineTrackingMode: String(state.magazineTrackingMode ?? "abstract").trim().toLowerCase() || "abstract",
+        activeMagazineId: String(state.activeMagazineId ?? "").trim(),
+        chamberRoundCount: toNonNegativeWhole(state.chamberRoundCount, 0),
         fireModes,
         selectedFireMode: fireModes.find((mode) => mode.isSelected)?.value ?? fireModes[0]?.value ?? "single",
         selectedFireModeLabel,
@@ -2040,21 +2927,45 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         scopeMode: String(state.scopeMode ?? "none").trim().toLowerCase() || "none",
         toHitModifier: Number.isFinite(Number(state.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0,
         damageModifier: Number.isFinite(Number(state.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0,
+        variantIndex: selectedVariantIdx,
         scopeOptions,
         isSmartLinkCapable,
+        readyBadges,
+        hasReadyBadges: readyBadges.length > 0,
+        damageDiceLabel,
+        displayDamageBase,
+        displayDamagePierce,
         hasTrainingWarning: trainingStatus.hasAnyMismatch,
         trainingWarningText: trainingStatus.warningText,
         missingFactionTraining: trainingStatus.missingFactionTraining,
         missingWeaponTraining: trainingStatus.missingWeaponTraining,
-        ammoLabel: String(item.ammoName ?? "").trim() || "Ammo"
+        ammoLabel: ammoDisplayLabel,
+        singleLoading: Boolean(item.singleLoading),
+        isSingleLoadWeapon,
+        singleLoadPerHalfAction,
+        ammoLoadLabel,
+        ammoCapacityLabel
       };
     });
 
     const ammoTypeDefinitions = await loadMythicAmmoTypeDefinitions();
+    const defaultAmmoIcon = "icons/svg/item-bag.svg";
+    const worldAmmoByName = new Map();
+    for (const worldItem of game.items ?? []) {
+      if (worldItem?.type !== "gear") continue;
+      const normalized = normalizeGearSystemData(worldItem.system ?? {}, worldItem.name ?? "");
+      if (String(normalized.equipmentType ?? "").trim().toLowerCase() !== "ammunition") continue;
+      const nameKey = normalizeLookupText(worldItem.name ?? "");
+      if (!nameKey || worldAmmoByName.has(nameKey)) continue;
+      worldAmmoByName.set(nameKey, worldItem);
+    }
     const normalizeAmmoLookupKey = (value) => String(value ?? "")
       .toLowerCase()
-      .replace(/[×]/g, "x")
+      .replace(/[Ã—]/g, "x")
       .replace(/[^a-z0-9]+/g, "");
+    const stripTrailingAmmoVariant = (value) => String(value ?? "")
+      .replace(/\([^)]*\)\s*$/u, "")
+      .trim();
     const ammoTypeMapByName = new Map();
     const ammoTypeMapByKey = new Map();
     const ammoTypeMapByCompactKey = new Map();
@@ -2069,41 +2980,28 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (keyByCompact) ammoTypeMapByCompactKey.set(keyByCompact, Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0);
     }
 
-    const ammoMap = new Map();
-    for (const weapon of weaponItems) {
-      const ammoLabel = String(weapon.ammoName ?? "").trim();
-      if (!ammoLabel) continue;
-      const ammoKey = toSlug(ammoLabel);
-      if (!ammoKey) continue;
+    const resolveAmmoBaseUnitWeight = (ammoName, ammoKey = "") => {
+      const exactName = String(ammoName ?? "").trim();
+      const strippedName = stripTrailingAmmoVariant(exactName);
+      const exactKey = String(ammoKey ?? "").trim();
+      const strippedKey = toSlug(strippedName);
 
-      if (!ammoMap.has(ammoKey)) {
-        const pool = (rawAmmoPools[ammoKey] && typeof rawAmmoPools[ammoKey] === "object")
-          ? rawAmmoPools[ammoKey]
-          : {};
-        const epCount = toNonNegativeWhole(pool.epCount, 0);
-        const purchasedCount = toNonNegativeWhole(pool.purchasedCount, Math.max(0, toNonNegativeWhole(pool.count, 0) - epCount));
-        const baseLookupName = String(pool.name ?? ammoLabel).trim() || ammoLabel;
-        const baseUnitWeightKg = ammoTypeMapByName.get(normalizeLookupText(baseLookupName))
-          ?? ammoTypeMapByKey.get(ammoKey)
-          ?? ammoTypeMapByCompactKey.get(normalizeAmmoLookupKey(baseLookupName))
-          ?? 0;
-        const weightMultiplierRaw = Number(pool.weightMultiplier ?? 1);
-        const weightMultiplier = Number.isFinite(weightMultiplierRaw) ? Math.max(0, weightMultiplierRaw) : 1;
-        const overrideRaw = Number(pool.unitWeightOverrideKg);
-        const unitWeightOverrideKg = Number.isFinite(overrideRaw) && overrideRaw > 0 ? overrideRaw : null;
-        const unitWeightKg = unitWeightOverrideKg !== null ? unitWeightOverrideKg : baseUnitWeightKg;
-        ammoMap.set(ammoKey, {
-          key: ammoKey,
-          name: baseLookupName,
-          epCount,
-          purchasedCount,
-          count: epCount + purchasedCount,
-          baseUnitWeightKg,
-          unitWeightKg,
-          weightMultiplier
-        });
+      const candidates = [
+        ammoTypeMapByName.get(normalizeLookupText(exactName)),
+        ammoTypeMapByName.get(normalizeLookupText(strippedName)),
+        ammoTypeMapByKey.get(exactKey),
+        ammoTypeMapByKey.get(strippedKey),
+        ammoTypeMapByCompactKey.get(normalizeAmmoLookupKey(exactName)),
+        ammoTypeMapByCompactKey.get(normalizeAmmoLookupKey(strippedName))
+      ];
+
+      for (const candidate of candidates) {
+        if (Number.isFinite(candidate)) return Math.max(0, Number(candidate));
       }
-    }
+      return 0;
+    };
+
+    const ammoMap = new Map();
 
     for (const [rawAmmoKey, rawPool] of Object.entries(rawAmmoPools)) {
       const ammoKey = toSlug(rawAmmoKey);
@@ -2111,25 +3009,29 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const pool = (rawPool && typeof rawPool === "object") ? rawPool : {};
       const epCount = toNonNegativeWhole(pool.epCount, 0);
       const purchasedCount = toNonNegativeWhole(pool.purchasedCount, Math.max(0, toNonNegativeWhole(pool.count, 0) - epCount));
+      const totalCount = epCount + purchasedCount;
+      if (totalCount <= 0) continue;
       const ammoName = String(pool.name ?? rawAmmoKey).trim() || rawAmmoKey;
-      const baseUnitWeightKg = ammoTypeMapByName.get(normalizeLookupText(ammoName))
-        ?? ammoTypeMapByKey.get(ammoKey)
-        ?? ammoTypeMapByCompactKey.get(normalizeAmmoLookupKey(ammoName))
-        ?? 0;
+      const baseUnitWeightKg = resolveAmmoBaseUnitWeight(ammoName, ammoKey);
       const weightMultiplierRaw = Number(pool.weightMultiplier ?? 1);
       const weightMultiplier = Number.isFinite(weightMultiplierRaw) ? Math.max(0, weightMultiplierRaw) : 1;
+      const isCarried = pool?.isCarried !== false;
       const overrideRaw = Number(pool.unitWeightOverrideKg);
       const unitWeightOverrideKg = Number.isFinite(overrideRaw) && overrideRaw > 0 ? overrideRaw : null;
       const unitWeightKg = unitWeightOverrideKg !== null ? unitWeightOverrideKg : baseUnitWeightKg;
+      const worldAmmo = worldAmmoByName.get(normalizeLookupText(ammoName));
       ammoMap.set(ammoKey, {
         key: ammoKey,
+        storageKey: String(rawAmmoKey ?? ammoKey).trim() || ammoKey,
         name: ammoName,
+        openReference: worldAmmo ? `Item.${worldAmmo.id}` : "",
         epCount,
         purchasedCount,
-        count: epCount + purchasedCount,
+        count: totalCount,
         baseUnitWeightKg,
         unitWeightKg,
-        weightMultiplier
+        weightMultiplier,
+        isCarried
       });
     }
 
@@ -2138,20 +3040,352 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const unitWeightKg = Math.max(0, Number(entry.unitWeightKg ?? 0) || 0);
         const weightMultiplier = Math.max(0, Number(entry.weightMultiplier ?? 1) || 1);
         const totalWeightKg = roundWeight(unitWeightKg * Math.max(0, toNonNegativeWhole(entry.count, 0)) * weightMultiplier);
-        const effectiveWeightKg = ammoConfig.ignoreBasicAmmoWeight ? 0 : totalWeightKg;
+        const isCarried = entry?.isCarried !== false;
+        const effectiveWeightKg = (ammoConfig.useAmmoWeightOptionalRule && isCarried) ? totalWeightKg : 0;
         return {
           ...entry,
+          img: defaultAmmoIcon,
+          itemClass: "ammunition",
+          sourceKind: "pool",
+          canOpen: true,
+          canRemove: true,
+          isCarried,
           equipmentPackCount: Math.max(0, toNonNegativeWhole(entry.epCount, 0)),
           purchasedCount: Math.max(0, toNonNegativeWhole(entry.purchasedCount, 0)),
           totalWeightKg,
           effectiveWeightKg,
           totalWeightLabel: `${formatWeight(totalWeightKg)} kg`,
+          effectiveWeightLabel: `${formatWeight(effectiveWeightKg)} kg`,
           weightTooltip: unitWeightKg > 0
             ? `Base ${formatWeight(unitWeightKg)} kg x ${Math.max(0, toNonNegativeWhole(entry.count, 0))} x mod ${weightMultiplier}`
             : "No base ammo weight mapped yet"
         };
       })
       .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+      // Add independent ammo items
+      const independentAmmoEntries = [];
+      for (const [uuid, ammoEntry] of Object.entries(rawIndependentAmmo)) {
+        const quantity = Math.max(0, Number(ammoEntry?.quantity ?? 0));
+        if (quantity <= 0) continue;
+        const ammoName = String(ammoEntry?.ammoName ?? "Unknown Ammo").trim() || "Unknown Ammo";
+        const baseUnitWeightKg = resolveAmmoBaseUnitWeight(ammoName);
+        const unitWeightKg = Math.max(0, Number(baseUnitWeightKg ?? 0) || 0);
+        const totalWeightKg = roundWeight(unitWeightKg * quantity);
+        const isCarried = ammoEntry?.isCarried !== false;
+        const effectiveWeightKg = (ammoConfig.useAmmoWeightOptionalRule && isCarried) ? totalWeightKg : 0;
+        const openReference = String(ammoEntry?.ammoUuid ?? "").trim();
+        independentAmmoEntries.push({
+          key: uuid,
+          name: ammoName,
+          img: String(ammoEntry?.ammoImg ?? "").trim() || defaultAmmoIcon,
+          itemClass: "ammunition",
+          sourceKind: "independent",
+          openReference,
+          count: quantity,
+          epCount: 0,
+          purchasedCount: quantity,
+          unitWeightKg,
+          weightMultiplier: 1,
+          baseUnitWeightKg,
+          equipmentPackCount: 0,
+          totalWeightKg,
+          effectiveWeightKg,
+          isCarried,
+          totalWeightLabel: `${formatWeight(totalWeightKg)} kg`,
+          effectiveWeightLabel: `${formatWeight(effectiveWeightKg)} kg`,
+          weightTooltip: unitWeightKg > 0
+            ? `Base ${formatWeight(unitWeightKg)} kg x ${quantity} x mod 1`
+            : "No base ammo weight mapped yet",
+          canOpen: true,
+          canRemove: true
+        });
+      }
+
+      const batteryEntries = [];
+      for (const [weaponId, rawCells] of Object.entries(rawEnergyCells)) {
+        const cells = Array.isArray(rawCells) ? rawCells : [];
+
+        // Resolve weapon first so we can use it as a fallback when cells is empty.
+        const weapon = sortedGearItems.find((entry) => String(entry?.id ?? "") === String(weaponId ?? ""));
+        // Skip only when there is nothing to show — no cells and no live weapon.
+        if (!cells.length && !weapon) continue;
+
+        const ammoMode = String(weapon?.ammoMode ?? cells[0]?.ammoMode ?? "standard").trim().toLowerCase();
+        if (!isEnergyCellAmmoMode(ammoMode)) continue;
+        const fallbackBatterySubtype = normalizeBatterySubtype(weapon?.batteryType ?? cells[0]?.batteryType, ammoMode);
+
+        const activeEnergyCellId = String(rawWeaponState?.[weaponId]?.activeEnergyCellId ?? "").trim();
+        const ammoLabel = getEnergyCellLabel(ammoMode, fallbackBatterySubtype);
+        const weaponName = String(weapon?.name ?? cells[0]?.sourceWeaponName ?? "Unknown Weapon").trim() || "Unknown Weapon";
+        const weaponImg = String(weapon?.img ?? "").trim() || defaultAmmoIcon;
+
+        const expandedState = this._batteryGroupExpanded && typeof this._batteryGroupExpanded === "object"
+          ? this._batteryGroupExpanded
+          : {};
+        const isExpanded = Boolean(expandedState[weaponId]);
+
+        const sortedCells = [...cells]
+          .map((cell) => {
+            const current = toNonNegativeWhole(cell?.current, 0);
+            const capacity = toNonNegativeWhole(cell?.capacity, 0);
+            const percent = capacity > 0
+              ? Math.max(0, Math.min(100, Math.round((current / capacity) * 100)))
+              : 0;
+            const percentDisplay = current > 0 ? Math.max(1, percent) : 0;
+            const id = String(cell?.id ?? "").trim();
+            const isActive = id && id === activeEnergyCellId;
+            const isCarried = cell?.isCarried !== false;
+            const batteryType = normalizeBatterySubtype(cell?.batteryType ?? fallbackBatterySubtype, ammoMode);
+            const ammoWeightPerRoundKg = Math.max(0, Number(resolveAmmoBaseUnitWeight(String(weapon?.ammoName ?? "").trim()) || 0));
+            const shouldIgnoreWeight = shouldIgnoreBatteryWeight(ammoMode, batteryType);
+            const totalWeightKg = shouldIgnoreWeight ? 0 : roundWeight(ammoWeightPerRoundKg * current);
+            const effectiveWeightKg = (ammoConfig.useAmmoWeightOptionalRule && isCarried && !isActive) ? totalWeightKg : 0;
+            return {
+              id,
+              weaponId,
+              current,
+              capacity,
+              isActive,
+              isCarried,
+              batteryType,
+              batteryPercent: percent,
+              batteryPercentDisplay: percentDisplay,
+              activeChargeLabel: `${current}/${capacity}`,
+              label: String(cell?.label ?? "").trim() || getEnergyCellLabel(ammoMode, batteryType),
+              totalWeightKg,
+              effectiveWeightKg,
+              totalWeightLabel: `${formatWeight(totalWeightKg)} kg`,
+              effectiveWeightLabel: `${formatWeight(effectiveWeightKg)} kg`
+            };
+          })
+          .sort((a, b) => {
+            if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+            if (b.capacity !== a.capacity) return b.capacity - a.capacity;
+            if (b.current !== a.current) return b.current - a.current;
+            return String(a.id ?? "").localeCompare(String(b.id ?? ""));
+          });
+
+        const carriedCount = sortedCells.filter((entry) => entry.isCarried).length;
+        const activeCell = sortedCells.find((entry) => entry.isActive) ?? sortedCells[0] ?? null;
+        const loadedSummary = sortedCells.some((entry) => entry.isActive) ? "Loaded" : "No loaded cell";
+        const parentMeta = `${ammoLabel} · ${loadedSummary} · ${sortedCells.length} total`;
+        const batteryTotalWeightKg = roundWeight(sortedCells.reduce((sum, entry) => sum + Math.max(0, Number(entry?.totalWeightKg ?? 0) || 0), 0));
+        const batteryEffectiveWeightKg = roundWeight(sortedCells.reduce((sum, entry) => sum + (Number(entry?.effectiveWeightKg ?? 0) || 0), 0));
+
+        batteryEntries.push({
+          key: `${weaponId}:group`,
+          storageKey: weaponId,
+          weaponId,
+          name: `${weaponName} ${ammoLabel}`,
+          img: weaponImg,
+          itemClass: "battery",
+          sourceKind: "battery",
+          openReference: "",
+          count: sortedCells.length,
+          epCount: 0,
+          purchasedCount: sortedCells.length,
+          unitWeightKg: 0,
+          weightMultiplier: 1,
+          baseUnitWeightKg: 0,
+          equipmentPackCount: 0,
+          totalWeightKg: batteryTotalWeightKg,
+          effectiveWeightKg: batteryEffectiveWeightKg,
+          isCarried: carriedCount > 0,
+          totalWeightLabel: `${formatWeight(batteryTotalWeightKg)} kg`,
+          effectiveWeightLabel: `${formatWeight(batteryEffectiveWeightKg)} kg`,
+          weightTooltip: `${ammoLabel} tracked per weapon.`,
+          canOpen: false,
+          canRemove: false,
+          energyCellModeLabel: ammoLabel,
+          activeChargeLabel: activeCell ? activeCell.activeChargeLabel : "0/0",
+          batteryCurrent: activeCell ? activeCell.current : 0,
+          batteryCapacity: activeCell ? activeCell.capacity : 0,
+          batteryPercent: activeCell ? activeCell.batteryPercent : 0,
+          batteryPercentDisplay: activeCell ? activeCell.batteryPercentDisplay : 0,
+          isActiveGroup: Boolean(activeCell?.isActive),
+          canPurchase: true,
+          hasLiveWeapon: Boolean(weapon),
+          isExpanded,
+          toggleGlyph: isExpanded ? "-" : "+",
+          batterySummaryLabel: parentMeta,
+          carriedCount,
+          cells: sortedCells.map((entry, index) => ({
+            ...entry,
+            key: `${weaponId}:cell:${entry.id || index}`,
+            number: index + 1,
+            name: `${entry.label} #${index + 1}`,
+            metaLabel: entry.isActive ? `${entry.activeChargeLabel} · Currently Loaded` : entry.activeChargeLabel
+          }))
+        });
+      }
+
+      const ballisticContainerEntries = [];
+      for (const [groupKey, rawContainers] of Object.entries(rawBallisticContainers)) {
+        const normalizedGroupKey = String(groupKey ?? "").trim();
+        if (!normalizedGroupKey) continue;
+        const sourceContainers = Array.isArray(rawContainers) ? rawContainers : [];
+        // Separate stubs (placeholder entries that keep the parent key alive) from real containers.
+        const stubEntry = sourceContainers.find((c) => c?._stub) ?? null;
+        const realSourceContainers = sourceContainers.filter((c) => !c?._stub);
+        // Skip if there is absolutely no content and no stub metadata to display.
+        if (!realSourceContainers.length && !stubEntry) continue;
+        const metaSource = stubEntry ?? (realSourceContainers[0] && typeof realSourceContainers[0] === "object" ? realSourceContainers[0] : {});
+        const firstContainer = metaSource;
+        const liveWeapon = sortedGearItems.find((entry) => String(entry?.id ?? "") === String(firstContainer?.weaponId ?? "")) ?? null;
+        // Skip if there are no real containers and the source weapon is also gone.
+        if (!realSourceContainers.length && !liveWeapon) continue;
+
+        const expandedState = this._ballisticGroupExpanded && typeof this._ballisticGroupExpanded === "object"
+          ? this._ballisticGroupExpanded
+          : {};
+        const isExpanded = Boolean(expandedState[normalizedGroupKey]);
+
+        const sortedContainers = realSourceContainers
+          .map((container) => {
+            const entry = (container && typeof container === "object") ? container : {};
+            const id = String(entry.id ?? "").trim();
+            const weaponId = String(entry.weaponId ?? "").trim();
+            const activeMagazineId = String(rawWeaponState?.[weaponId]?.activeMagazineId ?? "").trim();
+            const isActive = Boolean(id) && Boolean(activeMagazineId) && id === activeMagazineId;
+            const type = getBallisticContainerType(liveWeapon?.ammoMode, entry.type);
+            const typeLabel = getBallisticContainerLabel(liveWeapon?.ammoMode, entry.type);
+            const ammoName = String(entry.ammoName ?? "").trim();
+            const current = toNonNegativeWhole(entry.current, 0);
+            const capacity = toNonNegativeWhole(entry.capacity, 0);
+            const isCarried = entry.isCarried !== false;
+            const ammoPerRoundWeightKg = Math.max(0, Number(resolveAmmoBaseUnitWeight(ammoName) || 0));
+            const rawOptionId = String(entry.containerOption ?? "").trim().toLowerCase();
+            const weaponBaseCapacity = toNonNegativeWhole(liveWeapon?.rangeMagazine ?? liveWeapon?.range?.magazine, 0);
+            const knownBaseCapacity = toNonNegativeWhole(entry.baseCapacity, 0) || weaponBaseCapacity;
+            let optionId = rawOptionId;
+            if (!BALLISTIC_CONTAINER_OPTIONS[optionId]) {
+              const labelHint = String(entry.label ?? "").trim().toLowerCase();
+              const isBelt = type === "belt";
+              if (labelHint.includes("drum")) optionId = "drum";
+              else if (labelHint.includes("reduced")) optionId = "reduced";
+              else if (labelHint.includes("extended")) optionId = isBelt ? "extended-belt" : "extended";
+              else if (knownBaseCapacity > 0 && capacity === knownBaseCapacity * 3) optionId = "drum";
+              else if (knownBaseCapacity > 0 && capacity === knownBaseCapacity * 2) optionId = isBelt ? "extended-belt" : "extended";
+              else if (knownBaseCapacity > 0 && capacity <= Math.floor(knownBaseCapacity / 2)) optionId = "reduced";
+              else optionId = "standard";
+            }
+            const inferredBaseCapacity = toNonNegativeWhole(entry.baseCapacity, 0)
+              || weaponBaseCapacity
+              || inferBallisticContainerBaseCapacity(capacity, optionId);
+            const metrics = getBallisticContainerMetrics({
+              ammoMode: type,
+              optionId,
+              baseCapacity: inferredBaseCapacity,
+              currentRounds: current,
+              currentCapacity: capacity,
+              ammoPerRoundWeightKg,
+              includeAmmoWeight: ammoConfig.useAmmoWeightOptionalRule
+            });
+            const totalWeightKg = roundWeight(metrics.totalCarriedMagWeightKg);
+            const effectiveWeightKg = isCarried
+              ? roundWeight(isActive ? metrics.effectiveLoadedMagWeightKg : metrics.totalCarriedMagWeightKg)
+              : 0;
+            return {
+              id,
+              groupKey: normalizedGroupKey,
+              weaponId,
+              type,
+              typeLabel,
+              isActive,
+              isCarried,
+              current,
+              capacity,
+              activeChargeLabel: `${current}/${capacity}`,
+              weightKg: totalWeightKg,
+              totalWeightKg,
+              effectiveWeightKg,
+              totalWeightLabel: `${formatWeight(totalWeightKg)} kg`,
+              effectiveWeightLabel: `${formatWeight(effectiveWeightKg)} kg`,
+              ammoName,
+              sourceWeaponName: String(entry.sourceWeaponName ?? "").trim(),
+              label: String(entry.label ?? "").trim() || typeLabel,
+              containerOption: optionId,
+              baseCapacity: inferredBaseCapacity,
+              magBodyWeightKg: metrics.magBodyWeightKg,
+              ammoWeightKg: metrics.ammoWeightKg,
+              totalCarriedMagWeightKg: metrics.totalCarriedMagWeightKg,
+              effectiveLoadedMagWeightKg: metrics.effectiveLoadedMagWeightKg,
+              cost: metrics.cost,
+              magBodyWeightLabel: `${formatWeight(metrics.magBodyWeightKg)} kg`,
+              ammoWeightLabel: `${formatWeight(metrics.ammoWeightKg)} kg`
+            };
+          })
+          .filter((entry) => entry.id)
+          .sort((a, b) => {
+            if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+            if (a.type !== b.type) return a.type.localeCompare(b.type);
+            if (b.capacity !== a.capacity) return b.capacity - a.capacity;
+            if (b.current !== a.current) return b.current - a.current;
+            return String(a.id ?? "").localeCompare(String(b.id ?? ""));
+          });
+
+        // Build parent row metadata from real containers when available;
+        // fall back to the stub entry so empty groups still display correctly.
+        const first = sortedContainers[0] ?? null;
+        const stubSourceWeaponName = String(stubEntry?.sourceWeaponName ?? "").trim();
+        const weaponDisplayName = String(liveWeapon?.name ?? "").trim();
+        const sourceWeaponName = sortedContainers.find((entry) => entry.sourceWeaponName)?.sourceWeaponName
+          ?? (stubSourceWeaponName || weaponDisplayName || "");
+        const ammoName = sortedContainers.find((entry) => entry.ammoName)?.ammoName
+          ?? (String(stubEntry?.ammoName ?? "").trim() || "Ammo");
+        // Container type: prefer real container data, then stub.type, then live weapon's ammoMode.
+        const resolvedContainerType = first?.type
+          ?? getBallisticContainerType(stubEntry?.type ?? liveWeapon?.ammoMode, "magazine");
+        const parentTypeLabel = getBallisticContainerPluralLabel(liveWeapon?.ammoMode, resolvedContainerType);
+        const singularTypeLabel = getBallisticContainerLabel(liveWeapon?.ammoMode, resolvedContainerType).toLowerCase();
+        const parentName = sourceWeaponName
+          ? `${sourceWeaponName} ${parentTypeLabel}${ammoName ? ` (${ammoName})` : ""}`
+          : `${parentTypeLabel}${ammoName ? ` (${ammoName})` : ""}`;
+        const loadedSummary = sortedContainers.some((entry) => entry.isActive) ? "Loaded" : `No loaded ${singularTypeLabel}`;
+        const parentMeta = `${loadedSummary} · ${sortedContainers.length} total`;
+        const carriedCount = sortedContainers.filter((entry) => entry.isCarried).length;
+        const totalWeightKg = roundWeight(sortedContainers.reduce((sum, entry) => sum + Math.max(0, Number(entry.totalWeightKg ?? 0) || 0), 0));
+        const effectiveWeightKg = roundWeight(sortedContainers.reduce((sum, entry) => sum + (Number(entry.effectiveWeightKg ?? 0) || 0), 0));
+        // Resolve the weaponId to attach to the view-model entry.
+        const groupWeaponId = first?.weaponId ?? String(stubEntry?.weaponId ?? "").trim();
+
+        ballisticContainerEntries.push({
+          key: `${normalizedGroupKey}:group`,
+          groupKey: normalizedGroupKey,
+          weaponId: groupWeaponId,
+          name: parentName,
+          img: defaultAmmoIcon,
+          itemClass: "container",
+          sourceKind: "ballistic-container",
+          count: sortedContainers.length,
+          isCarried: carriedCount > 0,
+          totalWeightKg,
+          effectiveWeightKg,
+          totalWeightLabel: `${formatWeight(totalWeightKg)} kg`,
+          effectiveWeightLabel: `${formatWeight(effectiveWeightKg)} kg`,
+          isExpanded,
+          toggleGlyph: isExpanded ? "-" : "+",
+          ballisticSummaryLabel: parentMeta,
+          canPurchase: true,
+          cells: sortedContainers.map((entry, index) => ({
+            ...entry,
+            key: `${normalizedGroupKey}:container:${entry.id || index}`,
+            number: index + 1,
+            name: `${entry.label || entry.typeLabel} #${index + 1}`,
+            metaLabel: entry.isActive ? `${entry.activeChargeLabel} · Currently Loaded` : entry.activeChargeLabel
+          }))
+        });
+      }
+
+      const ballisticAmmoEntries = [...ammoEntries, ...independentAmmoEntries]
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+      const sortedBallisticContainerEntries = ballisticContainerEntries
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+      const sortedBatteryEntries = batteryEntries
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
     const equipped = {
       weaponIds: equippedWeaponIds,
@@ -2165,9 +3399,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const computedCarriedWeight = roundWeight([
       ...weaponItems,
       ...armorItems,
+      ...generalItems,
       ...otherItems
     ].reduce((sum, entry) => sum + Math.max(0, Number(entry?.effectiveWeightKg ?? 0) || 0), 0));
-    const ammoEffectiveWeight = roundWeight(ammoEntries.reduce((sum, entry) => sum + Math.max(0, Number(entry?.effectiveWeightKg ?? 0) || 0), 0));
+      const ammoEffectiveWeight = roundWeight(
+        ballisticAmmoEntries.reduce((sum, entry) => sum + Math.max(0, Number(entry?.effectiveWeightKg ?? 0) || 0), 0)
+        + sortedBallisticContainerEntries.reduce((sum, entry) => sum + (Number(entry?.effectiveWeightKg ?? 0) || 0), 0)
+        + sortedBatteryEntries.reduce((sum, entry) => sum + (Number(entry?.effectiveWeightKg ?? 0) || 0), 0)
+      );
 
     const carriedWeight = roundWeight(computedCarriedWeight + ammoEffectiveWeight);
     const loadPercent = carryCapacity > 0
@@ -2183,11 +3422,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       gearItems: sortedGearItems,
       weaponItems,
       armorItems,
+      generalItems,
       otherItems,
       equipped,
       equippedWeaponItems,
       readyWeaponCards,
-      ammoEntries,
+        ballisticAmmoEntries,
+        ballisticContainerEntries: sortedBallisticContainerEntries,
+        batteryEntries: sortedBatteryEntries,
+        totalBallisticAmmoWeight: formatWeight(ammoEffectiveWeight),
       ammoConfig,
       equippedArmor,
       wieldedWeapon,
@@ -2941,9 +4184,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const lockData = await this._getAutoTrainingLockData(normalizedSystem);
     const purchasedLocks = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
     const purchasedWeaponKeys = normalizeStringList(Array.isArray(purchasedLocks?.weaponKeys) ? purchasedLocks.weaponKeys : []);
-    const purchasedFactionKeys = normalizeStringList(Array.isArray(purchasedLocks?.factionKeys) ? purchasedLocks.factionKeys : []);
+    const purchasedFactionKeys = this._canonicalizeFactionTrainingKeys(
+      normalizeStringList(Array.isArray(purchasedLocks?.factionKeys) ? purchasedLocks.factionKeys : [])
+    );
     const lockedWeaponKeys = new Set([...lockData.weaponKeys, ...purchasedWeaponKeys]);
-    const lockedFactionKeys = new Set([...lockData.factionKeys, ...purchasedFactionKeys]);
+    const lockedFactionKeys = new Set([
+      ...this._canonicalizeFactionTrainingKeys(lockData.factionKeys),
+      ...purchasedFactionKeys
+    ]);
     const weaponCategories = MYTHIC_WEAPON_TRAINING_DEFINITIONS.map((definition) => {
       const locked = lockedWeaponKeys.has(definition.key);
       return {
@@ -2994,7 +4242,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const rawFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks");
     const factionChoiceFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeFactionChoice");
     const flaggedWeaponKeys = normalizeStringList(Array.isArray(rawFlag?.weaponKeys) ? rawFlag.weaponKeys : []);
-    const flaggedFactionKeys = normalizeStringList(Array.isArray(rawFlag?.factionKeys) ? rawFlag.factionKeys : []);
+    const flaggedFactionKeys = this._canonicalizeFactionTrainingKeys(
+      normalizeStringList(Array.isArray(rawFlag?.factionKeys) ? rawFlag.factionKeys : [])
+    );
     const isSameSoldierType = normalizeSoldierTypeNameForMatch(rawFlag?.soldierTypeName ?? "") === normalizeSoldierTypeNameForMatch(soldierTypeName);
     const flaggedCanonicalId = String(rawFlag?.soldierTypeCanonicalId ?? "").trim().toLowerCase();
     const actorCanonicalId = String(factionChoiceFlag?.soldierTypeCanonicalId ?? "").trim().toLowerCase();
@@ -3041,8 +4291,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _rememberSheetScrollPosition(root = null) {
     const sourceRoot = root ?? (this.element?.querySelector(".mythic-character-sheet") ?? this.element);
     const scrollable = sourceRoot?.querySelector?.(".sheet-tab-scrollable");
-    if (!scrollable) return;
-    this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop ?? 0));
+    if (scrollable) {
+      this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop ?? 0));
+    }
+    const ccAdvScrollable = sourceRoot?.querySelector?.(".ccadv-tab-scrollable, .ccadv-content-scroll");
+    if (ccAdvScrollable) {
+      this._ccAdvScrollTop = Math.max(0, Number(ccAdvScrollable.scrollTop ?? 0));
+    }
   }
 
   _refreshPortraitTokenControls(root) {
@@ -3134,7 +4389,28 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return MYTHIC_WEAPON_TRAINING_DEFINITIONS.find(matchesDefinition) ?? null;
   }
 
+  _canonicalizeFactionTrainingKey(rawKey) {
+    const normalized = normalizeLookupText(rawKey);
+    if (!normalized) return "";
+    if (["unsc", "human", "human unsc", "civilian", "police"].includes(normalized)) return "unsc";
+    if (["covenant", "banished", "swords of sangheilios", "sangheilios", "swords"].includes(normalized)) return "covenant";
+    if (["forerunner", "forerunners", "promethean", "prometheans"].includes(normalized)) return "forerunner";
+    return "";
+  }
+
+  _canonicalizeFactionTrainingKeys(keys = []) {
+    const source = Array.isArray(keys) ? keys : [];
+    const canonicalKeys = source
+      .map((entry) => this._canonicalizeFactionTrainingKey(entry))
+      .filter(Boolean);
+    return Array.from(new Set(canonicalKeys));
+  }
+
   _findFactionTrainingDefinition(rawFaction) {
+    const canonicalFactionKey = this._canonicalizeFactionTrainingKey(rawFaction);
+    if (canonicalFactionKey) {
+      return MYTHIC_FACTION_TRAINING_DEFINITIONS.find((definition) => definition.key === canonicalFactionKey) ?? null;
+    }
     const normalizedFaction = normalizeLookupText(rawFaction);
     if (!normalizedFaction) return null;
     return MYTHIC_FACTION_TRAINING_DEFINITIONS.find((definition) =>
@@ -3146,14 +4422,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _evaluateWeaponTrainingStatus(weaponSystemData = {}, fallbackName = "") {
-    const weaponTypeLabel = String(weaponSystemData?.weaponType ?? "").trim();
-    const factionLabel = String(weaponSystemData?.faction ?? "").trim();
+    const weaponTypeLabel = String(weaponSystemData?.training ?? weaponSystemData?.weaponType ?? "").trim();
+    const factionLabel = String(weaponSystemData?.armorySelection ?? weaponSystemData?.faction ?? "").trim();
     const training = normalizeTrainingData(this.actor.system?.training ?? {});
     const weaponDefinition = this._findWeaponTrainingDefinition(weaponTypeLabel || fallbackName);
     const factionDefinition = this._findFactionTrainingDefinition(factionLabel);
     const lockFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks");
     const lockedWeaponKeys = new Set(Array.isArray(lockFlag?.weaponKeys) ? lockFlag.weaponKeys : []);
-    const lockedFactionKeys = new Set(Array.isArray(lockFlag?.factionKeys) ? lockFlag.factionKeys : []);
+    const lockedFactionKeys = new Set(this._canonicalizeFactionTrainingKeys(Array.isArray(lockFlag?.factionKeys) ? lockFlag.factionKeys : []));
     const hasWeaponTraining = weaponDefinition ? (lockedWeaponKeys.has(weaponDefinition.key) || Boolean(training.weapon?.[weaponDefinition.key])) : true;
     const hasFactionTraining = factionDefinition ? (lockedFactionKeys.has(factionDefinition.key) || Boolean(training.faction?.[factionDefinition.key])) : true;
     const missingWeaponTraining = Boolean(weaponDefinition) && !hasWeaponTraining;
@@ -3811,6 +5087,23 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         return v;
       };
 
+      const submitArmorId = foundry.utils.getProperty(submitData, "system.equipment.equipped.armorId");
+      const submitWeaponIds = foundry.utils.getProperty(submitData, "system.equipment.equipped.weaponIds");
+      const submitWieldedWeaponId = foundry.utils.getProperty(submitData, "system.equipment.equipped.wieldedWeaponId");
+      const currentEquipped = this.actor.system?.equipment?.equipped ?? {};
+      const effectiveEquipped = {
+        armorId: submitArmorId !== undefined
+          ? String(submitArmorId ?? "").trim()
+          : String(currentEquipped?.armorId ?? "").trim(),
+        weaponIds: submitWeaponIds !== undefined
+          ? normalizeStringList(Array.isArray(submitWeaponIds) ? submitWeaponIds : [submitWeaponIds])
+          : normalizeStringList(Array.isArray(currentEquipped?.weaponIds) ? currentEquipped.weaponIds : []),
+        wieldedWeaponId: submitWieldedWeaponId !== undefined
+          ? String(submitWieldedWeaponId ?? "").trim()
+          : String(currentEquipped?.wieldedWeaponId ?? "").trim()
+      };
+      const equipmentRow = this._getEquippedCharacteristicRowFromEquippedState(effectiveEquipped);
+
       for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
         // Write back capped/validated values
         if (foundry.utils.getProperty(submitData, `system.charBuilder.creationPoints.${key}`) !== undefined) {
@@ -3822,6 +5115,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const total = getBuilderStat("soldierTypeRow", key)
           + getBuilderStat("creationPoints", key)
           + getBuilderStat("advancements", key)
+          + Number(equipmentRow?.[key] ?? 0)
           + getBuilderStat("misc", key);
         foundry.utils.setProperty(submitData, `system.characteristics.${key}`, Math.max(0, Math.floor(total)));
       }
@@ -3961,7 +5255,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!root) return;
 
     // Faction background on the outer window so it fills the rounded frame.
-    // Use root.dataset.faction — the correct computed value already rendered.
+    // Use root.dataset.faction â€” the correct computed value already rendered.
     const factionIndex = Number(root.dataset?.faction ?? 1);
     const factionVar = factionIndex > 1 ? `var(--mythic-faction-${factionIndex})` : `var(--mythic-faction-1)`;
     if (this.element) this.element.style.background = factionVar;
@@ -3990,10 +5284,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const hasOpenedActorSheet = Boolean(this.actor.getFlag("Halo-Mythic-Foundry-Updated", MYTHIC_ACTOR_SHEET_OPENED_FLAG_KEY));
-    const isCharacterCreationComplete = Boolean(this.actor.system?.characterCreation?.isComplete ?? false);
-    const initialTab = hasOpenedActorSheet 
-      ? (this.tabGroups.primary ?? (isCharacterCreationComplete ? "main" : "advancements"))
-      : (isCharacterCreationComplete ? "main" : "advancements");
+    const initialTab = this.tabGroups.primary ?? "main";
     this.tabGroups.primary = initialTab; // lock in before setFlag re-render changes hasOpenedActorSheet
     const tabs = new foundry.applications.ux.Tabs({
       group: "primary",
@@ -4022,7 +5313,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }, { passive: true });
     }
 
-    const ccAdvScrollable = root.querySelector(".ccadv-content-scroll");
+    const ccAdvScrollable = root.querySelector(".ccadv-tab-scrollable, .ccadv-content-scroll");
     if (ccAdvScrollable) {
       const ccAdvTop = Math.max(0, Number(this._ccAdvScrollTop ?? 0));
       requestAnimationFrame(() => {
@@ -4169,7 +5460,35 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         event.preventDefault();
         const itemId = String(event.currentTarget.dataset.itemId ?? "");
         if (!itemId || !this.isEditable) return;
-        await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
+        const item = this.actor.items.get(itemId);
+        if (!item) return;
+        const abilityData = item.toObject();
+        const cost = await this._resolveAbilityXpCost(abilityData);
+        if (cost > 0) {
+          const action = await foundry.applications.api.DialogV2.wait({
+            window: { title: "Remove Ability" },
+            content: `
+              <p>Remove <strong>${foundry.utils.escapeHTML(abilityData.name ?? "this ability")}</strong>?</p>
+              <p>This ability costs <strong>${cost.toLocaleString()} XP</strong>. Would you like to refund that XP when removing it?</p>
+            `,
+            buttons: [
+              { action: "refund", label: "Remove & Refund XP", callback: () => "refund" },
+              { action: "delete", label: "Remove Only", callback: () => "delete" },
+              { action: "cancel", label: "Cancel", callback: () => "cancel" }
+            ],
+            rejectClose: false,
+            modal: true
+          }).catch(() => "cancel");
+          if (!action || action === "cancel") return;
+          await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
+          if (action === "refund") {
+            const currentSpent = toNonNegativeWhole(this.actor.system?.advancements?.xpSpent, 0);
+            await this.actor.update({ "system.advancements.xpSpent": Math.max(0, currentSpent - cost) });
+            ui.notifications?.info(`Refunded ${cost.toLocaleString()} XP for removing ${abilityData.name ?? "ability"}.`);
+          }
+        } else {
+          await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
+        }
       });
     });
 
@@ -4260,10 +5579,119 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".inventory-add-custom-item-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAddCustomInventoryItem(event);
+      });
+    });
+
+    root.querySelectorAll(".battery-buy-btn[data-weapon-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onPurchaseEnergyCell(event);
+      });
+    });
+
+    root.querySelectorAll(".ballistic-container-buy-btn[data-group-key]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onPurchaseBallisticContainer(event);
+      });
+    });
+
+    root.querySelectorAll(".battery-group-toggle[data-weapon-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onToggleBatteryGroup(event);
+      });
+    });
+
+    root.querySelectorAll(".ballistic-group-toggle[data-group-key]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onToggleBallisticGroup(event);
+      });
+    });
+
+    root.querySelectorAll(".battery-remove-btn[data-weapon-id][data-cell-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRemoveEnergyCell(event);
+      });
+    });
+
+    root.querySelectorAll(".battery-recharge-btn[data-weapon-id][data-cell-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRechargeEnergyCell(event);
+      });
+    });
+
+    root.querySelectorAll(".ballistic-container-remove-btn[data-group-key][data-container-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRemoveBallisticContainer(event);
+      });
+    });
+
+    root.querySelectorAll(".ballistic-fill-btn[data-group-key][data-container-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onFillMagazineFromPool(event);
+      });
+    });
+
     root.querySelectorAll(".ammo-count-input[data-ammo-key]").forEach((input) => {
       input.addEventListener("change", (event) => {
         void this._onAmmoCountChange(event);
       });
+    });
+
+    root.querySelectorAll(".ammo-carried-toggle[data-ammo-key]").forEach((checkbox) => {
+      checkbox.addEventListener("change", (event) => {
+        void this._onAmmoCarriedToggle(event);
+      });
+    });
+
+    root.querySelectorAll(".ammo-drop-zone[data-kind]").forEach((zone) => {
+      zone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        zone.classList.add("is-dragover");
+      });
+      zone.addEventListener("dragleave", (event) => {
+        zone.classList.remove("is-dragover");
+      });
+      zone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        zone.classList.remove("is-dragover");
+        void this._onAmmoItemDrop(event);
+      });
+    });
+
+    root.querySelectorAll(".independent-ammo-count-input[data-ammo-uuid]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onIndependentAmmoCountChange(event);
+      });
+    });
+
+    root.querySelectorAll(".independent-ammo-carried-toggle[data-ammo-uuid]").forEach((checkbox) => {
+      checkbox.addEventListener("change", (event) => {
+        void this._onIndependentAmmoCarriedToggle(event);
+      });
+    });
+
+    root.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const ammoOpenBtn = target.closest(".ammo-open-btn[data-ammo-reference]");
+      if (ammoOpenBtn && root.contains(ammoOpenBtn)) {
+        void this._onOpenIndependentAmmo({
+          currentTarget: ammoOpenBtn,
+          preventDefault: () => event.preventDefault()
+        });
+        return;
+      }
+
+      const ammoRemoveBtn = target.closest(".ammo-remove-btn[data-ammo-source][data-ammo-key]");
+      if (ammoRemoveBtn && root.contains(ammoRemoveBtn)) {
+        void this._onRemoveAmmoEntry({
+          currentTarget: ammoRemoveBtn,
+          preventDefault: () => event.preventDefault()
+        });
+      }
     });
 
     root.querySelectorAll(".weapon-reload-btn[data-item-id]").forEach((button) => {
@@ -4282,6 +5710,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       button.addEventListener("click", (event) => {
         void this._onWeaponFireModeToggle(event);
       });
+    });
+
+    root.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const variantBtn = target.closest(".weapon-variant-btn[data-item-id][data-variant-index]");
+      if (!variantBtn || !root.contains(variantBtn)) return;
+      void this._onWeaponVariantSelect(event);
     });
 
     root.querySelectorAll(".weapon-charge-btn[data-item-id]").forEach((button) => {
@@ -4605,6 +6041,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".adv-add-transaction-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvAddTransaction(event);
+      });
+    });
+
+    root.querySelectorAll(".adv-transaction-remove-btn[data-transaction-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvRemoveTransaction(event);
+      });
+    });
+
     root.querySelectorAll(".adv-open-abilities-btn").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.preventDefault();
@@ -4733,7 +6181,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     // Ensure Part Two opens at the top instead of reusing the creation scroll position.
     this._ccAdvScrollTop = 0;
-    const ccAdvScrollable = this.element?.querySelector(".ccadv-content-scroll");
+    const ccAdvScrollable = this.element?.querySelector(".ccadv-tab-scrollable, .ccadv-content-scroll");
     if (ccAdvScrollable) {
       ccAdvScrollable.scrollTop = 0;
     }
@@ -4821,6 +6269,87 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   await this.actor.update({ "system.advancements.xpEarned": current + gained });
   ui.notifications?.info(`Added ${gained.toLocaleString()} XP to Total XP.`);
 }
+
+  async _onAdvAddTransaction(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Add XP Transaction" },
+      content: `
+        <div class="mythic-modal-body">
+          <p>Record an XP spend transaction.</p>
+          <div class="form-group">
+            <label for="adv-transaction-label">Label</label>
+            <input id="adv-transaction-label" name="txnLabel" type="text" value="Manual Adjustment" />
+          </div>
+          <div class="form-group">
+            <label for="adv-transaction-amount">XP Amount</label>
+            <input id="adv-transaction-amount" name="txnAmount" type="number" min="1" step="1" value="0" />
+          </div>
+        </div>
+      `,
+      buttons: [
+        {
+          action: "add",
+          label: "Add Transaction",
+          callback: (_event, _button, dialogApp) => {
+            const dialogElement = dialogApp?.element instanceof HTMLElement
+              ? dialogApp.element
+              : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+            const labelInput = dialogElement?.querySelector('[name="txnLabel"]')
+              ?? document.getElementById("adv-transaction-label");
+            const amountInput = dialogElement?.querySelector('[name="txnAmount"]')
+              ?? document.getElementById("adv-transaction-amount");
+            const label = String(labelInput instanceof HTMLInputElement ? labelInput.value : "").trim();
+            const amount = Number(amountInput instanceof HTMLInputElement ? amountInput.value : 0);
+            return {
+              label,
+              amount: Number.isFinite(amount) && amount > 0 ? Math.floor(amount) : 0
+            };
+          }
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    }).catch(() => null);
+
+    const label = String(result?.label ?? "").trim();
+    const amount = toNonNegativeWhole(result?.amount, 0);
+    if (!label || amount <= 0) return;
+
+    await this._appendAdvancementTransaction({ label, amount, source: "manual", applyXp: true });
+    ui.notifications?.info(`Recorded ${label} for ${amount.toLocaleString()} XP.`);
+  }
+
+  async _onAdvRemoveTransaction(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const transactionId = String(event.currentTarget?.dataset?.transactionId ?? "").trim();
+    if (!transactionId) return;
+
+    const transactions = this._normalizeAdvancementTransactions(this.actor.system?.advancements?.transactions ?? []);
+    const entry = transactions.find((transaction) => String(transaction?.id ?? "").trim() === transactionId) ?? null;
+    if (!entry) return;
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "Remove Transaction" },
+      content: `<p>Remove transaction <strong>${foundry.utils.escapeHTML(entry.label)}</strong> (${entry.amount.toLocaleString()} XP)? This will subtract that amount from Spent XP.</p>`,
+      yes: { label: "Remove" },
+      no: { label: "Cancel" },
+      rejectClose: false,
+      modal: true
+    });
+    if (!confirmed) return;
+
+    await this._removeAdvancementTransactionById(transactionId);
+  }
 
   async _queueAdvancementItem(itemDoc, kind) {
     if (!itemDoc) return;
@@ -4976,11 +6505,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ...(Array.isArray(lockFlag?.[`${kind}Keys`]) ? lockFlag[`${kind}Keys`] : []),
         ...(Array.isArray(purchasedLockFlag?.[`${kind}Keys`]) ? purchasedLockFlag[`${kind}Keys`] : [])
       ]);
-      const baseline = lockedKeys.has(key) || Boolean(training?.[kind]?.[key]);
+      const normalizedLockedKeys = kind === "faction"
+        ? new Set(this._canonicalizeFactionTrainingKeys(Array.from(lockedKeys)))
+        : lockedKeys;
+      const normalizedKey = kind === "faction"
+        ? (this._canonicalizeFactionTrainingKey(key) || key)
+        : key;
+      const baseline = normalizedLockedKeys.has(normalizedKey) || Boolean(training?.[kind]?.[normalizedKey]);
       if (baseline) {
-        queue[`${kind}Training`][key] = true;
+        queue[`${kind}Training`][normalizedKey] = true;
       } else {
-        queue[`${kind}Training`][key] = checked;
+        queue[`${kind}Training`][normalizedKey] = checked;
       }
     });
   }
@@ -5113,6 +6648,38 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.advancements.queue": this._getDefaultAdvancementQueueState()
     };
 
+    const existingTransactions = this._normalizeAdvancementTransactions(normalized?.advancements?.transactions ?? []);
+    const nextTransactions = [...existingTransactions];
+    const pushTransaction = (label, amount, source = "automation") => {
+      const safeLabel = String(label ?? "").trim();
+      const safeAmount = toNonNegativeWhole(amount, 0);
+      if (!safeLabel || safeAmount <= 0) return;
+      const createdAt = Date.now() + nextTransactions.length;
+      nextTransactions.push({
+        id: `txn-${createdAt}-${nextTransactions.length + 1}`,
+        label: safeLabel,
+        amount: safeAmount,
+        createdAt,
+        source: String(source ?? "automation").trim().toLowerCase() || "automation"
+      });
+    };
+
+    for (const entry of queueView.queuedAbilities) {
+      pushTransaction(entry?.name ?? "Ability", entry?.cost, "ability");
+    }
+    for (const entry of queueView.queuedEducations) {
+      pushTransaction(entry?.name ?? "Education", entry?.cost, "education");
+    }
+    pushTransaction("Skill Trainings", queueView?.skills?.queuedXp, "skills");
+    pushTransaction("Weapon/Faction Training", queueView?.training?.queuedXp, "training");
+    pushTransaction("Luck Purchase", queueView?.luck?.queuedXp, "luck");
+    pushTransaction("Wound Upgrades", queueView?.wounds?.queuedXp, "wounds");
+    pushTransaction("Characteristic Advancements", queueView?.characteristics?.queuedXp, "characteristics");
+
+    if (nextTransactions.length !== existingTransactions.length) {
+      updateData["system.advancements.transactions"] = nextTransactions;
+    }
+
     for (const row of queueView.skills.rows) {
       if (!row.changed) continue;
       updateData[`system.skills.${row.key}.tier`] = this._skillRankToTier(row.queuedRank);
@@ -5161,7 +6728,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this.actor.update(updateData);
 
     const purchasedWeaponKeys = queueView.training.weaponRows.filter((row) => !row.baseline && row.queued).map((row) => row.key);
-    const purchasedFactionKeys = queueView.training.factionRows.filter((row) => !row.baseline && row.queued).map((row) => row.key);
+    const purchasedFactionKeys = this._canonicalizeFactionTrainingKeys(
+      queueView.training.factionRows.filter((row) => !row.baseline && row.queued).map((row) => row.key)
+    );
     if (purchasedWeaponKeys.length || purchasedFactionKeys.length) {
       const existing = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
       const nextWeaponKeys = Array.from(new Set([
@@ -5169,7 +6738,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ...purchasedWeaponKeys
       ]));
       const nextFactionKeys = Array.from(new Set([
-        ...(Array.isArray(existing?.factionKeys) ? existing.factionKeys : []),
+        ...this._canonicalizeFactionTrainingKeys(Array.isArray(existing?.factionKeys) ? existing.factionKeys : []),
         ...purchasedFactionKeys
       ]));
       await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks", {
@@ -5209,130 +6778,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     pack.render(true);
   }
 
-  async _onCreationDrop(event) {
-    event.preventDefault();
-    if (!this.isEditable) return;
-
-    const zone = event.currentTarget;
-    const kind = String(zone?.dataset?.kind ?? "").trim().toLowerCase();
-    const slotIndex = Number(zone?.dataset?.slotIndex ?? -1);
-
-    const raw = event.dataTransfer?.getData("text/plain");
-    if (!raw) return;
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return;
-    }
-
-    const uuid = String(parsed?.uuid ?? "").trim();
-    if (!uuid) return;
-    const dropped = await fromUuid(uuid);
-    if (!dropped) return;
-
-    if (kind === "upbringing") {
-      if (dropped.type !== "upbringing") {
-        ui.notifications?.warn("Drop an Upbringing item here.");
-        return;
-      }
-      const resolvedId = await this._resolveCreationPathItemId("upbringing", dropped);
-      if (!resolvedId) return;
-      const requiredUpbringingFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing") ?? {};
-      const allowedUpbringingsFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings") ?? {};
-      const requiredUpbringingEnabled = Boolean(requiredUpbringingFlag?.enabled);
-      const requiredUpbringingName = normalizeLookupText(requiredUpbringingFlag?.upbringing ?? "");
-      const allowedUpbringingNames = Boolean(allowedUpbringingsFlag?.enabled)
-        ? normalizeStringList(Array.isArray(allowedUpbringingsFlag?.upbringings) ? allowedUpbringingsFlag.upbringings : []).map((entry) => normalizeLookupText(entry)).filter(Boolean)
-        : [];
-      const droppedUpbringingName = normalizeLookupText(dropped?.name ?? "");
-      const isAllowedByList = allowedUpbringingNames.length > 0 ? allowedUpbringingNames.includes(droppedUpbringingName) : true;
-      const isAllowedByRequired = (requiredUpbringingEnabled && requiredUpbringingName)
-        ? droppedUpbringingName === requiredUpbringingName
-        : true;
-      if (!isAllowedByList || !isAllowedByRequired) {
-        await this._assignCreationUpbringing("");
-        const allowedLabel = allowedUpbringingNames.length > 0
-          ? normalizeStringList(Array.isArray(allowedUpbringingsFlag?.upbringings) ? allowedUpbringingsFlag.upbringings : []).join(" / ")
-          : String(requiredUpbringingFlag?.upbringing ?? "Military").trim();
-        ui.notifications?.warn(`This soldier type is restricted to ${allowedLabel} Upbringing only.`);
-        return;
-      }
-      await this._assignCreationUpbringing(resolvedId);
-      return;
-    }
-
-    if (kind === "environment") {
-      if (dropped.type !== "environment") {
-        ui.notifications?.warn("Drop an Environment item here.");
-        return;
-      }
-      const resolvedId = await this._resolveCreationPathItemId("environment", dropped);
-      if (!resolvedId) return;
-      await this._assignCreationEnvironment(resolvedId);
-      return;
-    }
-
-    if (kind === "lifestyle") {
-      if (dropped.type !== "lifestyle") {
-        ui.notifications?.warn("Drop a Lifestyle item here.");
-        return;
-      }
-      if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 2) return;
-      const resolvedId = await this._resolveCreationPathItemId("lifestyle", dropped);
-      if (!resolvedId) return;
-      await this._assignCreationLifestyle(slotIndex, resolvedId);
-      await this._promptAndApplyLifestyleVariant(slotIndex);
-    }
-  }
-
-  async _resolveCreationPathItemId(kind, dropped) {
-    const packMap = {
-      upbringing: "Halo-Mythic-Foundry-Updated.upbringings",
-      environment: "Halo-Mythic-Foundry-Updated.environments",
-      lifestyle: "Halo-Mythic-Foundry-Updated.lifestyles"
-    };
-    const expectedPack = packMap[String(kind ?? "").trim().toLowerCase()];
-    if (!expectedPack) return "";
-
-    const droppedPack = String(dropped?.pack ?? "").trim();
-    const droppedId = String(dropped?.id ?? "").trim();
-    if (droppedPack === expectedPack && droppedId) return droppedId;
-
-    const docs = await this._getCreationPathPackDocs(expectedPack);
-    const droppedName = String(dropped?.name ?? "").trim().toLowerCase();
-    const byName = docs.find((doc) => String(doc.name ?? "").trim().toLowerCase() === droppedName);
-    if (byName?.id) return byName.id;
-
-    ui.notifications?.warn(`Drop from the matching ${kind} compendium, or ensure a compendium item has the same name.`);
-    return "";
-  }
-
-  async _onCreationClearSelection(event) {
-    event.preventDefault();
-    if (!this.isEditable) return;
-
-    const button = event.currentTarget;
-    const kind = String(button?.dataset?.kind ?? "").trim().toLowerCase();
-    const slotIndex = Number(button?.dataset?.slotIndex ?? -1);
-
-    const systemData = normalizeCharacterSystemData(this.actor.system);
-    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
-    creationPath.lifestyles ??= [];
-
-    if (kind === "upbringing") {
-      creationPath.upbringingItemId = "";
-      creationPath.upbringingSelections = {};
-    } else if (kind === "environment") {
-      creationPath.environmentItemId = "";
-      creationPath.environmentSelections = {};
-    } else if (kind === "lifestyle" && Number.isInteger(slotIndex) && slotIndex >= 0 && slotIndex <= 2) {
-      creationPath.lifestyles[slotIndex] = { itemId: "", mode: "manual", variantId: "", rollResult: 0, choiceSelections: {} };
-    }
-
-    await this.actor.update({ "system.advancements.creationPath": creationPath });
-  }
-
   async _onCreationUpbringingPrompt(event) {
     event.preventDefault();
     if (!this.isEditable) return;
@@ -5359,62 +6804,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const slotIndex = Number(event.currentTarget?.dataset?.slotIndex ?? -1);
     if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 2) return;
     await this._promptAndApplyLifestyleChoices(slotIndex);
-  }
-
-  async _promptAndApplyUpbringingChoices() {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
-    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
-    const selectedUpbringingId = String(creationPath.upbringingItemId ?? "").trim();
-    if (!selectedUpbringingId) {
-      ui.notifications?.warn("Drop an upbringing first.");
-      return;
-    }
-
-    const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
-    const selectedUpbringing = docs.find((doc) => doc.id === selectedUpbringingId) ?? null;
-    if (!selectedUpbringing) {
-      ui.notifications?.warn("Upbringing not found in compendium.");
-      return;
-    }
-
-    const selections = await this._promptForCreationChoiceSelections({
-      title: "Upbringing Choice",
-      itemName: selectedUpbringing.name,
-      groups: selectedUpbringing.system?.modifierGroups,
-      currentSelections: creationPath.upbringingSelections
-    });
-
-    if (selections == null) return;
-    creationPath.upbringingSelections = selections;
-    await this.actor.update({ "system.advancements.creationPath": creationPath });
-  }
-
-  async _promptAndApplyEnvironmentChoices() {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
-    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
-    const selectedEnvironmentId = String(creationPath.environmentItemId ?? "").trim();
-    if (!selectedEnvironmentId) {
-      ui.notifications?.warn("Drop an environment first.");
-      return;
-    }
-
-    const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
-    const selectedEnvironment = docs.find((doc) => doc.id === selectedEnvironmentId) ?? null;
-    if (!selectedEnvironment) {
-      ui.notifications?.warn("Environment not found in compendium.");
-      return;
-    }
-
-    const selections = await this._promptForCreationChoiceSelections({
-      title: "Environment Choice",
-      itemName: selectedEnvironment.name,
-      groups: selectedEnvironment.system?.modifierGroups,
-      currentSelections: creationPath.environmentSelections
-    });
-
-    if (selections == null) return;
-    creationPath.environmentSelections = selections;
-    await this.actor.update({ "system.advancements.creationPath": creationPath });
   }
 
   async _promptAndApplyLifestyleChoices(slotIndex) {
@@ -5451,230 +6840,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (selections == null) return;
     creationPath.lifestyles[slotIndex].choiceSelections = selections;
-    await this.actor.update({ "system.advancements.creationPath": creationPath });
-  }
-
-  async _assignCreationUpbringing(upbringingId) {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
-    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
-    const requiredUpbringingFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing") ?? {};
-    const allowedUpbringingsFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings") ?? {};
-    const requiredUpbringingEnabled = Boolean(requiredUpbringingFlag?.enabled);
-    const requiredUpbringingName = normalizeLookupText(requiredUpbringingFlag?.upbringing ?? "");
-    const allowedUpbringingNames = Boolean(allowedUpbringingsFlag?.enabled)
-      ? normalizeStringList(Array.isArray(allowedUpbringingsFlag?.upbringings) ? allowedUpbringingsFlag.upbringings : []).map((entry) => normalizeLookupText(entry)).filter(Boolean)
-      : [];
-    const requestedUpbringingId = String(upbringingId ?? "").trim();
-
-    let selectedUpbringingFromRequest = null;
-    if (requestedUpbringingId) {
-      const requestedDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
-      selectedUpbringingFromRequest = requestedDocs.find((doc) => doc.id === requestedUpbringingId) ?? null;
-      const requestedName = normalizeLookupText(selectedUpbringingFromRequest?.name ?? "");
-      const isAllowedByList = allowedUpbringingNames.length > 0 ? allowedUpbringingNames.includes(requestedName) : true;
-      const isAllowedByRequired = (requiredUpbringingEnabled && requiredUpbringingName)
-        ? requestedName === requiredUpbringingName
-        : true;
-      if (!isAllowedByList || !isAllowedByRequired) {
-        creationPath.upbringingItemId = "";
-        creationPath.upbringingSelections = {};
-        await this.actor.update({ "system.advancements.creationPath": creationPath });
-        return;
-      }
-    }
-
-    creationPath.upbringingItemId = requestedUpbringingId;
-    creationPath.upbringingSelections = {};
-
-    const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
-    const selectedUpbringing = docs.find((doc) => doc.id === creationPath.upbringingItemId) ?? null;
-    const allowedKeys = Array.isArray(selectedUpbringing?.system?.allowedEnvironments)
-      ? selectedUpbringing.system.allowedEnvironments.map((entry) => String(entry ?? "").trim().toLowerCase()).filter(Boolean)
-      : [];
-
-    if (allowedKeys.length > 0 && creationPath.environmentItemId) {
-      const envDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
-      const selectedEnv = envDocs.find((doc) => doc.id === String(creationPath.environmentItemId ?? "").trim()) ?? null;
-      const envKey = this._creationEnvironmentKeyFromName(selectedEnv?.name ?? "");
-      if (!envKey || !allowedKeys.includes(envKey)) {
-        creationPath.environmentItemId = "";
-        creationPath.environmentSelections = {};
-      }
-    }
-
-    await this.actor.update({ "system.advancements.creationPath": creationPath });
-
-    if (this._getCreationChoiceGroups(selectedUpbringing?.system?.modifierGroups).length > 0) {
-      await this._promptAndApplyUpbringingChoices();
-    }
-  }
-
-  async _assignCreationEnvironment(environmentId) {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
-    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
-    const selectedEnvironmentId = String(environmentId ?? "").trim();
-
-    const upbringingId = String(creationPath.upbringingItemId ?? "").trim();
-    if (upbringingId && selectedEnvironmentId) {
-      const upbringingDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
-      const selectedUpbringing = upbringingDocs.find((doc) => doc.id === upbringingId) ?? null;
-      const allowedKeys = Array.isArray(selectedUpbringing?.system?.allowedEnvironments)
-        ? selectedUpbringing.system.allowedEnvironments.map((entry) => String(entry ?? "").trim().toLowerCase()).filter(Boolean)
-        : [];
-
-      if (allowedKeys.length > 0) {
-        const envDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
-        const selectedEnv = envDocs.find((doc) => doc.id === selectedEnvironmentId) ?? null;
-        const envKey = this._creationEnvironmentKeyFromName(selectedEnv?.name ?? "");
-        if (!envKey || !allowedKeys.includes(envKey)) {
-          ui.notifications?.warn("That environment is not allowed for the selected upbringing.");
-          return;
-        }
-      }
-    }
-
-    creationPath.environmentItemId = selectedEnvironmentId;
-    creationPath.environmentSelections = {};
-    await this.actor.update({ "system.advancements.creationPath": creationPath });
-
-    const environmentDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
-    const selectedEnvironment = environmentDocs.find((doc) => doc.id === selectedEnvironmentId) ?? null;
-    if (this._getCreationChoiceGroups(selectedEnvironment?.system?.modifierGroups).length > 0) {
-      await this._promptAndApplyEnvironmentChoices();
-    }
-  }
-
-  async _assignCreationLifestyle(slotIndex, lifestyleId) {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
-    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
-    creationPath.lifestyles ??= [];
-    creationPath.lifestyles[slotIndex] = {
-      itemId: String(lifestyleId ?? "").trim(),
-      mode: "manual",
-      variantId: "",
-      rollResult: 0,
-      choiceSelections: {}
-    };
-    await this.actor.update({ "system.advancements.creationPath": creationPath });
-  }
-
-  _lifestyleVariantWeight(variant) {
-    const explicitWeight = toNonNegativeWhole(variant?.weight, 0);
-    if (explicitWeight > 0) return explicitWeight;
-    const rollMin = toNonNegativeWhole(variant?.rollMin, 1);
-    const rollMax = toNonNegativeWhole(variant?.rollMax, 10);
-    return Math.max(1, (rollMax - rollMin) + 1);
-  }
-
-  _pickWeightedLifestyleVariant(variants = []) {
-    const buckets = (Array.isArray(variants) ? variants : [])
-      .map((variant) => ({ variant, weight: this._lifestyleVariantWeight(variant) }))
-      .filter((entry) => entry.weight > 0);
-    const totalWeight = buckets.reduce((sum, entry) => sum + entry.weight, 0);
-    if (totalWeight < 1) return { variant: null, roll: 0, totalWeight: 0 };
-    const roll = Math.max(1, toNonNegativeWhole(Math.ceil(Math.random() * totalWeight), 1));
-    let running = 0;
-    for (const entry of buckets) {
-      running += entry.weight;
-      if (roll <= running) {
-        return { variant: entry.variant, roll, totalWeight };
-      }
-    }
-    return { variant: buckets[buckets.length - 1]?.variant ?? null, roll, totalWeight };
-  }
-
-  async _promptAndApplyLifestyleVariant(slotIndex) {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
-    const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
-    creationPath.lifestyles ??= [];
-    creationPath.lifestyles[slotIndex] ??= { itemId: "", mode: "manual", variantId: "", rollResult: 0, choiceSelections: {} };
-    const selectedLifestyleId = String(creationPath.lifestyles[slotIndex].itemId ?? "").trim();
-    if (!selectedLifestyleId) {
-      ui.notifications?.warn("Drop a lifestyle first.");
-      return;
-    }
-
-    const lifestyleDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.lifestyles");
-    const lifestyleDoc = lifestyleDocs.find((doc) => doc.id === selectedLifestyleId) ?? null;
-    if (!lifestyleDoc) {
-      ui.notifications?.warn("Lifestyle not found in compendium.");
-      return;
-    }
-
-    const variants = Array.isArray(lifestyleDoc.system?.variants) ? lifestyleDoc.system.variants : [];
-    if (!variants.length) {
-      ui.notifications?.warn("This lifestyle has no variants defined.");
-      return;
-    }
-
-    const variantButtons = variants.map((variant, index) => {
-      const variantId = String(variant?.id ?? `variant-${index + 1}`);
-      const rollMin = toNonNegativeWhole(variant?.rollMin, 1);
-      const rollMax = toNonNegativeWhole(variant?.rollMax, 10);
-      const rangeLabel = rollMin === rollMax ? `${rollMin}` : `${rollMin}-${rollMax}`;
-      const textLabel = String(variant?.label ?? `Variant ${index + 1}`).trim() || `Variant ${index + 1}`;
-      return {
-        action: `variant-${index + 1}`,
-        label: `${rangeLabel}: ${textLabel}`,
-        callback: () => ({ mode: "manual", variantId })
-      };
-    });
-
-    const selection = await foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Lifestyle Variant"
-      },
-      content: `<p>Choose a variant for the <strong>${foundry.utils.escapeHTML(lifestyleDoc.name ?? "Lifestyle")}</strong> lifestyle:</p>`,
-      buttons: [
-        ...variantButtons,
-        {
-          action: "random",
-          label: "Random",
-          callback: () => ({ mode: "random" })
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
-
-    if (!selection || typeof selection !== "object") return;
-
-    if (selection.mode === "random") {
-      const picked = this._pickWeightedLifestyleVariant(variants);
-      const choiceSelections = await this._promptForCreationChoiceSelections({
-        title: "Lifestyle Choice",
-        itemName: `${lifestyleDoc.name}: ${String(picked.variant?.label ?? "Variant")}`,
-        groups: picked.variant?.choiceGroups,
-        currentSelections: {}
-      });
-      if (choiceSelections == null) return;
-      creationPath.lifestyles[slotIndex].mode = "roll";
-      creationPath.lifestyles[slotIndex].variantId = String(picked.variant?.id ?? "");
-      creationPath.lifestyles[slotIndex].rollResult = picked.roll;
-      creationPath.lifestyles[slotIndex].choiceSelections = choiceSelections;
-      await this.actor.update({ "system.advancements.creationPath": creationPath });
-      return;
-    }
-
-    const selectedVariantId = String(selection.variantId ?? "").trim();
-    if (!selectedVariantId) return;
-    const selectedVariant = variants.find((variant) => String(variant?.id ?? "") === selectedVariantId) ?? null;
-    const choiceSelections = await this._promptForCreationChoiceSelections({
-      title: "Lifestyle Choice",
-      itemName: `${lifestyleDoc.name}: ${String(selectedVariant?.label ?? "Variant")}`,
-      groups: selectedVariant?.choiceGroups,
-      currentSelections: {}
-    });
-    if (choiceSelections == null) return;
-    creationPath.lifestyles[slotIndex].mode = "manual";
-    creationPath.lifestyles[slotIndex].variantId = selectedVariantId;
-    creationPath.lifestyles[slotIndex].rollResult = 0;
-    creationPath.lifestyles[slotIndex].choiceSelections = choiceSelections;
     await this.actor.update({ "system.advancements.creationPath": creationPath });
   }
 
@@ -6081,6 +7246,84 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return Math.max(0, earned - spent);
   }
 
+  _normalizeAdvancementTransactions(source = []) {
+    const list = Array.isArray(source) ? source : [];
+    return list
+      .map((entry, index) => {
+        if (!entry || typeof entry !== "object") return null;
+        const label = String(entry?.label ?? "").trim();
+        const amount = toNonNegativeWhole(entry?.amount, 0);
+        const createdAtRaw = Number(entry?.createdAt ?? Date.now());
+        const createdAt = Number.isFinite(createdAtRaw) ? Math.max(0, Math.floor(createdAtRaw)) : Date.now();
+        if (!label || amount <= 0) return null;
+        return {
+          id: String(entry?.id ?? `txn-${createdAt}-${index + 1}`).trim() || `txn-${createdAt}-${index + 1}`,
+          label,
+          amount,
+          createdAt,
+          source: String(entry?.source ?? "manual").trim().toLowerCase() || "manual"
+        };
+      })
+      .filter(Boolean);
+  }
+
+  async _appendAdvancementTransaction({ label = "", amount = 0, source = "manual", applyXp = true } = {}) {
+    const safeLabel = String(label ?? "").trim();
+    const safeAmount = toNonNegativeWhole(amount, 0);
+    if (!safeLabel || safeAmount <= 0) return false;
+
+    const currentSpent = toNonNegativeWhole(this.actor.system?.advancements?.xpSpent, 0);
+    const existing = this._normalizeAdvancementTransactions(this.actor.system?.advancements?.transactions ?? []);
+    const createdAt = Date.now();
+    const nextTransactions = [...existing, {
+      id: `txn-${createdAt}-${existing.length + 1}`,
+      label: safeLabel,
+      amount: safeAmount,
+      createdAt,
+      source: String(source ?? "manual").trim().toLowerCase() || "manual"
+    }];
+
+    const updateData = {
+      "system.advancements.transactions": nextTransactions
+    };
+    if (applyXp) {
+      updateData["system.advancements.xpSpent"] = currentSpent + safeAmount;
+    }
+    await this.actor.update(updateData);
+    return true;
+  }
+
+  async _removeAdvancementTransactionById(transactionId = "") {
+    const id = String(transactionId ?? "").trim();
+    if (!id) return false;
+
+    const existing = this._normalizeAdvancementTransactions(this.actor.system?.advancements?.transactions ?? []);
+    const removeIndex = existing.findIndex((entry) => String(entry?.id ?? "").trim() === id);
+    if (removeIndex < 0) return false;
+
+    const [removed] = existing.splice(removeIndex, 1);
+    const amount = toNonNegativeWhole(removed?.amount, 0);
+    const currentSpent = toNonNegativeWhole(this.actor.system?.advancements?.xpSpent, 0);
+    await this.actor.update({
+      "system.advancements.transactions": existing,
+      "system.advancements.xpSpent": Math.max(0, currentSpent - amount)
+    });
+    return true;
+  }
+
+  async _resolveAbilityXpCost(itemData = {}) {
+    const normalizedAbility = normalizeAbilitySystemData(itemData?.system ?? {}, itemData?.name ?? "");
+    const normalizedCost = toNonNegativeWhole(normalizedAbility?.cost, 0);
+    if (normalizedCost > 0) return normalizedCost;
+
+    const normalizedName = normalizeLookupText(itemData?.name ?? "");
+    if (!normalizedName) return 0;
+
+    const defs = await loadMythicAbilityDefinitions();
+    const definition = defs.find((entry) => normalizeLookupText(entry?.name ?? "") === normalizedName) ?? null;
+    return toNonNegativeWhole(definition?.cost, 0);
+  }
+
   _getDroppedItemXpCost(itemData = {}) {
     const type = String(itemData?.type ?? "").trim().toLowerCase();
     if (type === "ability") {
@@ -6101,20 +7344,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const type = String(itemData?.type ?? "").trim().toLowerCase();
     if (type !== "ability" && type !== "education") return true;
 
-    const cost = this._getDroppedItemXpCost(itemData);
-    if (cost <= 0) return true;
+    const cost = type === "ability"
+      ? await this._resolveAbilityXpCost(itemData)
+      : this._getDroppedItemXpCost(itemData);
+    // For educations only: free items skip the prompt (they have no meaningful cost interaction)
+    if (type === "education" && cost <= 0) return true;
 
-    const itemName = String(itemData?.name ?? "Item").trim() || "Item";
-    const typeLabel = type === "education" ? "Education" : "Ability";
-    const availableXp = this._getAvailableFreeXp();
-    const leftoverXp = Math.max(0, availableXp - cost);
-
-    if (cost > availableXp) {
+    if (type === "ability" && cost <= 0) {
       await foundry.applications.api.DialogV2.wait({
-        window: { title: `Not Enough XP For ${typeLabel}` },
+        window: { title: "Ability Cost Missing" },
         content: `
-          <p><strong>${foundry.utils.escapeHTML(itemName)}</strong> costs <strong>${cost} XP</strong>.</p>
-          <p>You only have <strong>${availableXp} Free XP</strong>.</p>
+          <p><strong>${foundry.utils.escapeHTML(String(itemData?.name ?? "Ability"))}</strong> has no valid XP cost configured.</p>
+          <p>To prevent free purchases, this ability cannot be added until its cost is fixed in data/compendium.</p>
         `,
         buttons: [
           { action: "ok", label: "OK", callback: () => true }
@@ -6125,15 +7366,37 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return false;
     }
 
+    const itemName = String(itemData?.name ?? "Item").trim() || "Item";
+    const typeLabel = type === "education" ? "Education" : "Ability";
+    const availableXp = this._getAvailableFreeXp();
+    const isFree = cost <= 0;
+    const leftoverXp = Math.max(0, availableXp - cost);
+
+    if (!isFree && cost > availableXp) {
+      await foundry.applications.api.DialogV2.wait({
+        window: { title: `Not Enough XP For ${typeLabel}` },
+        content: `
+          <p><strong>${foundry.utils.escapeHTML(itemName)}</strong> costs <strong>${cost.toLocaleString()} XP</strong>.</p>
+          <p>You only have <strong>${availableXp.toLocaleString()} Free XP</strong>.</p>
+        `,
+        buttons: [
+          { action: "ok", label: "OK", callback: () => true }
+        ],
+        rejectClose: false,
+        modal: true
+      });
+      return false;
+    }
+
+    const costLine = isFree
+      ? `<p><strong>${foundry.utils.escapeHTML(itemName)}</strong> has no XP cost recorded (0 XP).</p>`
+      : `<p><strong>${foundry.utils.escapeHTML(itemName)}</strong> costs <strong>${cost.toLocaleString()} XP</strong>. You will have <strong>${leftoverXp.toLocaleString()} XP</strong> remaining.</p>`;
+
     const confirmed = await foundry.applications.api.DialogV2.wait({
       window: { title: `Confirm ${typeLabel} Purchase` },
-      content: `
-        <p>This will cost <strong>${cost} XP</strong>.</p>
-        <p>You will have <strong>${leftoverXp} XP</strong> leftover to spend.</p>
-        <p>Add <strong>${foundry.utils.escapeHTML(itemName)}</strong> to this character?</p>
-      `,
+      content: `${costLine}<p>Add this ${typeLabel.toLowerCase()} to this character?</p>`,
       buttons: [
-        { action: "confirm", label: "Purchase", callback: () => true },
+        { action: "confirm", label: isFree ? "Add" : "Purchase", callback: () => true },
         { action: "cancel", label: "Cancel", callback: () => false }
       ],
       rejectClose: false,
@@ -6144,35 +7407,258 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async _applyDroppedItemXpCost(itemData = {}) {
-    const cost = this._getDroppedItemXpCost(itemData);
+    const type = String(itemData?.type ?? "").trim().toLowerCase();
+    const cost = type === "ability"
+      ? await this._resolveAbilityXpCost(itemData)
+      : this._getDroppedItemXpCost(itemData);
     if (cost <= 0) return;
 
-    const currentSpent = toNonNegativeWhole(this.actor.system?.advancements?.xpSpent, 0);
-    await this.actor.update({
-      "system.advancements.xpSpent": currentSpent + cost
+    const typeLabel = type === "education" ? "Education" : "Ability";
+    const itemName = String(itemData?.name ?? typeLabel).trim() || typeLabel;
+    await this._appendAdvancementTransaction({
+      label: itemName,
+      amount: cost,
+      source: type,
+      applyXp: true
     });
   }
 
-  // ── Drop handling ──────────────────────────────────────────────────────────
+  // â”€â”€ Drop handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  _getDragEventDataCompat(event) {
+    const textEditorImpl = foundry?.applications?.ux?.TextEditor?.implementation;
+    if (textEditorImpl && typeof textEditorImpl.getDragEventData === "function") {
+      return textEditorImpl.getDragEventData(event) ?? {};
+    }
+    const legacy = globalThis.TextEditor;
+    if (legacy && typeof legacy.getDragEventData === "function") {
+      return legacy.getDragEventData(event) ?? {};
+    }
+    return {};
+  }
+
+  _extractDropData(event, data = null) {
+    const provided = (data && typeof data === "object") ? foundry.utils.deepClone(data) : null;
+    const compat = this._getDragEventDataCompat(event);
+    const merged = {
+      ...(compat && typeof compat === "object" ? compat : {}),
+      ...(provided && typeof provided === "object" ? provided : {})
+    };
+
+    const transfer = event?.dataTransfer;
+    if (!transfer || typeof transfer.getData !== "function") return merged;
+
+    const parseMaybeJson = (value) => {
+      const text = String(value ?? "").trim();
+      if (!text) return null;
+      if (!text.startsWith("{") && !text.startsWith("[")) return null;
+      try {
+        const parsed = JSON.parse(text);
+        return (parsed && typeof parsed === "object") ? parsed : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const preferredTypes = ["text/plain", "application/json", "text/uri-list", "text/x-foundry"];
+    const transferTypes = Array.isArray(transfer.types)
+      ? transfer.types.map((entry) => String(entry ?? "").trim()).filter(Boolean)
+      : [];
+    const allTypes = [...new Set([...preferredTypes, ...transferTypes])];
+    const candidates = allTypes.map((type) => {
+      try {
+        return transfer.getData(type);
+      } catch {
+        return "";
+      }
+    });
+
+    for (const raw of candidates) {
+      const parsed = parseMaybeJson(raw);
+      if (parsed) {
+        Object.assign(merged, parsed);
+        break;
+      }
+    }
+
+    if (!merged.uuid) {
+      for (const raw of candidates) {
+        const text = String(raw ?? "").trim();
+        if (!text) continue;
+        if (/^(Compendium\.|Item\.|Actor\.)/u.test(text)) {
+          merged.uuid = text;
+          break;
+        }
+        const embeddedUuid = text.match(/(Compendium\.[^\s"]+|Item\.[^\s"]+|Actor\.[^\s"]+)/u);
+        if (embeddedUuid?.[1]) {
+          merged.uuid = embeddedUuid[1];
+          break;
+        }
+      }
+    }
+
+    return merged;
+  }
+
+  async _resolveDroppedItemFromData(dropData = {}) {
+    const ItemClass = (typeof getDocumentClass === "function") ? getDocumentClass("Item") : null;
+    if (ItemClass && typeof ItemClass.fromDropData === "function") {
+      const resolved = await ItemClass.fromDropData(dropData).catch(() => null);
+      if (resolved) return resolved;
+    }
+
+    const uuid = String(dropData?.uuid ?? "").trim();
+    if (uuid) {
+      const resolvedByUuid = await fromUuid(uuid).catch(() => null);
+      if (resolvedByUuid) return resolvedByUuid;
+
+      // Some first-drop compendium payloads fail fromUuid/fromDropData but still
+      // include a resolvable compendium UUID. Parse and resolve directly.
+      if (uuid.startsWith("Compendium.")) {
+        const parts = uuid.split(".");
+        const compendiumIdx = parts.indexOf("Compendium");
+        const itemIdx = parts.indexOf("Item");
+        if (compendiumIdx === 0 && itemIdx > 2 && itemIdx + 1 < parts.length) {
+          const packKey = `${parts[1]}.${parts[2]}`;
+          const parsedId = String(parts[itemIdx + 1] ?? "").trim();
+          if (packKey && parsedId) {
+            const pack = game.packs?.get(packKey) ?? null;
+            const packDoc = pack ? await pack.getDocument(parsedId).catch(() => null) : null;
+            if (packDoc) return packDoc;
+          }
+        }
+      }
+    }
+
+    const packKey = String(dropData?.pack ?? dropData?.packKey ?? "").trim();
+    const itemId = String(dropData?.id ?? dropData?._id ?? "").trim();
+    if (packKey && itemId) {
+      const pack = game.packs?.get(packKey) ?? null;
+      const packDoc = pack ? await pack.getDocument(itemId).catch(() => null) : null;
+      if (packDoc) return packDoc;
+    }
+
+    if (itemId) {
+      const worldItem = game.items?.get(itemId) ?? null;
+      if (worldItem) return worldItem;
+    }
+
+    const rawData = (dropData?.data && typeof dropData.data === "object") ? dropData.data : dropData;
+    const rawType = String(rawData?.type ?? "").trim();
+    if (rawType) {
+      return {
+        type: rawType,
+        id: itemId,
+        pack: packKey,
+        uuid,
+        name: String(rawData?.name ?? "").trim(),
+        img: String(rawData?.img ?? "").trim(),
+        system: foundry.utils.deepClone(rawData?.system ?? {}),
+        toObject: () => ({
+          type: rawType,
+          id: itemId,
+          pack: packKey,
+          uuid,
+          name: String(rawData?.name ?? "").trim(),
+          img: String(rawData?.img ?? "").trim(),
+          system: foundry.utils.deepClone(rawData?.system ?? {})
+        })
+      };
+    }
+
+    return null;
+  }
+
+  async _tryConvertAmmoFromSuperDrop(event, data) {
+    if (typeof super._onDropItem !== "function") return { handled: false, result: false };
+
+    const beforeIds = new Set((this.actor.items ?? []).map((item) => String(item.id ?? "")).filter(Boolean));
+    const result = await super._onDropItem(event, data);
+
+    const createdAmmoItems = (this.actor.items ?? []).filter((item) => {
+      const itemId = String(item?.id ?? "").trim();
+      if (!itemId || beforeIds.has(itemId)) return false;
+      if (item?.type !== "gear") return false;
+      const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+      return isAmmoLikeGearData(gear, item.name ?? "");
+    });
+
+    if (!createdAmmoItems.length) {
+      return { handled: false, result };
+    }
+
+    const addedIds = [];
+    for (const item of createdAmmoItems) {
+      const added = await this._addIndependentAmmoFromDroppedItem(item);
+      if (added) addedIds.push(String(item.id ?? ""));
+    }
+
+    if (addedIds.length) {
+      await this._removeGearItemsByIds(addedIds);
+      return { handled: true, result: false };
+    }
+
+    return { handled: false, result };
+  }
 
   async _onDropItem(event, data) {
     if (!this.isEditable) return false;
+
+    const dropData = this._extractDropData(event, data);
+
+    const directTarget = event?.target instanceof HTMLElement ? event.target : null;
+    const pointTarget = (Number.isFinite(Number(event?.clientX)) && Number.isFinite(Number(event?.clientY)))
+      ? document.elementFromPoint(Number(event.clientX), Number(event.clientY))
+      : null;
+    const ammoDropTarget = directTarget?.closest('.ammo-drop-zone[data-kind="ammo-item"]')
+      ?? (pointTarget instanceof HTMLElement ? pointTarget.closest('.ammo-drop-zone[data-kind="ammo-item"]') : null);
+    if (ammoDropTarget instanceof HTMLElement) {
+      const droppedItem = await this._resolveDroppedItemFromData(dropData);
+      if (!droppedItem) {
+        const fallback = await this._tryConvertAmmoFromSuperDrop(event, data);
+        return fallback.result;
+      }
+      await this._addIndependentAmmoFromDroppedItem(droppedItem);
+      return false;
+    }
 
     const queueDropTarget = event?.target instanceof HTMLElement
       ? event.target.closest("[data-adv-queue-drop]")
       : null;
     if (queueDropTarget instanceof HTMLElement) {
       const queueKind = String(queueDropTarget.dataset.advQueueDrop ?? "").trim().toLowerCase();
-      const droppedItem = await fromUuid(data?.uuid ?? "");
-      if (!droppedItem) return false;
+      const droppedItem = await this._resolveDroppedItemFromData(dropData);
+      if (!droppedItem) {
+        if (typeof super._onDropItem === "function") return super._onDropItem(event, data);
+        return false;
+      }
       if (queueKind === "ability" || queueKind === "education") {
         await this._queueAdvancementItem(droppedItem, queueKind);
         return false;
       }
     }
 
-    const item = await fromUuid(data?.uuid ?? "");
-    if (!item) return false;
+    const item = await this._resolveDroppedItemFromData(dropData);
+    if (!item) {
+      const fallback = await this._tryConvertAmmoFromSuperDrop(event, data);
+      if (fallback.handled) return false;
+      if (!fallback.result) {
+        ui.notifications?.warn("Could not resolve dropped item data.");
+      }
+      return fallback.result;
+    }
+
+    // Route ammo drops anywhere on the actor sheet into independent ammo tracking.
+    if (item.type === "gear") {
+      const droppedGear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+      if (isAmmoLikeGearData(droppedGear, item.name ?? "")) {
+        const added = await this._addIndependentAmmoFromDroppedItem(item);
+        if (!added && typeof super._onDropItem === "function") {
+          return super._onDropItem(event, data);
+        }
+        return false;
+      }
+    }
 
     if (item.type === "soldierType") {
       const itemData = item.toObject();
@@ -6282,7 +7768,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       const mode = "overwrite";
-      const result = await this._applySoldierTypeTemplate(itemData.name, resolvedTemplate, mode, combinedSkillSelections, null, educationSelections);
+      let result = await this._applySoldierTypeTemplate(itemData.name, resolvedTemplate, mode, combinedSkillSelections, null, educationSelections);
+      const firstPassImpact = Number(result?.fieldsUpdated ?? 0)
+        + Number(result?.educationsAdded ?? 0)
+        + Number(result?.abilitiesAdded ?? 0)
+        + Number(result?.traitsAdded ?? 0)
+        + Number(result?.trainingApplied ?? 0)
+        + Number(result?.skillChoicesApplied ?? 0);
+      if (firstPassImpact <= 0) {
+        // Some stale compendium/reference states can yield a no-op first pass; retry once automatically.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        result = await this._applySoldierTypeTemplate(itemData.name, resolvedTemplate, mode, combinedSkillSelections, null, educationSelections);
+      }
 
       const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim() || buildCanonicalItemId("soldierType", itemData.name ?? "");
       const selectedChoiceKey = String(factionChoice?.key ?? "").trim();
@@ -6660,6 +8157,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (!confirmed) return false;
 
       itemData.system = normalizeAbilitySystemData(itemData.system ?? {});
+      itemData.system.cost = await this._resolveAbilityXpCost(itemData);
       const created = await this.actor.createEmbeddedDocuments("Item", [itemData]);
       if (Array.isArray(created) && created.length > 0) {
         await this._applyDroppedItemXpCost(itemData);
@@ -6725,268 +8223,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return false;
   }
 
-  _normalizeSoldierTypeFactionChoiceConfig(templateSystem) {
-    const source = templateSystem?.factionChoice;
-    if (!source || typeof source !== "object") return null;
-    if (source.enabled === false) return null;
 
-    const rawChoices = Array.isArray(source.choices) ? source.choices : [];
-    const choices = rawChoices
-      .map((entry, index) => {
-        const key = String(entry?.key ?? `choice-${index + 1}`).trim().toLowerCase();
-        const label = String(entry?.label ?? key).trim();
-        const faction = String(entry?.faction ?? "").trim();
-        if (!key || !label || !faction) return null;
-        return {
-          key,
-          label,
-          faction,
-          insurrectionist: Boolean(entry?.insurrectionist),
-          grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : [])
-        };
-      })
-      .filter(Boolean);
 
-    if (!choices.length) return null;
 
-    const requestedDefault = String(source.defaultKey ?? "").trim().toLowerCase();
-    const fallbackDefault = choices.some((entry) => entry.key === "unsc") ? "unsc" : choices[0].key;
-    const defaultKey = choices.some((entry) => entry.key === requestedDefault) ? requestedDefault : fallbackDefault;
 
-    return {
-      prompt: String(source.prompt ?? "Choose faction for this Soldier Type.").trim() || "Choose faction for this Soldier Type.",
-      defaultKey,
-      choices
-    };
-  }
-
-  _promptSoldierTypeFactionChoice(templateName, templateSystem) {
-    const config = this._normalizeSoldierTypeFactionChoiceConfig(templateSystem);
-    if (!config) {
-      const fallbackFaction = String(templateSystem?.header?.faction ?? "").trim();
-      return Promise.resolve({
-        key: "default",
-        label: fallbackFaction || "Default",
-        faction: fallbackFaction,
-        insurrectionist: false,
-        grantedTraits: []
-      });
-    }
-
-    const optionsHtml = config.choices
-      .map((entry) => {
-        const selected = entry.key === config.defaultKey ? " selected" : "";
-        return `<option value="${foundry.utils.escapeHTML(entry.key)}"${selected}>${foundry.utils.escapeHTML(entry.label)}</option>`;
-      })
-      .join("");
-
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Soldier Type Faction"
-      },
-      content: `
-        <form>
-          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong></p>
-          <p>${foundry.utils.escapeHTML(config.prompt)}</p>
-          <div class="form-group">
-            <label>Faction</label>
-            <select id="mythic-soldier-type-faction-choice">${optionsHtml}</select>
-          </div>
-        </form>
-      `,
-      buttons: [
-        {
-          action: "confirm",
-          label: "Confirm",
-          callback: () => {
-            const selectedKey = String(document.getElementById("mythic-soldier-type-faction-choice")?.value ?? "").trim().toLowerCase();
-            const selected = config.choices.find((entry) => entry.key === selectedKey)
-              ?? config.choices.find((entry) => entry.key === config.defaultKey)
-              ?? config.choices[0];
-            return selected
-              ? {
-                key: selected.key,
-                label: selected.label,
-                faction: selected.faction,
-                insurrectionist: Boolean(selected.insurrectionist),
-                grantedTraits: Array.isArray(selected.grantedTraits) ? selected.grantedTraits : []
-              }
-              : null;
-          }
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
-  }
-
-  _normalizeSoldierTypeTrainingPathChoiceConfig(templateSystem) {
-    const source = templateSystem?.trainingPathChoice;
-    if (!source || typeof source !== "object") return null;
-    if (source.enabled === false) return null;
-
-    const rawChoices = Array.isArray(source.choices) ? source.choices : [];
-    const choices = rawChoices
-      .map((entry, index) => {
-        const key = String(entry?.key ?? `path-${index + 1}`).trim().toLowerCase();
-        const label = String(entry?.label ?? key).trim();
-        if (!key || !label) return null;
-        return {
-          key,
-          label,
-          trainingGrants: normalizeStringList(Array.isArray(entry?.trainingGrants) ? entry.trainingGrants : []),
-          grantedTraits: normalizeStringList(Array.isArray(entry?.grantedTraits) ? entry.grantedTraits : []),
-          skillChoices: (Array.isArray(entry?.skillChoices) ? entry.skillChoices : [])
-            .map((choice) => normalizeSoldierTypeSkillChoice(choice))
-            .filter((choice) => choice.count > 0),
-          creationXpCost: Number.isFinite(Number(entry?.creationXpCost))
-            ? toNonNegativeWhole(entry?.creationXpCost, 0)
-            : null,
-            characteristicAdvancements: (entry?.characteristicAdvancements && typeof entry.characteristicAdvancements === "object")
-              ? MYTHIC_CHARACTERISTIC_KEYS.reduce((acc, key) => {
-                acc[key] = Math.max(0, Math.floor(Number(entry?.characteristicAdvancements?.[key] ?? 0)));
-                return acc;
-              }, {})
-              : null,
-          notes: String(entry?.notes ?? "").trim()
-        };
-      })
-      .filter(Boolean);
-
-    if (!choices.length) return null;
-
-    const requestedDefault = String(source.defaultKey ?? "").trim().toLowerCase();
-    const fallbackDefault = choices.some((entry) => entry.key === "combat") ? "combat" : choices[0].key;
-    const defaultKey = choices.some((entry) => entry.key === requestedDefault) ? requestedDefault : fallbackDefault;
-
-    return {
-      prompt: String(source.prompt ?? "Choose training path for this Soldier Type.").trim() || "Choose training path for this Soldier Type.",
-      defaultKey,
-      choices
-    };
-  }
-
-  _promptSoldierTypeTrainingPathChoice(templateName, templateSystem) {
-    const config = this._normalizeSoldierTypeTrainingPathChoiceConfig(templateSystem);
-    if (!config) {
-      return Promise.resolve({
-        key: "default",
-        label: "Default",
-        trainingGrants: [],
-        grantedTraits: [],
-        skillChoices: [],
-        creationXpCost: null,
-        characteristicAdvancements: null
-      });
-    }
-
-    const optionsHtml = config.choices
-      .map((entry) => {
-        const selected = entry.key === config.defaultKey ? " selected" : "";
-        return `<option value="${foundry.utils.escapeHTML(entry.key)}"${selected}>${foundry.utils.escapeHTML(entry.label)}</option>`;
-      })
-      .join("");
-
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Soldier Type Training Path"
-      },
-      content: `
-        <form>
-          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong></p>
-          <p>${foundry.utils.escapeHTML(config.prompt)}</p>
-          <div class="form-group">
-            <label>Path</label>
-            <select id="mythic-soldier-type-training-path-choice">${optionsHtml}</select>
-          </div>
-        </form>
-      `,
-      buttons: [
-        {
-          action: "confirm",
-          label: "Confirm",
-          callback: () => {
-            const selectedKey = String(document.getElementById("mythic-soldier-type-training-path-choice")?.value ?? "").trim().toLowerCase();
-            const selected = config.choices.find((entry) => entry.key === selectedKey)
-              ?? config.choices.find((entry) => entry.key === config.defaultKey)
-              ?? config.choices[0];
-            return selected
-              ? {
-                key: selected.key,
-                label: selected.label,
-                trainingGrants: Array.isArray(selected.trainingGrants) ? selected.trainingGrants : [],
-                grantedTraits: Array.isArray(selected.grantedTraits) ? selected.grantedTraits : [],
-                skillChoices: Array.isArray(selected.skillChoices) ? selected.skillChoices : [],
-                creationXpCost: Number.isFinite(Number(selected.creationXpCost))
-                  ? toNonNegativeWhole(selected.creationXpCost, 0)
-                  : null,
-                characteristicAdvancements: (selected.characteristicAdvancements && typeof selected.characteristicAdvancements === "object")
-                  ? selected.characteristicAdvancements
-                  : null
-              }
-              : null;
-          }
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
-  }
-
-  _normalizeSoldierTypeInfusionOptionConfig(templateSystem, selectedFaction = "") {
-    const source = templateSystem?.infusionOption;
-    if (!source || typeof source !== "object") return null;
-    if (source.enabled === false) return null;
-
-    const eligibleFactions = normalizeStringList(Array.isArray(source.eligibleFactions) ? source.eligibleFactions : []);
-    const selectedFactionText = String(selectedFaction ?? "").trim();
-    const isEligible = eligibleFactions.length < 1
-      ? true
-      : eligibleFactions.some((entry) => normalizeLookupText(entry) === normalizeLookupText(selectedFactionText));
-    if (!isEligible) return null;
-
-    const xpDelta = Number.isFinite(Number(source?.xpDelta))
-      ? Math.round(Number(source.xpDelta))
-      : (Number.isFinite(Number(source?.xpCost)) ? Math.round(Number(source.xpCost)) : 0);
-
-    const characteristicAdjustments = MYTHIC_CHARACTERISTIC_KEYS.reduce((acc, key) => {
-      const raw = Number(source?.characteristicAdjustments?.[key] ?? 0);
-      acc[key] = Number.isFinite(raw) ? Math.round(raw) : 0;
-      return acc;
-    }, {});
-
-    const advancementOption = source?.advancementScaffold
-      ? normalizeSoldierTypeAdvancementOption(source.advancementScaffold, 0)
-      : null;
-
-    return {
-      prompt: String(source.prompt ?? "This Soldier Type supports an optional Infusion package. Apply it now?").trim()
-        || "This Soldier Type supports an optional Infusion package. Apply it now?",
-      yesLabel: String(source.yesLabel ?? "Apply Infusion").trim() || "Apply Infusion",
-      noLabel: String(source.noLabel ?? "Skip Infusion").trim() || "Skip Infusion",
-      infusionLabel: String(source.infusionLabel ?? "Infusion").trim() || "Infusion",
-      grantedTraits: normalizeStringList(Array.isArray(source.grantedTraits) ? source.grantedTraits : []),
-      grantedAbilities: normalizeStringList(Array.isArray(source.grantedAbilities) ? source.grantedAbilities : []),
-      trainingGrants: normalizeStringList(Array.isArray(source.trainingGrants) ? source.trainingGrants : []),
-      skillChoices: (Array.isArray(source.skillChoices) ? source.skillChoices : [])
-        .map((choice) => normalizeSoldierTypeSkillChoice(choice))
-        .filter((choice) => choice.count > 0),
-      xpDelta,
-      characteristicAdjustments,
-      advancementOption,
-      grantInfusionRadiusWeapon: source?.grantInfusionRadiusWeapon === false ? false : true
-    };
-  }
 
   _applySignedCharacteristicAdjustmentsToTemplate(template, adjustments = {}) {
     const nextTemplate = foundry.utils.deepClone(template ?? {});
@@ -7027,110 +8267,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
-  _promptSoldierTypeInfusionChoice(templateName, templateSystem, selectedFaction = "") {
-    const config = this._normalizeSoldierTypeInfusionOptionConfig(templateSystem, selectedFaction);
-    if (!config) {
-      return Promise.resolve({
-        enabled: false,
-        label: "",
-        grantedTraits: [],
-        grantedAbilities: [],
-        trainingGrants: [],
-        skillChoices: [],
-        xpDelta: 0,
-        characteristicAdjustments: {},
-        grantInfusionRadiusWeapon: false
-      });
-    }
 
-    const xpText = Number(config.xpDelta ?? 0) > 0
-      ? `Costs ${Number(config.xpDelta).toLocaleString()} XP.`
-      : "No additional XP cost.";
-
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Soldier Type Infusion"
-      },
-      content: `
-        <div class="mythic-modal-body">
-          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong></p>
-          <p>${foundry.utils.escapeHTML(config.prompt)}</p>
-          <p><em>${foundry.utils.escapeHTML(xpText)}</em></p>
-        </div>
-      `,
-      buttons: [
-        {
-          action: "yes",
-          label: foundry.utils.escapeHTML(config.yesLabel),
-          callback: () => ({
-            enabled: true,
-            label: config.infusionLabel,
-            grantedTraits: Array.isArray(config.grantedTraits) ? config.grantedTraits : [],
-            grantedAbilities: Array.isArray(config.grantedAbilities) ? config.grantedAbilities : [],
-            trainingGrants: Array.isArray(config.trainingGrants) ? config.trainingGrants : [],
-            skillChoices: Array.isArray(config.skillChoices) ? config.skillChoices : [],
-            xpDelta: Number(config.xpDelta ?? 0),
-            characteristicAdjustments: config.characteristicAdjustments && typeof config.characteristicAdjustments === "object"
-              ? config.characteristicAdjustments
-              : {},
-            grantInfusionRadiusWeapon: config.grantInfusionRadiusWeapon !== false
-          })
-        },
-        {
-          action: "no",
-          label: foundry.utils.escapeHTML(config.noLabel),
-          callback: () => ({
-            enabled: false,
-            label: config.infusionLabel,
-            grantedTraits: [],
-            grantedAbilities: [],
-            trainingGrants: [],
-            skillChoices: [],
-            xpDelta: 0,
-            characteristicAdjustments: {},
-            grantInfusionRadiusWeapon: false
-          })
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
-  }
-
-  _promptSoldierTypeGmApprovalNotice(templateName, approvalText) {
-    const message = String(approvalText ?? "").trim() || "This Soldier Type should only be taken with GM Approval.";
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "GM Approval Required"
-      },
-      content: `
-        <div class="mythic-modal-body">
-          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong></p>
-          <p>${foundry.utils.escapeHTML(message)}</p>
-          <p>Continue applying this Soldier Type?</p>
-        </div>
-      `,
-      buttons: [
-        {
-          action: "continue",
-          label: "Continue",
-          callback: () => true
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => false
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
-  }
 
   async reapplyCurrentSoldierTypeFromReference(options = {}) {
     const notify = options?.notify !== false;
@@ -7697,10 +8834,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const yearNote = campaignYear
       ? `<p><strong>Campaign Year:</strong> ${campaignYear}</p>`
-      : `<p><em>No campaign year set — all armor types are available.</em></p>`;
+      : `<p><em>No campaign year set â€” all armor types are available.</em></p>`;
 
     const optionsHtml = available.map(a => {
-      const range = a.yearEnd !== null ? `${a.yearStart}–${a.yearEnd}` : `${a.yearStart}+`;
+      const range = a.yearEnd !== null ? `${a.yearStart}â€“${a.yearEnd}` : `${a.yearStart}+`;
       return `<option value="${foundry.utils.escapeHTML(a.name)}">${foundry.utils.escapeHTML(a.name)} (${range})</option>`;
     }).join("");
 
@@ -7798,6 +8935,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.equipment.carriedIds": Array.from(new Set([...currentCarried, newId])),
       "system.equipment.equipped.armorId": newId
     });
+    await this._syncEquippedArmorSpecialRuleState(newItem);
     ui.notifications.info(`Equipped "${chosenName}" as Spartan armor.`);
   }
 
@@ -7930,6 +9068,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     await this.actor.update(updateData);
+    if (updateData["system.equipment.equipped.armorId"]) {
+      await this._syncEquippedArmorSpecialRuleState(newItem);
+    }
     ui.notifications.info(`Added "${chosenName}" to inventory.`);
   }
 
@@ -8319,6 +9460,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return { matched: true, changed, overflowSteps };
   }
 
+      _removeSkillStepsByName(skills, skillName, stepCount = 0) {
+        const entry = this._findSkillEntryByName(skills, skillName);
+        if (!entry) return { matched: false, changed: false };
+
+        const currentRank = this._skillTierRank(entry.tier);
+        const removal = Math.max(0, toNonNegativeWhole(stepCount, 0));
+        const finalRank = Math.max(0, currentRank - removal);
+        const nextTier = getSkillTierForRank(finalRank);
+        const changed = nextTier !== String(entry.tier ?? "untrained").toLowerCase();
+        if (changed) entry.tier = nextTier;
+        return { matched: true, changed };
+      }
+
   async _promptSpecializationOverflowSkillChoice(remainingSteps) {
       const labels = this._getAllSkillLabels();
       if (!labels.length) return null;
@@ -8417,588 +9571,121 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
   }
 
-  _promptSoldierTypeSkillChoices(templateName, templateSystem) {
-    const rules = Array.isArray(templateSystem?.skillChoices) ? templateSystem.skillChoices : [];
-    if (!rules.length) return Promise.resolve([]);
 
-    const dialogBodySelector = ".mythic-st-skill-choice-dialog";
-    const getDialogBody = () => document.querySelector(dialogBodySelector);
 
-    const allSkillLabels = this._getAllSkillLabels();
-    if (!allSkillLabels.length) {
-      ui.notifications.warn("No skills found to satisfy Soldier Type skill choices.");
-      return Promise.resolve([]);
+
+
+  async _buildResolvedPriorSoldierTypeTemplate(actorSystem = null) {
+    const normalizedActor = normalizeCharacterSystemData(actorSystem ?? this.actor.system ?? {});
+    const currentSoldierTypeName = String(normalizedActor?.header?.soldierType ?? "").trim();
+    if (!currentSoldierTypeName) return null;
+
+    const scope = "Halo-Mythic-Foundry-Updated";
+    const factionChoiceFlag = this.actor.getFlag(scope, "soldierTypeFactionChoice") ?? {};
+    const trainingPathFlag = this.actor.getFlag(scope, "soldierTypeTrainingPathChoice") ?? {};
+    const infusionChoiceFlag = this.actor.getFlag(scope, "soldierTypeInfusionChoice") ?? {};
+    const flaggedCanonicalId = String(
+      factionChoiceFlag?.soldierTypeCanonicalId
+      ?? trainingPathFlag?.soldierTypeCanonicalId
+      ?? infusionChoiceFlag?.soldierTypeCanonicalId
+      ?? ""
+    ).trim().toLowerCase();
+
+    const rows = await loadReferenceSoldierTypeItems();
+    const matched = (flaggedCanonicalId
+      ? rows.find((entry) => String(entry?.system?.sync?.canonicalId ?? "").trim().toLowerCase() === flaggedCanonicalId)
+      : null)
+      ?? rows.find((entry) => normalizeSoldierTypeNameForMatch(entry?.name ?? "") === normalizeSoldierTypeNameForMatch(currentSoldierTypeName))
+      ?? null;
+    if (!matched) return null;
+
+    const templateSystem = await this._augmentSoldierTypeTemplateFromReference(matched.name, matched.system ?? {});
+    const resolvedTemplate = foundry.utils.deepClone(templateSystem ?? {});
+
+    const factionConfig = this._normalizeSoldierTypeFactionChoiceConfig(templateSystem);
+    const factionChoiceKey = String(factionChoiceFlag?.choiceKey ?? "").trim().toLowerCase();
+    const selectedFactionChoice = factionConfig
+      ? (factionConfig.choices.find((entry) => entry.key === factionChoiceKey)
+        ?? factionConfig.choices.find((entry) => entry.key === factionConfig.defaultKey)
+        ?? factionConfig.choices[0])
+      : null;
+
+    if (String(selectedFactionChoice?.faction ?? "").trim()) {
+      resolvedTemplate.header = resolvedTemplate.header && typeof resolvedTemplate.header === "object"
+        ? resolvedTemplate.header
+        : {};
+      resolvedTemplate.header.faction = String(selectedFactionChoice.faction).trim();
     }
 
-    const tierLabel = (tier) => {
-      if (tier === "plus20") return "+20";
-      if (tier === "plus10") return "+10";
-      return "Trained";
-    };
+    const trainingPathConfig = this._normalizeSoldierTypeTrainingPathChoiceConfig(templateSystem);
+    const trainingPathChoiceKey = String(trainingPathFlag?.choiceKey ?? "").trim().toLowerCase();
+    const selectedTrainingPathChoice = trainingPathConfig
+      ? (trainingPathConfig.choices.find((entry) => entry.key === trainingPathChoiceKey)
+        ?? trainingPathConfig.choices.find((entry) => entry.key === trainingPathConfig.defaultKey)
+        ?? trainingPathConfig.choices[0])
+      : null;
 
-    const blocks = rules.map((rule, ruleIndex) => {
-      const source = String(rule?.source ?? "").trim();
-      const notes = String(rule?.notes ?? "").trim();
-      const label = String(rule?.label ?? "Skills of choice").trim() || "Skills of choice";
-      const count = Math.max(1, toNonNegativeWhole(rule?.count, 1));
-      const checkboxRows = allSkillLabels.map((skillLabel, skillIndex) => {
-        const safeLabel = foundry.utils.escapeHTML(skillLabel);
-        return `
-          <label style="display:block;margin:2px 0">
-            <input type="checkbox"
-                   name="mythic-st-choice-${ruleIndex}"
-                   value="${safeLabel}"
-                   data-rule-index="${ruleIndex}"
-                   data-rule-count="${count}"
-                   data-tier="${foundry.utils.escapeHTML(String(rule?.tier ?? "trained"))}"
-                   data-label="${foundry.utils.escapeHTML(label)}"
-                   data-source="${foundry.utils.escapeHTML(source)}"
-                   data-notes="${foundry.utils.escapeHTML(notes)}"
-            />
-            ${safeLabel}
-          </label>
-        `;
-      }).join("");
+    const infusionConfig = this._normalizeSoldierTypeInfusionOptionConfig(templateSystem, selectedFactionChoice?.faction ?? "");
+    const selectedInfusionChoice = (infusionConfig && Boolean(infusionChoiceFlag?.enabled))
+      ? infusionConfig
+      : null;
 
-      return `
-        <fieldset data-choice-rule-index="${ruleIndex}" data-choice-rule-count="${count}" style="margin:0 0 10px 0;padding:8px;border:1px solid rgba(255,255,255,0.18)">
-          <legend style="padding:0 6px">${foundry.utils.escapeHTML(label)}</legend>
-          <p style="margin:0 0 8px 0">Choose exactly ${count} at <strong>${tierLabel(rule?.tier)}</strong>${source ? ` - ${foundry.utils.escapeHTML(source)}` : ""}${notes ? ` - ${foundry.utils.escapeHTML(notes)}` : ""}</p>
-          <p data-choice-count-status="${ruleIndex}" style="margin:0 0 8px 0;font-size:11px;opacity:0.9">0/${count} selected</p>
-          <div style="max-height:160px;overflow:auto;border:1px solid rgba(255,255,255,0.12);padding:6px;border-radius:4px;background:rgba(0,0,0,0.15)">
-            ${checkboxRows}
-          </div>
-        </fieldset>
-      `;
-    }).join("");
+    resolvedTemplate.traits = normalizeStringList([
+      ...(Array.isArray(resolvedTemplate.traits) ? resolvedTemplate.traits : []),
+      ...(Array.isArray(selectedFactionChoice?.grantedTraits) ? selectedFactionChoice.grantedTraits : []),
+      ...(Array.isArray(selectedTrainingPathChoice?.grantedTraits) ? selectedTrainingPathChoice.grantedTraits : []),
+      ...(Array.isArray(selectedInfusionChoice?.grantedTraits) ? selectedInfusionChoice.grantedTraits : [])
+    ]);
 
-    const isDialogSelectionValid = (dialogBody) => {
-      if (!(dialogBody instanceof HTMLElement)) return false;
-      return rules.every((_rule, ruleIndex) => {
-        const requiredCount = Math.max(1, toNonNegativeWhole(rules[ruleIndex]?.count, 1));
-        const selectedCount = dialogBody.querySelectorAll(`input[name='mythic-st-choice-${ruleIndex}']:checked`).length;
-        return selectedCount === requiredCount;
-      });
-    };
+    resolvedTemplate.abilities = normalizeStringList([
+      ...(Array.isArray(resolvedTemplate.abilities) ? resolvedTemplate.abilities : []),
+      ...(Array.isArray(selectedInfusionChoice?.grantedAbilities) ? selectedInfusionChoice.grantedAbilities : [])
+    ]);
 
-    const refreshSelectionState = (dialogBody) => {
-      if (!(dialogBody instanceof HTMLElement)) return;
-
-      for (let ruleIndex = 0; ruleIndex < rules.length; ruleIndex += 1) {
-        const requiredCount = Math.max(1, toNonNegativeWhole(rules[ruleIndex]?.count, 1));
-        const selectedCount = dialogBody.querySelectorAll(`input[name='mythic-st-choice-${ruleIndex}']:checked`).length;
-        const status = dialogBody.querySelector(`[data-choice-count-status='${ruleIndex}']`);
-        if (status) {
-          status.textContent = `${selectedCount}/${requiredCount} selected`;
-          status.style.color = selectedCount === requiredCount ? "rgba(140, 255, 170, 0.95)" : "rgba(255, 185, 120, 0.95)";
-        }
-      }
-
-      const dialogApp = dialogBody.closest(".application, .window-app, .app") ?? dialogBody.parentElement;
-      const applyButton = dialogApp?.querySelector("button[data-action='apply']");
-      if (applyButton instanceof HTMLButtonElement) {
-        const canApply = isDialogSelectionValid(dialogBody);
-        applyButton.disabled = !canApply;
-        applyButton.title = canApply ? "" : "Select exactly the required number of skills in each group.";
-      }
-    };
-
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Resolve Soldier Type Skill Choices"
-      },
-      content: `
-        <div class="mythic-modal-body mythic-st-skill-choice-dialog">
-          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong> includes skill-choice grants.</p>
-          <div style="max-height:65vh;overflow:auto;padding-right:4px">${blocks}</div>
-        </div>
-      `,
-      render: (_event, dialog) => {
-        const dialogElement = dialog?.element instanceof HTMLElement
-          ? dialog.element
-          : (dialog?.element?.[0] instanceof HTMLElement ? dialog.element[0] : null);
-        const dialogBody = dialogElement?.querySelector(dialogBodySelector) ?? getDialogBody();
-        if (!(dialogBody instanceof HTMLElement)) return;
-
-        dialogBody.querySelectorAll("input[type='checkbox'][name^='mythic-st-choice-']").forEach((input) => {
-          input.addEventListener("change", () => {
-            refreshSelectionState(dialogBody);
-          });
-        });
-
-        refreshSelectionState(dialogBody);
-      },
-      buttons: [
-        {
-          action: "apply",
-          label: "Apply Choices",
-          callback: () => {
-            const selections = [];
-            const dialogBody = getDialogBody();
-            for (let ruleIndex = 0; ruleIndex < rules.length; ruleIndex += 1) {
-              const rule = rules[ruleIndex] ?? {};
-              const count = Math.max(1, toNonNegativeWhole(rule?.count, 1));
-              const checked = Array.from((dialogBody ?? document).querySelectorAll(`input[name='mythic-st-choice-${ruleIndex}']:checked`));
-              if (checked.length !== count) {
-                ui.notifications?.warn(`Rule ${ruleIndex + 1} requires exactly ${count} selections.`);
-                return false;
-              }
-
-              const seen = new Set();
-              for (const box of checked) {
-                const skillName = String(box.value ?? "").trim();
-                const marker = this._normalizeNameForMatch(skillName);
-                if (marker && seen.has(marker)) {
-                  ui.notifications?.warn("Duplicate skill selected in the same choice group. Pick different skills.");
-                  return false;
-                }
-                if (marker) seen.add(marker);
-                selections.push({
-                  ruleIndex,
-                  skillName,
-                  tier: String(box.getAttribute("data-tier") ?? "trained"),
-                  label: String(box.getAttribute("data-label") ?? "Skills of choice"),
-                  source: String(box.getAttribute("data-source") ?? ""),
-                  notes: String(box.getAttribute("data-notes") ?? "")
-                });
-              }
-            }
-            return selections;
-          }
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
+    return resolvedTemplate;
   }
 
-  async _promptSoldierTypeEducationChoices(templateName, templateSystem) {
-    const rules = Array.isArray(templateSystem?.educationChoices) ? templateSystem.educationChoices : [];
-    if (!rules.length) return Promise.resolve([]);
+  async _removePriorSoldierTypeGrantsForOverwrite(nextTemplateName, nextTemplateSystem) {
+    const deleteIds = new Set();
+    const namespace = "Halo-Mythic-Foundry-Updated";
 
-    const dialogBodySelector = ".mythic-st-edu-choice-dialog";
-    const getDialogBody = () => document.querySelector(dialogBodySelector);
-    const factionOptions = this._getFactionPromptChoices();
-    const factionOptionMarkup = factionOptions
-      .map((entry) => `<option value="${foundry.utils.escapeHTML(entry.value)}">${foundry.utils.escapeHTML(entry.label)}</option>`)
-      .join("");
+    for (const item of this.actor.items) {
+      const grantFlag = item.getFlag(namespace, "soldierTypeGrant");
+      if (grantFlag && (item.type === "trait" || item.type === "ability" || item.type === "education")) {
+        deleteIds.add(String(item.id));
+      }
+    }
 
-    // Load all education names from the compendium
-    let allEducationNames = [];
     try {
-      const pack = game.packs.get("Halo-Mythic-Foundry-Updated.educations");
-      if (pack) {
-        const index = await pack.getIndex();
-        allEducationNames = index
-          .map((entry) => String(entry?.name ?? "").trim())
-          .filter(Boolean)
-          .sort((a, b) => a.localeCompare(b));
-      }
-    } catch (_err) { /* silent */ }
+      const actorSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+      const prior = await this._buildResolvedPriorSoldierTypeTemplate(actorSystem);
+      if (prior) {
+        const priorTraitNames = new Set(normalizeStringList(Array.isArray(prior?.traits) ? prior.traits : []).map((entry) => normalizeLookupText(entry)));
+        const priorAbilityNames = new Set(normalizeStringList(Array.isArray(prior?.abilities) ? prior.abilities : []).map((entry) => normalizeLookupText(entry)));
+        const priorEducationNames = new Set(normalizeStringList(Array.isArray(prior?.educations) ? prior.educations : []).map((entry) => normalizeLookupText(entry)));
 
-    if (!allEducationNames.length) {
-      ui.notifications?.warn("No educations found in the compendium to satisfy Soldier Type education choices.");
-      return Promise.resolve([]);
+        for (const item of this.actor.items) {
+          const lookup = normalizeLookupText(item?.name ?? "");
+          if (!lookup) continue;
+          if (item.type === "trait" && priorTraitNames.has(lookup)) deleteIds.add(String(item.id));
+          if (item.type === "ability" && priorAbilityNames.has(lookup)) deleteIds.add(String(item.id));
+          if (item.type === "education" && priorEducationNames.has(lookup)) deleteIds.add(String(item.id));
+        }
+      }
+    } catch (_err) {
+      // Best-effort compatibility cleanup; continue with flagged removals.
     }
 
-    const tierLabel = (tier) => tier === "plus10" ? "+10" : "+5";
-    const createRowMarkup = (ruleIndex, rowIndex, educationName) => {
-      const cleanEducationName = String(educationName ?? "").trim();
-      const isFactionEducation = this._isFactionEducationName(cleanEducationName);
-      const isInstrumentEducation = this._isInstrumentEducationName(cleanEducationName);
-      const safeBaseName = foundry.utils.escapeHTML(cleanEducationName);
-      const displayLabel = foundry.utils.escapeHTML(this._getEducationChoiceDisplayLabel(cleanEducationName));
-      const extraMarkup = isFactionEducation
-        ? `
-          <div data-edu-config="faction" style="display:none;margin:6px 0 0 22px;gap:6px;align-items:center;flex-wrap:wrap">
-            <label style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-              <span>Faction</span>
-              <select data-edu-faction-select style="min-width:220px">
-                ${factionOptionMarkup}
-              </select>
-            </label>
-            <label data-edu-faction-other-wrap style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-              <span>Custom</span>
-              <input type="text" data-edu-faction-other placeholder="Enter faction name..." />
-            </label>
-          </div>
-        `
-        : isInstrumentEducation
-          ? `
-            <div data-edu-config="instrument" style="display:none;margin:6px 0 0 22px;gap:6px;align-items:center;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                <span>Instrument</span>
-                <input type="text" data-edu-instrument-input placeholder="e.g. Theremin" />
-              </label>
-            </div>
-          `
-          : "";
-
-      return `
-        <div class="mythic-st-edu-row" data-rule-index="${ruleIndex}" data-row-index="${rowIndex}" data-edu-base-name="${safeBaseName}" data-edu-repeatable="${isFactionEducation || isInstrumentEducation ? "true" : "false"}" style="margin:2px 0">
-          <label style="display:block">
-            <input type="checkbox" name="mythic-st-edu-choice-${ruleIndex}" value="${safeBaseName}" data-rule-index="${ruleIndex}" data-row-index="${rowIndex}" />
-            ${displayLabel}
-          </label>
-          ${extraMarkup}
-        </div>
-      `;
-    };
-
-    const blocks = rules.map((rule, ruleIndex) => {
-      const source = String(rule?.source ?? "").trim();
-      const notes = String(rule?.notes ?? "").trim();
-      const label = String(rule?.label ?? "Educations of choice").trim() || "Educations of choice";
-      const count = Math.max(1, toNonNegativeWhole(rule?.count, 1));
-      const checkboxRows = allEducationNames.map((eduName, eduIndex) => createRowMarkup(ruleIndex, eduIndex, eduName)).join("");
-
-      return `
-        <fieldset data-edu-rule-index="${ruleIndex}" data-edu-rule-count="${count}" data-edu-tier="${foundry.utils.escapeHTML(String(rule?.tier ?? "plus5"))}" data-edu-label="${foundry.utils.escapeHTML(label)}" data-edu-source="${foundry.utils.escapeHTML(source)}" data-edu-notes="${foundry.utils.escapeHTML(notes)}" style="margin:0 0 10px 0;padding:8px;border:1px solid rgba(255,255,255,0.18)">
-          <legend style="padding:0 6px">${foundry.utils.escapeHTML(label)}</legend>
-          <p style="margin:0 0 8px 0">Choose exactly ${count} at <strong>${tierLabel(rule?.tier)}</strong>${source ? ` — ${foundry.utils.escapeHTML(source)}` : ""}${notes ? ` — ${foundry.utils.escapeHTML(notes)}` : ""}</p>
-          <p data-edu-count-status="${ruleIndex}" style="margin:0 0 8px 0;font-size:11px;opacity:0.9">0/${count} selected</p>
-          <div data-edu-rule-container="${ruleIndex}" style="max-height:240px;overflow:auto;border:1px solid rgba(255,255,255,0.12);padding:6px;border-radius:4px;background:rgba(0,0,0,0.15)">
-            ${checkboxRows}
-          </div>
-        </fieldset>
-      `;
-    }).join("");
-
-    const isSelectionValid = (dialogBody) => {
-      if (!(dialogBody instanceof HTMLElement)) return false;
-      return rules.every((_rule, ruleIndex) => {
-        const required = Math.max(1, toNonNegativeWhole(rules[ruleIndex]?.count, 1));
-        const checked = Array.from(dialogBody.querySelectorAll(`input[name='mythic-st-edu-choice-${ruleIndex}']:checked`));
-        if (checked.length !== required) return false;
-        return checked.every((box) => {
-          const row = box.closest(".mythic-st-edu-row");
-          if (!(row instanceof HTMLElement)) return false;
-          const baseName = String(row.dataset.eduBaseName ?? "").trim();
-          if (this._isFactionEducationName(baseName)) {
-            const select = row.querySelector("[data-edu-faction-select]");
-            const other = row.querySelector("[data-edu-faction-other]");
-            const value = String(select?.value ?? "").trim();
-            return value && (value !== "__other__" || Boolean(String(other?.value ?? "").trim()));
-          }
-          if (this._isInstrumentEducationName(baseName)) {
-            const input = row.querySelector("[data-edu-instrument-input]");
-            return Boolean(String(input?.value ?? "").trim());
-          }
-          return true;
-        });
-      });
-    };
-
-    const toggleFactionOtherVisibility = (row) => {
-      if (!(row instanceof HTMLElement)) return;
-      const select = row.querySelector("[data-edu-faction-select]");
-      const otherWrap = row.querySelector("[data-edu-faction-other-wrap]");
-      if (otherWrap instanceof HTMLElement) {
-        otherWrap.style.display = String(select?.value ?? "") === "__other__" ? "flex" : "none";
-      }
-    };
-
-    const ensureRepeatableRows = (dialogBody, ruleIndex, baseName) => {
-      if (!(dialogBody instanceof HTMLElement)) return;
-      const container = dialogBody.querySelector(`[data-edu-rule-container='${ruleIndex}']`);
-      if (!(container instanceof HTMLElement)) return;
-
-      const matchingRows = Array.from(container.querySelectorAll(".mythic-st-edu-row"))
-        .filter((row) => String(row.dataset.eduBaseName ?? "").trim() === baseName);
-      const checkedRows = matchingRows.filter((row) => row.querySelector("input[type='checkbox']")?.checked);
-      const blankRows = matchingRows.filter((row) => !row.querySelector("input[type='checkbox']")?.checked);
-
-      if (checkedRows.length > 0 && blankRows.length === 0) {
-        const nextRowIndex = container.querySelectorAll(".mythic-st-edu-row").length;
-        const lastMatchingRow = matchingRows[matchingRows.length - 1] ?? null;
-        if (lastMatchingRow instanceof HTMLElement) {
-          lastMatchingRow.insertAdjacentHTML("afterend", createRowMarkup(ruleIndex, nextRowIndex, baseName));
-        } else {
-          container.insertAdjacentHTML("beforeend", createRowMarkup(ruleIndex, nextRowIndex, baseName));
-        }
-      }
-
-      const refreshedBlankRows = Array.from(container.querySelectorAll(".mythic-st-edu-row"))
-        .filter((row) => String(row.dataset.eduBaseName ?? "").trim() === baseName)
-        .filter((row) => !row.querySelector("input[type='checkbox']")?.checked);
-      while (refreshedBlankRows.length > 1) {
-        const rowToRemove = refreshedBlankRows.pop();
-        rowToRemove?.remove();
-      }
-    };
-
-    const bindEducationRowEvents = (dialogBody) => {
-      if (!(dialogBody instanceof HTMLElement)) return;
-      dialogBody.querySelectorAll(".mythic-st-edu-row").forEach((row) => {
-        if (!(row instanceof HTMLElement) || row.dataset.eduBound === "true") return;
-        row.dataset.eduBound = "true";
-
-        const checkbox = row.querySelector("input[type='checkbox']");
-        const factionConfig = row.querySelector("[data-edu-config='faction']");
-        const instrumentConfig = row.querySelector("[data-edu-config='instrument']");
-        const factionSelect = row.querySelector("[data-edu-faction-select]");
-        const factionOther = row.querySelector("[data-edu-faction-other]");
-        const instrumentInput = row.querySelector("[data-edu-instrument-input]");
-
-        const refreshRowState = () => {
-          const isChecked = Boolean(checkbox?.checked);
-          if (factionConfig instanceof HTMLElement) {
-            factionConfig.style.display = isChecked ? "flex" : "none";
-            toggleFactionOtherVisibility(row);
-          }
-          if (instrumentConfig instanceof HTMLElement) {
-            instrumentConfig.style.display = isChecked ? "flex" : "none";
-          }
-
-          if (row.dataset.eduRepeatable === "true") {
-            ensureRepeatableRows(dialogBody, Number(row.dataset.ruleIndex ?? 0), String(row.dataset.eduBaseName ?? "").trim());
-            bindEducationRowEvents(dialogBody);
-          }
-
-          refreshState(dialogBody);
-        };
-
-        checkbox?.addEventListener("change", refreshRowState);
-        factionSelect?.addEventListener("change", () => {
-          toggleFactionOtherVisibility(row);
-          refreshState(dialogBody);
-        });
-        factionOther?.addEventListener("input", () => refreshState(dialogBody));
-        instrumentInput?.addEventListener("input", () => refreshState(dialogBody));
-        refreshRowState();
-      });
-    };
-
-    const refreshState = (dialogBody) => {
-      if (!(dialogBody instanceof HTMLElement)) return;
-      for (let ruleIndex = 0; ruleIndex < rules.length; ruleIndex += 1) {
-        const required = Math.max(1, toNonNegativeWhole(rules[ruleIndex]?.count, 1));
-        const selected = dialogBody.querySelectorAll(`input[name='mythic-st-edu-choice-${ruleIndex}']:checked`).length;
-        const status = dialogBody.querySelector(`[data-edu-count-status='${ruleIndex}']`);
-        if (status) {
-          status.textContent = `${selected}/${required} selected`;
-          status.style.color = selected === required ? "rgba(140, 255, 170, 0.95)" : "rgba(255, 185, 120, 0.95)";
-        }
-      }
-      const dialogApp = dialogBody.closest(".application, .window-app, .app") ?? dialogBody.parentElement;
-      const applyButton = dialogApp?.querySelector("button[data-action='apply-edu']");
-      if (applyButton instanceof HTMLButtonElement) {
-        const canApply = isSelectionValid(dialogBody);
-        applyButton.disabled = !canApply;
-        applyButton.title = canApply ? "" : "Select exactly the required number of educations in each group.";
-      }
-    };
-
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Resolve Soldier Type Education Choices"
-      },
-      content: `
-        <div class="mythic-modal-body mythic-st-edu-choice-dialog">
-          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong> includes education-choice grants.</p>
-          <div style="max-height:65vh;overflow:auto;padding-right:4px">${blocks}</div>
-        </div>
-      `,
-      render: (_event, dialog) => {
-        const dialogElement = dialog?.element instanceof HTMLElement
-          ? dialog.element
-          : (dialog?.element?.[0] instanceof HTMLElement ? dialog.element[0] : null);
-        const dialogBody = dialogElement?.querySelector(dialogBodySelector) ?? getDialogBody();
-        if (!(dialogBody instanceof HTMLElement)) return;
-
-        bindEducationRowEvents(dialogBody);
-        refreshState(dialogBody);
-      },
-      buttons: [
-        {
-          action: "apply-edu",
-          label: "Apply Choices",
-          callback: () => {
-            const selections = [];
-            const dialogBody = getDialogBody();
-            for (let ruleIndex = 0; ruleIndex < rules.length; ruleIndex += 1) {
-              const rule = rules[ruleIndex] ?? {};
-              const count = Math.max(1, toNonNegativeWhole(rule?.count, 1));
-              const checked = Array.from((dialogBody ?? document).querySelectorAll(`input[name='mythic-st-edu-choice-${ruleIndex}']:checked`));
-              if (checked.length !== count) {
-                ui.notifications?.warn(`Education group ${ruleIndex + 1} requires exactly ${count} selections.`);
-                return false;
-              }
-              const seen = new Set();
-              const fieldset = (dialogBody ?? document).querySelector(`[data-edu-rule-index='${ruleIndex}']`);
-              for (const box of checked) {
-                const row = box.closest(".mythic-st-edu-row");
-                const educationBaseName = String(row?.dataset.eduBaseName ?? box.value ?? "").trim();
-                const metadata = {};
-
-                if (this._isFactionEducationName(educationBaseName)) {
-                  const factionSelect = row?.querySelector("[data-edu-faction-select]");
-                  const factionOther = row?.querySelector("[data-edu-faction-other]");
-                  const selectedFaction = String(factionSelect?.value ?? "").trim();
-                  if (!selectedFaction) {
-                    ui.notifications?.warn(`Choose a faction for ${this._getEducationChoiceDisplayLabel(educationBaseName)}.`);
-                    return false;
-                  }
-                  metadata.faction = selectedFaction === "__other__"
-                    ? String(factionOther?.value ?? "").trim()
-                    : selectedFaction;
-                  if (!metadata.faction) {
-                    ui.notifications?.warn(`Enter a custom faction for ${this._getEducationChoiceDisplayLabel(educationBaseName)}.`);
-                    return false;
-                  }
-                }
-
-                if (this._isInstrumentEducationName(educationBaseName)) {
-                  metadata.instrument = String(row?.querySelector("[data-edu-instrument-input]")?.value ?? "").trim();
-                  if (!metadata.instrument) {
-                    ui.notifications?.warn(`Enter an instrument for ${this._getEducationChoiceDisplayLabel(educationBaseName)}.`);
-                    return false;
-                  }
-                }
-
-                const eduName = this._resolveEducationVariantName(educationBaseName, metadata);
-                if (!eduName) {
-                  ui.notifications?.warn(`Could not resolve a final name for ${this._getEducationChoiceDisplayLabel(educationBaseName)}.`);
-                  return false;
-                }
-
-                const marker = eduName.toLowerCase();
-                if (marker && seen.has(marker)) {
-                  ui.notifications?.warn("Duplicate resolved education selected in the same choice group.");
-                  return false;
-                }
-                if (marker) seen.add(marker);
-                selections.push({
-                  ruleIndex,
-                  educationBaseName,
-                  educationName: eduName,
-                  tier: String(fieldset?.getAttribute("data-edu-tier") ?? rule?.tier ?? "plus5"),
-                  label: String(fieldset?.getAttribute("data-edu-label") ?? rule?.label ?? "Educations of choice"),
-                  source: String(fieldset?.getAttribute("data-edu-source") ?? rule?.source ?? ""),
-                  notes: String(fieldset?.getAttribute("data-edu-notes") ?? rule?.notes ?? ""),
-                  metadata
-                });
-              }
-            }
-            return selections;
-          }
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
-  }
-
-  _promptSoldierTypeEquipmentPackChoice(templateName, packs) {
-    const validPacks = Array.isArray(packs) ? packs.filter((p) => String(p?.name ?? "").trim()) : [];
-    if (!validPacks.length) return Promise.resolve({ skip: true });
-
-    // Single pack: auto-apply without forcing a dialog
-    if (validPacks.length === 1) return Promise.resolve(validPacks[0]);
-
-    const buttons = validPacks.map((pack, idx) => {
-      const name = String(pack?.name ?? `Pack ${idx + 1}`).trim() || `Pack ${idx + 1}`;
-      const items = Array.isArray(pack?.items) && pack.items.length ? `: ${pack.items.join(", ")}` : "";
-      return {
-        action: `pack-${idx + 1}`,
-        label: `${name}${items}`,
-        callback: () => pack
-      };
-    });
-
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Choose Equipment Pack"
-      },
-      content: `<p>Choose a starting equipment pack for <strong>${foundry.utils.escapeHTML(templateName)}</strong>:</p>`,
-      buttons: [
-        ...buttons,
-        {
-          action: "later",
-          label: "Choose Later",
-          callback: () => ({ skip: true })
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
-  }
-
-  _promptSoldierTypeSpecPackChoice(templateName, specPacks, fallbackEquipmentPacks = []) {
-    const validSpecPacks = Array.isArray(specPacks)
-      ? specPacks
-        .map((entry, index) => normalizeSoldierTypeSpecPack(entry, index))
-        .filter((entry) => entry.name && entry.options.length)
-      : [];
-
-    if (!validSpecPacks.length) {
-      return this._promptSoldierTypeEquipmentPackChoice(templateName, fallbackEquipmentPacks);
+    if (deleteIds.size) {
+      await this.actor.deleteEmbeddedDocuments("Item", Array.from(deleteIds));
     }
 
-    const flattened = [];
-    for (const specPack of validSpecPacks) {
-      for (const option of specPack.options) {
-        flattened.push({
-          specPackName: specPack.name,
-          specPackDescription: specPack.description,
-          option
-        });
-      }
-    }
-
-    if (flattened.length === 1) {
-      const only = flattened[0];
-      return Promise.resolve({ ...only.option, _specPackName: only.specPackName || "Equipment Pack" });
-    }
-
-    const buttons = flattened.map((entry, index) => {
-      const optionName = String(entry.option?.name ?? `Option ${index + 1}`).trim() || `Option ${index + 1}`;
-      const specPackName = String(entry.specPackName ?? "Equipment Pack").trim() || "Equipment Pack";
-      const itemSuffix = Array.isArray(entry.option?.items) && entry.option.items.length
-        ? `: ${entry.option.items.join(", ")}`
-        : "";
-      return {
-        action: `spec-option-${index + 1}`,
-        label: `${specPackName} - ${optionName}${itemSuffix}`,
-        callback: () => ({ ...(entry.option ?? {}), _specPackName: specPackName })
-      };
-    });
-
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Choose Equipment Pack Option"
-      },
-      content: `<p>Choose an equipment option for <strong>${foundry.utils.escapeHTML(templateName)}</strong>:</p>`,
-      buttons: [
-        ...buttons,
-        {
-          action: "later",
-          label: "Choose Later",
-          callback: () => ({ skip: true })
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
+    const nextCanonicalId = String(nextTemplateSystem?.sync?.canonicalId ?? "").trim()
+      || buildCanonicalItemId("soldierType", nextTemplateName ?? "");
+    await this.actor.unsetFlag(namespace, "soldierTypeAppliedPackages");
+    await this.actor.setFlag(namespace, "soldierTypeAppliedPackages", {
+      soldierTypeCanonicalId: nextCanonicalId,
+      packages: []
     });
   }
 
@@ -9054,6 +9741,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     let fieldsUpdated = 0;
     let structuredTrainingApplied = 0;
     let skillChoicesApplied = 0;
+    const applyMode = String(mode ?? "merge").trim().toLowerCase();
+    const isOverwrite = applyMode === "overwrite";
+    const applyingCanonicalId = String(templateSystem?.sync?.canonicalId ?? "").trim()
+      || buildCanonicalItemId("soldierType", templateName ?? "");
 
     let characteristicAdvancementSource = templateSystem?.characteristicAdvancements ?? {};
     const templateHeaderSource = foundry.utils.deepClone(templateSystem?.header ?? {});
@@ -9108,6 +9799,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       foundry.utils.setProperty(updateData, path, value);
       fieldsUpdated += 1;
     };
+
+    if (isOverwrite) {
+      await this._removePriorSoldierTypeGrantsForOverwrite(templateName, templateSystem);
+      for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+        setField(`system.charBuilder.soldierTypeRow.${key}`, 0);
+        setField(`system.charBuilder.soldierTypeAdvancementsRow.${key}`, 0);
+      }
+      for (const key of ["str", "tou", "agi"]) {
+        setField(`system.mythic.characteristics.${key}`, 0);
+      }
+    }
 
     const unresolvedTraining = [];
     const unresolvedSkillChoiceLines = [];
@@ -9202,12 +9904,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
+    const equippedMythicRow = this._getEquippedMythicCharacteristicRowFromSystemData(actorSystem);
     for (const key of ["str", "tou", "agi"]) {
       const incoming = toNonNegativeWhole(templateSystem?.mythic?.[key], 0);
       if (incoming <= 0) continue;
       const current = toNonNegativeWhole(actorSystem?.mythic?.characteristics?.[key], 0);
-      if (mode === "overwrite" || current <= 0) {
-        setField(`system.mythic.characteristics.${key}`, incoming);
+      const equippedBonus = Math.max(0, Number(equippedMythicRow?.[key] ?? 0) || 0);
+      const stackedTarget = incoming + equippedBonus;
+      if (mode === "overwrite" || current <= 0 || current < stackedTarget) {
+        setField(`system.mythic.characteristics.${key}`, stackedTarget);
       }
     }
 
@@ -9428,7 +10133,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         }
       }
       if (mode === "overwrite") {
-        await this.actor.update({ "system.advancements.xpSpent": templateXpCost });
+        const soldierTypeLabel = `Soldier-Type: ${String(templateName ?? "Selected Soldier Type").trim() || "Selected Soldier Type"}`;
+        const nextTransactions = templateXpCost > 0
+          ? [{
+            id: `txn-${Date.now()}-1`,
+            label: soldierTypeLabel,
+            amount: templateXpCost,
+            createdAt: Date.now(),
+            source: "soldiertype"
+          }]
+          : [];
+        await this.actor.update({
+          "system.advancements.xpSpent": templateXpCost,
+          "system.advancements.transactions": nextTransactions
+        });
       }
     } catch (_err) {
       // Non-fatal; do not block application for XP update failures
@@ -9456,6 +10174,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       itemData.system = normalizeEducationSystemData(itemData.system ?? {});
+      const educationFlags = (itemData.flags && typeof itemData.flags === "object")
+        ? foundry.utils.deepClone(itemData.flags)
+        : {};
+      const educationScope = (educationFlags["Halo-Mythic-Foundry-Updated"] && typeof educationFlags["Halo-Mythic-Foundry-Updated"] === "object")
+        ? educationFlags["Halo-Mythic-Foundry-Updated"]
+        : {};
+      educationScope.soldierTypeGrant = {
+        soldierTypeCanonicalId: applyingCanonicalId,
+        soldierTypeName: String(templateName ?? "").trim(),
+        source: "template"
+      };
+      educationFlags["Halo-Mythic-Foundry-Updated"] = educationScope;
+      itemData.flags = educationFlags;
       await this.actor.createEmbeddedDocuments("Item", [itemData]);
       educationsAdded += 1;
     }
@@ -9487,6 +10218,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const choiceTier = String(choiceEntry?.tier ?? "plus5").toLowerCase();
       itemData.name = educationName;
       itemData.system = normalizeEducationSystemData({ ...(itemData.system ?? {}), tier: choiceTier });
+      const educationChoiceFlags = (itemData.flags && typeof itemData.flags === "object")
+        ? foundry.utils.deepClone(itemData.flags)
+        : {};
+      const educationChoiceScope = (educationChoiceFlags["Halo-Mythic-Foundry-Updated"] && typeof educationChoiceFlags["Halo-Mythic-Foundry-Updated"] === "object")
+        ? educationChoiceFlags["Halo-Mythic-Foundry-Updated"]
+        : {};
+      educationChoiceScope.soldierTypeGrant = {
+        soldierTypeCanonicalId: applyingCanonicalId,
+        soldierTypeName: String(templateName ?? "").trim(),
+        source: "educationChoice"
+      };
+      educationChoiceFlags["Halo-Mythic-Foundry-Updated"] = educationChoiceScope;
+      itemData.flags = educationChoiceFlags;
       await this.actor.createEmbeddedDocuments("Item", [itemData]);
       educationsAdded += 1;
     }
@@ -9507,6 +10251,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       itemData.system = normalizeAbilitySystemData(itemData.system ?? {});
+      const abilityFlags = (itemData.flags && typeof itemData.flags === "object")
+        ? foundry.utils.deepClone(itemData.flags)
+        : {};
+      const abilityScope = (abilityFlags["Halo-Mythic-Foundry-Updated"] && typeof abilityFlags["Halo-Mythic-Foundry-Updated"] === "object")
+        ? abilityFlags["Halo-Mythic-Foundry-Updated"]
+        : {};
+      abilityScope.soldierTypeGrant = {
+        soldierTypeCanonicalId: applyingCanonicalId,
+        soldierTypeName: String(templateName ?? "").trim(),
+        source: "template"
+      };
+      abilityFlags["Halo-Mythic-Foundry-Updated"] = abilityScope;
+      itemData.flags = abilityFlags;
 
       const isSoldierTypeAbility = String(itemData.system?.category ?? "").trim().toLowerCase() === "soldier-type";
       if (enforceAbilityPrereqs && !isSoldierTypeAbility) {
@@ -9544,6 +10301,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       itemData.system = normalizeTraitSystemData(itemData.system ?? {});
+      const traitFlags = (itemData.flags && typeof itemData.flags === "object")
+        ? foundry.utils.deepClone(itemData.flags)
+        : {};
+      const traitScope = (traitFlags["Halo-Mythic-Foundry-Updated"] && typeof traitFlags["Halo-Mythic-Foundry-Updated"] === "object")
+        ? traitFlags["Halo-Mythic-Foundry-Updated"]
+        : {};
+      traitScope.soldierTypeGrant = {
+        soldierTypeCanonicalId: applyingCanonicalId,
+        soldierTypeName: String(templateName ?? "").trim(),
+        source: "template"
+      };
+      traitFlags["Halo-Mythic-Foundry-Updated"] = traitScope;
+      itemData.flags = traitFlags;
       await this.actor.createEmbeddedDocuments("Item", [itemData]);
       traitsAdded += 1;
     }
@@ -9562,140 +10332,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
   }
 
-  _getFactionPromptChoices() {
-    return [
-      { value: "UNSC",       label: "United Nations Space Command (UNSC)" },
-      { value: "ONI",        label: "Office of Naval Intelligence (ONI)" },
-      { value: "URF",        label: "Insurrection / United Rebel Front (URF)" },
-      { value: "Covenant",   label: "Covenant" },
-      { value: "Banished",   label: "Banished" },
-      { value: "SoS",        label: "Swords of Sangheilios (SoS)" },
-      { value: "Forerunner", label: "Forerunner" },
-      { value: "__other__",  label: "Other (type below)..." }
-    ];
-  }
 
-  _isFactionEducationName(educationName) {
-    return String(educationName ?? "").trim().startsWith("Faction ");
-  }
 
-  _isInstrumentEducationName(educationName) {
-    return String(educationName ?? "").trim().startsWith("Musical Training");
-  }
 
-  _getEducationChoiceDisplayLabel(educationName) {
-    const cleanName = String(educationName ?? "").trim();
-    if (this._isInstrumentEducationName(cleanName)) return "Musical Training";
-    return cleanName;
-  }
 
-  _resolveEducationVariantName(baseEducationName, metadata = {}) {
-    const cleanBaseName = String(baseEducationName ?? "").trim();
-    if (!cleanBaseName) return "";
 
-    if (this._isFactionEducationName(cleanBaseName)) {
-      const suffix = cleanBaseName.slice("Faction ".length).trim();
-      const factionName = String(metadata?.faction ?? "").trim();
-      return factionName && suffix ? `${factionName} ${suffix}` : "";
-    }
 
-    if (this._isInstrumentEducationName(cleanBaseName)) {
-      const instrument = String(metadata?.instrument ?? "").trim();
-      return instrument ? `Musical Training (${instrument})` : "";
-    }
 
-    return cleanBaseName;
-  }
 
-  async _promptEducationVariantMetadata(baseEducationName) {
-    const cleanBaseName = String(baseEducationName ?? "").trim();
-    if (this._isFactionEducationName(cleanBaseName)) {
-      const factionName = await this._promptFactionName();
-      return factionName ? { faction: factionName } : null;
-    }
-    if (this._isInstrumentEducationName(cleanBaseName)) {
-      const instrument = await this._promptInstrumentName();
-      return instrument ? { instrument } : null;
-    }
-    return {};
-  }
-
-  _promptFactionName() {
-    const factions = this._getFactionPromptChoices();
-    const opts = factions.map(f => `<option value="${f.value}">${f.label}</option>`).join("");
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Faction"
-      },
-      content: `
-        <form>
-          <div class="form-group">
-            <label>Faction</label>
-            <select id="mythic-faction-sel" onchange="document.getElementById('mythic-other-group').style.display=(this.value==='__other__'?'block':'none');">${opts}</select>
-          </div>
-          <div class="form-group" id="mythic-other-group" style="display:none">
-            <label>Faction Name</label>
-            <input id="mythic-faction-other" type="text" placeholder="Enter faction name..." />
-          </div>
-        </form>`,
-      buttons: [
-        {
-          action: "ok",
-          label: "Confirm",
-          callback: () => {
-            const sel = String(document.getElementById("mythic-faction-sel")?.value ?? "").trim();
-            if (sel === "__other__") {
-              const typed = String(document.getElementById("mythic-faction-other")?.value ?? "").trim();
-              return typed || null;
-            }
-            return sel || null;
-          }
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
-  }
-
-  _promptInstrumentName() {
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: "Instrument"
-      },
-      content: `
-        <form>
-          <div class="form-group">
-            <label>Instrument</label>
-            <input id="mythic-instrument-input" type="text"
-                   placeholder="e.g. Guitar, Piano, War-Drums..." />
-          </div>
-        </form>`,
-      buttons: [
-        {
-          action: "ok",
-          label: "Confirm",
-          callback: () => {
-            const val = String(document.getElementById("mythic-instrument-input")?.value ?? "").trim();
-            return val || null;
-          }
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
-    });
-  }
-
-  // ── Education roll ─────────────────────────────────────────────────────────
+  // â”€â”€ Education roll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async _onPostAbilityToChat(event) {
     event.preventDefault();
@@ -9907,15 +10552,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const weaponIds = Array.isArray(equipped?.weaponIds) ? equipped.weaponIds : [];
         const armorId = String(equipped?.armorId ?? "");
         const wieldedWeaponId = String(equipped?.wieldedWeaponId ?? "");
+        const nextEnergyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
         const nextWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
-        if (nextWeaponState && typeof nextWeaponState === "object") {
-          delete nextWeaponState[itemId];
-        }
+        cleanupRemovedWeaponSupportData(this.actor, nextEnergyCells, nextWeaponState, [itemId]);
         await this.actor.update({
           "system.equipment.carriedIds": carriedIds.filter((id) => String(id) !== itemId),
           "system.equipment.equipped.weaponIds": weaponIds.filter((id) => String(id) !== itemId),
           "system.equipment.equipped.armorId": armorId === itemId ? "" : armorId,
           "system.equipment.equipped.wieldedWeaponId": wieldedWeaponId === itemId ? "" : wieldedWeaponId,
+          "system.equipment.energyCells": nextEnergyCells,
           "system.equipment.weaponState": nextWeaponState
         });
         await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
@@ -9946,7 +10591,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const nextWeaponIds = Array.from(new Set([...weaponIds, weapon.id]));
     const nextWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
     if (!nextWeaponState[weapon.id] || typeof nextWeaponState[weapon.id] !== "object") {
-      nextWeaponState[weapon.id] = { fireMode: "single", toHitModifier: 0, damageModifier: 0, chargeLevel: 0, magazineCurrent: 0, rechargeRemaining: 0 };
+      nextWeaponState[weapon.id] = { fireMode: "single", toHitModifier: 0, damageModifier: 0, chargeLevel: 0, magazineCurrent: 0, magazineTrackingMode: "abstract", activeMagazineId: "", chamberRoundCount: 0, rechargeRemaining: 0, variantIndex: 0 };
     } else if (!Number.isFinite(Number(nextWeaponState[weapon.id].rechargeRemaining))) {
       nextWeaponState[weapon.id].rechargeRemaining = 0;
     }
@@ -9987,6 +10632,525 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return String(epFirst ?? ids[0] ?? "").trim();
   }
 
+  _getGearCharacteristicMods(item) {
+    const zeroBase = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((key) => [key, 0]));
+    const zeroMythic = Object.fromEntries(["str", "tou", "agi"].map((key) => [key, 0]));
+    if (!item || item.type !== "gear") {
+      return { base: zeroBase, mythic: zeroMythic };
+    }
+
+    const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const rawMods = (gear.characteristicMods && typeof gear.characteristicMods === "object") ? gear.characteristicMods : {};
+    const rawBase = (rawMods.base && typeof rawMods.base === "object") ? rawMods.base : {};
+    const rawMythic = (rawMods.mythic && typeof rawMods.mythic === "object") ? rawMods.mythic : {};
+
+    const base = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((key) => {
+      const value = Number(rawBase?.[key] ?? 0);
+      return [key, Number.isFinite(value) ? value : 0];
+    }));
+    const mythic = Object.fromEntries(["str", "tou", "agi"].map((key) => {
+      const value = Number(rawMythic?.[key] ?? 0);
+      return [key, Number.isFinite(value) ? value : 0];
+    }));
+
+    // Rule-driven armor bonuses/penalties are folded into the same modifier pipeline
+    // so Builder totals and equip deltas stay consistent.
+    const armorRuleEffects = this._getArmorSpecialRuleEffects(item);
+    base.agi = Number(base.agi ?? 0) + Number(armorRuleEffects.agiAdjustment ?? 0);
+
+    return { base, mythic };
+  }
+
+  _getArmorSpecialRuleKeySet(item) {
+    const result = new Set();
+    if (!item || item.type !== "gear") return result;
+
+    const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const explicitKeys = normalizeStringList(Array.isArray(gear?.armorSpecialRuleKeys) ? gear.armorSpecialRuleKeys : [])
+      .map((entry) => String(entry ?? "").trim().toLowerCase())
+      .filter(Boolean);
+    for (const key of explicitKeys) result.add(key);
+
+    const hintText = [
+      item.name,
+      gear?.specialRules,
+      gear?.modifiers,
+      gear?.description
+    ].map((entry) => String(entry ?? "").trim().toLowerCase()).join(" ");
+
+    const includeIf = (key, pattern) => {
+      if (result.has(key)) return;
+      if (pattern.test(hintText)) result.add(key);
+    };
+
+    includeIf("biofoam-injector-port", /biofoam\s+injector\s+port/u);
+    includeIf("bulky-special-rule", /\bbulky\b/u);
+    includeIf("communications-unit", /communications?\s+unit/u);
+    includeIf("cryo-resistant", /cryo\s*-?\s*resistant/u);
+    includeIf("demolitions", /\bdemolitions\b/u);
+    includeIf("fire-rescue", /fire\s*-?\s*rescue/u);
+    includeIf("freefall-assistance-microskeleton", /freefall\s+assistance\s+microskeleton/u);
+    includeIf("hybrid-black-surfacing-paneling", /hybrid\s+black\s*-?\s*surfacing\s+paneling/u);
+    includeIf("kevlar-undersuit-liquid-nanocrystal", /kevlar\s+undersuit|liquid\s+nanocrystal/u);
+    includeIf("mobility-boosting-exo-lining", /mobility\s*-?\s*boosting\s+exo\s*-?\s*lining/u);
+    includeIf("photo-reactive-panels", /photo\s*-?\s*reactive\s+panels/u);
+    includeIf("rucksack", /\brucksack\b/u);
+    includeIf("rucksack-medical-extension", /rucksack\s+medical\s+extension/u);
+    includeIf("temperature-regulator", /temperature\s+regulator/u);
+    includeIf("thermal-cooling", /thermal\s+cooling/u);
+    includeIf("thermal-dampener", /thermal\s+dampener/u);
+    includeIf("timeline-special-rule", /timeline\s+special\s+rule/u);
+    includeIf("uu-ppe", /\buu\s*-?\s*ppe\b/u);
+    includeIf("uvh-ba", /\buvh\s*-?\s*ba\b/u);
+    includeIf("vacuum-sealed", /vacuum\s+sealed/u);
+    includeIf("visr", /\bvisr\b/u);
+    includeIf("vr-oxygen-recycler", /vr\s*\/\s*oxygen\s+recycler|vacuum\s+regulator\s+and\s+oxygen\s+recycler/u);
+
+    return result;
+  }
+
+  _isTimelinePostHumanCovenantWar() {
+    try {
+      const value = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_CAMPAIGN_YEAR_SETTING_KEY) ?? 2552);
+      return Number.isFinite(value) && value >= 2553;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  _extractPhotoReactiveCamouflageBonus(item) {
+    if (!item || item.type !== "gear") return 0;
+    const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const text = [gear?.specialRules, gear?.modifiers, gear?.description].map((entry) => String(entry ?? "")).join(" ");
+    const normalized = text.replace(/\s+/gu, " ");
+    const scoped = normalized.match(/photo\s*-?\s*reactive\s+panels[^\n\r]{0,120}/iu)?.[0] ?? normalized;
+    const explicitBonus = scoped.match(/\+\s*\(?\s*(\d{1,3})\s*\)?/u) || scoped.match(/\b(\d{1,3})\s+bonus\b/iu);
+    if (explicitBonus?.[1]) {
+      const value = Number(explicitBonus[1]);
+      return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+    }
+    return 0;
+  }
+
+  _getArmorSpecialRuleEffects(item) {
+    const empty = {
+      activeRuleKeys: [],
+      agiAdjustment: 0,
+      camouflageModifierBonus: 0,
+      camouflageNotes: [],
+      timelineArmorBonus: 0,
+      uuPpeActive: false,
+      uuPpeExplosivePierceIgnore: 0,
+      uuPpeIgnoreKillRadiusIncrease: false,
+      thermalDampenerScaffold: false,
+      visrScaffold: false,
+      kevlarNanocrystalScaffold: false,
+      grantRucksack: false,
+      grantRucksackMedicalExtension: false
+    };
+    if (!item || item.type !== "gear") return empty;
+
+    const keys = this._getArmorSpecialRuleKeySet(item);
+    const has = (key) => keys.has(String(key ?? "").trim().toLowerCase());
+    const photoReactiveBonus = has("photo-reactive-panels") ? this._extractPhotoReactiveCamouflageBonus(item) : 0;
+    const timelineBonus = (has("timeline-special-rule") && this._isTimelinePostHumanCovenantWar()) ? 1 : 0;
+
+    const camouflageNotes = [];
+    if (has("hybrid-black-surfacing-paneling")) {
+      camouflageNotes.push("[Armor Rule] HYBRID BLACK-SURFACING PANELING: +20 Camouflage in dark/low-light (situational scaffold).");
+    }
+    if (photoReactiveBonus > 0) {
+      camouflageNotes.push(`[Armor Rule] PHOTO-REACTIVE PANELS: +${photoReactiveBonus} Camouflage.`);
+    }
+
+    return {
+      activeRuleKeys: Array.from(keys),
+      agiAdjustment:
+        (has("bulky-special-rule") ? -10 : 0)
+        + (has("mobility-boosting-exo-lining") ? 10 : 0)
+        + (has("uvh-ba") ? 5 : 0),
+      camouflageModifierBonus: photoReactiveBonus,
+      camouflageNotes,
+      timelineArmorBonus: timelineBonus,
+      uuPpeActive: has("uu-ppe"),
+      uuPpeExplosivePierceIgnore: has("uu-ppe") ? 10 : 0,
+      uuPpeIgnoreKillRadiusIncrease: has("uu-ppe"),
+      thermalDampenerScaffold: has("thermal-dampener"),
+      visrScaffold: has("visr"),
+      kevlarNanocrystalScaffold: has("kevlar-undersuit-liquid-nanocrystal"),
+      grantRucksack: has("rucksack"),
+      grantRucksackMedicalExtension: has("rucksack-medical-extension")
+    };
+  }
+
+  _getArmorProtectionWithSpecialRuleBonus(item, armorSystem) {
+    const protection = armorSystem?.protection ?? {};
+    const effects = this._getArmorSpecialRuleEffects(item);
+    const bonus = toNonNegativeWhole(effects?.timelineArmorBonus, 0);
+    return {
+      head: toNonNegativeWhole(protection.head, 0) + bonus,
+      chest: toNonNegativeWhole(protection.chest, 0) + bonus,
+      lArm: toNonNegativeWhole(protection.lArm, 0) + bonus,
+      rArm: toNonNegativeWhole(protection.rArm, 0) + bonus,
+      lLeg: toNonNegativeWhole(protection.lLeg, 0) + bonus,
+      rLeg: toNonNegativeWhole(protection.rLeg, 0) + bonus
+    };
+  }
+
+  _getArmorCharacteristicMods(item) {
+    return this._getGearCharacteristicMods(item);
+  }
+
+  _getEquippedCharacteristicModsFromEquippedState(equippedState = {}) {
+    const base = Object.fromEntries(MYTHIC_CHARACTERISTIC_KEYS.map((key) => [key, 0]));
+    const mythic = Object.fromEntries(["str", "tou", "agi"].map((key) => [key, 0]));
+    const equipped = (equippedState && typeof equippedState === "object") ? equippedState : {};
+    const weaponIds = normalizeStringList(Array.isArray(equipped?.weaponIds) ? equipped.weaponIds : []);
+    const armorId = String(equipped?.armorId ?? "").trim();
+    const wieldedWeaponId = String(equipped?.wieldedWeaponId ?? "").trim();
+
+    const equippedIds = Array.from(new Set([
+      ...weaponIds,
+      armorId,
+      wieldedWeaponId
+    ].map((entry) => String(entry ?? "").trim()).filter(Boolean)));
+
+    for (const itemId of equippedIds) {
+      const item = this.actor.items.get(itemId);
+      const mods = this._getGearCharacteristicMods(item);
+      for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+        base[key] += Number(mods.base?.[key] ?? 0);
+      }
+      for (const key of ["str", "tou", "agi"]) {
+        mythic[key] += Number(mods.mythic?.[key] ?? 0);
+      }
+    }
+
+    return { base, mythic };
+  }
+
+  _getEquippedCharacteristicRowFromEquippedState(equippedState = {}) {
+    return this._getEquippedCharacteristicModsFromEquippedState(equippedState).base;
+  }
+
+  _getEquippedCharacteristicRowFromSystemData(systemData = null) {
+    const source = (systemData && typeof systemData === "object") ? systemData : (this.actor.system ?? {});
+    return this._getEquippedCharacteristicRowFromEquippedState(source?.equipment?.equipped ?? {});
+  }
+
+  _getEquippedMythicCharacteristicRowFromSystemData(systemData = null) {
+    const source = (systemData && typeof systemData === "object") ? systemData : (this.actor.system ?? {});
+    return this._getEquippedCharacteristicModsFromEquippedState(source?.equipment?.equipped ?? {}).mythic;
+  }
+
+  _applyArmorCharacteristicDelta(updateData, previousArmorItem, nextArmorItem) {
+    const previousMods = this._getArmorCharacteristicMods(previousArmorItem);
+    const nextMods = this._getArmorCharacteristicMods(nextArmorItem);
+
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      const delta = Number(nextMods.base?.[key] ?? 0) - Number(previousMods.base?.[key] ?? 0);
+      if (!delta) continue;
+      const current = Number(this.actor.system?.characteristics?.[key] ?? 0);
+      const next = Number.isFinite(current) ? Math.max(0, current + delta) : Math.max(0, delta);
+      updateData[`system.characteristics.${key}`] = next;
+    }
+
+    for (const key of ["str", "tou", "agi"]) {
+      const delta = Number(nextMods.mythic?.[key] ?? 0) - Number(previousMods.mythic?.[key] ?? 0);
+      if (!delta) continue;
+      const current = Number(this.actor.system?.mythic?.characteristics?.[key] ?? 0);
+      const next = Number.isFinite(current) ? Math.max(0, current + delta) : Math.max(0, delta);
+      updateData[`system.mythic.characteristics.${key}`] = next;
+    }
+
+    const previousEffects = this._getArmorSpecialRuleEffects(previousArmorItem);
+    const nextEffects = this._getArmorSpecialRuleEffects(nextArmorItem);
+    const camoDelta = Number(nextEffects?.camouflageModifierBonus ?? 0) - Number(previousEffects?.camouflageModifierBonus ?? 0);
+    if (camoDelta !== 0) {
+      const current = Number(this.actor.system?.skills?.base?.camouflage?.modifier ?? 0);
+      const projected = Number.isFinite(current) ? current : 0;
+      updateData["system.skills.base.camouflage.modifier"] = projected + camoDelta;
+    }
+
+    const currentNotes = String(this.actor.system?.skills?.base?.camouflage?.notes ?? "");
+    const baseLines = currentNotes
+      .split(/\r?\n/gu)
+      .map((line) => String(line ?? "").trim())
+      .filter((line) => line && !line.startsWith("[Armor Rule]"));
+    const nextLines = Array.isArray(nextEffects?.camouflageNotes)
+      ? nextEffects.camouflageNotes.map((line) => String(line ?? "").trim()).filter(Boolean)
+      : [];
+    const mergedNotes = [...baseLines, ...nextLines].join("\n");
+    updateData["system.skills.base.camouflage.notes"] = mergedNotes;
+  }
+
+  async _syncEquippedArmorSpecialRuleState(nextArmorItem = null) {
+    const effects = this._getArmorSpecialRuleEffects(nextArmorItem);
+
+    await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "equippedArmorSpecialRules", {
+      activeRuleKeys: Array.isArray(effects?.activeRuleKeys) ? effects.activeRuleKeys : [],
+      uuPpeActive: Boolean(effects?.uuPpeActive),
+      uuPpeExplosivePierceIgnore: toNonNegativeWhole(effects?.uuPpeExplosivePierceIgnore, 0),
+      uuPpeIgnoreKillRadiusIncrease: Boolean(effects?.uuPpeIgnoreKillRadiusIncrease),
+      thermalDampenerScaffold: Boolean(effects?.thermalDampenerScaffold),
+      visrScaffold: Boolean(effects?.visrScaffold),
+      kevlarNanocrystalScaffold: Boolean(effects?.kevlarNanocrystalScaffold),
+      timelineArmorBonus: toNonNegativeWhole(effects?.timelineArmorBonus, 0)
+    });
+
+    await this._syncArmorRuleGrantedItems(nextArmorItem, effects);
+  }
+
+  async _findCompendiumGearItemDataByNames(nameCandidates = []) {
+    const wanted = normalizeStringList(Array.isArray(nameCandidates) ? nameCandidates : [])
+      .map((entry) => String(entry ?? "").trim().toLowerCase())
+      .filter(Boolean);
+    if (!wanted.length) return null;
+
+    for (const candidatePack of game.packs) {
+      if (candidatePack.documentName !== "Item") continue;
+      try {
+        const index = await candidatePack.getIndex();
+        const found = index.find((entry) => wanted.includes(String(entry?.name ?? "").trim().toLowerCase()));
+        if (!found?._id) continue;
+        const doc = await candidatePack.getDocument(found._id);
+        const obj = doc?.toObject?.() ?? null;
+        if (!obj || obj.type !== "gear") continue;
+        return obj;
+      } catch (_) {
+        // Skip packs that fail to load.
+      }
+    }
+    return null;
+  }
+
+  async _syncArmorRuleGrantedItems(nextArmorItem = null, effects = {}) {
+    const nextArmorId = String(nextArmorItem?.id ?? "").trim();
+    const wantedRuleKeys = new Set();
+    if (nextArmorId && effects?.grantRucksack) wantedRuleKeys.add("rucksack");
+    if (nextArmorId && effects?.grantRucksackMedicalExtension) wantedRuleKeys.add("rucksack-medical-extension");
+
+    const staleIds = this.actor.items
+      .filter((entry) => {
+        if (entry.type !== "gear") return false;
+        const link = entry.getFlag("Halo-Mythic-Foundry-Updated", "armorRuleGrantLink") ?? {};
+        const sourceArmorId = String(link?.sourceArmorId ?? "").trim();
+        const ruleKey = String(link?.ruleKey ?? "").trim();
+        if (!sourceArmorId || !ruleKey) return false;
+        if (!nextArmorId) return true;
+        if (sourceArmorId !== nextArmorId) return true;
+        return !wantedRuleKeys.has(ruleKey);
+      })
+      .map((entry) => String(entry.id ?? ""))
+      .filter(Boolean);
+
+    if (staleIds.length) {
+      await this._deleteGearItemsAndCleanup(staleIds);
+    }
+
+    await this._ensureArmorRuleGrantedItems(nextArmorItem, effects);
+  }
+
+  async _ensureArmorRuleGrantedItems(nextArmorItem = null, effects = {}) {
+    const sourceArmorId = String(nextArmorItem?.id ?? "").trim();
+    const ensureItem = async (nameCandidates, fallbackBuilder, ruleKey = "") => {
+      if (!sourceArmorId || !ruleKey) return;
+      const normalizedCandidates = normalizeStringList(Array.isArray(nameCandidates) ? nameCandidates : []);
+      const hasExisting = this.actor.items.some((entry) => {
+        if (entry.type !== "gear") return false;
+        const link = entry.getFlag("Halo-Mythic-Foundry-Updated", "armorRuleGrantLink") ?? {};
+        const linkedArmorId = String(link?.sourceArmorId ?? "").trim();
+        const linkedRuleKey = String(link?.ruleKey ?? "").trim();
+        return linkedArmorId === sourceArmorId && linkedRuleKey === ruleKey;
+      });
+      if (hasExisting) return;
+
+      let itemData = await this._findCompendiumGearItemDataByNames(normalizedCandidates);
+      if (!itemData) {
+        itemData = fallbackBuilder();
+      }
+      if (!itemData) return;
+      itemData.system = normalizeGearSystemData(itemData.system ?? {}, itemData.name ?? "");
+      itemData.flags ??= {};
+      const nsFlags = (itemData.flags["Halo-Mythic-Foundry-Updated"] && typeof itemData.flags["Halo-Mythic-Foundry-Updated"] === "object")
+        ? foundry.utils.deepClone(itemData.flags["Halo-Mythic-Foundry-Updated"])
+        : {};
+      nsFlags.armorRuleGrantLink = {
+        sourceArmorId,
+        ruleKey
+      };
+      itemData.flags["Halo-Mythic-Foundry-Updated"] = nsFlags;
+      const created = await this.actor.createEmbeddedDocuments("Item", [itemData]);
+      const newItem = created?.[0] ?? null;
+      if (!newItem?.id) return;
+
+      const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+        ? this.actor.system.equipment.carriedIds
+        : [];
+      const nextCarried = Array.from(new Set([...carriedIds, newItem.id]));
+      if (nextCarried.length !== carriedIds.length) {
+        await this.actor.update({ "system.equipment.carriedIds": nextCarried });
+      }
+    };
+
+    if (effects?.grantRucksack) {
+      await ensureItem(
+        ["M/LBE Hard Case Armored Backpack", "Armored Backpack", "Rucksack"],
+        () => ({
+          name: "M/LBE Hard Case Armored Backpack",
+          type: "gear",
+          img: "icons/svg/item-bag.svg",
+          system: {
+            equipmentType: "container",
+            itemClass: "general",
+            description: "Granted by armor special rule: Rucksack."
+          }
+        }),
+        "rucksack"
+      );
+    }
+
+    if (effects?.grantRucksackMedicalExtension) {
+      await ensureItem(
+        ["Rucksack Medical Extension", "ODST Rucksack Medical Extension"],
+        () => ({
+          name: "Rucksack Medical Extension",
+          type: "gear",
+          img: "icons/svg/item-bag.svg",
+          system: {
+            equipmentType: "general",
+            itemClass: "general",
+            description: "Granted by armor special rule: Rucksack Medical Extension. Holds up to 2 Medical Kits, 10 Biofoam Canisters, and 10 medication sets."
+          }
+        }),
+        "rucksack-medical-extension"
+      );
+    }
+  }
+
+  _getLinkedBuiltInItemsForArmor(armorItemId = "") {
+    const armorId = String(armorItemId ?? "").trim();
+    if (!armorId) return [];
+    return this.actor.items.filter((entry) => {
+      if (entry.type !== "gear") return false;
+      const link = entry.getFlag("Halo-Mythic-Foundry-Updated", "builtInArmorLink") ?? {};
+      return String(link?.sourceArmorId ?? "").trim() === armorId;
+    });
+  }
+
+  async _deleteGearItemsAndCleanup(itemIds = []) {
+    const removable = Array.from(new Set((Array.isArray(itemIds) ? itemIds : [])
+      .map((entry) => String(entry ?? "").trim())
+      .filter(Boolean)));
+    if (!removable.length) return;
+
+    const removableSet = new Set(removable);
+    const equipment = this.actor.system?.equipment ?? {};
+    const equipped = equipment?.equipped ?? {};
+    const carriedIds = Array.isArray(equipment?.carriedIds) ? equipment.carriedIds : [];
+    const weaponIds = Array.isArray(equipped?.weaponIds) ? equipped.weaponIds : [];
+    const wieldedWeaponId = String(equipped?.wieldedWeaponId ?? "");
+    const nextEnergyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
+    const nextWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    cleanupRemovedWeaponSupportData(this.actor, nextEnergyCells, nextWeaponState, removable);
+
+    await this.actor.update({
+      "system.equipment.carriedIds": carriedIds.filter((id) => !removableSet.has(String(id))),
+      "system.equipment.equipped.weaponIds": weaponIds.filter((id) => !removableSet.has(String(id))),
+      "system.equipment.equipped.wieldedWeaponId": removableSet.has(wieldedWeaponId) ? "" : wieldedWeaponId,
+      "system.equipment.energyCells": nextEnergyCells,
+      "system.equipment.weaponState": nextWeaponState
+    });
+
+    const existingIds = removable.filter((id) => this.actor.items.has(id));
+    if (existingIds.length) {
+      await this.actor.deleteEmbeddedDocuments("Item", existingIds);
+    }
+  }
+
+  async _removeLinkedBuiltInItemsForArmor(armorItemId = "") {
+    const linkedItems = this._getLinkedBuiltInItemsForArmor(armorItemId);
+    const linkedIds = linkedItems.map((entry) => String(entry.id ?? "")).filter(Boolean);
+    if (!linkedIds.length) return;
+    await this._deleteGearItemsAndCleanup(linkedIds);
+  }
+
+  async _syncEquippedArmorBuiltInItems(previousArmorId = "", nextArmorItem = null) {
+    const prevArmor = String(previousArmorId ?? "").trim();
+    const nextArmorId = String(nextArmorItem?.id ?? "").trim();
+
+    if (prevArmor && prevArmor !== nextArmorId) {
+      await this._removeLinkedBuiltInItemsForArmor(prevArmor);
+    }
+
+    if (!nextArmorItem || !nextArmorId) return;
+
+    const armorSystem = normalizeGearSystemData(nextArmorItem.system ?? {}, nextArmorItem.name ?? "");
+    const refs = normalizeStringList(Array.isArray(armorSystem?.builtInItemIds) ? armorSystem.builtInItemIds : []);
+    const wantedRefSet = new Set(refs.map((entry) => String(entry ?? "").trim()).filter(Boolean));
+
+    const linkedItems = this._getLinkedBuiltInItemsForArmor(nextArmorId);
+    const staleIds = linkedItems
+      .filter((entry) => {
+        const link = entry.getFlag("Halo-Mythic-Foundry-Updated", "builtInArmorLink") ?? {};
+        const sourceRef = String(link?.sourceRef ?? "").trim();
+        return sourceRef && !wantedRefSet.has(sourceRef);
+      })
+      .map((entry) => String(entry.id ?? ""))
+      .filter(Boolean);
+    if (staleIds.length) {
+      await this._deleteGearItemsAndCleanup(staleIds);
+    }
+
+    if (!wantedRefSet.size) return;
+
+    const existingRefSet = new Set(
+      this._getLinkedBuiltInItemsForArmor(nextArmorId)
+        .map((entry) => {
+          const link = entry.getFlag("Halo-Mythic-Foundry-Updated", "builtInArmorLink") ?? {};
+          return String(link?.sourceRef ?? "").trim();
+        })
+        .filter(Boolean)
+    );
+
+    const createPayload = [];
+    for (const sourceRef of wantedRefSet) {
+      if (!sourceRef || existingRefSet.has(sourceRef)) continue;
+      const sourceDoc = await fromUuid(sourceRef).catch(() => null);
+      if (!sourceDoc || sourceDoc.documentName !== "Item" || sourceDoc.type !== "gear") continue;
+
+      const itemData = sourceDoc.toObject();
+      delete itemData._id;
+      delete itemData._stats;
+      itemData.system = normalizeGearSystemData(itemData.system ?? {}, itemData.name ?? "");
+      itemData.system.weightKg = 0;
+      itemData.flags ??= {};
+      const nsFlags = (itemData.flags["Halo-Mythic-Foundry-Updated"] && typeof itemData.flags["Halo-Mythic-Foundry-Updated"] === "object")
+        ? foundry.utils.deepClone(itemData.flags["Halo-Mythic-Foundry-Updated"])
+        : {};
+      nsFlags.builtInArmorLink = {
+        sourceArmorId: nextArmorId,
+        sourceRef
+      };
+      itemData.flags["Halo-Mythic-Foundry-Updated"] = nsFlags;
+      createPayload.push(itemData);
+    }
+
+    if (!createPayload.length) return;
+
+    const createdItems = await this.actor.createEmbeddedDocuments("Item", createPayload);
+    const createdIds = createdItems.map((entry) => String(entry?.id ?? "")).filter(Boolean);
+    if (!createdIds.length) return;
+
+    const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+      ? this.actor.system.equipment.carriedIds
+      : [];
+    const nextCarried = Array.from(new Set([...carriedIds, ...createdIds]));
+    if (nextCarried.length !== carriedIds.length) {
+      await this.actor.update({ "system.equipment.carriedIds": nextCarried });
+    }
+  }
+
   async _onRemoveGearItem(event) {
     event.preventDefault();
     if (!this.isEditable) return;
@@ -10007,22 +11171,56 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const carriedIds = Array.isArray(equipment?.carriedIds) ? equipment.carriedIds : [];
     const weaponIds = Array.isArray(equipped?.weaponIds) ? equipped.weaponIds : [];
     const armorId = String(equipped?.armorId ?? "");
+    const removedArmorId = armorId === itemId ? armorId : "";
     const wieldedWeaponId = String(equipped?.wieldedWeaponId ?? "");
+    const previousArmorItem = armorId ? this.actor.items.get(armorId) : null;
 
     const nextCarried = carriedIds.filter((id) => String(id) !== itemId);
     const nextWeaponIds = weaponIds.filter((id) => String(id) !== itemId);
     const nextArmorId = armorId === itemId ? "" : armorId;
     const nextWielded = wieldedWeaponId === itemId ? "" : wieldedWeaponId;
+    const nextEnergyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
     const nextWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
-    if (nextWeaponState && typeof nextWeaponState === "object") {
-      delete nextWeaponState[itemId];
+
+    // For ranged energy weapons with a loaded battery, ask the player what to do with it.
+    let discardActiveCell = false;
+    if (item && item.type === "gear") {
+      const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+      const isRanged = String(gear?.itemClass ?? "").trim().toLowerCase() === "weapon"
+        && String(gear?.weaponClass ?? "").trim().toLowerCase() === "ranged";
+      if (isRanged && isEnergyCellAmmoMode(String(gear?.ammoMode ?? "").trim().toLowerCase())) {
+        const weaponCells = Array.isArray(nextEnergyCells[itemId]) ? nextEnergyCells[itemId] : [];
+        const stateEntry = buildDefaultWeaponStateEntry(nextWeaponState[itemId]);
+        const activeId = String(stateEntry.activeEnergyCellId ?? "").trim();
+        const activeCell = activeId ? weaponCells.find((c) => String(c?.id ?? "").trim() === activeId) : null;
+        if (activeCell) {
+          const cellLabel = String(activeCell.label ?? "Battery").trim();
+          const chargeDisplay = `${activeCell.current ?? 0}/${activeCell.capacity ?? 0}`;
+          const choice = await foundry.applications.api.DialogV2.wait({
+            window: { title: `Remove ${foundry.utils.escapeHTML(item.name ?? "Weapon")}` },
+            content: `<p>A <strong>${foundry.utils.escapeHTML(cellLabel)}</strong> is currently loaded (${chargeDisplay}).</p><p>What do you want to do with it?</p>`,
+            buttons: [
+              { action: "keep", label: "Keep as Spare", default: true },
+              { action: "discard", label: "Discard It" },
+              { action: "cancel", label: "Cancel" }
+            ],
+            rejectClose: false,
+            modal: true
+          });
+          if (!choice || choice === "cancel") return;
+          discardActiveCell = choice === "discard";
+        }
+      }
     }
+
+    cleanupRemovedWeaponSupportData(this.actor, nextEnergyCells, nextWeaponState, [itemId], discardActiveCell);
 
     const updateData = {
       "system.equipment.carriedIds": nextCarried,
       "system.equipment.equipped.weaponIds": nextWeaponIds,
       "system.equipment.equipped.armorId": nextArmorId,
       "system.equipment.equipped.wieldedWeaponId": nextWielded,
+      "system.equipment.energyCells": nextEnergyCells,
       "system.equipment.weaponState": nextWeaponState
     };
 
@@ -10037,11 +11235,745 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       updateData["system.combat.shields.current"] = 0;
       updateData["system.combat.shields.rechargeDelay"] = 0;
       updateData["system.combat.shields.rechargeRate"] = 0;
+      this._applyArmorCharacteristicDelta(updateData, previousArmorItem, null);
+    }
+
+    await this.actor.update(updateData);
+    const resolvedNextArmorItem = nextArmorId ? this.actor.items.get(nextArmorId) : null;
+    await this._syncEquippedArmorSpecialRuleState(resolvedNextArmorItem);
+    if (removedArmorId) {
+      await this._removeLinkedBuiltInItemsForArmor(removedArmorId);
+    }
+
+    await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
+  }
+
+  async _onAddCustomInventoryItem(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "Create Custom Inventory Item"
+      },
+      content: `
+        <form>
+          <div class="form-group"><label>Name</label><input id="mythic-custom-inv-name" type="text" placeholder="Custom Item" /></div>
+          <div class="form-group"><label>Subtype</label>
+            <select id="mythic-custom-inv-subtype">
+              <option value="general">General</option>
+              <option value="container">Container</option>
+              <option value="ammunition">Ammunition</option>
+              <option value="weapon-modification">Weapon Modification</option>
+              <option value="armor-modification">Armor Modification</option>
+              <option value="ammo-modification">Ammo Modification</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Weight (kg)</label><input id="mythic-custom-inv-weight" type="number" min="0" step="0.01" value="0" /></div>
+          <div class="form-group"><label>Description</label><textarea id="mythic-custom-inv-description" rows="4" placeholder="Optional notes"></textarea></div>
+          <div class="form-group"><label><input id="mythic-custom-inv-carried" type="checkbox" checked /> Mark as carried</label></div>
+        </form>
+      `,
+      buttons: [
+        {
+          action: "create",
+          label: "Create",
+          callback: () => ({
+            name: String(document.getElementById("mythic-custom-inv-name")?.value ?? "").trim(),
+            equipmentType: String(document.getElementById("mythic-custom-inv-subtype")?.value ?? "general").trim().toLowerCase() || "general",
+            weightKg: Number(document.getElementById("mythic-custom-inv-weight")?.value ?? 0),
+            description: String(document.getElementById("mythic-custom-inv-description")?.value ?? "").trim(),
+            isCarried: Boolean(document.getElementById("mythic-custom-inv-carried")?.checked)
+          })
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+
+    if (!result) return;
+    if (!result.name) {
+      ui.notifications?.warn("Custom item name is required.");
+      return;
+    }
+
+    const weightKg = Number.isFinite(result.weightKg) ? Math.max(0, Math.round(Number(result.weightKg) * 100) / 100) : 0;
+    const systemData = normalizeGearSystemData({
+      equipmentType: result.equipmentType,
+      source: "custom",
+      category: "custom",
+      description: result.description,
+      weightKg,
+      itemClass: "other",
+      weaponClass: "other"
+    }, result.name);
+
+    const created = await this.actor.createEmbeddedDocuments("Item", [{
+      name: result.name,
+      type: "gear",
+      img: "icons/svg/item-bag.svg",
+      system: systemData
+    }]);
+
+    const createdItem = created?.[0] ?? null;
+    if (!createdItem?.id) return;
+
+    if (result.isCarried) {
+      const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+        ? this.actor.system.equipment.carriedIds
+        : [];
+      const nextCarried = Array.from(new Set([...carriedIds, createdItem.id]));
+      if (nextCarried.length !== carriedIds.length) {
+        await this.actor.update({ "system.equipment.carriedIds": nextCarried });
+      }
+    }
+
+    if (createdItem.sheet) createdItem.sheet.render(true);
+  }
+
+  async _onToggleBatteryGroup(event) {
+    event.preventDefault();
+    const weaponId = String(event.currentTarget?.dataset?.weaponId ?? "").trim();
+    if (!weaponId) return;
+    if (!this._batteryGroupExpanded || typeof this._batteryGroupExpanded !== "object") {
+      this._batteryGroupExpanded = {};
+    }
+    this._batteryGroupExpanded[weaponId] = !Boolean(this._batteryGroupExpanded[weaponId]);
+    await this.render(false);
+  }
+
+  async _onToggleBallisticGroup(event) {
+    event.preventDefault();
+    const groupKey = String(event.currentTarget?.dataset?.groupKey ?? "").trim();
+    if (!groupKey) return;
+    if (!this._ballisticGroupExpanded || typeof this._ballisticGroupExpanded !== "object") {
+      this._ballisticGroupExpanded = {};
+    }
+    this._ballisticGroupExpanded[groupKey] = !Boolean(this._ballisticGroupExpanded[groupKey]);
+    await this.render(false);
+  }
+
+  async _onRemoveEnergyCell(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const weaponId = String(event.currentTarget?.dataset?.weaponId ?? "").trim();
+    const cellId = String(event.currentTarget?.dataset?.cellId ?? "").trim();
+    if (!weaponId || !cellId) return;
+
+    const energyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
+    const weaponCells = Array.isArray(energyCells[weaponId]) ? [...energyCells[weaponId]] : [];
+    if (!weaponCells.length) return;
+
+    const targetCell = weaponCells.find((entry) => String(entry?.id ?? "").trim() === cellId) ?? null;
+    if (!targetCell) return;
+
+    const nextCells = weaponCells.filter((entry) => String(entry?.id ?? "").trim() !== cellId);
+    if (nextCells.length) {
+      energyCells[weaponId] = nextCells;
+    } else {
+      // Retain empty parent entry if the source weapon still exists on this actor.
+      // Only delete the key when both weapon and children are gone.
+      const weaponStillExists = !!this.actor.items.get(weaponId);
+      if (weaponStillExists) {
+        energyCells[weaponId] = [];
+      } else {
+        delete energyCells[weaponId];
+      }
+    }
+
+    const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    const stateEntry = buildDefaultWeaponStateEntry(weaponState[weaponId]);
+    const activeEnergyCellId = String(stateEntry.activeEnergyCellId ?? "").trim();
+    if (activeEnergyCellId === cellId) {
+      stateEntry.activeEnergyCellId = String(nextCells[0]?.id ?? "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(weaponState, weaponId) || stateEntry.activeEnergyCellId) {
+      weaponState[weaponId] = stateEntry;
+    }
+
+    await this.actor.update({
+      "system.equipment.energyCells": energyCells,
+      "system.equipment.weaponState": weaponState
+    });
+
+    const removedLabel = String(targetCell?.label ?? "Battery").trim() || "Battery";
+    ui.notifications?.info(`Removed ${removedLabel}.`);
+  }
+
+  async _onRechargeEnergyCell(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const weaponId = String(event.currentTarget?.dataset?.weaponId ?? "").trim();
+    const cellId = String(event.currentTarget?.dataset?.cellId ?? "").trim();
+    if (!weaponId || !cellId) return;
+
+    const energyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
+    const weaponCells = Array.isArray(energyCells[weaponId]) ? [...energyCells[weaponId]] : [];
+    if (!weaponCells.length) return;
+
+    const targetIndex = weaponCells.findIndex((entry) => String(entry?.id ?? "").trim() === cellId);
+    if (targetIndex < 0) return;
+
+    const targetCell = weaponCells[targetIndex];
+    const capacity = toNonNegativeWhole(targetCell?.capacity, 0);
+    const current = toNonNegativeWhole(targetCell?.current, 0);
+    if (capacity <= 0) {
+      ui.notifications?.warn("This battery has no capacity configured.");
+      return;
+    }
+    if (current >= capacity) {
+      ui.notifications?.info(`This battery is already fully charged (${current}/${capacity}).`);
+      return;
+    }
+
+    weaponCells[targetIndex] = {
+      ...targetCell,
+      current: capacity
+    };
+    energyCells[weaponId] = weaponCells;
+
+    await this.actor.update({
+      "system.equipment.energyCells": energyCells
+    });
+
+    const label = String(targetCell?.label ?? "Battery").trim() || "Battery";
+    ui.notifications?.info(`Recharged ${label} to ${capacity}/${capacity}.`);
+  }
+
+  async _onRemoveBallisticContainer(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const groupKey = String(event.currentTarget?.dataset?.groupKey ?? "").trim();
+    const containerId = String(event.currentTarget?.dataset?.containerId ?? "").trim();
+    if (!groupKey || !containerId) return;
+
+    const containersMap = foundry.utils.deepClone(this.actor.system?.equipment?.ballisticContainers ?? {});
+    const containers = Array.isArray(containersMap[groupKey]) ? [...containersMap[groupKey]] : [];
+    if (!containers.length) return;
+
+    const removedContainer = containers.find((entry) => String(entry?.id ?? "").trim() === containerId) ?? null;
+    if (!removedContainer) return;
+
+    // Exclude stubs and the removed entry to get remaining real containers.
+    const nextContainers = containers.filter((entry) => !entry?._stub && String(entry?.id ?? "").trim() !== containerId);
+    if (nextContainers.length) {
+      containersMap[groupKey] = nextContainers;
+    } else {
+      // Retain parent key as a stub when the source weapon still exists so the
+      // group header (and its Add button) remain visible with zero children.
+      const sourceWeaponId = String(removedContainer?.weaponId ?? "").trim();
+      const weaponStillExists = sourceWeaponId && !!this.actor.items.get(sourceWeaponId);
+      if (weaponStillExists) {
+        containersMap[groupKey] = [{
+          _stub: true,
+          weaponId: sourceWeaponId,
+          type: String(removedContainer?.type ?? "").trim(),
+          capacity: toNonNegativeWhole(removedContainer?.capacity, 0),
+          ammoUuid: String(removedContainer?.ammoUuid ?? "").trim(),
+          ammoName: String(removedContainer?.ammoName ?? "").trim(),
+          sourceWeaponName: String(removedContainer?.sourceWeaponName ?? "").trim()
+        }];
+      } else {
+        delete containersMap[groupKey];
+      }
+    }
+
+    const weaponId = String(removedContainer?.weaponId ?? "").trim();
+    const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    if (weaponId) {
+      const stateEntry = buildDefaultWeaponStateEntry(weaponState[weaponId]);
+      const activeMagazineId = String(stateEntry.activeMagazineId ?? "").trim();
+      if (activeMagazineId === containerId) {
+        const replacement = nextContainers.find((entry) => String(entry?.weaponId ?? "").trim() === weaponId) ?? null;
+        stateEntry.activeMagazineId = String(replacement?.id ?? "").trim();
+        weaponState[weaponId] = stateEntry;
+      }
+    }
+
+    await this.actor.update({
+      "system.equipment.ballisticContainers": containersMap,
+      "system.equipment.weaponState": weaponState
+    });
+
+    const removedLabel = String(removedContainer?.label ?? "Container").trim() || "Container";
+    ui.notifications?.info(`Removed ${removedLabel}.`);
+  }
+
+  async _onPurchaseEnergyCell(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const weaponId = String(event.currentTarget?.dataset?.weaponId ?? "").trim();
+    if (!weaponId) return;
+
+    const weapon = this.actor.items.get(weaponId);
+
+    // Derive battery parameters from the live weapon or from existing orphan cells.
+    let ammoMode, capacity, cellLabel, weaponName, weaponPrice, sourceWeaponType, sourceTraining, compatSig, batterySubtype;
+
+    if (weapon && weapon.type === "gear") {
+      const gear = normalizeGearSystemData(weapon.system ?? {}, weapon.name ?? "");
+      const isRangedWeapon = String(gear.itemClass ?? "").trim().toLowerCase() === "weapon"
+        && String(gear.weaponClass ?? "").trim().toLowerCase() === "ranged";
+      ammoMode = String(gear.ammoMode ?? "standard").trim().toLowerCase();
+      if (!isRangedWeapon || !isEnergyCellAmmoMode(ammoMode)) return;
+      capacity = getWeaponEnergyCellCapacity(gear);
+      if (capacity <= 0) {
+        ui.notifications?.warn("This weapon has no battery capacity configured.");
+        return;
+      }
+      weaponName = String(weapon.name ?? "").trim();
+      weaponPrice = Math.max(0, Number(gear?.price?.amount ?? 0) || 0);
+      sourceWeaponType = String(gear.weaponType ?? "").trim().toLowerCase();
+      sourceTraining = String(gear.training ?? "").trim().toLowerCase();
+      compatSig = buildEnergyCellCompatibilitySignature(gear, weaponName);
+      batterySubtype = normalizeBatterySubtype(gear?.batteryType, ammoMode);
+    } else {
+      // Orphan battery group — derive parameters from the stored cell metadata.
+      const orphanCells = Array.isArray(this.actor.system?.equipment?.energyCells?.[weaponId])
+        ? this.actor.system.equipment.energyCells[weaponId]
+        : [];
+      if (!orphanCells.length) return;
+      const ref = orphanCells[0];
+      ammoMode = String(ref.ammoMode ?? "").trim().toLowerCase();
+      capacity = toNonNegativeWhole(ref?.capacity, 0);
+      weaponName = String(ref.sourceWeaponName ?? "Unknown Weapon").trim();
+      weaponPrice = 0;
+      sourceWeaponType = String(ref.sourceWeaponType ?? "").trim().toLowerCase();
+      sourceTraining = String(ref.sourceTraining ?? "").trim().toLowerCase();
+      compatSig = String(ref.compatibilitySignature ?? "").trim();
+      batterySubtype = normalizeBatterySubtype(ref?.batteryType, ammoMode);
+      if (!isEnergyCellAmmoMode(ammoMode) || capacity <= 0) return;
+    }
+
+    cellLabel = getEnergyCellLabel(ammoMode, batterySubtype);
+    const cost = getEnergyCellPurchaseCost(weaponPrice, ammoMode, batterySubtype);
+    const currentCredits = toNonNegativeWhole(this.actor.system?.equipment?.credits, 0);
+
+    // Dialog: offer "Buy with cR" (deducts credits) or "Add" (free – equipment pack / found item).
+    const canAfford = currentCredits >= cost;
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: `Add ${cellLabel}` },
+      content: `<p>Add one <strong>${foundry.utils.escapeHTML(cellLabel)}</strong> (${capacity} cap) for <em>${foundry.utils.escapeHTML(weaponName)}</em>?</p>`,
+      buttons: [
+        {
+          action: "buy",
+          label: `Buy (${cost} cR)`,
+          default: Boolean(weapon) && canAfford
+        },
+        {
+          action: "free",
+          label: "Add Free",
+          default: !weapon || !canAfford
+        },
+        { action: "cancel", label: "Cancel" }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+    if (!choice || choice === "cancel") return;
+
+    if (choice === "buy") {
+      if (currentCredits < cost) {
+        ui.notifications?.warn(`Not enough credits to buy ${cellLabel}. Need ${cost} cR.`);
+        return;
+      }
+    }
+
+    const energyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
+    const currentCells = Array.isArray(energyCells[weaponId]) ? [...energyCells[weaponId]] : [];
+    const newCell = {
+      id: foundry.utils.randomID(),
+      weaponId,
+      ammoMode,
+      capacity,
+      current: capacity,
+      isCarried: true,
+      createdAt: new Date().toISOString(),
+      batteryType: batterySubtype,
+      label: cellLabel,
+      sourceWeaponName: weaponName,
+      sourceWeaponType,
+      sourceTraining,
+      compatibilitySignature: compatSig
+    };
+    currentCells.push(newCell);
+    energyCells[weaponId] = currentCells;
+
+    const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    const stateEntry = buildDefaultWeaponStateEntry(weaponState[weaponId]);
+    if (!stateEntry.activeEnergyCellId) {
+      stateEntry.activeEnergyCellId = newCell.id;
+    }
+    weaponState[weaponId] = stateEntry;
+
+    const updateData = {
+      "system.equipment.energyCells": energyCells,
+      "system.equipment.weaponState": weaponState
+    };
+    if (choice === "buy") {
+      updateData["system.equipment.credits"] = Math.max(0, currentCredits - cost);
     }
 
     await this.actor.update(updateData);
 
-    await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
+    if (choice === "buy") {
+      ui.notifications?.info(`Purchased 1 ${cellLabel} for ${cost} cR.`);
+    } else {
+      ui.notifications?.info(`Added 1 ${cellLabel}.`);
+    }
+  }
+
+  async _onPurchaseBallisticContainer(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const groupKey = String(event.currentTarget?.dataset?.groupKey ?? "").trim();
+    if (!groupKey) return;
+
+    const ballisticContainers = foundry.utils.deepClone(this.actor.system?.equipment?.ballisticContainers ?? {});
+    // Filter stubs — they are placeholder entries for the parent row, not real containers.
+    const currentContainers = (Array.isArray(ballisticContainers[groupKey]) ? [...ballisticContainers[groupKey]] : []).filter((e) => !e?._stub);
+    // We still need a metadata reference even if currentContainers is empty (stub-only group).
+    const rawGroupEntries = Array.isArray(ballisticContainers[groupKey]) ? ballisticContainers[groupKey] : [];
+    const ref = currentContainers[0] ?? rawGroupEntries.find((e) => e?._stub) ?? {};
+    if (!ref.weaponId && !ref.type && !ref.capacity) return;
+    const weaponId = String(ref.weaponId ?? "").trim();
+    const weapon = weaponId ? this.actor.items.get(weaponId) : null;
+
+    let ammoMode, baseCapacity, containerType, containerLabel, weaponName, weaponPrice, ammoRef;
+
+    if (weapon && weapon.type === "gear") {
+      const gear = normalizeGearSystemData(weapon.system ?? {}, weapon.name ?? "");
+      const isRangedWeapon = String(gear.itemClass ?? "").trim().toLowerCase() === "weapon"
+        && String(gear.weaponClass ?? "").trim().toLowerCase() === "ranged";
+      ammoMode = isEnergyCellAmmoMode(gear.ammoMode)
+        ? String(gear.ammoMode ?? "").trim().toLowerCase()
+        : normalizeBallisticAmmoMode(gear.ammoMode);
+      if (!isRangedWeapon || !isBallisticAmmoMode(ammoMode)) return;
+      baseCapacity = getWeaponBallisticCapacity(gear);
+      if (baseCapacity <= 0) {
+        ui.notifications?.warn("This weapon has no magazine or belt capacity configured.");
+        return;
+      }
+      const ammoDoc = gear.ammoId ? await fromUuid(gear.ammoId).catch(() => null) : null;
+      const ammoData = ammoDoc?.type === "gear"
+        ? normalizeGearSystemData(ammoDoc.system ?? {}, ammoDoc.name ?? "")
+        : null;
+      ammoRef = {
+        uuid: String(ammoDoc?.uuid ?? gear.ammoId ?? "").trim(),
+        name: String(ammoDoc?.name ?? ref.ammoName ?? "").trim(),
+        weightKg: Number(ammoData?.weightKg ?? ammoData?.weightPerRoundKg ?? 0),
+        weightPerRoundKg: Number(ammoData?.weightPerRoundKg ?? ammoData?.weightKg ?? 0),
+        costPer100: Math.max(0, Number(ammoData?.costPer100 ?? ammoData?.price?.amount ?? 0) || 0)
+      };
+      containerType = getBallisticContainerType(ammoMode, ref.type);
+      containerLabel = getBallisticContainerLabel(ammoMode, containerType);
+      weaponName = String(weapon.name ?? "").trim();
+      weaponPrice = Math.max(0, Number(gear?.price?.amount ?? 0) || 0);
+    } else {
+      ammoMode = normalizeBallisticAmmoMode(ref.type ?? "magazine");
+      baseCapacity = toNonNegativeWhole(ref.baseCapacity, 0)
+        || inferBallisticContainerBaseCapacity(ref.capacity, ref.containerOption ?? "standard");
+      if (!isBallisticAmmoMode(ammoMode) || baseCapacity <= 0) return;
+      containerType = getBallisticContainerType(ammoMode, ref.type);
+      containerLabel = String(ref.label ?? "").trim() || getBallisticContainerLabel(ammoMode, containerType);
+      weaponName = String(ref.sourceWeaponName ?? "Unknown Weapon").trim() || "Unknown Weapon";
+      weaponPrice = 0;
+      ammoRef = {
+        uuid: String(ref.ammoUuid ?? "").trim(),
+        name: String(ref.ammoName ?? "Ammo").trim() || "Ammo",
+        weightKg: Number(ref.weightKg ?? 0) > 0 ? Number(ref.weightKg) / Math.max(1, baseCapacity) : 0,
+        weightPerRoundKg: Number(ref.weightKg ?? 0) > 0 ? Number(ref.weightKg) / Math.max(1, baseCapacity) : 0,
+        costPer100: 0
+      };
+    }
+
+    // ── Phase 4: Option chooser (non-Forerunner weapons only) ──────────────
+    const isForerunner = ammoMode === "light-mass";
+    let selectedOptionId = "standard";
+
+    if (!isForerunner) {
+      const availableOptions = getAvailableBallisticOptions(ammoMode);
+      const esc = foundry.utils.escapeHTML;
+      const radioRows = availableOptions.map((opt, i) => {
+        const checked = i === 0 ? " checked" : "";
+        const unlic = opt.unlicensed ? " [U]" : "";
+        const optionMetrics = getBallisticContainerMetrics({
+          ammoMode,
+          optionId: opt.id,
+          baseCapacity,
+          currentRounds: 0,
+          currentCapacity: opt.capacityFn(baseCapacity),
+          ammoPerRoundWeightKg: Math.max(0, Number(ammoRef?.weightPerRoundKg ?? 0) || 0),
+          includeAmmoWeight: false
+        });
+        const effCap = optionMetrics.capacity;
+        const optPrice = optionMetrics.cost;
+        return `<tr style="cursor:pointer;" onclick="this.querySelector('input').checked=true">
+          <td style="padding:6px 8px; text-align:center; vertical-align:middle; width:24px;">
+            <input type="radio" name="containerOption" value="${esc(opt.id)}"${checked} style="cursor:pointer;" />
+          </td>
+          <td style="padding:6px 8px; vertical-align:middle;">
+            <strong>${esc(opt.label)}${unlic}</strong>
+          </td>
+          <td style="padding:6px 8px; text-align:right; vertical-align:middle; white-space:nowrap; color:#b8d4f0;">${effCap} rounds</td>
+          <td style="padding:6px 8px; text-align:right; vertical-align:middle; white-space:nowrap; color:#f0d48b;">${optPrice} cR</td>
+        </tr>`;
+      }).join("");
+
+      try {
+        const pickedId = await foundry.applications.api.DialogV2.prompt({
+          window: { title: `Choose ${containerLabel} Type — ${esc(weaponName)}` },
+          content: `<div class="mythic-modal-body" style="min-width:380px;">
+            <p style="margin-bottom:10px;">Select the variant to purchase for <strong>${esc(weaponName)}</strong>:</p>
+            <table style="width:100%; border-collapse:collapse; font-size:0.95em;">
+              <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.25);">
+                <th style="padding:4px 8px; width:24px;"></th>
+                <th style="padding:4px 8px; text-align:left;">Type</th>
+                <th style="padding:4px 8px; text-align:right;">Rounds</th>
+                <th style="padding:4px 8px; text-align:right;">Price</th>
+              </tr></thead>
+              <tbody>${radioRows}</tbody>
+            </table>
+          </div>`,
+          ok: {
+            label: "Continue",
+            callback: (_event, _button, dialogApp) => {
+              const el = dialogApp?.element instanceof HTMLElement ? dialogApp.element : null;
+              return el?.querySelector("[name=containerOption]:checked")?.value ?? "standard";
+            }
+          },
+          rejectClose: true,
+          modal: true
+        });
+        if (!pickedId) return;
+        selectedOptionId = String(pickedId).trim() || "standard";
+      } catch {
+        return; // User closed the dialog without confirming.
+      }
+    }
+
+    // ── Phase 5 & 6: Apply option mechanics ───────────────────────────────
+    const optionData = BALLISTIC_CONTAINER_OPTIONS[selectedOptionId] ?? BALLISTIC_CONTAINER_OPTIONS.standard;
+    const purchaseMetrics = getBallisticContainerMetrics({
+      ammoMode,
+      optionId: selectedOptionId,
+      baseCapacity,
+      currentRounds: 0,
+      currentCapacity: optionData.capacityFn(baseCapacity),
+      ammoPerRoundWeightKg: Math.max(0, Number(ammoRef?.weightPerRoundKg ?? 0) || 0),
+      includeAmmoWeight: false
+    });
+    const effectiveCapacity = purchaseMetrics.capacity;
+    const containerWeightKg = purchaseMetrics.totalCarriedMagWeightKg;
+
+    // Effective label — prefer option label unless it's the standard variant.
+    const effectiveLabel = selectedOptionId === "standard"
+      ? containerLabel
+      : optionData.label;
+
+    // ── Phase 5: Pricing ───────────────────────────────────────────────────
+    const magCost = isForerunner
+      ? Math.max(1, Math.ceil(weaponPrice / 4))
+      : purchaseMetrics.cost;
+
+    // Cost to fill the container with standard loose ammo.
+    const ammoName = String(ammoRef?.name ?? "Ammo").trim() || "Ammo";
+    const costPer100Rounds = Math.max(0, Number(ammoRef?.costPer100 ?? 0) || 0);
+    const ammoCost = costPer100Rounds > 0
+      ? Math.max(1, Math.ceil(costPer100Rounds * effectiveCapacity / 100))
+      : 0;
+    const totalWithAmmoCost = magCost + ammoCost;
+
+    const currentCredits = toNonNegativeWhole(this.actor.system?.equipment?.credits, 0);
+    const canAffordMag = currentCredits >= magCost;
+    const canAffordWithAmmo = currentCredits >= totalWithAmmoCost;
+
+    const ammoLine = ammoCost > 0
+      ? `<p style="margin-top:6px;font-size:0.85em;">Ammo: <em>${foundry.utils.escapeHTML(ammoName)}</em> × ${effectiveCapacity} rounds = ${ammoCost} cR</p>`
+      : "";
+
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: `Add ${effectiveLabel}` },
+      content: `<p>Add one <strong>${foundry.utils.escapeHTML(effectiveLabel)}</strong> (${effectiveCapacity} rounds) for <em>${foundry.utils.escapeHTML(weaponName)}</em>?</p>${ammoLine}`,
+      buttons: [
+        {
+          action: "buy-mag",
+          label: `Buy Magazine Only (${magCost} cR)`,
+          default: Boolean(weapon) && canAffordMag && !canAffordWithAmmo
+        },
+        ...(ammoCost > 0 ? [{
+          action: "buy-mag-ammo",
+          label: `Buy Magazine + Ammo (${totalWithAmmoCost} cR)`,
+          default: Boolean(weapon) && canAffordWithAmmo
+        }] : []),
+        {
+          action: "free-mag",
+          label: "Add Magazine Only for Free",
+          default: !weapon || !canAffordMag
+        },
+        ...(ammoCost > 0 ? [{
+          action: "free-mag-ammo",
+          label: "Add Magazine and Ammo for Free",
+          default: false
+        }] : []),
+        { action: "cancel", label: "Cancel", default: false }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+    if (!choice || choice === "cancel") return;
+
+    const isBuy = choice === "buy-mag" || choice === "buy-mag-ammo";
+    const includeAmmo = choice === "buy-mag-ammo" || choice === "free-mag-ammo";
+    const effectiveCost = choice === "buy-mag" ? magCost : choice === "buy-mag-ammo" ? totalWithAmmoCost : 0;
+
+    if (isBuy && currentCredits < effectiveCost) {
+      ui.notifications?.warn(`Not enough credits. Need ${effectiveCost} cR.`);
+      return;
+    }
+
+    const stubGear = {
+      ammoMode,
+      ammoId: ammoRef?.uuid ?? null,
+      range: { magazine: effectiveCapacity }
+    };
+    const newContainer = buildBallisticContainerEntry(weaponId, stubGear, weaponName, ammoRef, {
+      type: containerType,
+      label: effectiveLabel,
+      compatibilitySignature: groupKey,
+      sourceWeaponName: weaponName,
+      baseCapacity,
+      weightKg: containerWeightKg
+    });
+    if (!newContainer) return;
+
+    // Store option metadata so mechanical modifiers are traceable.
+    newContainer.containerOption = selectedOptionId;
+    if (optionData.reloadMod !== 0) newContainer.reloadMod = optionData.reloadMod;
+    if (optionData.pronePenalty !== 0) newContainer.pronePenalty = optionData.pronePenalty;
+
+    // Write back only real containers (stubs are dropped once a real container is present).
+    currentContainers.push(newContainer);
+    ballisticContainers[groupKey] = currentContainers;
+
+    const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    if (weaponId) {
+      const stateEntry = buildDefaultWeaponStateEntry(weaponState[weaponId]);
+      if (!stateEntry.activeMagazineId) {
+        stateEntry.activeMagazineId = newContainer.id;
+        stateEntry.magazineCurrent = toNonNegativeWhole(newContainer.current, stateEntry.magazineCurrent);
+      }
+      weaponState[weaponId] = stateEntry;
+    }
+
+    const updateData = {
+      "system.equipment.ballisticContainers": ballisticContainers,
+      "system.equipment.weaponState": weaponState
+    };
+
+    if (isBuy) {
+      updateData["system.equipment.credits"] = Math.max(0, currentCredits - effectiveCost);
+    }
+
+    // Add loose ammo to the pool if requested.
+    if (includeAmmo && ammoName) {
+      const ammoKey = toSlug(ammoName);
+      if (ammoKey) {
+        const ammoPools = foundry.utils.deepClone(this.actor.system?.equipment?.ammoPools ?? {});
+        const currentPool = (ammoPools[ammoKey] && typeof ammoPools[ammoKey] === "object")
+          ? ammoPools[ammoKey]
+          : { name: ammoName, epCount: 0, purchasedCount: 0, count: 0 };
+        currentPool.name = String(currentPool.name ?? ammoName).trim() || ammoName;
+        currentPool.purchasedCount = toNonNegativeWhole(currentPool.purchasedCount, 0) + effectiveCapacity;
+        currentPool.count = toNonNegativeWhole(currentPool.epCount, 0) + currentPool.purchasedCount;
+        ammoPools[ammoKey] = currentPool;
+        updateData["system.equipment.ammoPools"] = ammoPools;
+      }
+    }
+
+    await this.actor.update(updateData);
+
+    const ammoNote = includeAmmo ? ` + ${effectiveCapacity} rounds of ${ammoName}` : "";
+    if (isBuy) {
+      ui.notifications?.info(`Purchased 1 ${effectiveLabel} (${effectiveCapacity} rounds)${ammoNote} for ${effectiveCost} cR.`);
+    } else {
+      ui.notifications?.info(`Added 1 ${effectiveLabel} (${effectiveCapacity} rounds)${ammoNote}.`);
+    }
+  }
+
+  async _onFillMagazineFromPool(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const groupKey = String(event.currentTarget?.dataset?.groupKey ?? "").trim();
+    const containerId = String(event.currentTarget?.dataset?.containerId ?? "").trim();
+    if (!groupKey || !containerId) return;
+
+    const bContainers = foundry.utils.deepClone(this.actor.system?.equipment?.ballisticContainers ?? {});
+    const group = Array.isArray(bContainers[groupKey]) ? bContainers[groupKey] : [];
+    const magIdx = group.findIndex((c) => !c?._stub && String(c?.id ?? "").trim() === containerId);
+    if (magIdx < 0) return;
+
+    const container = group[magIdx];
+    const capacity = toNonNegativeWhole(container.capacity, 0);
+    const current = toNonNegativeWhole(container.current, 0);
+    const roundsNeeded = Math.max(0, capacity - current);
+    const ammoName = String(container.ammoName ?? "").trim();
+
+    if (roundsNeeded <= 0) {
+      ui.notifications?.info(`This magazine is already full (${current}/${capacity}).`);
+      return;
+    }
+    if (!ammoName) {
+      ui.notifications?.warn("This magazine has no ammo type configured.");
+      return;
+    }
+
+    const availableTotal = this._getTrackedAmmoTotalByName(ammoName);
+    if (availableTotal <= 0) {
+      ui.notifications?.warn(`No loose ${ammoName} in inventory to fill this magazine.`);
+      return;
+    }
+
+    const toFill = Math.min(roundsNeeded, availableTotal);
+    const consumeResult = this._consumeTrackedAmmoByName(ammoName, toFill);
+    const newCurrent = current + toFill;
+
+    group[magIdx] = { ...container, current: newCurrent };
+    bContainers[groupKey] = group;
+
+    const updateData = {
+      "system.equipment.ballisticContainers": bContainers,
+      "system.equipment.ammoPools": consumeResult.ammoPools,
+      "system.equipment.independentAmmo": consumeResult.independentAmmo
+    };
+
+    // If this is the currently loaded magazine, keep weaponState.magazineCurrent in sync.
+    const weaponId = String(container.weaponId ?? "").trim();
+    if (weaponId) {
+      const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+      const stateEntry = buildDefaultWeaponStateEntry(weaponState[weaponId]);
+      if (String(stateEntry.activeMagazineId ?? "").trim() === containerId) {
+        stateEntry.magazineCurrent = newCurrent;
+        weaponState[weaponId] = stateEntry;
+        updateData["system.equipment.weaponState"] = weaponState;
+      }
+    }
+
+    await this.actor.update(updateData);
+
+    const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
+    ui.notifications?.info(`Filled ${toFill} round${toFill !== 1 ? "s" : ""} of ${esc(ammoName)} into magazine (${newCurrent}/${capacity}).`);
   }
 
   async _onToggleCarriedGear(event) {
@@ -10089,6 +12021,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const equipped = this.actor.system?.equipment?.equipped ?? {};
     const weaponIds = Array.isArray(equipped?.weaponIds) ? equipped.weaponIds : [];
     const armorId = String(equipped?.armorId ?? "");
+    const previousArmorId = armorId;
+    const previousArmorItem = armorId ? this.actor.items.get(armorId) : null;
     let wieldedWeaponId = String(equipped?.wieldedWeaponId ?? "");
 
     let nextWeaponIds = weaponIds;
@@ -10114,27 +12048,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
 
     if (kind === "armor") {
+      const nextArmorItem = nextArmorId ? this.actor.items.get(nextArmorId) : null;
       if (nextArmorId) {
         const equippedArmorItem = this.actor.items.get(nextArmorId);
         if (equippedArmorItem?.type === "gear") {
           const armorSystem = normalizeGearSystemData(equippedArmorItem.system ?? {}, equippedArmorItem.name ?? "");
-          const protection = armorSystem?.protection ?? {};
+          const protection = this._getArmorProtectionWithSpecialRuleBonus(equippedArmorItem, armorSystem);
           const shieldStats = armorSystem?.shields ?? {};
           const shieldIntegrity = toNonNegativeWhole(shieldStats.integrity, 0);
-          const currentShield = toNonNegativeWhole(this.actor.system?.combat?.shields?.current, 0);
 
           updateData["system.combat.dr.armor.head"] = toNonNegativeWhole(protection.head, 0);
           updateData["system.combat.dr.armor.chest"] = toNonNegativeWhole(protection.chest, 0);
-          updateData["system.combat.dr.armor.lArm"] = toNonNegativeWhole(protection.arms, 0);
-          updateData["system.combat.dr.armor.rArm"] = toNonNegativeWhole(protection.arms, 0);
-          updateData["system.combat.dr.armor.lLeg"] = toNonNegativeWhole(protection.legs, 0);
-          updateData["system.combat.dr.armor.rLeg"] = toNonNegativeWhole(protection.legs, 0);
+          updateData["system.combat.dr.armor.lArm"] = toNonNegativeWhole(protection.lArm, 0);
+          updateData["system.combat.dr.armor.rArm"] = toNonNegativeWhole(protection.rArm, 0);
+          updateData["system.combat.dr.armor.lLeg"] = toNonNegativeWhole(protection.lLeg, 0);
+          updateData["system.combat.dr.armor.rLeg"] = toNonNegativeWhole(protection.rLeg, 0);
           updateData["system.combat.shields.integrity"] = shieldIntegrity;
           updateData["system.combat.shields.rechargeDelay"] = toNonNegativeWhole(shieldStats.delay, 0);
           updateData["system.combat.shields.rechargeRate"] = toNonNegativeWhole(shieldStats.rechargeRate, 0);
-          updateData["system.combat.shields.current"] = currentShield > 0
-            ? Math.min(currentShield, shieldIntegrity)
-            : shieldIntegrity;
+          updateData["system.combat.shields.current"] = shieldIntegrity;
         }
       } else {
         updateData["system.combat.dr.armor.head"] = 0;
@@ -10148,9 +12080,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         updateData["system.combat.shields.rechargeDelay"] = 0;
         updateData["system.combat.shields.rechargeRate"] = 0;
       }
+      this._applyArmorCharacteristicDelta(updateData, previousArmorItem, nextArmorItem);
     }
 
     await this.actor.update(updateData);
+    if (kind === "armor") {
+      const resolvedNextArmorItem = nextArmorId ? this.actor.items.get(nextArmorId) : null;
+      await this._syncEquippedArmorSpecialRuleState(resolvedNextArmorItem);
+      await this._syncEquippedArmorBuiltInItems(previousArmorId, resolvedNextArmorItem);
+    }
   }
 
   async _onChangeGearQuantity(event) {
@@ -10299,6 +12237,37 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  async _onWeaponVariantSelect(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const target = event.target instanceof Element
+      ? event.target.closest(".weapon-variant-btn[data-item-id][data-variant-index]")
+      : (event.currentTarget instanceof Element
+          && event.currentTarget.matches?.(".weapon-variant-btn[data-item-id][data-variant-index]")
+          ? event.currentTarget
+          : null);
+    const itemId = String(target?.dataset?.itemId ?? "").trim();
+    const variantIndex = toNonNegativeWhole(target?.dataset?.variantIndex, 0);
+    if (!itemId) return;
+
+    const nextWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    const currentEntry = (nextWeaponState[itemId] && typeof nextWeaponState[itemId] === "object")
+      ? nextWeaponState[itemId]
+      : {};
+    const currentVariant = toNonNegativeWhole(currentEntry.variantIndex, 0);
+    if (currentVariant === variantIndex) return;
+
+    nextWeaponState[itemId] = {
+      ...currentEntry,
+      variantIndex
+    };
+
+    await this.actor.update({
+      "system.equipment.weaponState": nextWeaponState
+    });
+  }
+
   async _onCharBuilderEnable(event) {
     event.preventDefault();
     const actorSystem = normalizeCharacterSystemData(this.actor.system ?? {});
@@ -10349,8 +12318,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return;
 
-    const currentSpent = toNonNegativeWhole(actorSystem?.advancements?.xpSpent, 0);
-    await this.actor.update({ "system.advancements.xpSpent": currentSpent + totalXp });
+    await this._appendAdvancementTransaction({
+      label: "Characteristic Advancements",
+      amount: totalXp,
+      source: "characteristics",
+      applyXp: true
+    });
     ui.notifications?.info(`Recorded ${totalXp.toLocaleString()} XP spent on Characteristic Advancements.`);
   }
 
@@ -10746,22 +12719,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const carriedIds = Array.isArray(equipment?.carriedIds) ? equipment.carriedIds : [];
     const weaponIds = Array.isArray(equipped?.weaponIds) ? equipped.weaponIds : [];
     const armorId = String(equipped?.armorId ?? "");
+    const removedArmorId = removableSet.has(armorId) ? armorId : "";
     const wieldedWeaponId = String(equipped?.wieldedWeaponId ?? "");
+    const previousArmorItem = armorId ? this.actor.items.get(armorId) : null;
 
     const nextCarried = carriedIds.filter((id) => !removableSet.has(String(id)));
     const nextWeaponIds = weaponIds.filter((id) => !removableSet.has(String(id)));
     const nextArmorId = removableSet.has(armorId) ? "" : armorId;
     const nextWielded = removableSet.has(wieldedWeaponId) ? "" : wieldedWeaponId;
+    const nextEnergyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
     const nextWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
-    if (nextWeaponState && typeof nextWeaponState === "object") {
-      for (const id of removableSet) delete nextWeaponState[id];
-    }
+    cleanupRemovedWeaponSupportData(this.actor, nextEnergyCells, nextWeaponState, removable);
 
     const updateData = {
       "system.equipment.carriedIds": nextCarried,
       "system.equipment.equipped.weaponIds": nextWeaponIds,
       "system.equipment.equipped.armorId": nextArmorId,
       "system.equipment.equipped.wieldedWeaponId": nextWielded,
+      "system.equipment.energyCells": nextEnergyCells,
       "system.equipment.weaponState": nextWeaponState
     };
 
@@ -10776,9 +12751,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       updateData["system.combat.shields.current"] = 0;
       updateData["system.combat.shields.rechargeDelay"] = 0;
       updateData["system.combat.shields.rechargeRate"] = 0;
+      this._applyArmorCharacteristicDelta(updateData, previousArmorItem, null);
     }
 
     await this.actor.update(updateData);
+    const resolvedNextArmorItem = nextArmorId ? this.actor.items.get(nextArmorId) : null;
+    await this._syncEquippedArmorSpecialRuleState(resolvedNextArmorItem);
+    if (removedArmorId) {
+      await this._removeLinkedBuiltInItemsForArmor(removedArmorId);
+    }
 
     const existingIds = removable.filter((id) => this.actor.items.has(id));
     if (existingIds.length) {
@@ -10965,6 +12946,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     let armorId = String(this.actor.system?.equipment?.equipped?.armorId ?? "").trim();
     let wieldedWeaponId = String(this.actor.system?.equipment?.equipped?.wieldedWeaponId ?? "").trim();
     const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    const energyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
     const ammoPools = foundry.utils.deepClone(this.actor.system?.equipment?.ammoPools ?? {});
 
     const grantRecords = [];
@@ -11011,6 +12993,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const newId = String(newItem.id);
         const newSystem = normalizeGearSystemData(newItem.system ?? {}, newItem.name ?? resolvedName);
         const itemClass = String(newSystem.itemClass ?? "").trim().toLowerCase();
+        const weaponClass = String(newSystem.weaponClass ?? "").trim().toLowerCase();
+
+        if (itemClass === "weapon" && weaponClass === "ranged") {
+          ensureWeaponEnergyCells(energyCells, weaponState, newId, newSystem, String(newItem.name ?? resolvedName));
+        }
 
         const addAsCarried = grant?.addAsCarried !== false;
         if (addAsCarried) {
@@ -11020,14 +13007,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (itemClass === "weapon" && grant?.addAsReady === true) {
           weaponIds = Array.from(new Set([...weaponIds, newId]));
           if (!weaponState[newId] || typeof weaponState[newId] !== "object") {
-            weaponState[newId] = {
-              fireMode: "single",
-              toHitModifier: 0,
-              damageModifier: 0,
-              chargeLevel: 0,
-              magazineCurrent: 0,
-              rechargeRemaining: 0
-            };
+            weaponState[newId] = buildDefaultWeaponStateEntry();
           }
         }
 
@@ -11035,14 +13015,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           wieldedWeaponId = newId;
           weaponIds = Array.from(new Set([...weaponIds, newId]));
           if (!weaponState[newId] || typeof weaponState[newId] !== "object") {
-            weaponState[newId] = {
-              fireMode: "single",
-              toHitModifier: 0,
-              damageModifier: 0,
-              chargeLevel: 0,
-              magazineCurrent: 0,
-              rechargeRemaining: 0
-            };
+            weaponState[newId] = buildDefaultWeaponStateEntry();
           }
         }
 
@@ -11095,6 +13068,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.equipment.equipped.armorId": armorId,
       "system.equipment.equipped.wieldedWeaponId": wieldedWeaponId,
       "system.equipment.weaponState": weaponState,
+      "system.equipment.energyCells": energyCells,
       "system.equipment.ammoPools": ammoPools,
       "system.equipment.activePackSelection": {
         value: String(option?.value ?? "").trim(),
@@ -11138,6 +13112,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
+    const previousSpecializationKey = String(normalized?.specialization?.selectedKey ?? "").trim().toLowerCase();
+    const isGmOverride = Boolean(
+      game.user?.isGM
+      && normalized?.specialization?.confirmed
+      && previousSpecializationKey
+      && previousSpecializationKey !== selectedPack.key
+    );
+
     const limitedChecked = Boolean(limitedAckInput?.checked ?? normalized?.specialization?.limitedApprovalChecked);
     if (selectedPack.limited && !limitedChecked) {
       ui.notifications?.warn("This is a Limited Pack. Confirm GM/party approval before finalizing.");
@@ -11154,6 +13136,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
     if (!confirm) return;
 
+    if (isGmOverride) {
+      const previousPack = getSpecializationPackByKey(previousSpecializationKey);
+      if (previousPack) {
+        await this._clearSpecializationPackGrants(previousPack);
+      }
+    }
+
     const updateData = {
       "system.specialization.selectedKey": selectedPack.key,
       "system.specialization.confirmed": true,
@@ -11163,6 +13152,49 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
     await this.actor.update(updateData);
     await this._applySpecializationPackGrants(selectedPack);
+  }
+
+  async _clearSpecializationPackGrants(pack) {
+    const selectedPack = (pack && typeof pack === "object") ? pack : null;
+    if (!selectedPack) return;
+
+    const skills = foundry.utils.deepClone(normalizeCharacterSystemData(this.actor.system ?? {}).skills ?? buildCanonicalSkillsSchema());
+    let skillsChanged = false;
+
+    for (const grant of Array.isArray(selectedPack.skillGrants) ? selectedPack.skillGrants : []) {
+      const skillName = String(grant?.skillName ?? "").trim();
+      const tier = String(grant?.tier ?? "trained").toLowerCase();
+      const stepCount = Math.max(0, toNonNegativeWhole(MYTHIC_SPECIALIZATION_SKILL_TIER_STEPS[tier] ?? 0, 0));
+      if (!skillName || stepCount <= 0) continue;
+      const removed = this._removeSkillStepsByName(skills, skillName, stepCount);
+      if (removed.matched && removed.changed) skillsChanged = true;
+    }
+
+    if (skillsChanged) {
+      await this.actor.update({ "system.skills": skills });
+    }
+
+    const abilityNamesInPack = new Set(
+      (Array.isArray(selectedPack.abilities) ? selectedPack.abilities : [])
+        .map((entry) => String(entry ?? "").trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    const abilityIdsToDelete = this.actor.items
+      .filter((entry) => {
+        if (entry.type !== "ability") return false;
+        const grant = entry.getFlag("Halo-Mythic-Foundry-Updated", "specializationGrant");
+        const grantPackKey = String(grant?.packKey ?? "").trim().toLowerCase();
+        if (grantPackKey && grantPackKey === String(selectedPack.key ?? "").trim().toLowerCase()) return true;
+        const itemName = String(entry.name ?? "").trim().toLowerCase();
+        return abilityNamesInPack.has(itemName);
+      })
+      .map((entry) => entry.id)
+      .filter(Boolean);
+
+    if (abilityIdsToDelete.length) {
+      await this.actor.deleteEmbeddedDocuments("Item", Array.from(new Set(abilityIdsToDelete)));
+    }
   }
 
   async _onCognitivePatternReroll(event) {
@@ -11223,6 +13255,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         };
       }
       itemData.system = normalizeAbilitySystemData(itemData.system ?? {});
+      itemData.flags = {
+        ...(itemData.flags && typeof itemData.flags === "object" ? itemData.flags : {}),
+        "Halo-Mythic-Foundry-Updated": {
+          ...((itemData.flags && typeof itemData.flags === "object" && itemData.flags["Halo-Mythic-Foundry-Updated"] && typeof itemData.flags["Halo-Mythic-Foundry-Updated"] === "object")
+            ? itemData.flags["Halo-Mythic-Foundry-Updated"]
+            : {}),
+          specializationGrant: {
+            packKey: String(selectedPack.key ?? "").trim().toLowerCase(),
+            sourceAbilityName: abilityName,
+            grantType: "direct",
+            grantedAt: new Date().toISOString()
+          }
+        }
+      };
       await this.actor.createEmbeddedDocuments("Item", [itemData]);
     }
 
@@ -11243,6 +13289,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         };
       }
       itemData.system = normalizeAbilitySystemData(itemData.system ?? {});
+      itemData.flags = {
+        ...(itemData.flags && typeof itemData.flags === "object" ? itemData.flags : {}),
+        "Halo-Mythic-Foundry-Updated": {
+          ...((itemData.flags && typeof itemData.flags === "object" && itemData.flags["Halo-Mythic-Foundry-Updated"] && typeof itemData.flags["Halo-Mythic-Foundry-Updated"] === "object")
+            ? itemData.flags["Halo-Mythic-Foundry-Updated"]
+            : {}),
+          specializationGrant: {
+            packKey: String(selectedPack.key ?? "").trim().toLowerCase(),
+            sourceAbilityName: picked,
+            grantType: "replacement",
+            grantedAt: new Date().toISOString()
+          }
+        }
+      };
       await this.actor.createEmbeddedDocuments("Item", [itemData]);
     }
 
@@ -11428,14 +13488,54 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const ammoConfig = getAmmoConfig();
     const ammoPerLevel = toNonNegativeWhole(gear.charge?.ammoPerLevel, 1);
+    const ammoMode = isEnergyCellAmmoMode(gear.ammoMode)
+      ? String(gear.ammoMode ?? "").trim().toLowerCase()
+      : normalizeBallisticAmmoMode(gear.ammoMode);
+    const isEnergyWeapon = isEnergyCellAmmoMode(ammoMode);
     const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
-    const ammoCurrent = toNonNegativeWhole(state?.magazineCurrent, magazineMax);
+    const energyCells = isEnergyWeapon
+      ? foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {})
+      : null;
+    const weaponCells = isEnergyWeapon && energyCells && Array.isArray(energyCells[itemId])
+      ? energyCells[itemId]
+      : [];
+    const activeEnergyCell = isEnergyWeapon
+      ? (weaponCells.find((entry) => String(entry?.id ?? "").trim() === String(state?.activeEnergyCellId ?? "").trim())
+        ?? weaponCells[0]
+        ?? null)
+      : null;
+    const ammoCurrent = isEnergyWeapon
+      ? toNonNegativeWhole(activeEnergyCell?.current, 0)
+      : toNonNegativeWhole(state?.magazineCurrent, magazineMax);
 
     const updateData = {
       [`system.equipment.weaponState.${itemId}.chargeLevel`]: currentLevel + 1
     };
 
-    if (!ammoConfig.ignoreBasicAmmoCounts && ammoPerLevel > 0) {
+    if (isEnergyWeapon && ammoPerLevel > 0) {
+      const activeEnergyCellId = String(activeEnergyCell?.id ?? "").trim();
+      if (!activeEnergyCellId) {
+        ui.notifications.warn(`${item.name} has no loaded ${ammoMode === "plasma-battery" ? "battery" : getBallisticContainerLabel(ammoMode).toLowerCase()}.`);
+        return;
+      }
+      if (ammoCurrent < ammoPerLevel) {
+        ui.notifications.warn(`${item.name} needs ${ammoPerLevel} battery charge to increase charge.`);
+        return;
+      }
+      const nextCurrent = Math.max(0, ammoCurrent - ammoPerLevel);
+      const cellIndex = weaponCells.findIndex((entry) => String(entry?.id ?? "").trim() === activeEnergyCellId);
+      if (cellIndex >= 0) {
+        weaponCells[cellIndex] = {
+          ...weaponCells[cellIndex],
+          current: nextCurrent,
+          sourceWeaponName: String(weaponCells[cellIndex]?.sourceWeaponName ?? "").trim() || String(item.name ?? "").trim()
+        };
+      }
+      energyCells[itemId] = weaponCells;
+      updateData["system.equipment.energyCells"] = energyCells;
+      updateData[`system.equipment.weaponState.${itemId}.activeEnergyCellId`] = activeEnergyCellId;
+      updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = nextCurrent;
+    } else if (!ammoConfig.ignoreBasicAmmoCounts && ammoPerLevel > 0) {
       if (ammoCurrent < ammoPerLevel) {
         ui.notifications.warn(`${item.name} needs ${ammoPerLevel} ammo to increase charge.`);
         return;
@@ -11465,22 +13565,60 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
     if (!this.isEditable) return;
 
-    const ammoKey = toSlug(String(event.currentTarget?.dataset?.ammoKey ?? ""));
-    if (!ammoKey) return;
+    const keyLike = String(event.currentTarget?.dataset?.ammoKey ?? "").trim();
+    const ammoPools = (this.actor.system?.equipment?.ammoPools && typeof this.actor.system.equipment.ammoPools === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.ammoPools)
+      : {};
+    const ammoKey = this._resolveAmmoPoolStorageKey(keyLike, ammoPools);
+    if (!ammoKey || !Object.prototype.hasOwnProperty.call(ammoPools, ammoKey)) return;
 
     const ammoName = String(event.currentTarget?.dataset?.ammoName ?? "").trim();
     const value = toNonNegativeWhole(event.currentTarget?.value ?? 0, 0);
-    const currentPool = (this.actor.system?.equipment?.ammoPools?.[ammoKey] && typeof this.actor.system.equipment.ammoPools[ammoKey] === "object")
-      ? this.actor.system.equipment.ammoPools[ammoKey]
+    if (value <= 0) {
+      const removed = await this._deleteEquipmentMapKey("system.equipment.ammoPools", ammoKey, ammoPools);
+      if (!removed) {
+        ui.notifications?.warn("Could not remove this ammo pool entry.");
+      }
+      return;
+    }
+    const currentPool = (ammoPools?.[ammoKey] && typeof ammoPools[ammoKey] === "object")
+      ? ammoPools[ammoKey]
       : {};
     const epCount = toNonNegativeWhole(currentPool?.epCount, 0);
     const purchasedCount = Math.max(0, value - epCount);
 
+    ammoPools[ammoKey] = {
+      ...currentPool,
+      name: ammoName || String(currentPool?.name ?? "Ammo").trim() || "Ammo",
+      epCount,
+      purchasedCount,
+      count: epCount + purchasedCount
+    };
+
     await this.actor.update({
-      [`system.equipment.ammoPools.${ammoKey}.name`]: ammoName,
-      [`system.equipment.ammoPools.${ammoKey}.epCount`]: epCount,
-      [`system.equipment.ammoPools.${ammoKey}.purchasedCount`]: purchasedCount,
-      [`system.equipment.ammoPools.${ammoKey}.count`]: epCount + purchasedCount
+      "system.equipment.ammoPools": ammoPools
+    });
+  }
+
+  async _onAmmoCarriedToggle(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const keyLike = String(event.currentTarget?.dataset?.ammoKey ?? "").trim();
+    const ammoPools = (this.actor.system?.equipment?.ammoPools && typeof this.actor.system.equipment.ammoPools === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.ammoPools)
+      : {};
+    const ammoKey = this._resolveAmmoPoolStorageKey(keyLike, ammoPools);
+    if (!ammoKey || !Object.prototype.hasOwnProperty.call(ammoPools, ammoKey)) return;
+
+    const isCarried = event.currentTarget?.checked !== false;
+    ammoPools[ammoKey] = {
+      ...(ammoPools[ammoKey] && typeof ammoPools[ammoKey] === "object" ? ammoPools[ammoKey] : {}),
+      isCarried
+    };
+
+    await this.actor.update({
+      "system.equipment.ammoPools": ammoPools
     });
   }
 
@@ -11498,60 +13636,281 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const isMelee = gear.weaponClass === "melee";
     if (isMelee) return;
 
-    const maxMagazine = toNonNegativeWhole(gear.range?.magazine, 0);
-    const ammoConfig = getAmmoConfig();
-    const ammoName = String(gear.ammoName ?? "").trim();
-    const ammoKey = toSlug(ammoName);
+    const ammoMode = isEnergyCellAmmoMode(gear.ammoMode)
+      ? String(gear.ammoMode ?? "").trim().toLowerCase()
+      : normalizeBallisticAmmoMode(gear.ammoMode);
+    const isTubeAmmoMode = ammoMode === "tube";
+    const isSingleLoading = Boolean(gear.singleLoading) || isTubeAmmoMode;
 
-    const currentMagazine = toNonNegativeWhole(
-      this.actor.system?.equipment?.weaponState?.[itemId]?.magazineCurrent,
-      maxMagazine
-    );
-    const roundsNeeded = Math.max(0, maxMagazine - currentMagazine);
+    if (isSingleLoading && !isEnergyCellAmmoMode(ammoMode)) {
+      const stateEntry = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
+      const capacity = toNonNegativeWhole(gear.range?.magazine, 0);
+      const currentLoaded = toNonNegativeWhole(stateEntry?.magazineCurrent, 0);
+      const ammoNameConfigured = String(gear.ammoName ?? "").trim();
+      let ammoName = ammoNameConfigured;
+      if (!ammoName && String(gear.ammoId ?? "").trim()) {
+        const ammoDoc = await fromUuid(String(gear.ammoId).trim()).catch(() => null);
+        ammoName = String(ammoDoc?.name ?? "").trim();
+        if (ammoName) {
+          await item.update({ "system.ammoName": ammoName });
+        }
+      }
 
-    let loadedRounds = roundsNeeded;
-    let nextReserveCount = null;
-    let nextReserveEpCount = null;
-    let nextReservePurchasedCount = null;
-
-    if (!ammoConfig.ignoreBasicAmmoCounts && roundsNeeded > 0) {
-      const pool = (this.actor.system?.equipment?.ammoPools?.[ammoKey] && typeof this.actor.system.equipment.ammoPools[ammoKey] === "object")
-        ? this.actor.system.equipment.ammoPools[ammoKey]
-        : {};
-      const reserveEpCount = toNonNegativeWhole(pool?.epCount, 0);
-      const reservePurchasedCount = toNonNegativeWhole(pool?.purchasedCount, 0);
-      const reserveCount = reserveEpCount + reservePurchasedCount;
-      loadedRounds = Math.min(reserveCount, roundsNeeded);
-      nextReserveCount = reserveCount - loadedRounds;
-      const consumedFromEp = Math.min(reserveEpCount, loadedRounds);
-      const consumedFromPurchased = Math.max(0, loadedRounds - consumedFromEp);
-      nextReserveEpCount = Math.max(0, reserveEpCount - consumedFromEp);
-      nextReservePurchasedCount = Math.max(0, reservePurchasedCount - consumedFromPurchased);
-      if (loadedRounds <= 0) {
-        ui.notifications.warn(`No ${ammoName || "matching"} reserve ammo available to reload ${item.name}.`);
+      if (capacity <= 0) {
+        ui.notifications?.warn(`${item.name} has no ${isTubeAmmoMode ? "tube" : "magazine"} capacity configured.`);
         return;
+      }
+      if (!ammoName) {
+        ui.notifications?.warn(`Set an ammo type on ${item.name} before reloading.`);
+        return;
+      }
+      if (currentLoaded >= capacity) {
+        ui.notifications?.info(`${item.name} is already full (${currentLoaded}/${capacity}).`);
+        return;
+      }
+
+      const characteristicRuntime = await this._getLiveCharacteristicRuntime();
+      const agiScore = Number.isFinite(Number(characteristicRuntime?.scores?.agi))
+        ? Number(characteristicRuntime.scores.agi)
+        : 0;
+      const wfrScore = Number.isFinite(Number(characteristicRuntime?.scores?.wfr))
+        ? Number(characteristicRuntime.scores.wfr)
+        : 0;
+      const roundsPerHalfAction = Math.max(0, Math.floor(agiScore / 20) + Math.floor(wfrScore / 20));
+      const roundsNeeded = Math.max(0, capacity - currentLoaded);
+      const availableLooseRounds = this._getTrackedAmmoTotalByName(ammoName);
+      if (roundsPerHalfAction <= 0) {
+        ui.notifications?.warn(`${item.name} cannot currently reload any rounds per Half Action.`);
+        return;
+      }
+      if (availableLooseRounds <= 0) {
+        ui.notifications?.warn(`No loose ${ammoName} available to load.`);
+        return;
+      }
+
+      const roundsToLoad = Math.min(roundsNeeded, roundsPerHalfAction, availableLooseRounds);
+      const consumeResult = this._consumeTrackedAmmoByName(ammoName, roundsToLoad);
+      const loadedRounds = toNonNegativeWhole(consumeResult?.consumed, 0);
+      if (loadedRounds <= 0) {
+        ui.notifications?.warn(`Could not load ${ammoName}.`);
+        return;
+      }
+
+      const newLoadedCount = currentLoaded + loadedRounds;
+      const updateData = {
+        [`system.equipment.weaponState.${itemId}.magazineCurrent`]: newLoadedCount,
+        "system.equipment.ammoPools": consumeResult.ammoPools,
+        "system.equipment.independentAmmo": consumeResult.independentAmmo
+      };
+
+      const activeMagazineId = String(stateEntry?.activeMagazineId ?? "").trim();
+      if (activeMagazineId && isDetachableBallisticAmmoMode(ammoMode)) {
+        const bContainers = foundry.utils.deepClone(this.actor.system?.equipment?.ballisticContainers ?? {});
+        for (const [groupKey, group] of Object.entries(bContainers)) {
+          if (!Array.isArray(group)) continue;
+          const magIdx = group.findIndex((c) => !c?._stub && String(c?.id ?? "").trim() === activeMagazineId);
+          if (magIdx >= 0) {
+            group[magIdx] = { ...group[magIdx], current: newLoadedCount };
+            bContainers[groupKey] = group;
+            updateData["system.equipment.ballisticContainers"] = bContainers;
+            break;
+          }
+        }
+      }
+
+      await this.actor.update(updateData);
+
+      const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+        content: `<p><strong>${esc(this.actor.name)}</strong> single-loads <strong>${esc(item.name)}</strong>: +${loadedRounds} ${esc(ammoName)} (${newLoadedCount}/${capacity}, max ${roundsPerHalfAction}/Half Action).</p>`,
+        type: CONST.CHAT_MESSAGE_STYLES.OTHER
+      });
+      return;
+    }
+
+    if (isEnergyCellAmmoMode(ammoMode)) {
+      const energyCells = (this.actor.system?.equipment?.energyCells && typeof this.actor.system.equipment.energyCells === "object")
+        ? foundry.utils.deepClone(this.actor.system.equipment.energyCells)
+        : {};
+      const allCells = Array.isArray(energyCells[itemId]) ? energyCells[itemId] : [];
+      const carriedCells = allCells.filter((entry) => entry?.isCarried !== false);
+      if (!carriedCells.length) {
+        ui.notifications?.warn(`No carried ${ammoMode === "plasma-battery" ? "batteries" : getBallisticContainerPluralLabel(ammoMode).toLowerCase()} available for ${item.name}.`);
+        return;
+      }
+
+      const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+      const stateEntry = buildDefaultWeaponStateEntry(weaponState[itemId]);
+      const currentActiveId = String(stateEntry.activeEnergyCellId ?? "").trim();
+
+      let selectedCell = carriedCells.find((entry) => String(entry?.id ?? "").trim() === currentActiveId) ?? null;
+      if (carriedCells.length > 1) {
+        const selectedCellId = await this._promptEnergyCellReloadSource(item.name ?? "Weapon", carriedCells, currentActiveId);
+        if (!selectedCellId) return;
+        selectedCell = carriedCells.find((entry) => String(entry?.id ?? "").trim() === String(selectedCellId).trim()) ?? selectedCell;
+      }
+
+      if (!selectedCell) {
+        selectedCell = carriedCells[0];
+      }
+
+      const selectedId = String(selectedCell?.id ?? "").trim();
+      if (carriedCells.length === 1 && selectedId && selectedId === currentActiveId) {
+        ui.notifications?.info(`${item.name} has no alternate ${ammoMode === "plasma-battery" ? "battery" : getBallisticContainerLabel(ammoMode).toLowerCase()} to reload with.`);
+        return;
+      }
+
+      const selectedCurrent = toNonNegativeWhole(selectedCell?.current, 0);
+      const selectedCapacity = toNonNegativeWhole(selectedCell?.capacity, 0);
+      const nextMagazine = Math.min(toNonNegativeWhole(gear.range?.magazine, 0), selectedCurrent);
+
+      weaponState[itemId] = {
+        ...stateEntry,
+        activeEnergyCellId: selectedId,
+        magazineCurrent: nextMagazine
+      };
+
+      await this.actor.update({
+        "system.equipment.weaponState": weaponState
+      });
+
+      const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+      const cellType = ammoMode === "plasma-battery" ? "battery" : getBallisticContainerLabel(ammoMode).toLowerCase();
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+        content: `<p><strong>${esc(this.actor.name)}</strong> loads <strong>${esc(item.name)}</strong> with ${esc(cellType)} (${selectedCurrent}/${selectedCapacity}).</p>`,
+        type: CONST.CHAT_MESSAGE_STYLES.OTHER
+      });
+      return;
+    }
+
+    // Ballistic reload = swap to a different magazine.
+    const bContainers = (this.actor.system?.equipment?.ballisticContainers && typeof this.actor.system.equipment.ballisticContainers === "object")
+      ? this.actor.system.equipment.ballisticContainers
+      : {};
+    const allContainers = Object.values(bContainers).flatMap((grp) =>
+      Array.isArray(grp) ? grp.filter((c) => !c?._stub && String(c?.weaponId ?? "").trim() === itemId) : []
+    );
+    const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    const stateEntry = buildDefaultWeaponStateEntry(weaponState[itemId]);
+    const currentActiveId = String(stateEntry.activeMagazineId ?? "").trim();
+    const carriedContainers = allContainers.filter((c) => c?.isCarried !== false);
+
+    if (!carriedContainers.length) {
+      ui.notifications?.warn(`No magazines available for ${item.name}.`);
+      return;
+    }
+
+    const alternateContainers = carriedContainers.filter((c) => String(c?.id ?? "").trim() !== currentActiveId);
+    if (!alternateContainers.length) {
+      ui.notifications?.info(`${item.name} has no alternate magazine to swap to. Use the Fill button to add ammo.`);
+      return;
+    }
+
+    let selectedContainer;
+    if (alternateContainers.length === 1) {
+      selectedContainer = alternateContainers[0];
+    } else {
+      const esc = foundry.utils.escapeHTML;
+      const opts = alternateContainers.map((c, idx) => {
+        const lab = String(c.label || c.type || "Magazine").trim();
+        return `<option value="${esc(String(c.id ?? ""))}">Mag #${idx + 1}: ${esc(lab)} — ${c.current}/${c.capacity}</option>`;
+      }).join("");
+      const pickedId = await foundry.applications.api.DialogV2.wait({
+        window: { title: `Select Magazine — ${foundry.utils.escapeHTML(item.name ?? "Weapon")}` },
+        content: `<form><div class="form-group"><label>Magazine</label><select id="mythic-mag-select">${opts}</select></div></form>`,
+        buttons: [
+          { action: "load", label: "Load", callback: () => String(document.getElementById("mythic-mag-select")?.value ?? "").trim() || null },
+          { action: "cancel", label: "Cancel", callback: () => null }
+        ],
+        rejectClose: false,
+        modal: true
+      });
+      if (!pickedId) return;
+      selectedContainer = alternateContainers.find((c) => String(c.id ?? "").trim() === String(pickedId).trim()) ?? alternateContainers[0];
+    }
+
+    if (!selectedContainer) return;
+
+    // Write current magazine count back to the active container before swapping.
+    if (currentActiveId) {
+      const bClone = foundry.utils.deepClone(bContainers);
+      for (const [gk, grp] of Object.entries(bClone)) {
+        if (!Array.isArray(grp)) continue;
+        const idx = grp.findIndex((c) => !c?._stub && String(c?.id ?? "").trim() === currentActiveId);
+        if (idx >= 0) {
+          grp[idx] = { ...grp[idx], current: toNonNegativeWhole(stateEntry.magazineCurrent, 0) };
+          bClone[gk] = grp;
+          await this.actor.update({ "system.equipment.ballisticContainers": bClone });
+          break;
+        }
       }
     }
 
-    const nextMagazine = currentMagazine + loadedRounds;
-    const updateData = {
-      [`system.equipment.weaponState.${itemId}.magazineCurrent`]: nextMagazine
+    const newMagCurrent = toNonNegativeWhole(selectedContainer.current, 0);
+    weaponState[itemId] = {
+      ...stateEntry,
+      activeMagazineId: String(selectedContainer.id ?? "").trim(),
+      magazineCurrent: newMagCurrent
     };
-    if (nextReserveCount !== null && ammoKey) {
-      updateData[`system.equipment.ammoPools.${ammoKey}.name`] = ammoName || "Ammo";
-      updateData[`system.equipment.ammoPools.${ammoKey}.count`] = nextReserveCount;
-      updateData[`system.equipment.ammoPools.${ammoKey}.epCount`] = Math.max(0, toNonNegativeWhole(nextReserveEpCount, 0));
-      updateData[`system.equipment.ammoPools.${ammoKey}.purchasedCount`] = Math.max(0, toNonNegativeWhole(nextReservePurchasedCount, 0));
-    }
+    await this.actor.update({ "system.equipment.weaponState": weaponState });
 
-    await this.actor.update(updateData);
-
-    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
-    const reserveText = nextReserveCount === null ? "(reserve not tracked)" : `(reserve ${nextReserveCount})`;
+    const escFn = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const magLabel = String(selectedContainer.label || selectedContainer.type || "Magazine").trim();
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      content: `<p><strong>${esc(this.actor.name)}</strong> reloads <strong>${esc(item.name)}</strong> to ${nextMagazine}/${maxMagazine} ${esc(reserveText)}.</p>`,
+      content: `<p><strong>${escFn(this.actor.name)}</strong> swaps to a ${escFn(magLabel)} for <strong>${escFn(item.name)}</strong> (${newMagCurrent}/${toNonNegativeWhole(selectedContainer.capacity, 0)}).</p>`,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _promptEnergyCellReloadSource(weaponName = "Weapon", cells = [], activeCellId = "") {
+    const options = (Array.isArray(cells) ? cells : []).map((cell, index) => {
+      const id = String(cell?.id ?? "").trim();
+      const current = toNonNegativeWhole(cell?.current, 0);
+      const capacity = toNonNegativeWhole(cell?.capacity, 0);
+      const percent = capacity > 0 ? Math.max(0, Math.min(100, Math.round((current / capacity) * 100))) : 0;
+      const activeMarker = id && id === String(activeCellId ?? "").trim() ? " (active)" : "";
+      return {
+        id,
+        label: `Cell ${index + 1}: ${current}/${capacity} (${percent}%)${activeMarker}`
+      };
+    }).filter((entry) => entry.id);
+
+    if (!options.length) return null;
+    if (options.length === 1) return options[0].id;
+
+    const esc = foundry.utils.escapeHTML;
+    const optionsHtml = options.map((opt) => `<option value="${esc(opt.id)}">${esc(opt.label)}</option>`).join("");
+
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: `Select Reload Source - ${esc(String(weaponName ?? "Weapon"))}`
+      },
+      content: `
+        <form>
+          <div class="form-group">
+            <label for="mythic-reload-energy-cell">Battery / Magazine</label>
+            <select id="mythic-reload-energy-cell">${optionsHtml}</select>
+            <p class="hint">Choose which battery or magazine to load into this weapon.</p>
+          </div>
+        </form>
+      `,
+      buttons: [
+        {
+          action: "load",
+          label: "Load",
+          callback: () => String(document.getElementById("mythic-reload-energy-cell")?.value ?? "").trim() || null
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
     });
   }
 
@@ -11592,7 +13951,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const outcomeClass = "success";
       const content = `<article class="mythic-chat-card ${outcomeClass}">
         <header class="mythic-chat-header">
-          <span class="mythic-chat-title">${esc(this.actor.name)} — Courage Test</span>
+          <span class="mythic-chat-title">${esc(this.actor.name)} â€” Courage Test</span>
           <span class="mythic-chat-outcome ${outcomeClass}">SUCCESS</span>
         </header>
         <div class="mythic-stat-label">CRG ${crgStat} vs 1d100 rolled ${rollResult}${dosText}</div>
@@ -11614,7 +13973,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const outcomeClass = "failure";
       const content = `<article class="mythic-chat-card ${outcomeClass}">
         <header class="mythic-chat-header">
-          <span class="mythic-chat-title">${esc(this.actor.name)} — Courage Test</span>
+          <span class="mythic-chat-title">${esc(this.actor.name)} â€” Courage Test</span>
           <span class="mythic-chat-outcome ${outcomeClass}">FAILURE</span>
         </header>
         <div class="mythic-stat-label">CRG ${crgStat} vs 1d100 rolled ${rollResult}${dosText}</div>
@@ -11703,6 +14062,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const state = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
     const toHitMod = Number.isFinite(Number(state?.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
+    const baseToHitMod = Number.isFinite(Number(gear.baseToHitModifier)) ? Math.round(Number(gear.baseToHitModifier)) : 0;
     const damageModifier = Number.isFinite(Number(state?.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0;
     const availableFireModes = Array.isArray(gear.fireModes) && gear.fireModes.length ? gear.fireModes : ["Single"];
     const selectedFireMode = String(state?.fireMode ?? "").trim().toLowerCase();
@@ -11711,9 +14071,27 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ?? "Single";
     const modeProfile = parseFireModeProfile(modeLabel);
     const isMelee = gear.weaponClass === "melee";
+    const ammoMode = isEnergyCellAmmoMode(gear.ammoMode)
+      ? String(gear.ammoMode ?? "").trim().toLowerCase()
+      : normalizeBallisticAmmoMode(gear.ammoMode);
+    const isEnergyWeapon = !isMelee && !isInfusionRadiusWeapon && isEnergyCellAmmoMode(ammoMode);
     const ammoConfig = getAmmoConfig();
+    const tracksBasicAmmo = !isMelee && !isInfusionRadiusWeapon && !ammoConfig.ignoreBasicAmmoCounts;
+    const ammoName = String(gear.ammoName ?? "").trim();
     const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
-    const ammoCurrent = toNonNegativeWhole(state?.magazineCurrent, magazineMax);
+    const weaponEnergyCells = isEnergyWeapon && this.actor.system?.equipment?.energyCells && typeof this.actor.system.equipment.energyCells === "object"
+      ? (Array.isArray(this.actor.system.equipment.energyCells[itemId]) ? this.actor.system.equipment.energyCells[itemId] : [])
+      : [];
+    const activeEnergyCell = isEnergyWeapon
+      ? (weaponEnergyCells.find((entry) => String(entry?.id ?? "").trim() === String(state?.activeEnergyCellId ?? "").trim())
+        ?? weaponEnergyCells[0]
+        ?? null)
+      : null;
+    const resolvedActiveEnergyCellId = String(activeEnergyCell?.id ?? "").trim();
+    const ammoCurrent = isEnergyWeapon
+      ? toNonNegativeWhole(activeEnergyCell?.current, 0)
+      : toNonNegativeWhole(state?.magazineCurrent, 0);
+    const totalTrackedAmmoBefore = tracksBasicAmmo ? this._getTrackedAmmoTotalByName(ammoName) : 0;
     const isChargeMode = modeProfile.kind === "charge" || modeProfile.kind === "drawback";
     const chargeDamagePerLevel = toNonNegativeWhole(gear.charge?.damagePerLevel, 0);
     const chargeMaxLevel = isChargeMode
@@ -11726,6 +14104,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const trainingStatus = this._evaluateWeaponTrainingStatus(gear, item.name ?? "");
     const factionTrainingPenalty = trainingStatus.missingFactionTraining ? -20 : 0;
     const weaponTrainingPenalty = trainingStatus.missingWeaponTraining ? -20 : 0;
+    const weaponRuleKeys = normalizeStringList(Array.isArray(gear.weaponSpecialRuleKeys) ? gear.weaponSpecialRuleKeys : []);
+    const weaponRuleText = `${weaponRuleKeys.join(" ")} ${String(gear.specialRules ?? "")}`;
+    const hasHardlightRule = weaponRuleKeys.some((key) => String(key ?? "").trim().toLowerCase() === "hardlight")
+      || /\bhardlight\b/iu.test(weaponRuleText);
+    const hasKineticRule = /\bkinetic\b/iu.test(weaponRuleText);
+    const hasHeadshotRule = /\bhead\s*shot\b|\bheadshot\b/iu.test(weaponRuleText);
+    const hasPenetratingRule = /\bpenetrat(?:e|ing|ion)\b/iu.test(weaponRuleText);
+    const hasBlastOrKillRule = /\bblast\b|\bkill\s*radius\b|\bkill\b/iu.test(weaponRuleText);
+    const appliesShieldPierce = /(penetration|spread|cauterize|kinetic|electrified|blast|kill\s*radius|carpet)/iu.test(weaponRuleText);
+    const explosiveShieldPierce = /(explosive|blast|kill\s*radius|carpet)/iu.test(weaponRuleText);
 
     const targets = [...(game.user.targets ?? [])].filter(Boolean);
     const targetToken = targets[0] ?? null;
@@ -11761,8 +14149,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     }
 
-    const rangeResult = computeRangeModifier(distanceMeters, toNonNegativeWhole(gear.range?.close, 0), toNonNegativeWhole(gear.range?.max, 0), isMelee || actionType === "buttstroke");
-
     if (actionType === "execution") {
       if (!targetToken) {
         ui.notifications.warn("Execution requires a target token.");
@@ -11774,8 +14160,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       const escExec = (v) => foundry.utils.escapeHTML(String(v ?? ""));
       const executionPrompt = isMelee
-        ? `<p>Choose how to finish off <em>${escExec(targetName ?? "the target")}</em>:</p><p><strong>Execution (Half Action):</strong> Single attack, max damage ×2.</p><p><strong>Assassination (Full Action):</strong> Single attack, max damage ×4, ignores shields.</p>`
-        : `<p>Choose how to finish off <em>${escExec(targetName ?? "the target")}</em>:</p><p><strong>Execution (Half Action):</strong> Single attack, max damage ×2.</p><p><strong>Assassination (Full Action):</strong> Uses buttstroke damage profile, ignores shields.</p>`;
+        ? `<p>Choose how to finish off <em>${escExec(targetName ?? "the target")}</em>:</p><p><strong>Execution (Half Action):</strong> Single attack, max damage Ã—2.</p><p><strong>Assassination (Full Action):</strong> Single attack, max damage Ã—4, ignores shields.</p>`
+        : `<p>Choose how to finish off <em>${escExec(targetName ?? "the target")}</em>:</p><p><strong>Execution (Half Action):</strong> Single attack, max damage Ã—2.</p><p><strong>Assassination (Full Action):</strong> Uses buttstroke damage profile, ignores shields.</p>`;
       const chosenVariant = await foundry.applications.api.DialogV2.wait({
         window: { title: "Execution Style" },
         content: executionPrompt,
@@ -11802,33 +14188,183 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
-    const rollIterations = (actionType === "execution" || actionType === "buttstroke") ? 1 : getAttackIterationsForProfile(modeProfile, actionType);
+    const isSustainedFire = modeProfile.kind === "sustained" && actionType !== "execution" && actionType !== "buttstroke" && actionType !== "pump-reaction";
+    const rawRollIterations = (actionType === "execution" || actionType === "buttstroke" || actionType === "pump-reaction") ? 1 : getAttackIterationsForProfile(modeProfile, actionType);
+    const sustainedHalfMax = isSustainedFire ? Math.max(1, getAttackIterationsForProfile(modeProfile, "half")) : 0;
+    const sustainedFullMax = isSustainedFire ? Math.max(sustainedHalfMax, getAttackIterationsForProfile(modeProfile, "full")) : 0;
+    let sustainedSelectedAttacks = isSustainedFire ? sustainedHalfMax : 0;
+    let sustainedActionBand = isSustainedFire ? "half" : "";
+    const rollIterations = isSustainedFire ? (sustainedFullMax > 0 ? 1 : 0) : rawRollIterations;
     if (rollIterations <= 0) {
       ui.notifications.warn(`${modeLabel} cannot be used as a ${actionType} action.`);
       return;
     }
 
-    let ammoToConsume = 0;
-    if (!isMelee && !isInfusionRadiusWeapon && actionType !== "execution" && actionType !== "buttstroke") {
-      if (isChargeMode) ammoToConsume = activeChargeLevel > 0 ? 0 : 1;
-      else if (modeProfile.kind === "burst") ammoToConsume = rollIterations * Math.max(1, modeProfile.count);
-      else ammoToConsume = rollIterations;
-    }
-    if (!isMelee && !isInfusionRadiusWeapon && actionType === "execution") ammoToConsume = 1;
+    const attackMods = await this._promptAttackModifiers(weaponDisplayName, gear);
+    if (attackMods === null) return;
 
-    if (!isMelee && !isInfusionRadiusWeapon && !ammoConfig.ignoreBasicAmmoCounts) {
-      if (ammoCurrent < ammoToConsume) {
-        ui.notifications.warn(`${item.name} is empty. Reload required.`);
-        return;
-      }
-      await this.actor.update({
-        [`system.equipment.weaponState.${itemId}.magazineCurrent`]: Math.max(0, ammoCurrent - ammoToConsume)
+    const promptRangeMeters = Number(attackMods.rangeMeters);
+    const calledShotPenalty = Number(attackMods.calledShotPenalty ?? 0);
+    const calledShotData = attackMods.calledShot && typeof attackMods.calledShot === "object"
+      ? attackMods.calledShot
+      : null;
+    const hasPromptedRange = Number.isFinite(promptRangeMeters) && promptRangeMeters >= 0;
+    const resolvedRangeMeters = hasPromptedRange ? promptRangeMeters : distanceMeters;
+    const rangeCloseMeters = toNonNegativeWhole(gear.range?.close, 0);
+    const rangeMaxMeters = toNonNegativeWhole(gear.range?.max, 0);
+    let rangeResult = computeRangeModifier(
+      resolvedRangeMeters,
+      rangeCloseMeters,
+      rangeMaxMeters,
+      isMelee || actionType === "buttstroke"
+    );
+
+    if (!isMelee && hasPromptedRange && promptRangeMeters <= 3) {
+      const movedSinceLastTurn = await foundry.applications.api.DialogV2.wait({
+        window: { title: "Point-Blank Check" },
+        content: "<p>Has the target moved a minimum of a half action move since your previous turn?</p>",
+        buttons: [
+          { action: "yes", label: "Yes", callback: () => true },
+          { action: "no", label: "No", callback: () => false },
+          { action: "cancel", label: "Cancel", callback: () => null }
+        ],
+        rejectClose: false,
+        modal: true
       });
+      if (movedSinceLastTurn === null) return;
+      if (movedSinceLastTurn) {
+        rangeResult = {
+          ...rangeResult,
+          band: "Point Blank",
+          toHitMod: 0
+        };
+      }
     }
 
-    const newAmmoCurrent = (!isMelee && !isInfusionRadiusWeapon && !ammoConfig.ignoreBasicAmmoCounts)
-      ? Math.max(0, ammoCurrent - ammoToConsume)
-      : ammoCurrent;
+    if (!isMelee && hasPromptedRange && !rangeResult.canDealDamage) {
+      ui.notifications.warn("Target is beyond extreme range. The shot cannot deal damage.");
+      return;
+    }
+
+    if (isSustainedFire) {
+      const sustainedEsc = foundry.utils.escapeHTML;
+      const sustainedCap = calledShotData ? sustainedHalfMax : sustainedFullMax;
+      const selectedAttacks = await foundry.applications.api.DialogV2.wait({
+        window: { title: "Sustained Fire - Attack Count" },
+        content: `
+          <form>
+            <p>How many attacks?</p>
+            <p>1-${sustainedEsc(String(sustainedHalfMax))}: Half Action; ${sustainedEsc(String(sustainedHalfMax + 1))}-${sustainedEsc(String(sustainedFullMax))}: Full Action</p>
+            ${calledShotData ? `<p><strong>Called Shot active:</strong> limited to ${sustainedEsc(String(sustainedHalfMax))} attacks for this half action.</p>` : ""}
+            <div class="form-group">
+              <label for="mythic-sustained-attacks">Attacks</label>
+              <input id="mythic-sustained-attacks" type="number" step="1" min="1" max="${sustainedEsc(String(sustainedCap))}" value="${sustainedEsc(String(sustainedHalfMax))}" />
+            </div>
+          </form>
+        `,
+        buttons: [
+          {
+            action: "confirm",
+            label: "Confirm",
+            callback: () => {
+              const raw = Number(document.getElementById("mythic-sustained-attacks")?.value ?? sustainedHalfMax);
+              const clamped = Math.max(1, Math.min(sustainedCap, Number.isFinite(raw) ? Math.floor(raw) : sustainedHalfMax));
+              return clamped;
+            }
+          },
+          { action: "cancel", label: "Cancel", callback: () => null }
+        ],
+        rejectClose: false,
+        modal: true
+      });
+      if (selectedAttacks === null) return;
+      sustainedSelectedAttacks = selectedAttacks;
+      sustainedActionBand = sustainedSelectedAttacks <= sustainedHalfMax ? "half" : "full";
+    }
+
+    const promptedDamageMod = (() => {
+      const raw = String(attackMods.damageMod ?? "0").trim();
+      if (!raw || raw === "0") return { kind: "flat", value: 0 };
+      const num = Number(raw);
+      if (Number.isFinite(num)) return { kind: "flat", value: Math.round(num) };
+      if (/^\d+d\d+$/iu.test(raw)) return { kind: "dice", raw };
+      return { kind: "flat", value: 0 };
+    })();
+
+    let ammoPerIteration = 0;
+    if (!isMelee && !isInfusionRadiusWeapon && actionType !== "execution" && actionType !== "buttstroke") {
+      if (isChargeMode) ammoPerIteration = activeChargeLevel > 0 ? 0 : 1;
+      else if (modeProfile.kind === "burst") ammoPerIteration = Math.max(1, modeProfile.count);
+      else if (isSustainedFire) ammoPerIteration = sustainedSelectedAttacks;
+      else ammoPerIteration = 1;
+    }
+    if (!isMelee && !isInfusionRadiusWeapon && actionType === "execution") ammoPerIteration = 1;
+
+    let executedIterations = rollIterations;
+    if (ammoPerIteration > 0) {
+      const byMagazine = Math.floor(ammoCurrent / ammoPerIteration);
+      if (isEnergyWeapon) {
+        executedIterations = Math.max(0, Math.min(rollIterations, byMagazine));
+      } else if (tracksBasicAmmo) {
+        executedIterations = Math.max(0, Math.min(rollIterations, byMagazine));
+      }
+    }
+
+    const clickIterations = Math.max(0, rollIterations - executedIterations);
+    const ammoToConsume = executedIterations * Math.max(0, ammoPerIteration);
+    let newAmmoCurrent = ammoCurrent;
+    let totalTrackedAmmoAfter = totalTrackedAmmoBefore;
+
+    if (isEnergyWeapon) {
+      const updateData = {};
+      if (ammoToConsume > 0 && resolvedActiveEnergyCellId) {
+        const energyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
+        const cells = Array.isArray(energyCells[itemId]) ? [...energyCells[itemId]] : [];
+        const cellIndex = cells.findIndex((entry) => String(entry?.id ?? "").trim() === resolvedActiveEnergyCellId);
+        if (cellIndex >= 0) {
+          const nextCurrent = Math.max(0, toNonNegativeWhole(cells[cellIndex]?.current, 0) - ammoToConsume);
+          cells[cellIndex] = {
+            ...cells[cellIndex],
+            current: nextCurrent,
+            sourceWeaponName: String(cells[cellIndex]?.sourceWeaponName ?? "").trim() || String(item.name ?? "").trim()
+          };
+          energyCells[itemId] = cells;
+          updateData["system.equipment.energyCells"] = energyCells;
+          updateData[`system.equipment.weaponState.${itemId}.activeEnergyCellId`] = resolvedActiveEnergyCellId;
+          updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = nextCurrent;
+          newAmmoCurrent = nextCurrent;
+        }
+      }
+      if (Object.keys(updateData).length) {
+        await this.actor.update(updateData);
+      }
+    } else if (tracksBasicAmmo) {
+      const updateData = {};
+      if (ammoToConsume > 0) {
+        const newMagCurrent = Math.max(0, ammoCurrent - ammoToConsume);
+        updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = newMagCurrent;
+        // Sync the active container's stored .current so unloaded magazines retain their count.
+        const activeMagId = String(state?.activeMagazineId ?? "").trim();
+        if (activeMagId) {
+          const bContainers = foundry.utils.deepClone(this.actor.system?.equipment?.ballisticContainers ?? {});
+          for (const [gk, grp] of Object.entries(bContainers)) {
+            if (!Array.isArray(grp)) continue;
+            const magIdx = grp.findIndex((c) => !c?._stub && String(c?.id ?? "").trim() === activeMagId);
+            if (magIdx >= 0) {
+              grp[magIdx] = { ...grp[magIdx], current: newMagCurrent };
+              bContainers[gk] = grp;
+              updateData["system.equipment.ballisticContainers"] = bContainers;
+              break;
+            }
+          }
+        }
+        totalTrackedAmmoAfter = this._getTrackedAmmoTotalByName(ammoName);
+        newAmmoCurrent = newMagCurrent;
+      }
+      if (Object.keys(updateData).length) {
+        await this.actor.update(updateData);
+      }
+    }
 
     // Determine attack characteristic from the live, canonical score/mod snapshot.
     const characteristicRuntime = await this._getLiveCharacteristicRuntime();
@@ -11839,33 +14375,84 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const fireModeBonus = actionType === "buttstroke" ? 0 : getFireModeToHitBonus(modeLabel);
     const effectiveTarget = baseStat
       + fireModeBonus
+      + baseToHitMod
       + toHitMod
       + rangeResult.toHitMod
       + targetSwitchPenalty
       + factionTrainingPenalty
-      + weaponTrainingPenalty;
+      + weaponTrainingPenalty
+      + attackMods.toHitMod
+      + calledShotPenalty;
 
     const d10Count = toNonNegativeWhole(gear.damage?.baseRollD10, 0);
     const d5Count = toNonNegativeWhole(gear.damage?.baseRollD5, 0);
     const baseFlat = Number(gear.damage?.baseDamage ?? 0);
+    const baseDamageModifierMode = String(gear.damage?.baseDamageModifierMode ?? "full-str-mod").trim().toLowerCase();
+    const pierceModifierMode = String(gear.damage?.pierceModifierMode ?? "full-str-mod").trim().toLowerCase();
+    const strModifier = Number.isFinite(Number(characteristicModifiers?.str)) ? Number(characteristicModifiers.str) : 0;
+    const resolveStrengthContribution = (mode) => {
+      if (mode === "half-str-mod") return Math.floor(strModifier / 2);
+      if (mode === "full-str-mod") return strModifier;
+      return 0;
+    };
+
+    // Variant attack support: determine active damage profile
+    const variantAttacksRaw = isMelee && Array.isArray(gear.variantAttacks) ? gear.variantAttacks : [];
+    const hasVariants = isMelee && variantAttacksRaw.length > 0;
+    const selectedVariantIndex = hasVariants ? Math.max(0, toNonNegativeWhole(state.variantIndex, 0)) : 0;
+    const activeVariantData = hasVariants && selectedVariantIndex > 0
+      ? variantAttacksRaw[selectedVariantIndex - 1]
+      : null;
+    // Resolve active damage fields (from variant or primary)
+    const activeDiceCount = activeVariantData ? toNonNegativeWhole(activeVariantData.diceCount, 0) : (d10Count > 0 ? d10Count : d5Count > 0 ? d5Count : d10Count);
+    const activeDiceType = activeVariantData
+      ? (String(activeVariantData.diceType ?? "d10").toLowerCase() === "d5" ? "d5" : "d10")
+      : (d5Count > 0 && d10Count === 0 ? "d5" : "d10");
+    const activeD10Count = activeVariantData ? (activeDiceType === "d10" ? activeDiceCount : 0) : d10Count;
+    const activeD5Count = activeVariantData ? (activeDiceType === "d5" ? activeDiceCount : 0) : d5Count;
+    const activeBaseFlat = activeVariantData ? Number(activeVariantData.baseDamage ?? 0) : baseFlat;
+    const activeBaseDamageModMode = activeVariantData
+      ? String(activeVariantData.baseDamageModifierMode ?? "full-str-mod").toLowerCase()
+      : baseDamageModifierMode;
+    const activePierceModMode = activeVariantData
+      ? String(activeVariantData.pierceModifierMode ?? "full-str-mod").toLowerCase()
+      : pierceModifierMode;
+    const activePierceBase = activeVariantData ? Number(activeVariantData.pierce ?? 0) : Number(gear.damage?.pierce ?? 0);
+    // Attack name label for chat card
+    const attackLabel = hasVariants
+      ? (selectedVariantIndex === 0
+          ? (String(gear.attackName ?? "").trim() || "Primary Attack")
+          : (String(variantAttacksRaw[selectedVariantIndex - 1]?.name ?? "").trim() || `Variant ${selectedVariantIndex}`))
+      : null;
+
+    const baseDamageStrengthBonus = isMelee ? resolveStrengthContribution(activeBaseDamageModMode) : 0;
+    const pierceStrengthBonus = isMelee ? resolveStrengthContribution(activePierceModMode) : 0;
     const infusionIntMod = isInfusionRadiusWeapon
       ? Math.round(Number(characteristicModifiers?.int ?? 0) || 0)
       : 0;
-    const flatTotal = baseFlat + damageModifier + infusionIntMod;
+    const flatTotal = activeBaseFlat + baseDamageStrengthBonus + damageModifier + infusionIntMod;
     const damageParts = [];
-    if (d10Count > 0) damageParts.push(`${d10Count}d10`);
-    if (d5Count > 0) damageParts.push(`${d5Count}d5`);
+    if (activeD10Count > 0) damageParts.push(`${activeD10Count}d10`);
+    if (activeD5Count > 0) damageParts.push(`${activeD5Count}d5`);
     if (flatTotal !== 0 || damageParts.length === 0) damageParts.push(String(flatTotal));
-    const damageFormula = damageParts.join(" + ");
+    let damageFormula = damageParts.join(" + ");
     const damageDisplayParts = [];
-    if (d10Count > 0) damageDisplayParts.push(`${d10Count}d10`);
-    if (d5Count > 0) damageDisplayParts.push(`${d5Count}d5`);
+    if (activeD10Count > 0) damageDisplayParts.push(`${activeD10Count}d10`);
+    if (activeD5Count > 0) damageDisplayParts.push(`${activeD5Count}d5`);
     const flatWithCharge = flatTotal + chargeDamageBonus;
     if (flatWithCharge !== 0 || damageDisplayParts.length === 0) damageDisplayParts.push(String(flatWithCharge));
-    const damageFormulaDisplay = damageDisplayParts.join(" + ");
-    const basePierce = Math.max(0, Number(gear.damage?.pierce ?? 0));
+    let damageFormulaDisplay = damageDisplayParts.join(" + ");
+    const basePierce = Math.max(0, activePierceBase + pierceStrengthBonus);
     const isRangedAssassination = actionType === "execution" && executionVariant === "assassination" && !isMelee;
-    const effectivePierce = (actionType === "buttstroke" || isRangedAssassination) ? 0 : Math.floor(basePierce * rangeResult.pierceFactor);
+    const effectivePierce = (actionType === "buttstroke" || isRangedAssassination) ? 0 : Math.max(0, Math.floor(basePierce * rangeResult.pierceFactor) + attackMods.pierceMod);
+    // Apply prompted damage modifier to the roll formula and display
+    if (promptedDamageMod.kind === "dice") {
+      damageFormula += ` + ${promptedDamageMod.raw}`;
+      damageFormulaDisplay += ` + ${promptedDamageMod.raw}`;
+    } else if (promptedDamageMod.kind === "flat" && promptedDamageMod.value !== 0) {
+      damageFormula += ` + ${promptedDamageMod.value}`;
+      damageFormulaDisplay += ` + ${promptedDamageMod.value}`;
+    }
 
     const allRolls = [];
     const attackRows = [];
@@ -11887,7 +14474,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       else wieldTier = "OH";
       const diceStr = wieldTier === "OH" ? "2d10" : "3d10";
       const strMultiplier = wieldTier === "HW" ? 3 : 2;
-      const flatBonus = strMod * strMultiplier;
       const bsFormula = `${diceStr} + (@STR_MOD * ${strMultiplier})`;
       const roll = await new Roll(bsFormula, rollAliases).evaluate();
       allRolls.push(roll);
@@ -11895,70 +14481,209 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         total: Number(roll.total ?? 0),
         hasSpecialDamage: true,
         ignoresShields,
-        formula: `${diceStr}+(${strMod}x${strMultiplier}) [${label}, STR ${strRaw}]${ignoresShields ? " — Ignores Shields" : ""}`
+        formula: `${diceStr}+(${strMod}x${strMultiplier}) [${label}, STR ${strRaw}]${ignoresShields ? " â€” Ignores Shields" : ""}`,
+        rollTooltip: buildRollTooltipHtml("Damage roll", roll, Number(roll.total ?? 0), bsFormula)
       };
     };
 
-    const evaluateDamage = async () => {
+    const evaluateDamage = async ({ limitHardlightChain = false } = {}) => {
       if (actionType === "execution") {
         const isAssassination = executionVariant === "assassination";
         if (isAssassination && !isMelee) {
           return rollButtstrokeDamage("Assassination Buttstroke", true);
         }
-        const maxDamage = (d10Count * 10) + (d5Count * 5) + Math.max(0, flatTotal);
+        const maxDamage = (activeD10Count * 10) + (activeD5Count * 5) + Math.max(0, flatTotal);
         const multiplier = (isAssassination && isMelee) ? 4 : 2;
         const actionLabel = isAssassination ? "Assassination" : "Execution";
         return {
           total: maxDamage * multiplier,
           hasSpecialDamage: true,
           ignoresShields: isAssassination,
-          formula: `${actionLabel} max (${maxDamage}) x${multiplier}${isAssassination ? " — Ignores Shields" : ""}`
+          formula: `${actionLabel} max (${maxDamage}) x${multiplier}${isAssassination ? " â€” Ignores Shields" : ""}`,
+          rollTooltip: foundry.utils.escapeHTML(`${actionLabel} damage: ${maxDamage * multiplier} | No dice rolled (max damage effect)`)
         };
       }
       if (actionType === "buttstroke") {
         return rollButtstrokeDamage("Buttstroke", false);
       }
-      const roll = await new Roll(damageFormula).evaluate();
-      allRolls.push(roll);
-      const totalWithCharge = Number(roll.total ?? 0) + chargeDamageBonus;
+
+      const countFaceResults = (roll, faces, resultValue) => {
+        if (!roll?.dice?.length) return 0;
+        return roll.dice
+          .filter((die) => Number(die?.faces ?? 0) === faces)
+          .reduce((sum, die) => sum + die.results.filter((r) => Number(r?.result ?? 0) === resultValue).length, 0);
+      };
+
+      const baseParts = [];
+      if (activeD10Count > 0) baseParts.push(`${activeD10Count}d10`);
+      if (activeD5Count > 0) baseParts.push(`${activeD5Count}d5`);
+      const baseFormula = baseParts.join(" + ");
+
+      let baseRollTotal = 0;
+      let baseRoll = null;
+      if (baseFormula) {
+        baseRoll = await new Roll(baseFormula).evaluate();
+        allRolls.push(baseRoll);
+        baseRollTotal = Number(baseRoll.total ?? 0);
+      }
+
+      let miscRollTotal = 0;
+      let miscRoll = null;
+      if (promptedDamageMod.kind === "dice") {
+        miscRoll = await new Roll(promptedDamageMod.raw).evaluate();
+        allRolls.push(miscRoll);
+        miscRollTotal = Number(miscRoll.total ?? 0);
+      }
+
+      const hardlightBaseTriggers = hasHardlightRule
+        ? (countFaceResults(baseRoll, 10, 10) + countFaceResults(baseRoll, 5, 5))
+        : 0;
+
+      let hardlightExplosionTotal = 0;
+      const hardlightExplosionRolls = [];
+      if (hardlightBaseTriggers > 0) {
+        let pendingExtraDice = hardlightBaseTriggers;
+        let canChainExplosions = !limitHardlightChain;
+        while (pendingExtraDice > 0) {
+          const extraRoll = await new Roll(`${pendingExtraDice}d10`).evaluate();
+          allRolls.push(extraRoll);
+          hardlightExplosionRolls.push(extraRoll);
+          hardlightExplosionTotal += Number(extraRoll.total ?? 0);
+          if (!canChainExplosions) break;
+          pendingExtraDice = countFaceResults(extraRoll, 10, 10);
+          if (pendingExtraDice <= 0) break;
+        }
+      }
+
+      const totalWithCharge = baseRollTotal + miscRollTotal + hardlightExplosionTotal + flatTotal + chargeDamageBonus;
+      const rollTooltipParts = [];
+      if (baseRoll) {
+        rollTooltipParts.push(buildRollTooltipHtml("Damage roll", baseRoll, baseRollTotal, baseFormula));
+      }
+      if (miscRoll) {
+        rollTooltipParts.push(buildRollTooltipHtml("Misc damage roll", miscRoll, miscRollTotal, promptedDamageMod.raw));
+      }
+      if (hardlightExplosionRolls.length) {
+        hardlightExplosionRolls.forEach((roll, index) => {
+          rollTooltipParts.push(buildRollTooltipHtml(`Hardlight explosion ${index + 1}`, roll, Number(roll.total ?? 0), String(roll.formula ?? "")));
+        });
+      }
+      if (!rollTooltipParts.length) {
+        rollTooltipParts.push(foundry.utils.escapeHTML(`Damage total: ${totalWithCharge} [flat modifiers only]`));
+      }
+
+      const hasSpecialDamage = (countFaceResults(baseRoll, 10, 10) > 0)
+        || isFullChargeShot
+        || hardlightBaseTriggers > 0
+        || hardlightExplosionRolls.length > 0;
+      const resolvedDamageFormula = hardlightExplosionRolls.length
+        ? `${damageFormulaDisplay} + Hardlight (${hardlightExplosionRolls.map((roll) => String(roll.formula ?? "")).join(" + ")})`
+        : damageFormulaDisplay;
+
       return {
         total: totalWithCharge,
-        hasSpecialDamage: roll.dice
-          .filter((d) => d.faces === 10)
-          .some((d) => d.results.some((r) => r.result === 10))
-          || isFullChargeShot,
+        hasSpecialDamage,
         ignoresShields: false,
-        formula: damageFormulaDisplay
+        formula: resolvedDamageFormula,
+        rollTooltip: rollTooltipParts.join("")
       };
     };
 
     for (let i = 0; i < rollIterations; i += 1) {
+      if (i >= executedIterations) {
+        attackRows.push({
+          index: i + 1,
+          isClick: true,
+          rawRoll: null,
+          effectiveTarget,
+          dosValue: 0,
+          isCritFail: false,
+          isSuccess: false,
+          hitLoc: null,
+          damageInstances: [],
+          wouldDamage: []
+        });
+        continue;
+      }
+
       const attackRoll = actionType === "execution" ? null : await new Roll("1d100").evaluate();
       if (attackRoll) allRolls.push(attackRoll);
 
       const rawRoll = attackRoll?.total ?? 1;
       const isCritFail = attackRoll ? rawRoll === 100 : false;
       const dosValue = actionType === "execution" ? 99 : computeAttackDOS(effectiveTarget, rawRoll);
-      const isSuccess = actionType === "execution" ? true : (!isCritFail && dosValue >= 0);
-      const hitLoc = actionType === "execution" ? { zone: "Execution", subZone: "Point Blank", drKey: "chest", locRoll: null } : resolveHitLocation(rawRoll);
+      let resolvedDosValue = dosValue;
+      let isSuccess = actionType === "execution" ? true : (!isCritFail && dosValue >= 0);
+      const standardEffectiveTarget = actionType === "execution"
+        ? effectiveTarget
+        : (effectiveTarget - calledShotPenalty);
+      const standardDosValue = actionType === "execution"
+        ? dosValue
+        : computeAttackDOS(standardEffectiveTarget, rawRoll);
+      const defaultHitLoc = actionType === "execution"
+        ? { zone: "Execution", subZone: "Point Blank", drKey: "chest", locRoll: null }
+        : resolveHitLocation(rawRoll);
+      const calledShotLocation = (calledShotData?.kind === "location" && calledShotData?.drKey)
+        ? {
+            zone: String(calledShotData.zone ?? "").trim() || defaultHitLoc.zone,
+            subZone: String(calledShotData.subZone ?? "").trim() || String(calledShotData.zone ?? "").trim() || defaultHitLoc.subZone,
+            drKey: String(calledShotData.drKey ?? "").trim() || defaultHitLoc.drKey,
+            locRoll: null
+          }
+        : null;
+      const calledShotTargetLabel = (() => {
+        if (!calledShotData) return "";
+        if (calledShotData.kind === "weapon") return String(calledShotData.label ?? "Weapon").trim() || "Weapon";
+        const zone = String(calledShotData.zone ?? "").trim();
+        const subZone = String(calledShotData.subZone ?? "").trim();
+        if (calledShotData.isSublocation && zone && subZone) return `${zone} -> ${subZone}`;
+        return zone || subZone || "Location";
+      })();
+      let hitLoc = defaultHitLoc;
+      let calledShotApplied = false;
+      let calledShotFallbackToNormal = false;
+      let calledShotWeaponOnly = false;
+
+      if (actionType !== "execution" && calledShotData) {
+        if (isSuccess && calledShotLocation) {
+          hitLoc = calledShotLocation;
+          calledShotApplied = true;
+        } else if (isSuccess && calledShotData.kind === "weapon") {
+          calledShotWeaponOnly = true;
+        } else if (!isSuccess && !isCritFail && standardDosValue >= 2) {
+          // Called shot misses, but would have hit by 2+ DOS as a normal attack.
+          isSuccess = true;
+          resolvedDosValue = standardDosValue;
+          hitLoc = defaultHitLoc;
+          calledShotFallbackToNormal = true;
+        }
+      }
 
       let hitCount = 0;
       if (isSuccess && rangeResult.canDealDamage) {
         if (actionType === "execution") hitCount = 1;
         else if (modeProfile.kind === "burst") hitCount = Math.max(1, modeProfile.count);
-        else if (modeProfile.kind === "sustained") hitCount = Math.max(1, modeProfile.count);
+        else if (isSustainedFire) hitCount = sustainedSelectedAttacks;
         else hitCount = 1;
       }
 
       const damageInstances = [];
       for (let shotIndex = 0; shotIndex < hitCount; shotIndex += 1) {
-        const dmg = await evaluateDamage();
+        const dmg = await evaluateDamage({ limitHardlightChain: rawRoll === 1 });
         damageInstances.push({
           damageTotal: dmg.total,
           damagePierce: effectivePierce,
           hasSpecialDamage: dmg.hasSpecialDamage,
+          isHardlight: hasHardlightRule,
+          isKinetic: hasKineticRule,
+          isHeadshot: hasHeadshotRule,
+          isPenetrating: hasPenetratingRule,
+          hasBlastOrKill: hasBlastOrKillRule,
+          appliesShieldPierce,
+          explosiveShieldPierce,
           ignoresShields: dmg.ignoresShields ?? false,
           damageFormula: dmg.formula,
+          rollTooltip: dmg.rollTooltip ?? "",
           hitLoc
         });
       }
@@ -11968,13 +14693,21 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (damageInstances.length) {
           wouldDamage = damageInstances;
         } else {
-          const wouldDamageResult = await evaluateDamage();
+          const wouldDamageResult = await evaluateDamage({ limitHardlightChain: rawRoll === 1 });
           wouldDamage = [{
             damageTotal: wouldDamageResult.total,
             damagePierce: effectivePierce,
             hasSpecialDamage: wouldDamageResult.hasSpecialDamage,
+            isHardlight: hasHardlightRule,
+            isKinetic: hasKineticRule,
+            isHeadshot: hasHeadshotRule,
+            isPenetrating: hasPenetratingRule,
+            hasBlastOrKill: hasBlastOrKillRule,
+            appliesShieldPierce,
+            explosiveShieldPierce,
             ignoresShields: wouldDamageResult.ignoresShields ?? false,
             damageFormula: wouldDamageResult.formula,
+            rollTooltip: wouldDamageResult.rollTooltip ?? "",
             hitLoc
           }];
         }
@@ -11983,10 +14716,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const row = {
         index: i + 1,
         rawRoll,
+        attackRollTooltip: attackRoll ? buildRollTooltipHtml("Attack roll", attackRoll, rawRoll, "1d100") : "",
         effectiveTarget,
-        dosValue,
+        dosValue: resolvedDosValue,
         isCritFail,
         isSuccess,
+        calledShotInfo: calledShotData ? {
+          targetLabel: calledShotTargetLabel,
+          penalty: calledShotPenalty,
+          applied: calledShotApplied,
+          fallbackToNormal: calledShotFallbackToNormal,
+          weaponOnly: calledShotWeaponOnly
+        } : null,
         hitLoc,
         damageInstances,
         wouldDamage
@@ -12003,6 +14744,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             damagePierce: first.damagePierce,
             hitLoc: row.hitLoc,
             hasSpecialDamage: row.damageInstances.some((entry) => entry.hasSpecialDamage),
+            isHardlight: row.damageInstances.some((entry) => entry.isHardlight),
+            isKinetic: row.damageInstances.some((entry) => entry.isKinetic),
+            isHeadshot: row.damageInstances.some((entry) => entry.isHeadshot),
+            isPenetrating: row.damageInstances.some((entry) => entry.isPenetrating),
+            hasBlastOrKill: row.damageInstances.some((entry) => entry.hasBlastOrKill),
+            appliesShieldPierce: row.damageInstances.some((entry) => entry.appliesShieldPierce),
+            explosiveShieldPierce: row.damageInstances.some((entry) => entry.explosiveShieldPierce),
             ignoresShields: row.damageInstances.some((entry) => entry.ignoresShields)
           });
         } else {
@@ -12014,6 +14762,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
               damagePierce: entry.damagePierce,
               hitLoc: row.hitLoc,
               hasSpecialDamage: entry.hasSpecialDamage,
+              isHardlight: entry.isHardlight,
+              isKinetic: entry.isKinetic,
+              isHeadshot: entry.isHeadshot,
+              isPenetrating: entry.isPenetrating,
+              hasBlastOrKill: entry.hasBlastOrKill,
+              appliesShieldPierce: entry.appliesShieldPierce,
+              explosiveShieldPierce: entry.explosiveShieldPierce,
               ignoresShields: entry.ignoresShields ?? false
             });
           }
@@ -12023,27 +14778,130 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
     const signMod = (v) => v > 0 ? `+${v}` : v < 0 ? String(v) : "";
+    const compactBadgeText = (label) => {
+      const text = String(label ?? "").trim();
+      if (!text) return "?";
+      if (text.length <= 14) return text;
+      const words = text.split(/[\s\-_/]+/u).filter(Boolean);
+      if (words.length >= 2) return words.map((word) => word.charAt(0).toUpperCase()).join("").slice(0, 6);
+      return `${text.slice(0, 13)}...`;
+    };
+    const tagLabelByKey = new Map(MYTHIC_WEAPON_TAG_DEFINITIONS.map((entry) => [
+      String(entry?.key ?? "").trim().toLowerCase(),
+      String(entry?.label ?? entry?.key ?? "").trim()
+    ]).filter(([key, label]) => key && label));
+    const ignoredTagTokens = new Set(["u", "i", "p", "nc", "npu", "ncu"]);
+    const shouldIgnoreTagKey = (rawKey) => {
+      const normalized = String(rawKey ?? "").trim().toLowerCase();
+      if (!normalized) return false;
+      const compact = normalized.replace(/[^a-z0-9]/gu, "");
+      return ignoredTagTokens.has(compact);
+    };
+    const ruleLabelByKey = new Map(MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS.map((entry) => [
+      String(entry?.key ?? "").trim().toLowerCase(),
+      String(entry?.label ?? entry?.key ?? "").trim()
+    ]).filter(([key, label]) => key && label));
+
+    const badgeEntries = [];
+    const seenBadges = new Set();
+    const addBadge = (kind, key, label) => {
+      const normalizedKind = String(kind ?? "").trim().toLowerCase() === "rule" ? "rule" : "tag";
+      const safeKey = String(key ?? "").trim();
+      const safeLabel = String(label ?? safeKey).trim();
+      if (!safeLabel) return;
+      const dedupeKey = `${normalizedKind}:${safeKey.toLowerCase() || safeLabel.toLowerCase()}`;
+      if (seenBadges.has(dedupeKey)) return;
+      seenBadges.add(dedupeKey);
+      badgeEntries.push({
+        kind: normalizedKind,
+        shortLabel: compactBadgeText(safeLabel),
+        fullLabel: safeLabel
+      });
+    };
+
+    const weaponTags = normalizeStringList(Array.isArray(gear.weaponTagKeys) ? gear.weaponTagKeys : []);
+    for (const rawKey of weaponTags) {
+      const key = String(rawKey ?? "").trim();
+      if (!key) continue;
+      if (shouldIgnoreTagKey(key)) continue;
+      const label = tagLabelByKey.get(key.toLowerCase()) ?? key;
+      addBadge("tag", key, label);
+    }
+
+    const weaponRules = normalizeStringList(Array.isArray(gear.weaponSpecialRuleKeys) ? gear.weaponSpecialRuleKeys : []);
+    for (const rawKey of weaponRules) {
+      const key = String(rawKey ?? "").trim();
+      if (!key) continue;
+      const label = ruleLabelByKey.get(key.toLowerCase()) ?? key;
+      addBadge("rule", key, label);
+    }
+
+    const bracketTagPattern = /\[([A-Za-z0-9+\-]+)\]/gu;
+    const rulesText = String(gear.specialRules ?? "");
+    let match = bracketTagPattern.exec(rulesText);
+    while (match) {
+      const token = String(match[1] ?? "").trim();
+      if (token) {
+        const bracketed = `[${token}]`;
+        if (shouldIgnoreTagKey(bracketed)) {
+          match = bracketTagPattern.exec(rulesText);
+          continue;
+        }
+        const normalized = token.toLowerCase();
+        const label = tagLabelByKey.get(bracketed.toLowerCase())
+          ?? tagLabelByKey.get(normalized)
+          ?? bracketed;
+        addBadge("tag", bracketed, label);
+      }
+      match = bracketTagPattern.exec(rulesText);
+    }
+    badgeEntries.sort((a, b) => {
+      const kindCmp = (a.kind === b.kind) ? 0 : (a.kind === "tag" ? -1 : 1);
+      if (kindCmp !== 0) return kindCmp;
+      return String(a.fullLabel ?? "").localeCompare(String(b.fullLabel ?? ""), undefined, { sensitivity: "base" });
+    });
+    const badgeHtml = badgeEntries.length
+      ? `<div class="mythic-attack-badge-row">${badgeEntries.map((badge) => `<span class="mythic-attack-badge ${badge.kind === "rule" ? "is-rule" : "is-tag"}" title="${esc(badge.fullLabel)}">${esc(badge.shortLabel)}</span>`).join("")}</div>`
+      : "";
     const statLabel = statKey.toUpperCase();
     const displayActionLabel = actionType === "execution"
       ? (executionVariant === "assassination"
-        ? (!isMelee ? "assassination (full, buttstroke damage, ignores shields)" : "assassination (full, ×4, ignores shields)")
-        : "execution (half, ×2)")
+        ? (!isMelee ? "assassination (full, buttstroke damage, ignores shields)" : "assassination (full, Ã—4, ignores shields)")
+        : "execution (half, Ã—2)")
       : actionType === "buttstroke"
         ? "buttstroke"
-        : `${modeLabel} (${actionType})`;
+        : actionType === "pump-reaction"
+          ? `${modeLabel} (reaction shot)`
+          : isSustainedFire
+            ? `${modeLabel} (${sustainedSelectedAttacks} attacks, ${sustainedActionBand} action)`
+          : `${modeLabel} (${actionType})`;
 
     const modParts = [];
     if (fireModeBonus !== 0) modParts.push(`${esc(modeLabel)} ${signMod(fireModeBonus)}`);
+    if (baseToHitMod !== 0) modParts.push(`Base ${signMod(baseToHitMod)}`);
     if (toHitMod !== 0) modParts.push(`Wpn ${signMod(toHitMod)}`);
     if (rangeResult.toHitMod !== 0) modParts.push(`Range ${rangeResult.band} ${signMod(rangeResult.toHitMod)}`);
     if (targetSwitchPenalty !== 0) modParts.push(`Target Switch ${signMod(targetSwitchPenalty)}`);
     if (factionTrainingPenalty !== 0) modParts.push(`Faction Training ${signMod(factionTrainingPenalty)}`);
     if (weaponTrainingPenalty !== 0) modParts.push(`Weapon Training ${signMod(weaponTrainingPenalty)}`);
     if (isChargeMode) modParts.push(`Charge ${activeChargeLevel}/${chargeMaxLevel} (${signMod(chargeDamageBonus)} dmg)`);
+    if (baseDamageStrengthBonus !== 0) modParts.push(`Damage STR ${signMod(baseDamageStrengthBonus)}`);
+    if (pierceStrengthBonus !== 0) modParts.push(`Pierce STR ${signMod(pierceStrengthBonus)}`);
     if (isInfusionRadiusWeapon && infusionIntMod !== 0) modParts.push(`INT Mod ${signMod(infusionIntMod)} dmg`);
+    if (attackMods.toHitMod !== 0) modParts.push(`Misc Hit ${signMod(attackMods.toHitMod)}`);
+    if (calledShotPenalty !== 0) modParts.push(`Called Shot ${signMod(calledShotPenalty)}`);
+    if (promptedDamageMod.kind === "flat" && promptedDamageMod.value !== 0) modParts.push(`Misc Dmg ${signMod(promptedDamageMod.value)}`);
+    else if (promptedDamageMod.kind === "dice") modParts.push(`Misc Dmg +${promptedDamageMod.raw}`);
+    if (attackMods.pierceMod !== 0) modParts.push(`Misc Pierce ${signMod(attackMods.pierceMod)}`);
     const modNote = modParts.length ? ` <span class="mythic-stat-mods">(${modParts.join(", ")})</span>` : "";
 
     const rowHtml = attackRows.map((row) => {
+      if (row.isClick) {
+        return `<div class="mythic-attack-line">
+        <div class="mythic-attack-mainline">A${row.index}: <span class="mythic-attack-verdict failure">*CLICK*</span></div>
+      </div>`;
+      }
+
       const absDisplay = Math.abs(row.dosValue).toFixed(1);
       const verdict = row.isCritFail
         ? "Critical Failure"
@@ -12057,45 +14915,71 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           const locHtml = row.hitLoc
             ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
             : `<em>-</em>`;
-          const damageTitle = esc(`Damage roll: ${entry.damageTotal} [${entry.damageFormula}]`);
+          const damageTitle = entry.rollTooltip || esc(`Damage roll: ${entry.damageTotal} [${entry.damageFormula}]`);
           return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Hit ${idx + 1}: <span class="mythic-roll-inline" title="${damageTitle}">${entry.damageTotal}</span> [${esc(entry.damageFormula)}], Pierce ${entry.damagePierce} @ ${locHtml}${entry.hasSpecialDamage ? ' <span class="mythic-special-dmg">&#9888; Special</span>' : ""}${entry.ignoresShields ? ' <span class="mythic-special-dmg">&#9762; Ignores Shields</span>' : ""}</div>`;
         }).join("")
         : "";
+      const calledShotDetail = row.calledShotInfo
+        ? (() => {
+          const info = row.calledShotInfo;
+          const penaltyText = Number.isFinite(Number(info.penalty)) ? ` (${signMod(Number(info.penalty))} to hit)` : "";
+          if (info.fallbackToNormal) {
+            return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Called Shot on <strong>${esc(info.targetLabel)}</strong>${penaltyText} failed; converted to normal hit (2+ DOS as standard attack).</div>`;
+          }
+          if (info.applied) {
+            return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Called Shot: <strong>${esc(info.targetLabel)}</strong>${penaltyText} applied.</div>`;
+          }
+          if (info.weaponOnly && row.isSuccess) {
+            return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Called Shot: <strong>${esc(info.targetLabel)}</strong>${penaltyText} succeeded (weapon-target effects pending; body location roll unchanged).</div>`;
+          }
+          return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Called Shot declared: <strong>${esc(info.targetLabel)}</strong>${penaltyText}.</div>`;
+        })()
+        : "";
 
-      const attackRollTitle = esc(`Attack roll: ${row.rawRoll} [1d100]`);
+      const attackRollTitle = row.attackRollTooltip || esc(`Attack roll: ${row.rawRoll} [1d100]`);
 
       return `<div class="mythic-attack-line">
         <div class="mythic-attack-mainline">A${row.index}: ${actionType === "execution" ? "AUTO" : `<span class="mythic-roll-inline" title="${attackRollTitle}">${row.rawRoll}</span> vs <span class="mythic-roll-target" title="Effective target">${row.effectiveTarget}</span>`} <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span></div>
+        ${calledShotDetail}
         ${successDetail}
       </div>`;
     }).join("");
 
-    const failedRows = attackRows.filter((row) => !row.isSuccess || row.isCritFail);
+    const failedRows = attackRows.filter((row) => !row.isClick && (!row.isSuccess || row.isCritFail));
     const failureDetails = failedRows.length
       ? `<details class="mythic-miss-details"><summary>Reveal damage details for failures</summary>${failedRows.map((row) => {
         const locHtml = row.hitLoc
           ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
           : `<em>-</em>`;
         const would = row.wouldDamage?.[0] ?? null;
-        const wouldTitle = would ? esc(`Would deal: ${would.damageTotal} [${would.damageFormula}]`) : "";
+        const wouldTitle = would?.rollTooltip || (would ? esc(`Would deal: ${would.damageTotal} [${would.damageFormula}]`) : "");
         return `<div class="mythic-attack-subline">A${row.index}: would hit ${locHtml}${would ? ` for <span class="mythic-roll-inline" title="${wouldTitle}">${would.damageTotal}</span> [${esc(would.damageFormula)}], Pierce ${would.damagePierce}` : ""}</div>`;
       }).join("")}</details>`
       : "";
 
     const anySuccess = attackRows.some((row) => row.isSuccess && row.damageInstances.length);
 
-    const ammoHtml = (isMelee || isInfusionRadiusWeapon) ? "" : ` <span class="mythic-ammo-note">(${newAmmoCurrent}/${magazineMax})</span>`;
+    const ammoHtml = (isMelee || isInfusionRadiusWeapon)
+      ? ""
+      : ` <span class="mythic-ammo-note">(Mag ${newAmmoCurrent}/${magazineMax}${tracksBasicAmmo ? ` | Inv ${totalTrackedAmmoAfter}` : ""})</span>`;
+    const clickHtml = clickIterations > 0
+      ? ` <span class="mythic-ammo-note">[${clickIterations} dry fire]</span>`
+      : "";
     const chargeReleaseNote = isChargeMode && activeChargeLevel > 0
       ? ` <span class="mythic-charge-release-note">[Charge Release ${activeChargeLevel}/${chargeMaxLevel} ${isFullChargeShot ? "FULL " : ""}+${chargeDamageBonus} dmg]</span>`
+      : "";
+    const attackLabelHtml = attackLabel
+      ? ` <span class="mythic-attack-type-note">[${esc(attackLabel)}]</span>`
       : "";
 
     const content = `<div class="mythic-attack-card">
   <div class="mythic-attack-header">
       ${targets.length === 1 && targetName
-        ? `<strong>${esc(this.actor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>${ammoHtml}${chargeReleaseNote}`
-        : `<strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>${ammoHtml}${chargeReleaseNote}`}
+        ? `<strong>${esc(this.actor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
+        : `<strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`}
   </div>
   <div class="mythic-stat-label">${statLabel} ${baseStat}${modNote} &mdash; ${esc(displayActionLabel)}</div>
+  ${badgeHtml}
   ${rowHtml}
   ${failureDetails}
   <hr class="mythic-card-hr">
@@ -12119,6 +15003,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       targetSwitchPenalty,
       factionTrainingPenalty,
       weaponTrainingPenalty,
+      calledShotPenalty,
+      calledShot: calledShotData,
       chargeLevel: activeChargeLevel,
       chargeMaxLevel,
       chargeDamageBonus,
@@ -12130,6 +15016,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       damageTotal: attackRows.find((row) => row.isSuccess)?.damageInstances?.[0]?.damageTotal ?? 0,
       damagePierce: attackRows.find((row) => row.isSuccess)?.damageInstances?.[0]?.damagePierce ?? 0,
       hasSpecialDamage: attackRows.some((row) => row.damageInstances?.some((entry) => entry.hasSpecialDamage)),
+      isHardlight: hasHardlightRule,
+      isKinetic: hasKineticRule,
+      isHeadshot: hasHeadshotRule,
+      isPenetrating: hasPenetratingRule,
+      hasBlastOrKill: hasBlastOrKillRule,
+      appliesShieldPierce,
+      explosiveShieldPierce,
       ignoresShields: attackRows.some((row) => row.damageInstances?.some((entry) => entry.ignoresShields)),
       skipEvasion: actionType === "execution",
       evasionRows: actionType === "execution" ? [] : evasionRows,
@@ -12155,6 +15048,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
     if (isInfusionRadiusWeapon) {
       await this._setInfusionRadiusRechargeRemaining(itemId, 10);
+    }
+
+    if (actionType === "pump-reaction") {
+      const currentReactions = Math.max(0, Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)));
+      await this.actor.update({ "system.combat.reactions.count": currentReactions + 1 });
     }
   }
 
@@ -12206,7 +15104,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const roll = await (new Roll(formula, rollData)).evaluate();
     const total = Number(roll.total);
 
-    const content = this._buildInitiativeChatCard({
+    const content = buildInitiativeChatCard({
       roll,
       actorName: this.actor.name,
       agiMod,
@@ -12322,6 +15220,229 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  async _promptMiscModifier(label) {
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: `${label} â€” Test Modifier`
+      },
+      content: `
+        <form>
+          <div class="form-group">
+            <label for="mythic-test-misc-mod">Misc Modifier</label>
+            <input id="mythic-test-misc-mod" type="number" step="1" value="0" />
+            <p class="hint">Enter any situational modifier. Use negative numbers for penalties.</p>
+          </div>
+        </form>
+      `,
+      buttons: [
+        {
+          action: "roll",
+          label: "Roll",
+          callback: () => {
+            const value = Number(document.getElementById("mythic-test-misc-mod")?.value ?? 0);
+            return Number.isFinite(value) ? Math.round(value) : 0;
+          }
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  }
+
+  async _promptAttackModifiers(weaponName, gear = null) {
+    const esc = foundry.utils.escapeHTML;
+    const isMelee = gear?.weaponClass === "melee";
+    const closeRange = toNonNegativeWhole(gear?.range?.close, 0);
+    const maxRange = toNonNegativeWhole(gear?.range?.max, 0);
+    const showRangeField = !isMelee && maxRange > 0;
+    const abilityNames = new Set(this.actor.items
+      .filter((item) => item.type === "ability")
+      .map((item) => this._normalizeNameForMatch(item.name))
+      .filter(Boolean));
+    const hasClearTarget = abilityNames.has("clear target");
+    const hasPrecisionStrike = abilityNames.has("precision strike");
+
+    const calledShotZoneDefs = [
+      { value: "none", label: "No" },
+      { value: "head", label: "Head", zone: "Head", drKey: "head", kind: "location" },
+      { value: "larm", label: "Left Arm", zone: "Left Arm", drKey: "lArm", kind: "location" },
+      { value: "rarm", label: "Right Arm", zone: "Right Arm", drKey: "rArm", kind: "location" },
+      { value: "lleg", label: "Left Leg", zone: "Left Leg", drKey: "lLeg", kind: "location" },
+      { value: "rleg", label: "Right Leg", zone: "Right Leg", drKey: "rLeg", kind: "location" },
+      { value: "chest", label: "Chest", zone: "Chest", drKey: "chest", kind: "location" },
+      { value: "weapon-standard", label: "Weapon (Standard)", kind: "weapon", weaponClass: "standard" },
+      { value: "weapon-large-heavy", label: "Weapon (Large/Heavy)", kind: "weapon", weaponClass: "large-heavy" }
+    ];
+    const calledShotSubZonesByZone = (() => {
+      const subzones = new Map();
+      const tableEntries = Object.values(MYTHIC_HIT_LOCATION_TABLE ?? {});
+      for (const entry of tableEntries) {
+        const zone = String(entry?.zone ?? "").trim();
+        const subZone = String(entry?.subZone ?? "").trim();
+        if (!zone || !subZone) continue;
+        if (!subzones.has(zone)) subzones.set(zone, new Set());
+        subzones.get(zone).add(subZone);
+      }
+      const result = {};
+      for (const zoneDef of calledShotZoneDefs) {
+        if (zoneDef.kind !== "location") continue;
+        result[zoneDef.zone] = [...(subzones.get(zoneDef.zone) ?? [])].sort((a, b) => a.localeCompare(b));
+      }
+      return result;
+    })();
+    const calledShotZoneOptionMarkup = calledShotZoneDefs
+      .map((entry) => `<option value="${esc(String(entry.value ?? ""))}">${esc(String(entry.label ?? entry.value ?? ""))}</option>`)
+      .join("");
+    const calledShotSubOptionMarkup = ["<option value=\"\">No</option>", ...calledShotZoneDefs
+      .filter((entry) => entry.kind === "location")
+      .flatMap((entry) => {
+        const zoneValue = String(entry.value ?? "").trim();
+        const zoneLabel = String(entry.zone ?? "").trim();
+        const values = calledShotSubZonesByZone[zoneLabel] ?? [];
+        return values.map((subZone) => {
+          const optionValue = `${zoneValue}::${subZone}`;
+          return `<option value="${esc(optionValue)}" data-zone="${esc(zoneValue)}">${esc(`${subZone} (${zoneLabel})`)}</option>`;
+        });
+      })].join("");
+
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: `Attack Modifiers â€” ${esc(String(weaponName ?? "Weapon"))}`
+      },
+      content: `
+        <style>
+          .attack-mod-form input[type="number"],
+          .attack-mod-form input[type="text"] {
+            width: 8ch;
+          }
+        </style>
+        <form class="attack-mod-form">
+          <div class="form-group">
+            <label for="mythic-atk-tohit">To Hit</label>
+            <input id="mythic-atk-tohit" type="number" step="1" value="0" />
+            <p class="hint">Bonus/penalty to attack roll.</p>
+          </div>
+          <div class="form-group">
+            <label for="mythic-atk-damage">Damage</label>
+            <input id="mythic-atk-damage" type="text" value="" placeholder="5, -3, 1d10" />
+            <p class="hint">Flat or dice expression.</p>
+          </div>
+          <div class="form-group">
+            <label for="mythic-atk-pierce">Pierce</label>
+            <input id="mythic-atk-pierce" type="number" step="1" value="0" />
+            <p class="hint">Bonus/penalty to pierce.</p>
+          </div>
+          <div class="form-group">
+            <label for="mythic-atk-called-zone">Called Shot</label>
+            <select id="mythic-atk-called-zone" onchange="
+              const zone = String(this.value || 'none');
+              const sub = document.getElementById('mythic-atk-called-sub');
+              if (!sub) return;
+              const disableSub = zone === 'none' || zone.startsWith('weapon-');
+              for (const opt of sub.options) {
+                const parentZone = String(opt.dataset.zone || '');
+                opt.hidden = Boolean(parentZone) && parentZone !== zone;
+              }
+              sub.disabled = disableSub;
+              const selected = sub.options[sub.selectedIndex];
+              if (disableSub || (selected && selected.hidden)) sub.value = '';
+            ">
+              ${calledShotZoneOptionMarkup}
+            </select>
+            <p class="hint">Body location -30, sublocation -60. Weapon shots: -40 standard, -20 large/heavy.</p>
+          </div>
+          <div class="form-group">
+            <label for="mythic-atk-called-sub">Called Shot Sublocation</label>
+            <select id="mythic-atk-called-sub" disabled>
+              ${calledShotSubOptionMarkup}
+            </select>
+            <p class="hint">Pick a matching sublocation for the selected location. Clear Target halves ranged penalties, Precision Strike halves melee penalties.</p>
+          </div>
+          ${showRangeField ? `
+          <div class="form-group">
+            <label for="mythic-atk-range">Range (m)</label>
+            <input id="mythic-atk-range" type="number" step="1" value="0" min="0" />
+            <p class="hint">Optimal Range: ${closeRange}m - ${maxRange}m</p>
+          </div>
+          ` : ""}
+        </form>
+      `,
+      buttons: [
+        {
+          action: "roll",
+          label: "Roll Attack",
+          callback: () => {
+            const toHitRaw = Number(document.getElementById("mythic-atk-tohit")?.value ?? 0);
+            const damageRaw = String(document.getElementById("mythic-atk-damage")?.value ?? "").trim();
+            const pierceRaw = Number(document.getElementById("mythic-atk-pierce")?.value ?? 0);
+            const calledShotZoneRaw = String(document.getElementById("mythic-atk-called-zone")?.value ?? "none").trim().toLowerCase();
+            const calledShotSubRaw = String(document.getElementById("mythic-atk-called-sub")?.value ?? "").trim();
+            const rangeRaw = showRangeField
+              ? Number(document.getElementById("mythic-atk-range")?.value ?? NaN)
+              : NaN;
+
+            const selectedCalledZone = calledShotZoneDefs.find((entry) => String(entry.value ?? "").toLowerCase() === calledShotZoneRaw) ?? calledShotZoneDefs[0];
+            let calledShotPenalty = 0;
+            let calledShot = null;
+
+            if (selectedCalledZone?.value !== "none") {
+              const reductionFactor = (isMelee && hasPrecisionStrike) || (!isMelee && hasClearTarget)
+                ? 0.5
+                : 1;
+
+              if (selectedCalledZone.kind === "weapon") {
+                const basePenalty = selectedCalledZone.weaponClass === "large-heavy" ? -20 : -40;
+                calledShotPenalty = Math.round(basePenalty * reductionFactor);
+                calledShot = {
+                  kind: "weapon",
+                  targetClass: selectedCalledZone.weaponClass,
+                  label: selectedCalledZone.label,
+                  basePenalty,
+                  penalty: calledShotPenalty
+                };
+              } else {
+                const [subZoneParent = "", subZoneName = ""] = calledShotSubRaw.split("::").map((entry) => String(entry ?? "").trim());
+                const hasMatchingSublocation = subZoneParent === selectedCalledZone.value && subZoneName;
+                const basePenalty = hasMatchingSublocation ? -60 : -30;
+                calledShotPenalty = Math.round(basePenalty * reductionFactor);
+                calledShot = {
+                  kind: "location",
+                  zone: selectedCalledZone.zone,
+                  subZone: hasMatchingSublocation ? subZoneName : selectedCalledZone.zone,
+                  drKey: selectedCalledZone.drKey,
+                  isSublocation: Boolean(hasMatchingSublocation),
+                  basePenalty,
+                  penalty: calledShotPenalty
+                };
+              }
+            }
+
+            return {
+              toHitMod: Number.isFinite(toHitRaw) ? Math.round(toHitRaw) : 0,
+              damageMod: damageRaw || "0",
+              pierceMod: Number.isFinite(pierceRaw) ? Math.round(pierceRaw) : 0,
+              calledShotPenalty,
+              calledShot,
+              rangeMeters: Number.isFinite(rangeRaw) && rangeRaw >= 0 ? rangeRaw : null
+            };
+          }
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  }
+
   async _onAddCustomTrait(event) {
     event.preventDefault();
     if (!this.isEditable) return;
@@ -12397,108 +15518,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (item?.sheet) item.sheet.render(true);
   }
 
-  _buildInitiativeChatCard({
-    roll,
-    actorName,
-    agiMod,
-    mythicAgi,
-    manualBonus,
-    miscModifier,
-    total
-  }) {
-    const esc = foundry.utils.escapeHTML;
-    const formatValue = (value) => {
-      const numeric = Number(value ?? 0);
-      if (!Number.isFinite(numeric)) return "0";
-      return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1).replace(/\.0$/, "");
-    };
-    const signValue = (value) => {
-      const numeric = Number(value ?? 0);
-      const formatted = formatValue(Math.abs(numeric));
-      return `${numeric >= 0 ? "+" : "-"}${formatted}`;
-    };
-
-    const mythicAgiBonus = mythicAgi / 2;
-    const diceTerm = roll.dice?.[0];
-    const dieResults = (diceTerm?.results ?? []).map((result) => ({
-      value: Number(result?.result ?? 0),
-      kept: result?.active !== false && result?.discarded !== true
-    }));
-    const diceMarkup = dieResults.length
-      ? dieResults.map((result) => `<span class="mythic-initiative-die ${result.kept ? "kept" : "discarded"}" title="${result.kept ? "Kept" : "Discarded"}">${formatValue(result.value)}</span>`).join("")
-      : `<span class="mythic-initiative-die kept">?</span>`;
-
-    return `
-      <article class="mythic-chat-card mythic-initiative-card">
-        <header class="mythic-chat-header">
-          <span class="mythic-chat-title">Initiative Roll</span>
-        </header>
-        <div class="mythic-chat-subheader">${esc(String(actorName ?? "Character"))}</div>
-        <details class="mythic-initiative-details">
-          <summary>
-            <span class="mythic-initiative-total-label">Total:</span>
-            <span class="inline-roll mythic-inline-total">${formatValue(total)}</span>
-          </summary>
-          <div class="mythic-chat-note">Click the total above to reveal the breakdown.</div>
-          <div class="mythic-initiative-breakdown">
-            <div class="mythic-initiative-row">
-              <span class="mythic-initiative-row-label">Dice Results</span>
-              <span class="mythic-initiative-row-value mythic-initiative-dice-row">${diceMarkup}</span>
-            </div>
-            <div class="mythic-initiative-row">
-              <span class="mythic-initiative-row-label">Agility Mod</span>
-              <span class="mythic-initiative-row-value">${signValue(agiMod)}</span>
-            </div>
-            <div class="mythic-initiative-row">
-              <span class="mythic-initiative-row-label">Half Mythic Agility Score <span class="mythic-chat-formula">Mythic AGI / 2</span></span>
-              <span class="mythic-initiative-row-value">${signValue(mythicAgiBonus)}</span>
-            </div>
-            <div class="mythic-initiative-row">
-              <span class="mythic-initiative-row-label">Bonus</span>
-              <span class="mythic-initiative-row-value">${signValue(manualBonus)}</span>
-            </div>
-            <div class="mythic-initiative-row">
-              <span class="mythic-initiative-row-label">Misc</span>
-              <span class="mythic-initiative-row-value">${signValue(miscModifier)}</span>
-            </div>
-          </div>
-        </details>
-      </article>
-    `;
-  }
-
-  _buildUniversalTestChatCard({
-    label,
-    targetValue,
-    rolled,
-    success,
-    successLabel = "Success",
-    failureLabel = "Failure",
-    successDegreeLabel = "DOS",
-    failureDegreeLabel = "DOF"
-  }) {
-    const safeLabel = foundry.utils.escapeHTML(String(label ?? "Test"));
-    const outcome = success ? successLabel : failureLabel;
-    const degreeLabel = success ? successDegreeLabel : failureDegreeLabel;
-    const outcomeClass = success ? "success" : "failure";
-    const diff = Math.abs(targetValue - rolled);
-    const degrees = (diff / 10).toFixed(1);
-
-    return `
-      <article class="mythic-chat-card ${outcomeClass}">
-        <header class="mythic-chat-header">
-          <span class="mythic-chat-title">${safeLabel} Test</span>
-          <span class="mythic-chat-outcome ${outcomeClass}">${foundry.utils.escapeHTML(outcome)}</span>
-        </header>
-        <div class="mythic-chat-inline-stats">
-          <span class="stat target"><strong>Target</strong> ${targetValue}</span>
-          <span class="stat roll ${outcomeClass}"><strong>Roll</strong> ${rolled}</span>
-          <span class="stat degree ${outcomeClass}"><strong>${foundry.utils.escapeHTML(degreeLabel)}</strong> ${degrees}</span>
-        </div>
-      </article>
-    `;
-  }
-
   async _runUniversalTest({
     label,
     targetValue,
@@ -12513,18 +15532,23 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
+    const miscModifier = await this._promptMiscModifier(label);
+    if (miscModifier === null) return;
+
+    const effectiveTarget = targetValue + miscModifier;
     const roll = await (new Roll("1d100")).evaluate();
     const rolled = Number(roll.total);
-    const success = rolled <= targetValue;
-    const content = this._buildUniversalTestChatCard({
+    const success = rolled <= effectiveTarget;
+    const content = buildUniversalTestChatCard({
       label,
-      targetValue,
+      targetValue: effectiveTarget,
       rolled,
       success,
       successLabel,
       failureLabel,
       successDegreeLabel,
-      failureDegreeLabel
+      failureDegreeLabel,
+      miscModifier
     });
 
     await ChatMessage.create({
@@ -12546,7 +15570,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
-  // ── Skill roll ─────────────────────────────────────────────────────────────
+  // â”€â”€ Skill roll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async _onRollSkill(event) {
     event.preventDefault();
@@ -12576,5 +15600,455 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       invalidTargetWarning: `Set a valid ${label} value before rolling a test.`
     });
   }
+
+  /**
+   * Add a dropped ammo item to the actor's independent ammo inventory.
+   */
+  _resolveAmmoPoolStorageKey(keyLike = "", pools = null) {
+    const raw = String(keyLike ?? "").trim();
+    if (!raw) return "";
+
+    const ammoPools = (pools && typeof pools === "object")
+      ? pools
+      : ((this.actor.system?.equipment?.ammoPools && typeof this.actor.system.equipment.ammoPools === "object")
+        ? this.actor.system.equipment.ammoPools
+        : {});
+
+    if (Object.prototype.hasOwnProperty.call(ammoPools, raw)) return raw;
+
+    const slug = toSlug(raw);
+    if (slug && Object.prototype.hasOwnProperty.call(ammoPools, slug)) return slug;
+
+    for (const candidate of Object.keys(ammoPools)) {
+      if (toSlug(candidate) === slug) return candidate;
+    }
+
+    return slug;
+  }
+
+  _buildTrackedAmmoSnapshot(ammoName = "") {
+    const ammoPools = (this.actor.system?.equipment?.ammoPools && typeof this.actor.system.equipment.ammoPools === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.ammoPools)
+      : {};
+    const independentAmmo = (this.actor.system?.equipment?.independentAmmo && typeof this.actor.system.equipment.independentAmmo === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.independentAmmo)
+      : {};
+
+    const targetName = String(ammoName ?? "").trim();
+    const targetLookup = normalizeLookupText(targetName);
+    const targetSlug = toSlug(targetName);
+    const poolMatches = [];
+    const independentMatches = [];
+    let total = 0;
+
+    const matchesAmmo = (nameLike = "", keyLike = "") => {
+      const byName = normalizeLookupText(String(nameLike ?? "").trim());
+      const byKeySlug = toSlug(String(keyLike ?? "").trim());
+      if (targetLookup && byName && byName === targetLookup) return true;
+      if (targetSlug && byKeySlug && byKeySlug === targetSlug) return true;
+      return false;
+    };
+
+    for (const [poolKey, rawPool] of Object.entries(ammoPools)) {
+      const pool = (rawPool && typeof rawPool === "object") ? rawPool : {};
+      const epCount = toNonNegativeWhole(pool?.epCount, 0);
+      const purchasedCount = toNonNegativeWhole(pool?.purchasedCount, 0);
+      const hasSplit = Number.isFinite(Number(pool?.epCount)) || Number.isFinite(Number(pool?.purchasedCount));
+      const count = hasSplit ? (epCount + purchasedCount) : toNonNegativeWhole(pool?.count, 0);
+      const poolName = String(pool?.name ?? poolKey).trim();
+      if (!matchesAmmo(poolName, poolKey)) continue;
+      poolMatches.push(String(poolKey ?? "").trim());
+      total += count;
+    }
+
+    for (const [ammoUuid, rawEntry] of Object.entries(independentAmmo)) {
+      const entry = (rawEntry && typeof rawEntry === "object") ? rawEntry : {};
+      const entryName = String(entry?.ammoName ?? "").trim();
+      if (!matchesAmmo(entryName, "")) continue;
+      const quantity = toNonNegativeWhole(entry?.quantity, 0);
+      independentMatches.push(String(ammoUuid ?? "").trim());
+      total += quantity;
+    }
+
+    return {
+      total,
+      ammoPools,
+      independentAmmo,
+      poolMatches,
+      independentMatches,
+      ammoName: targetName
+    };
+  }
+
+  _getTrackedAmmoTotalByName(ammoName = "") {
+    return this._buildTrackedAmmoSnapshot(ammoName).total;
+  }
+
+  _consumeTrackedAmmoByName(ammoName = "", rounds = 0) {
+    const requested = toNonNegativeWhole(rounds, 0);
+    const snapshot = this._buildTrackedAmmoSnapshot(ammoName);
+    let remaining = requested;
+
+    for (const poolKey of snapshot.poolMatches) {
+      if (remaining <= 0) break;
+      const currentPool = (snapshot.ammoPools?.[poolKey] && typeof snapshot.ammoPools[poolKey] === "object")
+        ? snapshot.ammoPools[poolKey]
+        : {};
+      const epCount = toNonNegativeWhole(currentPool?.epCount, 0);
+      const purchasedCount = toNonNegativeWhole(currentPool?.purchasedCount, 0);
+      const hasSplit = Number.isFinite(Number(currentPool?.epCount)) || Number.isFinite(Number(currentPool?.purchasedCount));
+      const poolCount = hasSplit ? (epCount + purchasedCount) : toNonNegativeWhole(currentPool?.count, 0);
+      if (poolCount <= 0) continue;
+
+      const take = Math.min(poolCount, remaining);
+      const takeFromEp = Math.min(epCount, take);
+      const takeFromPurchased = Math.max(0, take - takeFromEp);
+      const nextEp = Math.max(0, epCount - takeFromEp);
+      const nextPurchased = Math.max(0, purchasedCount - takeFromPurchased);
+      const nextCount = Math.max(0, poolCount - take);
+
+      snapshot.ammoPools[poolKey] = {
+        ...currentPool,
+        name: String(currentPool?.name ?? snapshot.ammoName ?? "Ammo").trim() || "Ammo",
+        count: nextCount,
+        epCount: nextEp,
+        purchasedCount: nextPurchased
+      };
+      remaining -= take;
+    }
+
+    for (const ammoUuid of snapshot.independentMatches) {
+      if (remaining <= 0) break;
+      const currentEntry = (snapshot.independentAmmo?.[ammoUuid] && typeof snapshot.independentAmmo[ammoUuid] === "object")
+        ? snapshot.independentAmmo[ammoUuid]
+        : null;
+      if (!currentEntry) continue;
+
+      const quantity = toNonNegativeWhole(currentEntry?.quantity, 0);
+      if (quantity <= 0) continue;
+      const take = Math.min(quantity, remaining);
+      const nextQuantity = Math.max(0, quantity - take);
+      snapshot.independentAmmo[ammoUuid] = {
+        ...currentEntry,
+        quantity: nextQuantity
+      };
+      remaining -= take;
+    }
+
+    const consumed = requested - remaining;
+    return {
+      consumed,
+      totalAfter: Math.max(0, snapshot.total - consumed),
+      ammoPools: snapshot.ammoPools,
+      independentAmmo: snapshot.independentAmmo
+    };
+  }
+
+  async _addIndependentAmmoFromDroppedItem(droppedItem) {
+    if (!droppedItem) return false;
+    if (droppedItem.type !== "gear") {
+      ui.notifications?.warn("Only gear items can be dropped here.");
+      return false;
+    }
+
+    const gear = normalizeGearSystemData(droppedItem.system ?? {}, droppedItem.name ?? "");
+    if (!isAmmoLikeGearData(gear, droppedItem.name ?? "")) {
+      ui.notifications?.warn("Only ammunition items can be added to the ammo inventory.");
+      return false;
+    }
+
+    const ammoName = String(droppedItem.name ?? "Unknown Ammo").trim() || "Unknown Ammo";
+    const ammoReference = getDroppedAmmoReferenceFromItem(droppedItem, ammoName);
+    if (!ammoReference) {
+      ui.notifications?.warn("Could not derive an ammo key from the dropped item.");
+      return false;
+    }
+
+    // Route drops to ammoPools so same-caliber ammo always stacks in one place.
+    const ammoKey = toSlug(ammoName);
+    const ammoPools = (this.actor.system?.equipment?.ammoPools && typeof this.actor.system.equipment.ammoPools === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.ammoPools)
+      : {};
+    const currentPool = (ammoPools[ammoKey] && typeof ammoPools[ammoKey] === "object") ? ammoPools[ammoKey] : null;
+    const epCount = currentPool ? toNonNegativeWhole(currentPool.epCount, 0) : 0;
+    const purchasedCount = currentPool ? toNonNegativeWhole(currentPool.purchasedCount, 0) : 0;
+    ammoPools[ammoKey] = {
+      name: ammoName,
+      epCount,
+      purchasedCount: purchasedCount + 1,
+      count: epCount + purchasedCount + 1,
+      isCarried: currentPool?.isCarried !== false
+    };
+    await this.actor.update({ "system.equipment.ammoPools": ammoPools });
+
+    ui.notifications?.info(`Added ${ammoName} to Ammo inventory.`);
+    return true;
+  }
+
+  /**
+   * Handle dropping ammo items onto the ammo drop zone
+   */
+  async _onAmmoItemDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.isEditable) return;
+
+    const zone = event.currentTarget;
+    const kind = String(zone?.dataset?.kind ?? "").trim().toLowerCase();
+    if (kind !== "ammo-item") return;
+
+    const data = this._extractDropData(event);
+    const dropped = await this._resolveDroppedItemFromData(data);
+    if (!dropped) {
+      ui.notifications?.warn("Could not read dropped ammo item. Try dragging from a compendium/world item row.");
+      return;
+    }
+    await this._addIndependentAmmoFromDroppedItem(dropped);
+  }
+
+  async _onOpenIndependentAmmo(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const ammoReference = String(button?.dataset?.ammoReference ?? "").trim();
+    const ammoName = String(button?.dataset?.ammoName ?? "").trim();
+
+    if (/^(Compendium\.|Item\.)/u.test(ammoReference)) {
+      const document = await fromUuid(ammoReference).catch(() => null);
+      if (document?.sheet) {
+        document.sheet.render(true);
+        return;
+      }
+    }
+
+    const worldItem = (game.items ?? []).find((entry) => {
+      if (entry?.type !== "gear") return false;
+      const normalized = normalizeGearSystemData(entry.system ?? {}, entry.name ?? "");
+      if (!isAmmoLikeGearData(normalized, entry.name ?? "")) return false;
+      return normalizeLookupText(entry.name ?? "") === normalizeLookupText(ammoName);
+    });
+    if (worldItem?.sheet) {
+      worldItem.sheet.render(true);
+      return;
+    }
+
+    ui.notifications?.warn("No editable ammo source item found for this row.");
+  }
+
+  async _deleteEquipmentMapKey(path, key, currentMap = null) {
+    const normalizedPath = String(path ?? "").trim();
+    const normalizedKey = String(key ?? "").trim();
+    if (!normalizedPath || !normalizedKey) return false;
+
+    const readMap = () => {
+      const value = foundry.utils.getProperty(this.actor, normalizedPath);
+      return (value && typeof value === "object") ? value : {};
+    };
+
+    const initialMap = (currentMap && typeof currentMap === "object") ? currentMap : readMap();
+    if (!Object.prototype.hasOwnProperty.call(initialMap, normalizedKey)) {
+      return false;
+    }
+
+    const tryDottedDelete = async () => {
+      await this.actor.update({
+        [`${normalizedPath}.-=${normalizedKey}`]: null
+      });
+    };
+
+    const tryNestedDelete = async () => {
+      await this.actor.update({
+        [normalizedPath]: {
+          [`-=${normalizedKey}`]: null
+        }
+      });
+    };
+
+    const tryRewriteDelete = async () => {
+      const latestMap = readMap();
+      const rewritten = foundry.utils.deepClone(latestMap);
+      delete rewritten[normalizedKey];
+      await this.actor.update({
+        [normalizedPath]: rewritten
+      }, { diff: false, recursive: false });
+    };
+
+    const attempts = [tryDottedDelete, tryNestedDelete, tryRewriteDelete];
+    for (const attempt of attempts) {
+      try {
+        await attempt();
+      } catch (_error) {
+        continue;
+      }
+
+      const latestMap = readMap();
+      if (!Object.prototype.hasOwnProperty.call(latestMap, normalizedKey)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  async _deleteIndependentAmmoKey(key, currentMap = null) {
+    const normalizedKey = String(key ?? "").trim();
+    if (!normalizedKey) return false;
+
+    const readMap = () => {
+      const value = foundry.utils.getProperty(this.actor, "system.equipment.independentAmmo");
+      return (value && typeof value === "object") ? value : {};
+    };
+
+    const initialMap = (currentMap && typeof currentMap === "object") ? currentMap : readMap();
+
+    if (!Object.prototype.hasOwnProperty.call(initialMap, normalizedKey)) {
+      return false;
+    }
+
+    // Clone the map and DELETE the key
+    const rewritten = foundry.utils.deepClone(initialMap);
+    delete rewritten[normalizedKey];
+
+    // Send update
+    try {
+      await this.actor.update({
+        "system.equipment.independentAmmo": rewritten
+      });
+    } catch (error) {
+      console.error(`[AMMO-DELETE] Update failed:`, error);
+      return false;
+    }
+
+    // Force rerender immediately (don't wait for verification)
+    if (this.rendered) {
+      await this.render(false);
+    }
+    
+    return true;
+  }
+
+  async _onRemoveAmmoEntry(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const button = event.currentTarget;
+    let source = String(button?.dataset?.ammoSource ?? "").trim().toLowerCase();
+    const key = String(button?.dataset?.ammoKey ?? "").trim();
+    const ammoName = String(button?.dataset?.ammoName ?? "").trim();
+    if (!source || !key) return;
+
+    const independentAmmoCurrent = (this.actor.system?.equipment?.independentAmmo && typeof this.actor.system.equipment.independentAmmo === "object")
+      ? this.actor.system.equipment.independentAmmo
+      : {};
+    const ammoPoolsCurrent = (this.actor.system?.equipment?.ammoPools && typeof this.actor.system.equipment.ammoPools === "object")
+      ? this.actor.system.equipment.ammoPools
+      : {};
+
+    if (source !== "independent" && source !== "pool") {
+      if (Object.hasOwn(independentAmmoCurrent, key)) source = "independent";
+      else if (Object.hasOwn(ammoPoolsCurrent, toSlug(key))) source = "pool";
+      else source = "";
+    }
+
+    if (source === "independent") {
+      const removed = await this._deleteIndependentAmmoKey(key, independentAmmoCurrent);
+      if (!removed) {
+        ui.notifications?.warn("Could not remove this independent ammo entry.");
+        return;
+      }
+      ui.notifications?.info(`Removed ${ammoName || "ammo"}.`);
+      return;
+    }
+
+    if (source === "pool") {
+      const ammoKey = this._resolveAmmoPoolStorageKey(key, ammoPoolsCurrent);
+      if (!ammoKey) return;
+      const removed = await this._deleteEquipmentMapKey("system.equipment.ammoPools", ammoKey, ammoPoolsCurrent);
+      if (!removed) {
+        ui.notifications?.warn("Could not remove this ammo pool entry.");
+        return;
+      }
+      ui.notifications?.info(`Removed ${ammoName || "ammo"}.`);
+      return;
+    }
+
+    ui.notifications?.warn("Could not determine which ammo entry to remove.");
+  }
+
+  async _onIndependentAmmoCarriedToggle(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const input = event.currentTarget;
+    const ammoUuid = String(input?.dataset?.ammoUuid ?? "").trim();
+    if (!ammoUuid) return;
+
+    const isCarried = input?.checked !== false;
+    const independentAmmo = (this.actor.system?.equipment?.independentAmmo && typeof this.actor.system.equipment.independentAmmo === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.independentAmmo)
+      : {};
+    if (!independentAmmo[ammoUuid]) return;
+
+    independentAmmo[ammoUuid].isCarried = isCarried;
+    await this.actor.update({
+      "system.equipment.independentAmmo": independentAmmo
+    });
+  }
+
+    /**
+     * Handle removing independent ammo from inventory
+     */
+    async _onRemoveIndependentAmmo(event) {
+      event.preventDefault();
+      if (!this.isEditable) return;
+
+      const button = event.currentTarget;
+      const ammoUuid = String(button?.dataset?.ammoUuid ?? "").trim();
+      if (!ammoUuid) return;
+
+      const independentAmmo = (this.actor.system?.equipment?.independentAmmo && typeof this.actor.system.equipment.independentAmmo === "object")
+        ? this.actor.system.equipment.independentAmmo
+        : {};
+      if (!Object.prototype.hasOwnProperty.call(independentAmmo, ammoUuid)) return;
+
+      const removed = await this._deleteIndependentAmmoKey(ammoUuid, independentAmmo);
+      if (!removed) {
+        ui.notifications?.warn("Could not remove this independent ammo entry.");
+      }
+    }
+
+  /**
+   * Handle changing quantity of independent ammo
+   */
+  async _onIndependentAmmoCountChange(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const input = event.currentTarget;
+    const ammoUuid = String(input?.dataset?.ammoUuid ?? "").trim();
+    if (!ammoUuid) return;
+
+    const value = toNonNegativeWhole(input?.value ?? 0, 0);
+    const independentAmmo = (this.actor.system?.equipment?.independentAmmo && typeof this.actor.system.equipment.independentAmmo === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.independentAmmo)
+      : {};
+
+    if (!independentAmmo[ammoUuid]) return;
+    if (value <= 0) {
+      await this._deleteIndependentAmmoKey(ammoUuid, independentAmmo);
+      return;
+    } else {
+      independentAmmo[ammoUuid].quantity = value;
+    }
+
+    await this.actor.update({
+      "system.equipment.independentAmmo": independentAmmo
+    });
+  }
 }
+
+Object.assign(MythicActorSheet.prototype, soldierTypeChoiceMethods);
+Object.assign(MythicActorSheet.prototype, creationPathChoiceMethods);
+Object.assign(MythicActorSheet.prototype, creationPathAssignmentMethods);
+Object.assign(MythicActorSheet.prototype, creationPathDropMethods);
+Object.assign(MythicActorSheet.prototype, creationPathLifestyleMethods);
 

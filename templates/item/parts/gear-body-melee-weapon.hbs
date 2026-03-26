@@ -1,0 +1,193 @@
+<nav class="gear-item-tabs-nav tabs" data-group="melee-tabs">
+  <a class="item" data-tab="general">General</a>
+  <a class="item" data-tab="special-rules">Special Rules</a>
+  <a class="item" data-tab="weapon-mods">Weapon Mods</a>
+</nav>
+
+<div class="gear-item-tabs-content">
+  <section class="tab" data-tab="general" data-group="melee-tabs">
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-training">Training</label>
+        <select id="gear-training" name="system.training" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each meleeTrainingOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if (eq ../gear.training opt.value)}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-weapon-type">Weapon Type</label>
+        <select id="gear-weapon-type" name="system.weaponType" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each meleeWeaponTypeOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if (eq ../gear.weaponType opt.value)}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-reach">Range</label>
+        <input id="gear-reach" type="text" name="system.range.reach" value="{{gear.range.reach}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-dice-count">Damage Roll</label>
+        <div class="gear-damage-roll-inline">
+          <input id="gear-dmg-dice-count" type="number" min="0" step="1" name="system.damage.diceCount" value="{{gear.damage.diceCount}}" {{#unless canEditFields}}disabled{{/unless}} />
+          <select id="gear-dmg-dice-type" name="system.damage.diceType" {{#unless canEditFields}}disabled{{/unless}}>
+            {{#each damageDieTypeOptions as |opt|}}
+            <option value="{{opt.value}}" {{#if (eq ../gear.damage.diceType opt.value)}}selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-base">Base Damage</label>
+        <input id="gear-dmg-base" type="number" min="0" step="1" name="system.damage.baseDamage" value="{{gear.damage.baseDamage}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-base-mod">Base Damage Modifier</label>
+        <select id="gear-dmg-base-mod" name="system.damage.baseDamageModifierMode" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each meleeDamageModifierOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if (eq ../gear.damage.baseDamageModifierMode opt.value)}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-pierce">Pierce</label>
+        <input id="gear-dmg-pierce" type="number" step="1" name="system.damage.pierce" value="{{gear.damage.pierce}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-pierce-mod">Pierce Modifier</label>
+        <select id="gear-dmg-pierce-mod" name="system.damage.pierceModifierMode" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each meleeDamageModifierOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if (eq ../gear.damage.pierceModifierMode opt.value)}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+    </div>
+
+    {{#if hasVariantAttacks}}
+    <div class="ability-info-row ability-col melee-primary-attack-name-row">
+      <label for="gear-attack-name">Primary Attack Name
+        <span class="gear-field-hint">(indicate damage type in name, e.g. "Bludgeoning [BD]")</span>
+      </label>
+      <input id="gear-attack-name" type="text" name="system.attackName" value="{{gear.attackName}}"
+        placeholder="e.g. Bludgeoning [BD]" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+    {{/if}}
+
+    <div class="melee-variant-attacks-section">
+      {{#each variantAttacks as |variant|}}
+      <div class="melee-variant-attack-row">
+        <div class="melee-variant-attack-header">
+          <strong class="melee-variant-attack-title">Variant Attack {{variant.displayIndex}}
+            <span class="gear-field-hint">(indicate damage type in the name field)</span>
+          </strong>
+          <button type="button" class="action-btn remove-variant-attack-btn" data-index="{{variant.index}}"
+            {{#unless ../canEditFields}}disabled{{/unless}}>&#10005; Remove</button>
+        </div>
+        <div class="ability-grid-3">
+          <div class="ability-info-row ability-col" style="grid-column: span 3">
+            <label>Variant Name</label>
+            <input type="text" name="system.variantAttacks.{{variant.index}}.name" value="{{variant.name}}"
+              placeholder="e.g. Piercing [PD]" {{#unless ../canEditFields}}disabled{{/unless}} />
+          </div>
+          <div class="ability-info-row ability-col">
+            <label>Damage Roll</label>
+            <div class="gear-damage-roll-inline">
+              <input type="number" min="0" step="1" name="system.variantAttacks.{{variant.index}}.diceCount"
+                value="{{variant.diceCount}}" {{#unless ../canEditFields}}disabled{{/unless}} />
+              <select name="system.variantAttacks.{{variant.index}}.diceType" {{#unless ../canEditFields}}disabled{{/unless}}>
+                {{#each variant.diceTypeOptions as |opt|}}
+                <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+                {{/each}}
+              </select>
+            </div>
+          </div>
+          <div class="ability-info-row ability-col">
+            <label>Base Damage</label>
+            <input type="number" step="1" name="system.variantAttacks.{{variant.index}}.baseDamage"
+              value="{{variant.baseDamage}}" {{#unless ../canEditFields}}disabled{{/unless}} />
+          </div>
+          <div class="ability-info-row ability-col">
+            <label>Base Damage Modifier</label>
+            <select name="system.variantAttacks.{{variant.index}}.baseDamageModifierMode" {{#unless ../canEditFields}}disabled{{/unless}}>
+              {{#each variant.baseDamageModOptions as |opt|}}
+              <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+              {{/each}}
+            </select>
+          </div>
+          <div class="ability-info-row ability-col">
+            <label>Pierce</label>
+            <input type="number" step="1" name="system.variantAttacks.{{variant.index}}.pierce"
+              value="{{variant.pierce}}" {{#unless ../canEditFields}}disabled{{/unless}} />
+          </div>
+          <div class="ability-info-row ability-col">
+            <label>Pierce Modifier</label>
+            <select name="system.variantAttacks.{{variant.index}}.pierceModifierMode" {{#unless ../canEditFields}}disabled{{/unless}}>
+              {{#each variant.pierceModOptions as |opt|}}
+              <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+      </div>
+      {{/each}}
+      <div class="melee-variant-add-row">
+        <button type="button" class="action-btn add-variant-attack-btn" {{#unless canEditFields}}disabled{{/unless}}>
+          + Variant Attack
+        </button>
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-description">Description</label>
+      <textarea id="gear-description" name="system.description" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Tags</p>
+      <div class="ability-grid-3">
+        {{#each weaponTagOptions as |opt|}}
+        <label class="ability-checkbox-row">
+          <input type="checkbox" name="system.weaponTagKeys" value="{{opt.key}}"
+            {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+          <span>{{opt.label}}</span>
+        </label>
+        {{/each}}
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" data-tab="special-rules" data-group="melee-tabs">
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Melee Weapon Special Rules</p>
+      <div class="ability-grid-3">
+        {{#each meleeSpecialRuleOptions as |opt|}}
+        <label class="ability-checkbox-row">
+          <input type="checkbox" name="system.weaponSpecialRuleKeys" value="{{opt.key}}"
+            {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+          <span>{{opt.label}}</span>
+        </label>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-special-rules">Special Rule Notes</label>
+      <textarea id="gear-special-rules" name="system.specialRules" rows="8" {{#unless canEditFields}}disabled{{/unless}}>{{gear.specialRules}}</textarea>
+    </div>
+  </section>
+
+  <section class="tab" data-tab="weapon-mods" data-group="melee-tabs">
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Weapon Mods</p>
+      <label for="gear-attachments">Weapon Mods / Notes</label>
+      <textarea id="gear-attachments" name="system.attachments" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{gear.attachments}}</textarea>
+    </div>
+  </section>
+</div>

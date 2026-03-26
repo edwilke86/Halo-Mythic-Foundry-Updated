@@ -146,6 +146,16 @@
           {{/each}}
         </tr>
 
+        {{!-- Equipment row (auto from currently equipped gear item modifiers) --}}
+        <tr class="mythic-charbuilder-row row-equipment">
+          <td class="mythic-charbuilder-row-label">Equipment</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              <span class="mythic-charbuilder-cell-display auto-value">{{lookup ../mythicCharBuilder.equipmentRow statKey}}</span>
+            </td>
+          {{/each}}
+        </tr>
+
         {{!-- Medical row (placeholder — future auto-computed) --}}
         <tr class="mythic-charbuilder-row row-medical">
           <td class="mythic-charbuilder-row-label">Medical</td>

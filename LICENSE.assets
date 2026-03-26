@@ -19,3 +19,11 @@ Suggested attribution format:
 "Halo Mythic Foundry Updated" by edwil and contributors,
 with acknowledgements to Michael van Weelde (Warhound266) and AugmenTab,
 licensed under CC BY 4.0.
+
+Third-party asset note (internal reference):
+- File: assets/images/Body Location.png
+- Source URL: https://www.pngfind.com/mpng/hiRoiJm_banner-royalty-free-library-transparency-pricing-program-body/
+- Source listing text observed by maintainer: "Image License: Personal Use Only"
+- Maintainer note: This image is believed to be acceptable for personal/hobby use.
+  If repository distribution scope changes, replace this asset with one that has a
+  clear redistribution/commercial-friendly license.

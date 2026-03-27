@@ -5,8 +5,8 @@
   "version": "0.2.0-alpha.1",
   "license": "SEE LICENSE and LICENSE.assets",
   "manifest": "https://raw.githubusercontent.com/edwilke86/Halo-Mythic-Foundry-Updated/main/system.json",
-  "download": "halo-mythic-foundry-updated.zip",
-  "url": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated/blob/main/halo-mythic-foundry-updated.zip",
+  "download": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated/releases/download/v0.2.0-alpha.1/halo-mythic-foundry-updated.zip",
+  "url": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated",
   "compatibility": {
     "minimum": 13,
     "verified": "13.351"

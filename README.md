@@ -34,9 +34,9 @@ Alpha bug reporting focus (important):
 - On system load, players are shown an alpha bug-report notice with this guidance and a "Don't show again" option.
 
 - Report calculation/rules breakages and clearly broken intended behavior.
-	- Examples: "This damage calculation is incorrect." / "This flow should work but crashes or applies the wrong result."
+  - Examples: "This damage calculation is incorrect." / "This flow should work but crashes or applies the wrong result."
 - Do not report content coverage gaps on this pass.
-	- Examples: "This item is missing from a compendium." / "Vehicles are not usable yet."
+  - Examples: "This item is missing from a compendium." / "Vehicles are not usable yet."
 
 Where to report:
 

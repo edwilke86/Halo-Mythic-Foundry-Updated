@@ -702,15 +702,16 @@ export function normalizeCharacterSystemData(systemData) {
   // charBuilder normalization
   merged.charBuilder = merged.charBuilder && typeof merged.charBuilder === "object" ? merged.charBuilder : {};
   merged.charBuilder.managed = Boolean(merged.charBuilder.managed);
+  merged.charBuilder.lowerTierUnlockEnabled = Boolean(merged.charBuilder.lowerTierUnlockEnabled);
   const _cbAdvValidValues = MYTHIC_ADVANCEMENT_TIERS.map((t) => t.value);
-  for (const rowKey of ["soldierTypeRow", "creationPoints", "advancements", "misc", "soldierTypeAdvancementsRow"]) {
+  for (const rowKey of ["soldierTypeRow", "creationPoints", "advancements", "purchasedAdvancements", "misc", "soldierTypeAdvancementsRow"]) {
     merged.charBuilder[rowKey] = merged.charBuilder[rowKey] && typeof merged.charBuilder[rowKey] === "object"
       ? merged.charBuilder[rowKey] : {};
     for (const statKey of MYTHIC_CHARACTERISTIC_KEYS) {
       let v = Number(merged.charBuilder[rowKey][statKey] ?? 0);
       v = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
       // Advancement rows: clamp to valid tier values only
-      if (rowKey === "advancements" || rowKey === "soldierTypeAdvancementsRow") {
+      if (rowKey === "advancements" || rowKey === "purchasedAdvancements" || rowKey === "soldierTypeAdvancementsRow") {
         v = _cbAdvValidValues.includes(v) ? v : 0;
       }
       merged.charBuilder[rowKey][statKey] = v;

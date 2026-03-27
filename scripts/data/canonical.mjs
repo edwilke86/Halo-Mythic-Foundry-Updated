@@ -35,9 +35,11 @@ export function getCanonicalCharacterSystemData() {
     },
     charBuilder: {
       managed: false,
+      lowerTierUnlockEnabled: false,
       soldierTypeRow: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
       creationPoints: { pool: 100, str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
       advancements: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
+      purchasedAdvancements: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
       misc: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 },
       soldierTypeAdvancementsRow: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 }
     },

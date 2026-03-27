@@ -109,40 +109,32 @@
   </section>
 
 <section class="panel mythic-outliers-section" style="margin-top: 24px;">
-  <h2>Outliers <span style="font-size:0.9em;color:#888;font-weight:normal;">(Locked, set in Character Creation)</span></h2>
-  {{#if mythicOutliers.purchased.length}}
-    <ul class="mythic-outliers-list">
-      {{#each mythicOutliers.purchased as |outlier|}}
-        <li class="mythic-outlier-item">
-          <strong>{{outlier.name}}</strong>
-          {{#if outlier.choiceLabel}}<span style="color:#888">({{outlier.choiceLabel}})</span>{{/if}}
-          {{#if outlier.description}}<div class="mythic-outlier-desc">{{outlier.description}}</div>{{/if}}
-        </li>
-      {{/each}}
-    </ul>
-  {{else}}
-    <p class="mythic-outlier-empty">No outliers selected in Character Creation.</p>
-  {{/if}}
-</section>
-<section class="panel mythic-custom-outliers-section" style="margin-top: 12px;">
-  <h2>Custom Outliers <span style="font-size:0.9em;color:#888;font-weight:normal;">(Personal notes)</span></h2>
+  <h2>Outliers <span style="font-size:0.9em;color:#888;font-weight:normal;">(Standard outliers are set in Character Creation and Advancement)</span></h2>
   <div class="custom-outliers-list">
-    {{#if mythicCustomOutliers.length}}
-      {{#each mythicCustomOutliers as |entry|}}
-        <div class="custom-outlier-row">
-          <div style="display:flex;gap:8px;align-items:flex-start;width:100%;">
-            <input type="text" class="custom-outlier-name" name="system.customOutliers.{{entry.index}}.name" value="{{entry.name}}" placeholder="Outlier name" {{#unless editable}}disabled{{/unless}} />
-            <textarea class="custom-outlier-desc" name="system.customOutliers.{{entry.index}}.description" rows="2" {{#unless editable}}disabled{{/unless}}>{{entry.description}}</textarea>
-            <button type="button" class="action-btn custom-outlier-remove" data-index="{{entry.index}}" title="Remove custom outlier"><i class="fas fa-times"></i></button>
+    {{#if mythicOutliers.hasEntries}}
+      {{#each mythicOutliers.entries as |entry|}}
+        {{#if entry.isCustom}}
+          <div class="custom-outlier-row" data-index="{{entry.listIndex}}">
+            <div style="display:flex;gap:8px;align-items:flex-start;width:100%;">
+              <input type="text" class="custom-outlier-name" name="system.customOutliers.{{entry.listIndex}}.name" value="{{entry.name}}" placeholder="Outlier name" />
+              <textarea class="custom-outlier-desc" name="system.customOutliers.{{entry.listIndex}}.description" rows="2">{{entry.description}}</textarea>
+              <button type="button" class="action-btn custom-outlier-remove" data-index="{{entry.listIndex}}" title="Remove custom outlier"><i class="fas fa-times"></i></button>
+            </div>
           </div>
-        </div>
+        {{else}}
+          <div class="mythic-outlier-item">
+            <strong>{{entry.name}}</strong>
+            {{#if entry.choiceLabel}}<span style="color:#888">({{entry.choiceLabel}})</span>{{/if}}
+            {{#if entry.description}}<div class="mythic-outlier-desc">{{entry.description}}</div>{{/if}}
+          </div>
+        {{/if}}
       {{/each}}
     {{else}}
-      <p class="ability-empty-hint">No custom outliers yet.</p>
+      <p class="mythic-outlier-empty">No outliers selected in Character Creation and no custom outliers yet.</p>
     {{/if}}
 
     <div class="section-actions-row">
-      <button type="button" class="action-btn custom-outlier-add" data-path="customOutliers" {{#unless editable}}disabled{{/unless}}>
+      <button type="button" class="action-btn custom-outlier-add" data-path="customOutliers">
         <i class="fas fa-plus"></i> Add Custom Outlier
       </button>
     </div>

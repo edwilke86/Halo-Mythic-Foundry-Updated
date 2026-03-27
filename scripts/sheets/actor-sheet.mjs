@@ -849,6 +849,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicCharacteristicScores = characteristicRuntime.scores;
     context.mythicCharacteristicAliases = characteristicRuntime.aliases;
     context.mythicBiography = this._getBiographyData(normalizedSystem);
+    context.editable = this.isEditable || Boolean(game.user?.isGM);
     context.mythicDerived = this._getMythicDerivedData(effectiveSystem);
     context.mythicIsHuragok = this._isHuragokActor(effectiveSystem);
     context.mythicCombat = this._getCombatViewData(effectiveSystem, characteristicModifiers);
@@ -1175,6 +1176,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const purchases = Array.isArray(normalized?.advancements?.outliers?.purchases)
       ? normalized.advancements.outliers.purchases
       : [];
+    const customOutliers = Array.isArray(normalized?.customOutliers)
+      ? normalized.customOutliers
+      : [];
     const selectedRaw = String(this.actor.getFlag("Halo-Mythic-Foundry-Updated", "selectedOutlierKey") ?? "").trim().toLowerCase();
     const selectedKey = getOutlierDefinitionByKey(selectedRaw) ? selectedRaw : getOutlierDefaultSelectionKey();
     const selected = getOutlierDefinitionByKey(selectedKey);
@@ -1214,6 +1218,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     });
 
+    const customEntries = customOutliers.map((entry, index) => ({
+      listIndex: index,
+      key: "custom",
+      name: String(entry?.name ?? "").trim(),
+      choiceLabel: "",
+      description: String(entry?.description ?? "").trim(),
+      isCustom: true
+    }));
+
+    const entries = [
+      ...purchased.map((entry) => ({ ...entry, isCustom: false })),
+      ...customEntries
+    ];
+
     const burnedLuckCount = purchased.length;
     const ccAdv = ccAdvData && typeof ccAdvData === "object"
       ? ccAdvData
@@ -1227,6 +1245,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       })),
       selected,
       purchased,
+      entries,
+      hasEntries: entries.length > 0,
       burnedLuckCount,
       canPurchase: ccAdv.isCreationActive
     };
@@ -1269,7 +1289,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
     const button = event.currentTarget;
     const path = String(button?.dataset?.path || "");
-    const current = foundry.utils.deepClone(foundry.utils.getProperty(this.actor.system, path) ?? []);
+    const raw = foundry.utils.getProperty(this.actor.system, path);
+    const current = Array.isArray(raw) ? foundry.utils.deepClone(raw) : [];
     current.push(this._newCustomOutlier());
     await this.actor.update({ [`system.${path}`]: current });
   }
@@ -2025,18 +2046,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const poolUsed = displayKeys.reduce((sum, k) => sum + (cb.creationPoints?.[k] ?? 0), 0);
 
-    // Advancement columns: named tiers, disable options below soldier type minimum
+    // Advancement columns: lock below purchased floor by default, unless GM unlocks lower tiers.
     let advancementXpTotal = 0;
+    const lowerTierUnlockEnabled = Boolean(cb.lowerTierUnlockEnabled);
+    const canToggleLowerTierUnlock = Boolean(game.user?.isGM);
     const advancementColumns = displayKeys.map((key) => {
       const currentVal = Number(cb.advancements?.[key] ?? 0);
-      const minVal = soldierTypeMins[key] ?? 0;
-      // XP cost: sum steps from (firstPaidTier) to currentTier
-      const freeIdx = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === minVal);
+      const soldierTypeMinVal = soldierTypeMins[key] ?? 0;
+      const purchasedVal = Number(cb.purchasedAdvancements?.[key] ?? 0);
+      const purchasedFloorVal = Math.max(soldierTypeMinVal, purchasedVal);
+      const minSelectableVal = lowerTierUnlockEnabled ? soldierTypeMinVal : purchasedFloorVal;
+      // XP cost: only newly purchased tiers above the already purchased floor.
+      const freeIdx = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === purchasedFloorVal);
       const curIdx = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === currentVal);
       const fi = freeIdx >= 0 ? freeIdx : 0;
       const ci = curIdx >= 0 ? curIdx : 0;
       let xpCost = 0;
-      for (let i = fi + 1; i <= ci; i++) xpCost += MYTHIC_ADVANCEMENT_TIERS[i].xpStep;
+      if (ci > fi) {
+        for (let i = fi + 1; i <= ci; i++) xpCost += MYTHIC_ADVANCEMENT_TIERS[i].xpStep;
+      }
       advancementXpTotal += xpCost;
       return {
         key,
@@ -2047,7 +2075,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           value: tier.value,
           label: tier.value > 0 ? `${tier.label} (+${tier.value})` : tier.label,
           selected: tier.value === currentVal,
-          disabled: tier.value < minVal   // can't pick below soldier type free minimum
+          disabled: tier.value < minSelectableVal
         }))
       };
     });
@@ -2087,8 +2115,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       environmentRow,
       lifestylesRow,
       advancements: cb.advancements,
+      purchasedAdvancements: cb.purchasedAdvancements,
       advancementColumns,
       advancementXpTotal,
+      lowerTierUnlockEnabled,
+      canToggleLowerTierUnlock,
       equipmentRow,
       misc: cb.misc,
       totals
@@ -5111,13 +5142,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (row === "creationPoints" && statCap > 0) v = Math.min(statCap, v);
         if (row === "advancements") {
           v = _advValidVals.includes(v) ? v : 0;
-          // Enforce soldier type advancement minimum
-          const minAdv = Math.max(0, Math.floor(Number(
+          // Enforce advancement floor. By default this is max(soldier type min, purchased floor).
+          const soldierTypeMin = Math.max(0, Math.floor(Number(
             foundry.utils.getProperty(submitData, `system.charBuilder.soldierTypeAdvancementsRow.${key}`)
             ?? this.actor.system?.charBuilder?.soldierTypeAdvancementsRow?.[key] ?? 0
           )));
-          const clampedMin = _advValidVals.includes(minAdv) ? minAdv : 0;
-          if (v < clampedMin) v = clampedMin;
+            const purchasedFloorRaw = Math.max(0, Math.floor(Number(
+              foundry.utils.getProperty(submitData, `system.charBuilder.purchasedAdvancements.${key}`)
+              ?? this.actor.system?.charBuilder?.purchasedAdvancements?.[key] ?? 0
+            )));
+            const lowerTierUnlockEnabled = Boolean(
+              foundry.utils.getProperty(submitData, "system.charBuilder.lowerTierUnlockEnabled")
+              ?? this.actor.system?.charBuilder?.lowerTierUnlockEnabled
+            );
+            const clampedSoldierTypeMin = _advValidVals.includes(soldierTypeMin) ? soldierTypeMin : 0;
+            const clampedPurchasedFloor = _advValidVals.includes(purchasedFloorRaw) ? purchasedFloorRaw : 0;
+            const effectiveMin = lowerTierUnlockEnabled
+              ? clampedSoldierTypeMin
+              : Math.max(clampedSoldierTypeMin, clampedPurchasedFloor);
+            if (v < effectiveMin) v = effectiveMin;
         }
         return v;
       };
@@ -5442,6 +5485,33 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       button.addEventListener("click", (event) => {
         void this._onRemoveCustomOutlier(event);
       });
+    });
+
+    root.querySelectorAll(".custom-outlier-row").forEach((row) => {
+      const index = Number(row?.dataset?.index);
+      if (!Number.isInteger(index) || index < 0) return;
+
+      const nameInput = row.querySelector(".custom-outlier-name");
+      const descInput = row.querySelector(".custom-outlier-desc");
+
+      const onCustomOutlierEdit = async () => {
+        const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+        const arr = Array.isArray(normalized?.customOutliers) ? normalizeCharacterSystemData(this.actor.system ?? {}).customOutliers : [];
+        const next = Array.isArray(arr) ? foundry.utils.deepClone(arr) : [];
+        if (!next[index]) return;
+        if (nameInput instanceof HTMLInputElement) next[index].name = String(nameInput.value ?? "").trim();
+        if (descInput instanceof HTMLTextAreaElement) next[index].description = String(descInput.value ?? "").trim();
+        await this.actor.update({ "system.customOutliers": next });
+      };
+
+      if (nameInput instanceof HTMLInputElement) {
+        nameInput.addEventListener("change", () => void onCustomOutlierEdit());
+        nameInput.addEventListener("blur", () => void onCustomOutlierEdit());
+      }
+      if (descInput instanceof HTMLTextAreaElement) {
+        descInput.addEventListener("change", () => void onCustomOutlierEdit());
+        descInput.addEventListener("blur", () => void onCustomOutlierEdit());
+      }
     });
 
     root.querySelectorAll(".roll-characteristic").forEach((button) => {
@@ -5833,8 +5903,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelector(".charbuilder-enable-btn")?.addEventListener("click", (event) => {
       void this._onCharBuilderEnable(event);
     });
-    root.querySelector(".charbuilder-disable-btn")?.addEventListener("click", (event) => {
-      void this._onCharBuilderDisable(event);
+    root.querySelector(".charbuilder-lower-tier-unlock-btn")?.addEventListener("click", (event) => {
+      void this._onCharBuilderToggleLowerTierUnlock(event);
     });
     root.querySelector(".charbuilder-finalize-btn")?.addEventListener("click", (event) => {
       void this._onCharBuilderFinalize(event);
@@ -12322,10 +12392,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const updateData = {};
     for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
       const current = toNonNegativeWhole(actorSystem.characteristics?.[key], 0);
+      const currentAdv = toNonNegativeWhole(actorSystem.charBuilder?.advancements?.[key], 0);
       foundry.utils.setProperty(updateData, `system.charBuilder.creationPoints.${key}`, current);
+      foundry.utils.setProperty(updateData, `system.charBuilder.purchasedAdvancements.${key}`, currentAdv);
     }
+    foundry.utils.setProperty(updateData, "system.charBuilder.lowerTierUnlockEnabled", false);
     foundry.utils.setProperty(updateData, "system.charBuilder.managed", true);
     await this.actor.update(updateData);
+  }
+
+  async _onCharBuilderToggleLowerTierUnlock(event) {
+    event.preventDefault();
+    if (!game.user?.isGM) {
+      ui.notifications?.warn("Only a GM can toggle lower-tier advancement unlock.");
+      return;
+    }
+    const actorSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+    const current = Boolean(actorSystem?.charBuilder?.lowerTierUnlockEnabled);
+    await this.actor.update({ "system.charBuilder.lowerTierUnlockEnabled": !current });
   }
 
   async _onCharBuilderDisable(event) {
@@ -12338,16 +12422,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const actorSystem = normalizeCharacterSystemData(this.actor.system ?? {});
     const cb = actorSystem.charBuilder;
 
-    // Compute paid XP cost (free tiers from soldier type don't cost XP)
+    // Compute paid XP cost using only tiers above already purchased advancements.
     let totalXp = 0;
     for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
       const currentVal = Number(cb.advancements?.[key] ?? 0);
-      const freeVal = Number(cb.soldierTypeAdvancementsRow?.[key] ?? 0);
-      const fi = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === freeVal);
+      const soldierTypeMinVal = Number(cb.soldierTypeAdvancementsRow?.[key] ?? 0);
+      const purchasedVal = Number(cb.purchasedAdvancements?.[key] ?? 0);
+      const purchasedFloorVal = Math.max(soldierTypeMinVal, purchasedVal);
+      const fi = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === purchasedFloorVal);
       const ci = MYTHIC_ADVANCEMENT_TIERS.findIndex((t) => t.value === currentVal);
       const freeIdx = fi >= 0 ? fi : 0;
       const curIdx = ci >= 0 ? ci : 0;
-      for (let i = freeIdx + 1; i <= curIdx; i++) totalXp += MYTHIC_ADVANCEMENT_TIERS[i].xpStep;
+      if (curIdx > freeIdx) {
+        for (let i = freeIdx + 1; i <= curIdx; i++) totalXp += MYTHIC_ADVANCEMENT_TIERS[i].xpStep;
+      }
     }
 
     if (totalXp <= 0) {
@@ -12356,9 +12444,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const confirmed = await foundry.applications.api.DialogV2.confirm({
-      window: { title: "Finalize Characteristic Advancements" },
-      content: `<p>Record <strong>${totalXp.toLocaleString()} XP</strong> spent on the selected Characteristic Advancements?</p><p>This will add ${totalXp.toLocaleString()} XP to your Spent XP on the Advancements tab.</p>`,
-      yes: { label: "Confirm & Record" },
+      window: { title: "Purchase Characteristic Advancements" },
+      content: `<p>Spend <strong>${totalXp.toLocaleString()} XP</strong> on the currently selected Characteristic Advancements?</p><p>This records ${totalXp.toLocaleString()} XP in Spent XP on the Advancements tab.</p>`,
+      yes: { label: "Purchase" },
       no: { label: "Cancel" },
       rejectClose: false,
       modal: true
@@ -12372,7 +12460,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       source: "characteristics",
       applyXp: true
     });
-    ui.notifications?.info(`Recorded ${totalXp.toLocaleString()} XP spent on Characteristic Advancements.`);
+    const purchasedUpdate = {};
+    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+      const currentAdv = toNonNegativeWhole(cb.advancements?.[key], 0);
+      purchasedUpdate[`system.charBuilder.purchasedAdvancements.${key}`] = currentAdv;
+    }
+    await this.actor.update(purchasedUpdate);
+    ui.notifications?.info(`Purchased Characteristic Advancements for ${totalXp.toLocaleString()} XP.`);
   }
 
   async _onSpecializationToggle(event) {

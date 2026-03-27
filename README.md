@@ -12,7 +12,7 @@ This project is actively in development and currently tracks Foundry v12/v13 com
 
 ## Alpha Readiness
 
-Current build target: `0.2.0-alpha.1` (playtest-ready alpha)
+Current build target: `0.2.0-alpha.2` (playtest-ready alpha)
 
 Known alpha limitations:
 
@@ -44,7 +44,7 @@ Where to report:
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.2.0-alpha.1`
+1. Build/version: `0.2.0-alpha.2`
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -63,7 +63,7 @@ Format:
 
 Current working version:
 
-- `0.2.0-alpha.1`
+- `0.2.0-alpha.2`
 
 Rules used:
 
@@ -75,7 +75,7 @@ Rules used:
 
 Use this section for short public-facing updates as development progresses.
 
-### 0.2.0-alpha.1
+### 0.2.0-alpha.2
 
 - Established first pre-release SemVer baseline
 - Added significant sheet UI and interaction improvements

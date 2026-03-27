@@ -14,24 +14,6 @@ Use this file to paste or write short bug reports for later review.
 
 (Add new reports below this line — keep entries brief.)
 
-## TOP PRIORITY: Characteristic Builder Reset Bug (2026-03-26)
-
-- Reporter: F*** Hammer (Discord)
-- Build/Version: 0.2.0-alpha.2
-- Actor type / status: Character (newly created actors)
-- Steps to reproduce:
-  1. Create a new character.
-  2. Choose a Soldier Type (reproven with ODST, Civilian, Colonial Militiaman).
-  3. Open the Characteristics Builder and make any changes.
-  4. Close the Characteristics Builder.
-  5. Re-open the Characteristics Builder.
-- Expected result: Creation Points allotment remains at 0 (no automatic additions to created character's custom points).
-- Actual result: The builder shows added points — e.g. +25 or more are added to Characteristics on close/open (Creation Points reflect base characteristics as added values).
-- Frequency: Consistent (reproducible every time in reported cases).
-- Screenshot / Video: (none attached)
-- Notes: Reporter describes workflow as: picks soldier type, closes builder, reopens and sees Creation Points set to base characteristics values (effectively adding points).
-- I've been able to repoduce the issue, it's specifically when you click "disable builder" and then re-enable it. It is not exactly adding the base characteristics, because I did a Sanheili soldier and got all sorts of random creation points added. TOP PRIORITY.
-
 ---
 
 - Date: 2026-03-26
@@ -44,7 +26,19 @@ Use this file to paste or write short bug reports for later review.
 
 ---
 
-- Date: 2026-03-26
+- Date: 2026-03-27
   - Reporter: @agent washington
-  - Summary: Extraneous odd text characters in the various locations in teh sheet
-  - Notes: Will need to sweep the entire system for these and remove them, they are likely artifacts of testing and development but they are distracting and unprofessional in the current state. This is a low priority issue but it should be addressed before we consider the sheet to be in a presentable state for wider testing or release. We should do a thorough review of the sheet and remove any placeholder text, test characters, or other extraneous text that may have been left in during development.
+  - Character size should be able to be manually changed as well as automatically set from various mechanics. Right now the sheet logic determines the size category and does not let the user confirm. This should be a drop down menu. Not a text input to ensure the value also validates. 
+
+- Date: 2026-03-27
+  - Reporter: @agent washington
+  - Build/version: 0.2.0-alpha.2
+  - Actor type and whether newly created or existing: Newly created character
+  - Exact steps to reproduce: Type 2 or more lines of text in a big text box such as GM notes and possibly other boxes, then click out of the box to confirm the text.
+  - Expected result: All lines of text remain as typed.
+  - Actual result: Instead, all lines of text after the first one get indented and anytime you type more text then click out of it, it gets further indented.
+  - Whether issue is consistent or intermittent: Consistent.
+
+- Date: 2026-03-27
+  - Reporter: @agent washington
+  - "Other" fields in the characteristics builder need to allow negative numbers to account for custom upbringings environment and lifestyle options that can reduce characteristics. Right now they only allow positive numbers which is a problem for accurately reflecting the mechanics of certain upbringings. This should be a simple fix to allow negative values in those fields, and it is important for ensuring that the sheet can properly represent the full range of character creation options available in the system. This is a medium priority issue that should be addressed before we consider the sheet to be feature complete. 

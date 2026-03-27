@@ -37,6 +37,7 @@ import {
 
 const MYTHIC_ALLOWED_EQUIPMENT_SOURCES = Object.freeze(new Set(["mythic"]));
 const MYTHIC_ARMOR_ROW_EXCLUSION_REGEX = /stink\s*machine|helldiver|secret\s*helldivers\s*test/i;
+const MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION = "Halo-Mythic-Foundry-Updated.soldier-types";
 
 export function getEquipmentCompendiumDescriptor(itemData) {
   const typeText = String(itemData?.system?.category ?? "").trim().toLowerCase();
@@ -632,7 +633,7 @@ export function parseReferenceSoldierTypeRowsFromText(text, sourceCollection) {
   return parsed;
 }
 
-export async function loadReferenceSoldierTypeItems() {
+export async function loadReferenceSoldierTypeItemsFromJson() {
   try {
     const response = await fetch(MYTHIC_REFERENCE_SOLDIER_TYPES_JSON);
     if (!response.ok) {
@@ -677,13 +678,66 @@ export async function loadReferenceSoldierTypeItems() {
   }
 }
 
+async function loadReferenceSoldierTypeItemsFromSystemCompendium() {
+  try {
+    const pack = game?.packs?.get(MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION) ?? null;
+    if (!pack) return [];
+
+    const index = await pack.getIndex();
+    if (!index || index.size < 1) return [];
+
+    const docs = await pack.getDocuments();
+    const dedupedByName = new Map();
+
+    for (const doc of docs) {
+      const itemName = String(doc?.name ?? "").trim();
+      if (!itemName) continue;
+
+      const normalized = normalizeSoldierTypeSystemData({
+        ...foundry.utils.deepClone(doc?.system ?? {}),
+        sync: {
+          ...(doc?.system?.sync ?? {}),
+          sourceScope: "mythic",
+          sourceCollection: "soldier-types-system",
+          contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
+          canonicalId: String(doc?.system?.sync?.canonicalId ?? "").trim() || buildCanonicalItemId("soldierType", itemName)
+        }
+      }, itemName);
+
+      const marker = itemName.toLowerCase();
+      if (!dedupedByName.has(marker)) {
+        dedupedByName.set(marker, {
+          name: itemName,
+          type: "soldierType",
+          img: String(doc?.img ?? MYTHIC_ABILITY_DEFAULT_ICON),
+          system: normalized
+        });
+      }
+    }
+
+    return Array.from(dedupedByName.values());
+  } catch (error) {
+    console.warn(`[mythic-system] Failed loading soldier types from ${MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION}.`, error);
+    return [];
+  }
+}
+
+export async function loadReferenceSoldierTypeItems(options = {}) {
+  const preferCompendium = options?.preferCompendium !== false;
+  if (preferCompendium) {
+    const fromSystemPack = await loadReferenceSoldierTypeItemsFromSystemCompendium();
+    if (fromSystemPack.length > 0) return fromSystemPack;
+  }
+  return loadReferenceSoldierTypeItemsFromJson();
+}
+
 export async function importSoldierTypesFromJson(options = {}) {
   if (!game.user?.isGM) {
     ui.notifications?.warn("Only a GM can import reference soldier types.");
     return { created: 0, updated: 0, skipped: 0 };
   }
 
-  const rows = await loadReferenceSoldierTypeItems();
+  const rows = await loadReferenceSoldierTypeItemsFromJson();
   if (!rows.length) {
     ui.notifications?.warn("No soldier type rows were loaded from soldier-types.json.");
     return { created: 0, updated: 0, skipped: 0 };
@@ -696,7 +750,8 @@ export async function importSoldierTypesFromJson(options = {}) {
 
   let pack;
   try {
-    pack = await ensureReferenceWeaponsCompendium("mythic-soldier-types", "Mythic Soldier Types");
+    pack = game.packs.get(MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION)
+      ?? await ensureReferenceWeaponsCompendium("mythic-soldier-types", "Mythic Soldier Types");
   } catch (error) {
     console.error("[mythic-system] Failed to prepare soldier type compendium.", error);
     ui.notifications?.error("Could not prepare Soldier Types compendium. See console.");
@@ -721,7 +776,9 @@ export async function importSoldierTypesFromJson(options = {}) {
     }
 
     const nextSystem = normalizeSoldierTypeSystemData(itemData.system ?? {}, itemData.name);
-    nextSystem.sync.sourceCollection = "mythic-soldier-types";
+    nextSystem.sync.sourceCollection = pack.collection === MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION
+      ? "soldier-types-system"
+      : "mythic-soldier-types";
     const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
     const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
     if (foundry.utils.isEmpty(diff) && !nameChanged) {

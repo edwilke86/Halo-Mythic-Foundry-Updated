@@ -43,6 +43,7 @@ import {
 import {
   loadMythicAbilityDefinitions,
   loadMythicTraitDefinitions,
+  loadMythicAmmoTypeDefinitionsFromJson,
   buildTraitAutoEffects
 } from "../data/content-loading.mjs";
 
@@ -102,7 +103,8 @@ import {
   removeArmorVariantRowsFromArmorCompendiums,
   removeExcludedArmorRowsFromCompendiums,
   loadReferenceEquipmentItems,
-  loadReferenceSoldierTypeItems
+  loadReferenceSoldierTypeItems,
+  loadReferenceSoldierTypeItemsFromJson
 } from "../reference/compendium-management.mjs";
 
 import { MythicActorSheet } from "../sheets/actor-sheet.mjs";
@@ -700,6 +702,46 @@ export function registerAllHooks() {
             variants: def.variants ?? []
           })
         }))
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.soldier-types",
+        label: "soldier types",
+        buildItems: async () => {
+          const rows = await loadReferenceSoldierTypeItemsFromJson();
+          if (!rows.length) return [];
+          return rows.map((entry) => ({
+            name: String(entry.name ?? "Soldier Type"),
+            type: "soldierType",
+            img: String(entry.img ?? MYTHIC_ABILITY_DEFAULT_ICON),
+            system: foundry.utils.deepClone(entry.system ?? {})
+          }));
+        }
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.ammo-types",
+        label: "ammo types",
+        buildItems: async () => {
+          const defs = await loadMythicAmmoTypeDefinitionsFromJson();
+          if (!defs.length) return [];
+          return defs.map((def) => ({
+            name: String(def.name ?? "Ammo Type"),
+            type: "gear",
+            img: MYTHIC_ABILITY_DEFAULT_ICON,
+            system: {
+              ammoTypeDefinition: {
+                name: String(def.name ?? "Ammo Type"),
+                unitWeightKg: Number(def.unitWeightKg ?? def.weightPerRoundKg ?? 0) || 0,
+                weightPerRoundKg: Number(def.weightPerRoundKg ?? def.unitWeightKg ?? 0) || 0,
+                costPer100: Math.max(0, Math.floor(Number(def.costPer100 ?? 0) || 0)),
+                specialAmmoCategory: String(def.specialAmmoCategory ?? "Standard").trim() || "Standard"
+              },
+              source: "mythic",
+              category: "Ammo Type"
+            }
+          }));
+        }
       });
 
       await syncCreationPathItemIcons();

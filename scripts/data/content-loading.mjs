@@ -11,6 +11,42 @@ let mythicTraitDefinitionsCache = null;
 let mythicEquipmentPackDefinitionsCache = null;
 let mythicAmmoTypeDefinitionsCache = null;
 let mythicSpecialAmmoCategoryOptionsCache = null;
+const MYTHIC_AMMO_TYPES_SYSTEM_COLLECTION = "Halo-Mythic-Foundry-Updated.ammo-types";
+
+function parseMythicAmmoTypeNumeric(value, fallback = 0) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const text = String(value ?? "").trim();
+  if (!text) return fallback;
+  const match = text.match(/\d+(?:\.\d+)?/u);
+  if (!match) return fallback;
+  const numeric = Number(match[0]);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function normalizeMythicAmmoTypeDefinition(entry = {}, fallbackName = "") {
+  const name = String(entry?.name ?? fallbackName ?? "").trim();
+  if (!name) return null;
+
+  const unitWeightKg = parseMythicAmmoTypeNumeric(
+    entry?.unitWeightKg ?? entry?.weightPerRoundKg ?? entry?.weightKg,
+    0
+  );
+  const costPer100 = Math.max(
+    0,
+    Math.floor(parseMythicAmmoTypeNumeric(entry?.costPer100 ?? entry?.price?.amount ?? entry?.cost, 0))
+  );
+  const specialAmmoCategory = String(
+    entry?.specialAmmoCategory ?? entry?.specialAmmoAllowance ?? entry?.specialAmmoAllowances ?? ""
+  ).trim() || "Standard";
+
+  return {
+    name,
+    unitWeightKg: Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0,
+    weightPerRoundKg: Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0,
+    costPer100,
+    specialAmmoCategory
+  };
+}
 
 export async function loadMythicAbilityDefinitions() {
   if (Array.isArray(mythicAbilityDefinitionsCache)) return mythicAbilityDefinitionsCache;
@@ -60,48 +96,64 @@ export async function loadMythicEquipmentPackDefinitions() {
   }
 }
 
-export async function loadMythicAmmoTypeDefinitions() {
-  if (Array.isArray(mythicAmmoTypeDefinitionsCache) && mythicAmmoTypeDefinitionsCache.length > 0) return mythicAmmoTypeDefinitionsCache;
+async function loadMythicAmmoTypeDefinitionsFromCompendium() {
+  try {
+    const pack = game?.packs?.get(MYTHIC_AMMO_TYPES_SYSTEM_COLLECTION) ?? null;
+    if (!pack) return [];
+
+    const docs = await pack.getDocuments();
+    if (!Array.isArray(docs) || docs.length < 1) return [];
+
+    const parsed = docs
+      .map((doc) => {
+        const system = foundry.utils.deepClone(doc?.system ?? {});
+        const payload = system?.ammoTypeDefinition ?? system;
+        return normalizeMythicAmmoTypeDefinition(payload, doc?.name ?? "");
+      })
+      .filter(Boolean);
+
+    return parsed;
+  } catch (error) {
+    console.warn(`[mythic-system] Failed to load ammo type definitions from ${MYTHIC_AMMO_TYPES_SYSTEM_COLLECTION}.`, error);
+    return [];
+  }
+}
+
+export async function loadMythicAmmoTypeDefinitionsFromJson() {
   try {
     const response = await fetch(MYTHIC_AMMO_TYPE_DEFINITIONS_PATH);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const json = await response.json();
     const defs = Array.isArray(json) ? json : [];
-    const parseNumeric = (value, fallback = 0) => {
-      if (typeof value === "number" && Number.isFinite(value)) return value;
-      const text = String(value ?? "").trim();
-      if (!text) return fallback;
-      const match = text.match(/\d+(?:\.\d+)?/u);
-      if (!match) return fallback;
-      const numeric = Number(match[0]);
-      return Number.isFinite(numeric) ? numeric : fallback;
-    };
     const parsed = defs
       .map((entry) => {
-        if (!entry || typeof entry !== 'object') return null;
-        const name = String(entry.name ?? '').trim();
-        if (!name) return null;
-        const unitWeightKg = parseNumeric(entry.unitWeightKg ?? entry.weightPerRoundKg ?? entry.weightKg, 0);
-        const costPer100 = Math.max(0, Math.floor(parseNumeric(entry.costPer100 ?? entry.price?.amount ?? entry.cost, 0)));
-        const specialAmmoCategory = String(entry.specialAmmoCategory ?? entry.specialAmmoAllowance ?? entry.specialAmmoAllowances ?? "").trim() || "Standard";
-        return {
-          name,
-          unitWeightKg: Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0,
-          weightPerRoundKg: Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0,
-          costPer100,
-          specialAmmoCategory
-        };
+        if (!entry || typeof entry !== "object") return null;
+        return normalizeMythicAmmoTypeDefinition(entry, "");
       })
       .filter(Boolean);
-    if (parsed.length > 0) {
-      mythicAmmoTypeDefinitionsCache = parsed;
-    }
     return parsed;
   } catch (error) {
     console.error("[mythic-system] Failed to load ammo type definitions JSON.", error);
-    // Do NOT cache on failure — allow retry on next render.
     return [];
   }
+}
+
+export async function loadMythicAmmoTypeDefinitions() {
+  if (Array.isArray(mythicAmmoTypeDefinitionsCache) && mythicAmmoTypeDefinitionsCache.length > 0) {
+    return mythicAmmoTypeDefinitionsCache;
+  }
+
+  const fromCompendium = await loadMythicAmmoTypeDefinitionsFromCompendium();
+  if (fromCompendium.length > 0) {
+    mythicAmmoTypeDefinitionsCache = fromCompendium;
+    return fromCompendium;
+  }
+
+  const fromJson = await loadMythicAmmoTypeDefinitionsFromJson();
+  if (fromJson.length > 0) {
+    mythicAmmoTypeDefinitionsCache = fromJson;
+  }
+  return fromJson;
 }
 
 export async function loadMythicSpecialAmmoCategoryOptions() {

@@ -18,25 +18,85 @@
 
     {{#if canEditFields}}
     <div class="item-info-block">
-      <div class="item-info-row">
+      <div class="item-info-row compact-row">
         <label for="upbringing-item-name">Name</label>
         <input id="upbringing-item-name" type="text" name="name" value="{{item.name}}" />
       </div>
-      <div class="item-info-row">
-        <label for="upbringing-env">Allowed Environments</label>
-        <input id="upbringing-env" type="text" name="mythic.allowedEnvironmentsEditor"
-               value="{{allowedEnvironmentsEditor}}"
-               placeholder="city, country, forest, town, wasteland (leave blank = any)" />
+
+      <div class="item-info-row compact-row" id="allowed-environments-panel">
+        <label>Allowed Environments</label>
+        <div id="allowed-environments-dropzone" class="allowed-environments-dropzone" title="Drag environmental items here (optional)">Drop environment items here</div>
+        <div class="allowed-environments-list">
+          {{#each sys.allowedEnvironments as |env|}}
+            <span class="env-tag" data-env="{{env}}">{{env}}</span>
+          {{/each}}
+          {{#unless sys.allowedEnvironments.length}}
+            <span class="env-tag env-none">(Any environment allowed)</span>
+          {{/unless}}
+        </div>
       </div>
-      <div class="item-info-row item-notes-row">
-        <label for="upbringing-desc">Notes</label>
-        <textarea id="upbringing-desc" name="system.description" rows="3">{{item.system.description}}</textarea>
+
+      <div class="item-info-row compact-row upbringing-description-row">
+        <label for="upbringing-notes">Description / Notes</label>
+        <textarea id="upbringing-notes" name="system.description" rows="3">{{item.system.description}}</textarea>
       </div>
-      <div class="item-info-row item-notes-row">
-        <label for="upbringing-rules">Mechanics</label>
-        <textarea id="upbringing-rules" name="mythic.rulesText" rows="7" placeholder="choice: +5 int | +5 cha&#10;choice: -5 ldr | -5 agi&#10;fixed: +2 wounds, -1 str">{{rulesText}}</textarea>
+
+      <div class="item-info-row compact-row">
+        <label>Mechanics</label>
+        <div class="mechanics-builder" id="mechanics-builder">
+          {{#if sys.modifierGroups.length}}
+            {{#each sys.modifierGroups as |group|}}
+              <div class="mechanic-group" data-group-id="{{group.id}}">
+                <div class="group-header">
+                  <div class="group-name-row"><input class="group-label" type="text" value="{{group.label}}" placeholder="(e.g. Military training) - text only, optional" /></div>
+                  <div class="group-controls"><select class="group-type"><option value="choice" {{#if (eq group.type "choice")}}selected{{/if}}>Choice</option><option value="fixed" {{#if (eq group.type "fixed")}}selected{{/if}}>Fixed</option></select><button type="button" class="group-remove-btn">✕</button></div>
+                </div>
+                <div class="group-options">
+                  {{#each group.options as |opt|}}
+                    <div class="option-row" data-option-id="{{opt.id}}">
+                      <div class="option-header">
+                        <input class="option-label" type="text" value="{{opt.label}}" placeholder="Option label" />
+                        <button type="button" class="option-remove-btn">−</button>
+                      </div>
+                      <div class="option-modifiers">
+                        {{#each opt.modifiers as |mod|}}
+                          <div class="modifier-row">
+                            <select class="modifier-key">
+                              <option value="str" {{#if (eq mod.key "str")}}selected{{/if}}>str</option>
+                              <option value="tou" {{#if (eq mod.key "tou")}}selected{{/if}}>tou</option>
+                              <option value="agi" {{#if (eq mod.key "agi")}}selected{{/if}}>agi</option>
+                              <option value="wfr" {{#if (eq mod.key "wfr")}}selected{{/if}}>wfr</option>
+                              <option value="wfm" {{#if (eq mod.key "wfm")}}selected{{/if}}>wfm</option>
+                              <option value="int" {{#if (eq mod.key "int")}}selected{{/if}}>int</option>
+                              <option value="per" {{#if (eq mod.key "per")}}selected{{/if}}>per</option>
+                              <option value="crg" {{#if (eq mod.key "crg")}}selected{{/if}}>crg</option>
+                              <option value="cha" {{#if (eq mod.key "cha")}}selected{{/if}}>cha</option>
+                              <option value="ldr" {{#if (eq mod.key "ldr")}}selected{{/if}}>ldr</option>
+                              <option value="wounds" {{#if (eq mod.key "wounds")}}selected{{/if}}>wounds</option>
+                            </select>
+                            <input class="modifier-value" type="number" value="{{mod.value}}" step="1" style="width: 60px;" />
+                            <button type="button" class="modifier-remove-btn">×</button>
+                          </div>
+                        {{/each}}
+                      </div>
+                      <button type="button" class="modifier-add-btn">+ Modifier</button>
+                    </div>
+                  {{/each}}
+                </div>
+                <button type="button" class="option-add-btn">+ Option</button>
+              </div>
+            {{/each}}
+          {{else}}
+            <p class="modifier-none">No mechanics defined.</p>
+          {{/if}}
+          <button type="button" id="group-add-btn" class="action-btn">+ Choice Group</button>
+        </div>
       </div>
-      <p class="modifier-none">One line per rule. Use <strong>choice:</strong> with | separators, or <strong>fixed:</strong> with comma-separated modifiers.</p>
+
+      <input type="hidden" name="mythic.allowedEnvironmentsEditor" value="{{allowedEnvironmentsEditor}}" />
+      <input type="hidden" name="mythic.rulesText" value="{{rulesText}}" />
+
+      <p class="modifier-none" style="margin:0;">Use the visual modifier groups above; the text editor is kept for compatibility.</p>
     </div>
     {{/if}}
 

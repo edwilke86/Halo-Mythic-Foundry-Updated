@@ -3105,6 +3105,153 @@
   resize: vertical;
 }
 
+/* Compact Upbringing item sheet */
+.mythic-upbringing-item-sheet .item-info-row.compact-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.mythic-upbringing-item-sheet .item-info-row.compact-row label {
+  width: 100px;
+  font-size: 0.78rem;
+  line-height: 1.1;
+  margin-top: 3px;
+}
+.mythic-upbringing-item-sheet .item-info-row.compact-row#allowed-environments-panel,
+.mythic-upbringing-item-sheet .item-info-row.compact-row.upbringing-description-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+.mythic-upbringing-item-sheet .item-info-row.compact-row#allowed-environments-panel .allowed-environments-dropzone,
+.mythic-upbringing-item-sheet .item-info-row.compact-row#allowed-environments-panel .allowed-environments-list,
+.mythic-upbringing-item-sheet .item-info-row.compact-row.upbringing-description-row textarea {
+  width: 100%;
+}
+.mythic-upbringing-item-sheet .item-info-row.compact-row input,
+.mythic-upbringing-item-sheet .item-info-row.compact-row textarea,
+.mythic-upbringing-item-sheet .item-info-row.compact-row select {
+  font-size: 0.78rem;
+  padding: 2px 5px;
+  line-height: 1.2;
+  min-height: unset;
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+}
+.mythic-upbringing-item-sheet .allowed-environments-dropzone {
+  border: 1px dashed rgba(150, 180, 230, 0.9);
+  padding: 4px;
+  font-size: 0.74rem;
+  color: rgba(190, 220, 255, 0.95);
+  background: rgba(10, 18, 32, 0.45);
+  cursor: copy;
+  border-radius: 3px;
+  text-align: center;
+}
+.mythic-upbringing-item-sheet .allowed-environments-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.mythic-upbringing-item-sheet .env-tag {
+  border: 1px solid rgba(155, 203, 81, 0.6);
+  background: rgba(64, 84, 38, 0.4);
+  color: rgba(210, 235, 185, 0.95);
+  padding: 1px 6px;
+  font-size: 0.72rem;
+  border-radius: 2px;
+}
+.mythic-upbringing-item-sheet .env-tag.env-none {
+  color: rgba(190, 190, 190, 0.9);
+  background: transparent;
+  border: 1px dashed rgba(150, 150, 150, 0.4);
+}
+.mythic-upbringing-item-sheet .mechanics-builder {
+  border: 1px solid rgba(125, 150, 190, 0.35);
+  border-radius: 4px;
+  padding: 6px;
+  background: rgba(8, 12, 20, 0.55);
+}
+.mythic-upbringing-item-sheet .mechanic-group {
+  border: 1px solid rgba(120, 144, 183, 0.35);
+  border-radius: 4px;
+  padding: 4px;
+  margin-bottom: 5px;
+}
+.mythic-upbringing-item-sheet .group-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mythic-upbringing-item-sheet .mechanics-builder {
+  max-width: 100%;
+  width: 100%;
+}
+.mythic-upbringing-item-sheet .mechanic-group {
+  min-width: 100%;
+}
+.mythic-upbringing-item-sheet .group-header .group-name-row {
+  width: 100%;
+}
+.mythic-upbringing-item-sheet .group-header .group-name-row .group-label {
+  width: 100%;
+  min-width: 300px;
+}
+.mythic-upbringing-item-sheet .group-header .group-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+.mythic-upbringing-item-sheet .group-header .group-controls select {
+  flex: 1;
+  min-width: 160px;
+}
+.mythic-upbringing-item-sheet .group-header .group-controls button {
+  flex: 0;
+}
+.mythic-upbringing-item-sheet .group-header input,
+.mythic-upbringing-item-sheet .group-header select {
+  height: 24px;
+  font-size: 0.75rem;
+}
+.mythic-upbringing-item-sheet .option-header {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin-top: 4px;
+}
+.mythic-upbringing-item-sheet .option-header input {
+  flex: 1;
+  height: 22px;
+  font-size: 0.75rem;
+}
+.mythic-upbringing-item-sheet .option-modifiers {
+  padding-left: 16px;
+  margin-top: 3px;
+}
+.mythic-upbringing-item-sheet .modifier-row {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  margin-bottom: 3px;
+}
+.mythic-upbringing-item-sheet .modifier-row select,
+.mythic-upbringing-item-sheet .modifier-row input {
+  font-size: 0.72rem;
+  padding: 2px;
+  height: 20px;
+}
+.mythic-upbringing-item-sheet .action-btn,
+.mythic-upbringing-item-sheet .group-remove-btn,
+.mythic-upbringing-item-sheet .option-add-btn,
+.mythic-upbringing-item-sheet .modifier-add-btn {
+  height: 20px;
+  font-size: 0.68rem;
+  padding: 2px 6px;
+}
+
 /* Ability item sheet */
 .mythic-ability-item-sheet .ability-sheet-header {
   padding: 8px 12px 4px;

@@ -132,7 +132,7 @@ Character Creation ordered flow (single-page staged process):
   - include gender as an input factor for height/weight generation
   - keep results believable for selected body type and allowed soldier-type ranges
   - tune low-mass outcomes (e.g., Compact/Light) to avoid implausible weights
-- [x] P0 Upbringing + Environment + Lifestyle stage
+- [x] P0 Upbringing + Environment + Lifestyle stage (WIP: completion of in-sheet modifier builder and group persistence follow-up)
 - [x] P0 Characteristics Builder stage:
   - retain managed builder workflow
   - show unmet-prerequisite warning for Soldier Type granted abilities (when currently unqualified)

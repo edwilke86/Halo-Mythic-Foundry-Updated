@@ -124,4 +124,28 @@
     <p class="mythic-outlier-empty">No outliers selected in Character Creation.</p>
   {{/if}}
 </section>
+<section class="panel mythic-custom-outliers-section" style="margin-top: 12px;">
+  <h2>Custom Outliers <span style="font-size:0.9em;color:#888;font-weight:normal;">(Personal notes)</span></h2>
+  <div class="custom-outliers-list">
+    {{#if mythicCustomOutliers.length}}
+      {{#each mythicCustomOutliers as |entry|}}
+        <div class="custom-outlier-row">
+          <div style="display:flex;gap:8px;align-items:flex-start;width:100%;">
+            <input type="text" class="custom-outlier-name" name="system.customOutliers.{{entry.index}}.name" value="{{entry.name}}" placeholder="Outlier name" {{#unless editable}}disabled{{/unless}} />
+            <textarea class="custom-outlier-desc" name="system.customOutliers.{{entry.index}}.description" rows="2" {{#unless editable}}disabled{{/unless}}>{{entry.description}}</textarea>
+            <button type="button" class="action-btn custom-outlier-remove" data-index="{{entry.index}}" title="Remove custom outlier"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+      {{/each}}
+    {{else}}
+      <p class="ability-empty-hint">No custom outliers yet.</p>
+    {{/if}}
+
+    <div class="section-actions-row">
+      <button type="button" class="action-btn custom-outlier-add" data-path="customOutliers" {{#unless editable}}disabled{{/unless}}>
+        <i class="fas fa-plus"></i> Add Custom Outlier
+      </button>
+    </div>
+  </div>
+</section>
 </div>

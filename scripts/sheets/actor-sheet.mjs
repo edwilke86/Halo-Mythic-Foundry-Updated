@@ -855,6 +855,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicCcAdv = this._getCharacterCreationAdvancementViewData();
     context.mythicAdvancements = await this._getAdvancementViewData(normalizedSystem, creationPathOutcome);
     context.mythicOutliers = this._getOutliersViewData(normalizedSystem, context.mythicCcAdv);
+    context.mythicCustomOutliers = this._getCustomOutliersViewData(normalizedSystem);
     context.mythicCreationFinalizeSummary = this._getCreationFinalizeSummaryViewData(normalizedSystem, context.mythicAdvancements, context.mythicOutliers);
     context.mythicEquipment = await this._getEquipmentViewData(effectiveSystem, derived);
     context.mythicGammaCompany = this._getGammaCompanyViewData(normalizedSystem);
@@ -1248,6 +1249,40 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       luckMax: toNonNegativeWhole(combatLuck.max, 0),
       burnedLuckCount
     };
+  }
+
+  _getCustomOutliersViewData(systemData) {
+    const normalized = normalizeCharacterSystemData(systemData);
+    const arr = Array.isArray(normalized?.customOutliers) ? normalized.customOutliers : [];
+    return arr.map((entry, index) => ({
+      index,
+      name: String(entry?.name ?? "").trim(),
+      description: String(entry?.description ?? "").trim()
+    }));
+  }
+
+  _newCustomOutlier() {
+    return { name: "", description: "" };
+  }
+
+  async _onAddCustomOutlier(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const path = String(button?.dataset?.path || "");
+    const current = foundry.utils.deepClone(foundry.utils.getProperty(this.actor.system, path) ?? []);
+    current.push(this._newCustomOutlier());
+    await this.actor.update({ [`system.${path}`]: current });
+  }
+
+  async _onRemoveCustomOutlier(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const index = Number(button?.dataset?.index);
+    if (!Number.isInteger(index)) return;
+    const current = foundry.utils.deepClone(foundry.utils.getProperty(this.actor.system, "customOutliers") ?? []);
+    if (!Array.isArray(current) || index < 0 || index >= current.length) return;
+    current.splice(index, 1);
+    await this.actor.update({ [`system.customOutliers`]: current });
   }
 
   async _getAdvancementViewData(systemData, creationPathOutcome = null) {
@@ -5393,6 +5428,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".bio-randomize-build").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onRandomizeBiographyBuild(event);
+      });
+    });
+
+    // Custom Outlier add/remove handlers
+    root.querySelectorAll(".custom-outlier-add").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAddCustomOutlier(event);
+      });
+    });
+
+    root.querySelectorAll(".custom-outlier-remove").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRemoveCustomOutlier(event);
       });
     });
 

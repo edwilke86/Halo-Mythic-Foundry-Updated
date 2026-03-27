@@ -6112,3 +6112,30 @@ input.gear-item-nickname::placeholder {
 .gear-sync-row {
   display: none !important;
 }
+
+/* Custom Outliers styling */
+.mythic-character-sheet .custom-outliers-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.mythic-character-sheet .custom-outlier-row {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 6px;
+  background: rgba(64, 64, 64, 0.18);
+}
+.mythic-character-sheet .custom-outlier-row > div {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.mythic-character-sheet .custom-outlier-name {
+  flex: 0 0 220px;
+  min-width: 120px;
+}
+.mythic-character-sheet .custom-outlier-desc {
+  width: 100%;
+  min-height: 48px;
+  resize: vertical;
+}

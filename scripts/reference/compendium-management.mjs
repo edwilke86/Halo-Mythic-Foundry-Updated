@@ -760,8 +760,16 @@ export async function importSoldierTypesFromJson(options = {}) {
 
   const byCanonicalId = await buildCompendiumCanonicalMap(pack);
   const createBatch = [];
+  const wasLocked = Boolean(pack.locked);
+  let unlockedForSync = false;
 
-  for (const itemData of rows) {
+  try {
+    if (wasLocked && !dryRun) {
+      await pack.configure({ locked: false });
+      unlockedForSync = true;
+    }
+
+    for (const itemData of rows) {
     const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
     if (!canonicalId) {
       skipped += 1;
@@ -801,6 +809,14 @@ export async function importSoldierTypesFromJson(options = {}) {
   }
 
   return { created, updated, skipped };
+} finally {
+  if (wasLocked && unlockedForSync) {
+    try {
+      await pack.configure({ locked: true });
+    } catch (lockError) {
+      console.error(`[mythic-system] Failed to relock compendium ${pack.collection}.`, lockError);
+    }
+  }
 }
 
 export async function refreshTraitsCompendium(options = {}) {

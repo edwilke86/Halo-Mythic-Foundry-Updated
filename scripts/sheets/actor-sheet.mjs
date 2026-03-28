@@ -14002,7 +14002,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const chargeMaxLevel = Math.max(1, toNonNegativeWhole(gear.charge?.maxLevel, 0) || Math.max(1, modeProfile.count));
+    const chargeMaxLevel = Math.max(1, modeProfile.count);
     const currentLevel = Math.min(toNonNegativeWhole(state?.chargeLevel, 0), chargeMaxLevel);
     if (currentLevel >= chargeMaxLevel) {
       ui.notifications.info(`${item.name} is already at full charge (${chargeMaxLevel}).`);
@@ -14569,6 +14569,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
     const chargeDamagePerLevel = toNonNegativeWhole(gear.charge?.damagePerLevel, 0);
+    const chargeAmmoPerLevel = toNonNegativeWhole(gear.charge?.ammoPerLevel, 1);
     const chargeMaxLevel = isChargeMode
       ? Math.max(1, modeProfile.count)
       : 0;

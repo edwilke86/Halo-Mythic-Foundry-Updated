@@ -133,6 +133,10 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
   }));
 
   context.rangedFireModes = buildFireModeValues(gear.fireModes);
+  if (context.rangedFireModes.charge > 0) {
+    context.gear.charge = context.gear.charge || {};
+    context.gear.charge.maxLevel = context.rangedFireModes.charge;
+  }
   context.meleeDamageModifierOptions = MYTHIC_MELEE_DAMAGE_MODIFIER_OPTIONS.map((entry) => ({
     value: entry.value,
     label: entry.label

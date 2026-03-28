@@ -35,9 +35,9 @@
       <div class="characteristic-block">
         <button class="roll-characteristic" type="button" data-characteristic="agi" data-label="AGI" title="Agility | Score: @system.characteristics.agi | Modifier: floor(@system.characteristics.agi / 10)">AGI</button>
         {{#if mythicCharBuilder.managed}}
-          <input name="system.characteristics.agi" type="number" min="0" value="{{lookup mythicCharacteristicScores 'agi'}}" readonly title="{{#if mythicGravityAgilityPenalty}}Gravity Penalty Active â€” Effective: {{lookup mythicCharacteristicScores 'agi'}}{{else}}Score variable: @system.characteristics.agi{{/if}}" />
+          <input name="system.characteristics.agi" type="number" min="0" value="{{lookup mythicCharacteristicScores 'agi'}}" readonly title="{{#if mythicGravityAgilityPenalty}}Gravity Penalty Active - Effective: {{lookup mythicCharacteristicScores 'agi'}}{{else}}Score variable: @system.characteristics.agi{{/if}}" />
         {{else}}
-          <input name="system.characteristics.agi" type="number" min="0" value="{{lookup mythicCharacteristicScores 'agi'}}" {{#if mythicGravityAgilityPenalty}}title="Gravity Penalty Active: âˆ’{{mythicGravityAgilityPenalty}}. Effective AGI = {{lookup mythicEffectiveCharacteristics 'agi'}}"{{else}}title="Score variable: @system.characteristics.agi"{{/if}} />
+          <input name="system.characteristics.agi" type="number" min="0" value="{{lookup mythicCharacteristicScores 'agi'}}" {{#if mythicGravityAgilityPenalty}}title="Gravity Penalty Active: -{{mythicGravityAgilityPenalty}}. Effective AGI = {{lookup mythicEffectiveCharacteristics 'agi'}}"{{else}}title="Score variable: @system.characteristics.agi"{{/if}} />
         {{/if}}
         <div class="characteristic-modifier{{#if mythicGravityAgilityPenalty}} gravity-penalized{{/if}}" title="Modifier variable: @AGI_MOD (sheet alias), macro path: floor(@system.characteristics.agi / 10)">{{lookup mythicCharacteristicModifiers "agi"}}</div>
       </div>
@@ -115,7 +115,7 @@
     {{#if mythicGravityAgilityPenalty}}
       <div class="mythic-gravity-penalty-notice">
         <i class="fas fa-weight-hanging" aria-hidden="true"></i>
-        Gravity Penalty Active â€” AGI âˆ’{{mythicGravityAgilityPenalty}} ({{mythicGravityValue}}g environment, equip Gravity Belt to resist)
+        Gravity Penalty Active - AGI -{{mythicGravityAgilityPenalty}} ({{mythicGravityValue}}g environment, equip Gravity Belt to resist)
       </div>
     {{/if}}
   </section>

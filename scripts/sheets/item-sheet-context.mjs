@@ -84,8 +84,13 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
   ];
 
   context.gear = gear;
-  context.isArmorItem = ["armor", "armor-modification"].includes(String(gear.equipmentType ?? "").trim().toLowerCase())
-    || gear.itemClass === "armor";
+  const normalizedEquipmentType = String(gear.equipmentType ?? "").trim().toLowerCase();
+  context.isArmorItem = normalizedEquipmentType === "armor"
+    || (gear.itemClass === "armor" && normalizedEquipmentType !== "armor-modification");
+  context.isGeneralEquipmentItem = gear.equipmentType === "general";
+  context.isDescriptionOnlyEquipmentItem = ["general", "container", "weapon-modification", "armor-modification", "ammo-modification"]
+    .includes(normalizedEquipmentType);
+  context.isArmorModificationItem = gear.equipmentType === "armor-modification";
   context.isMeleeWeaponItem = gear.equipmentType === "melee-weapon";
   context.isRangedWeaponItem = gear.equipmentType === "ranged-weapon";
   context.isAmmoItem = gear.equipmentType === "ammunition";

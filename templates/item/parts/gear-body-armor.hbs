@@ -52,8 +52,8 @@
         </div>
       </div>
       <div class="ability-info-row ability-notes-row">
-        <label for="armor-notes">Notes &amp; Features</label>
-        <textarea id="armor-notes" name="system.description" rows="8"
+        <label for="armor-notes">{{#if isArmorModificationItem}}Description{{else}}Notes &amp; Features{{/if}}</label>
+        <textarea id="armor-notes" name="system.description" rows="{{#if isArmorModificationItem}}12{{else}}8{{/if}}"
           {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
       </div>
 

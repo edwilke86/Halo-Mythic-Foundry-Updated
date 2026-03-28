@@ -1,41 +1,152 @@
 <section class="mythic-group-sheet">
+
+  {{!-- ── Header ── --}}
   <header class="mythic-group-header">
-    <h1>{{actor.name}}</h1>
-    <div class="mythic-group-type-row">
-      <label>Group Type:
-        <select name="system.groupType">
-          {{#each mythicGroupTypeOptions as |opt|}}
-            <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
-          {{/each}}
-        </select>
-      </label>
+    <div class="mythic-group-header-media">
+      <div class="mythic-group-media-card">
+        <div class="mythic-group-media-label">Portrait</div>
+        <img class="mythic-group-header-image" src="{{mythicGroupPortrait}}" alt="{{actor.name}} portrait" />
+        <button type="button" class="mythic-group-media-btn group-portrait-upload-btn">Change</button>
+      </div>
     </div>
-    <div class="mythic-group-description">
-      <label>Description:
-        <textarea name="system.description" rows="2">{{system.description}}</textarea>
-      </label>
+
+    <div class="mythic-group-header-main">
+      <h1>{{actor.name}}</h1>
+      <div class="mythic-group-header-controls">
+        <label class="mythic-group-type-row">Group Type:
+          <select name="system.groupType">
+            {{#each mythicGroupTypeOptions as |opt|}}
+              <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+        </label>
+        <label class="mythic-group-funds-row">Group Funds (cR):
+          <input type="number" name="system.groupFunds" value="{{mythicGroupFunds}}" />
+        </label>
+        <div class="mythic-group-funds-display">Display: {{mythicGroupFundsLabel}} cR</div>
+      </div>
+      <div class="mythic-group-description">
+        <label>Description:<textarea name="system.description" rows="2">{{system.description}}</textarea></label>
+      </div>
     </div>
   </header>
+
+  {{!-- ── Members ── --}}
   <section class="mythic-group-linked-actors">
-    <h2>Linked Members</h2>
-    <div class="mythic-group-link-dropzone" title="Drag actors or vehicles here to link them to this group.">
-      <p>Drop PC actors or vehicles here to add them to the group.</p>
+    <div class="mythic-group-members-header">
+      <h2>Members</h2>
+      <div class="mythic-group-link-dropzone" title="Drag PC or Vehicle actors here.">Drop actors here to add them</div>
     </div>
-    <ul class="mythic-group-members-list">
-      {{#each mythicGroupMembers as |member|}}
-        <li>
-          <span>{{member.name}} ({{member.type}})</span>
-          <button type="button" class="action-btn" data-remove-linked-actor="{{member.id}}">Remove</button>
-        </li>
-      {{/each}}
-    </ul>
+
+    {{#if mythicGroupMembers.length}}
+    <div class="mythic-group-members-scroll">
+      <table class="mythic-group-members-table">
+        <thead>
+          <tr>
+            <th class="col-portrait"></th>
+            <th class="col-name">Name</th>
+            <th class="col-stat">cR</th>
+            <th class="col-stat">XP</th>
+            <th class="col-stat">Luck</th>
+            <th class="col-stat">Wounds</th>
+            {{#if mythicGroupStats.anyShields}}<th class="col-stat">Shields</th>{{/if}}
+            <th class="col-stat">SP</th>
+            <th class="col-remove"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each mythicGroupMembers as |member|}}
+          <tr>
+            <td class="col-portrait"><img class="mythic-group-member-portrait" src="{{member.img}}" alt="{{member.name}}" /></td>
+            <td class="col-name mythic-group-member-name">{{member.name}}</td>
+            <td class="col-stat">{{member.crLabel}}</td>
+            <td class="col-stat">{{member.xpLabel}}</td>
+            <td class="col-stat">{{member.luckLabel}}</td>
+            <td class="col-stat">{{member.woundsLabel}}</td>
+            {{#if ../mythicGroupStats.anyShields}}
+            <td class="col-stat">{{#if member.hasShields}}{{member.shieldsLabel}}{{else}}—{{/if}}</td>
+            {{/if}}
+            <td class="col-stat">{{member.supportPointsLabel}}</td>
+            <td class="col-remove"><button type="button" class="mythic-group-remove-btn" data-remove-linked-actor="{{member.id}}" title="Remove">✕</button></td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{/if}}
   </section>
+
+  {{!-- ── Totals & Averages ── --}}
+  {{#if mythicGroupMembers.length}}
   <section class="mythic-group-stats">
-    <h2>Group Stats</h2>
-    <div class="mythic-group-stats-table">
-      <div>Average XP: {{mythicGroupStats.averageXp}}</div>
-      <div>Average CR: {{mythicGroupStats.averageCr}}</div>
-      <div>Average Luck: {{mythicGroupStats.averageLuck}}</div>
-    </div>
+    <h2>Totals &amp; Averages</h2>
+    <table class="mythic-group-stats-table">
+      <colgroup>
+        <col class="mythic-group-stats-col-label" />
+        <col class="mythic-group-stats-col-value" />
+        <col class="mythic-group-stats-col-value" />
+      </colgroup>
+      <thead>
+        <tr><th>Stat</th><th>Total</th><th>Average</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>cR</td><td>{{mythicGroupStats.totalCrLabel}}</td><td>{{mythicGroupStats.averageCrLabel}}</td></tr>
+        <tr><td>XP</td><td>{{mythicGroupStats.totalXpLabel}}</td><td>{{mythicGroupStats.averageXpLabel}}</td></tr>
+        <tr><td>Luck (cur/max)</td><td>{{mythicGroupStats.totalLuckLabel}}</td><td>{{mythicGroupStats.averageLuckLabel}}</td></tr>
+        <tr><td>Wounds (cur/max)</td><td>{{mythicGroupStats.totalWoundsLabel}}</td><td>{{mythicGroupStats.averageWoundsLabel}}</td></tr>
+        {{#if mythicGroupStats.anyShields}}
+        <tr><td>Shields (cur/max)</td><td>{{mythicGroupStats.totalShieldsLabel}}</td><td>{{mythicGroupStats.averageShieldsLabel}}</td></tr>
+        {{/if}}
+        <tr><td>Support Points (cur/max)</td><td>{{mythicGroupStats.totalSupportPointsLabel}}</td><td>{{mythicGroupStats.averageSupportPointsLabel}}</td></tr>
+      </tbody>
+    </table>
   </section>
+  {{/if}}
+
+  <section class="mythic-group-inventory">
+    <div class="mythic-group-bug-flag" role="note" aria-label="Known issue">
+      <strong>Known Issue:</strong> Dropping the same item twice can create multiple rows. For now, drop once and manually increase Qty.
+    </div>
+    <div class="mythic-group-inventory-header">
+      <h2>Party Inventory</h2>
+      <div class="mythic-group-inventory-dropzone" title="Drag item documents here to store them in the party inventory.">Drop items here to store them</div>
+    </div>
+
+    {{#if mythicGroupInventory.length}}
+    <div class="mythic-group-inventory-list">
+      {{#each mythicGroupInventory as |item|}}
+      <div class="mythic-group-inventory-row">
+        <div class="mythic-group-inventory-main">
+          <img class="mythic-group-inventory-icon" src="{{item.img}}" alt="{{item.name}}" />
+          <div class="mythic-group-inventory-text">
+            <div class="mythic-group-inventory-name">{{item.name}}</div>
+            <div class="mythic-group-inventory-meta">{{item.type}}</div>
+          </div>
+        </div>
+        <div class="mythic-group-inventory-actions">
+          <label class="mythic-group-inventory-qty-wrap" title="Quantity">
+            <span>Qty</span>
+            <input type="number" min="0" step="1" class="mythic-group-inventory-qty-input" data-group-item-id="{{item.id}}" value="{{item.quantity}}" {{#unless ../editable}}disabled{{/unless}} />
+          </label>
+          <button type="button" class="mythic-group-item-btn" data-open-group-item="{{item.id}}" title="Open item">Open</button>
+          <button type="button" class="mythic-group-item-btn danger" data-remove-group-item="{{item.id}}" title="Remove item">Remove</button>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="mythic-group-inventory-empty">No party inventory items yet. Drag item documents here to store them on the group.</div>
+    {{/if}}
+  </section>
+
+  <details class="mythic-group-future-ideas">
+    <summary>Ideas for the Future</summary>
+    <ul>
+      <li>In the inventory, let the party indicate storage locations for party items (for example: base, locker, etc.).</li>
+      <li>Show connections to NPCs, other groups, and related organizations.</li>
+      <li>Per-player notes on the group sheet: one set visible only to that player, and one set visible to all.</li>
+      <li>Select a party leader who can edit this sheet.</li>
+    </ul>
+  </details>
+
 </section>

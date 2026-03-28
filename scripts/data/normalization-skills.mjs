@@ -7,8 +7,21 @@ export function normalizeSkillEntry(entry, fallback) {
   const options = Array.isArray(entry?.characteristicOptions) && entry.characteristicOptions.length
     ? entry.characteristicOptions
     : foundry.utils.deepClone(fallback.characteristicOptions ?? ["int"]);
+
+  // Legacy support: Intimidation previously had "special" option. Convert to valid categories.
+  const skillKey = String(entry?.key ?? fallback.key ?? "").trim().toLowerCase();
+  if (skillKey === "intimidation") {
+    if (options.includes("special")) {
+      options.length = 0;
+      options.push("str", "cha", "ldr", "int");
+    }
+  }
+
   const selected = String(entry?.selectedCharacteristic ?? fallback.selectedCharacteristic ?? options[0] ?? "int");
-  const selectedCharacteristic = options.includes(selected) ? selected : (options[0] ?? "int");
+  let selectedCharacteristic = options.includes(selected) ? selected : (options[0] ?? "int");
+  if (skillKey === "intimidation" && selectedCharacteristic === "special") {
+    selectedCharacteristic = options[0] ?? "str";
+  }
   const tier = String(entry?.tier ?? fallback.tier ?? "untrained");
 
   const modRaw = Number(entry?.modifier ?? fallback.modifier ?? 0);

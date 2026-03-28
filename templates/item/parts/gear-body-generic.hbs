@@ -4,8 +4,17 @@
     <label for="gear-category">Category</label>
     <input id="gear-category" type="text" name="system.category" value="{{gear.category}}" {{#unless canEditFields}}disabled{{/unless}} />
   </div>
+  {{#unless isDescriptionOnlyEquipmentItem}}
   <div class="ability-info-row ability-col">
     <label for="gear-weapon-type">Weapon Type</label>
     <input id="gear-weapon-type" type="text" name="system.weaponType" value="{{gear.weaponType}}" {{#unless canEditFields}}disabled{{/unless}} />
   </div>
+  {{/unless}}
 </div>
+
+{{#if isDescriptionOnlyEquipmentItem}}
+<div class="ability-info-row ability-notes-row">
+  <label for="gear-general-description">Description</label>
+  <textarea id="gear-general-description" name="system.description" rows="12" {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
+</div>
+{{/if}}

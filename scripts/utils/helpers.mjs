@@ -31,6 +31,11 @@ export function toNonNegativeWhole(value, fallback = 0) {
   return Math.floor(toNonNegativeNumber(value, fallback));
 }
 
+export function toWholeNumber(value, fallback = 0) {
+  const numeric = Number(value ?? fallback);
+  return Number.isFinite(numeric) ? Math.floor(numeric) : fallback;
+}
+
 export function toSlug(value) {
   return String(value ?? "")
     .toLowerCase()

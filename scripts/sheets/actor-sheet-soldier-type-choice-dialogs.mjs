@@ -23,7 +23,7 @@ _promptSoldierTypeSkillChoices(templateName, templateSystem) {
 
     const blocks = rules.map((rule, ruleIndex) => {
       const source = String(rule?.source ?? "").trim();
-      const notes = String(rule?.notes ?? "").trim();
+      const notes = String(rule?.notes ?? "");
       const label = String(rule?.label ?? "Skills of choice").trim() || "Skills of choice";
       const count = Math.max(1, toNonNegativeWhole(rule?.count, 1));
       const checkboxRows = allSkillLabels.map((skillLabel) => {
@@ -238,7 +238,7 @@ _promptSoldierTypeSkillChoices(templateName, templateSystem) {
 
     const blocks = rules.map((rule, ruleIndex) => {
       const source = String(rule?.source ?? "").trim();
-      const notes = String(rule?.notes ?? "").trim();
+      const notes = String(rule?.notes ?? "");
       const label = String(rule?.label ?? "Educations of choice").trim() || "Educations of choice";
       const count = Math.max(1, toNonNegativeWhole(rule?.count, 1));
       const checkboxRows = allEducationNames.map((eduName, eduIndex) => createRowMarkup(ruleIndex, eduIndex, eduName)).join("");
@@ -246,7 +246,7 @@ _promptSoldierTypeSkillChoices(templateName, templateSystem) {
       return `
         <fieldset data-edu-rule-index="${ruleIndex}" data-edu-rule-count="${count}" data-edu-tier="${foundry.utils.escapeHTML(String(rule?.tier ?? "plus5"))}" data-edu-label="${foundry.utils.escapeHTML(label)}" data-edu-source="${foundry.utils.escapeHTML(source)}" data-edu-notes="${foundry.utils.escapeHTML(notes)}" style="margin:0 0 10px 0;padding:8px;border:1px solid rgba(255,255,255,0.18)">
           <legend style="padding:0 6px">${foundry.utils.escapeHTML(label)}</legend>
-          <p style="margin:0 0 8px 0">Choose exactly ${count} at <strong>${tierLabel(rule?.tier)}</strong>${source ? ` â€” ${foundry.utils.escapeHTML(source)}` : ""}${notes ? ` â€” ${foundry.utils.escapeHTML(notes)}` : ""}</p>
+          <p style="margin:0 0 8px 0">Choose exactly ${count} at <strong>${tierLabel(rule?.tier)}</strong>${source ? ` - ${foundry.utils.escapeHTML(source)}` : ""}${notes ? ` - ${foundry.utils.escapeHTML(notes)}` : ""}</p>
           <p data-edu-count-status="${ruleIndex}" style="margin:0 0 8px 0;font-size:11px;opacity:0.9">0/${count} selected</p>
           <div data-edu-rule-container="${ruleIndex}" style="max-height:240px;overflow:auto;border:1px solid rgba(255,255,255,0.12);padding:6px;border-radius:4px;background:rgba(0,0,0,0.15)">
             ${checkboxRows}

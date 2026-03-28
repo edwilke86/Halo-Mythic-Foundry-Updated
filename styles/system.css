@@ -6184,7 +6184,10 @@ input.gear-item-nickname::placeholder {
   height: 100%;
   padding: 10px;
   color: var(--mythic-text);
-  background: linear-gradient(rgba(18, 22, 32, 0.97), rgba(12, 15, 22, 0.97));
+  background:
+    radial-gradient(circle at top, rgba(50, 124, 188, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(12, 18, 30, 0.98), rgba(8, 12, 20, 0.98));
+  overflow-y: auto;
 }
 
 .mythic-system.sheet.actor.mythic-group-sheet:not(.minimized) {
@@ -6204,48 +6207,474 @@ input.gear-item-nickname::placeholder {
   background: linear-gradient(rgba(18, 22, 32, 0.97), rgba(12, 15, 22, 0.97)) !important;
 }
 
+.mythic-group-header,
+.mythic-group-linked-actors,
+.mythic-group-stats,
+.mythic-group-inventory {
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid rgba(102, 175, 222, 0.24);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18, 28, 43, 0.88), rgba(10, 16, 26, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(180, 224, 255, 0.06),
+    0 0 0 1px rgba(34, 61, 89, 0.26),
+    0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.mythic-group-header::before,
+.mythic-group-linked-actors::before,
+.mythic-group-stats::before,
+.mythic-group-inventory::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(124, 212, 255, 0.42), rgba(124, 212, 255, 0));
+}
+
+.mythic-group-header {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.mythic-group-header-media {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.mythic-group-media-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(111, 177, 218, 0.16);
+  border-radius: 8px;
+  background: rgba(7, 14, 22, 0.38);
+}
+
+.mythic-group-media-label {
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(145, 202, 243, 0.82);
+}
+
+.mythic-group-header-image {
+  width: 100%;
+  flex: 1;
+  min-height: 68px;
+  object-fit: cover;
+  border-radius: 7px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(5, 10, 16, 0.5);
+  box-shadow: 0 0 0 1px rgba(79, 135, 179, 0.18), 0 0 12px rgba(74, 162, 218, 0.1);
+}
+
+.mythic-group-media-btn,
+.mythic-group-item-btn {
+  border: 1px solid rgba(111, 177, 218, 0.2);
+  border-radius: 6px;
+  background: rgba(26, 39, 55, 0.9);
+  color: rgba(214, 233, 249, 0.9);
+  font-size: 0.72em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.mythic-group-media-btn:hover,
+.mythic-group-item-btn:hover {
+  background: rgba(38, 58, 79, 0.95);
+}
+
+.mythic-group-header-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .mythic-group-header h1 {
-  margin: 0;
+  margin: 0 0 8px;
+  font-size: 1.35em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(233, 241, 255, 0.96);
+  text-shadow: 0 0 18px rgba(106, 194, 255, 0.18);
+}
+
+.mythic-group-header-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.mythic-group-type-row,
+.mythic-group-funds-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .mythic-group-type-row select,
+.mythic-group-funds-row input,
+.mythic-group-description textarea {
+  border: 1px solid rgba(104, 176, 221, 0.18);
+  border-radius: 6px;
+  background: rgba(24, 24, 36, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(116, 194, 255, 0.04);
+}
+
+.mythic-group-type-row select {
+  min-width: 118px;
+}
+
+.mythic-group-funds-row input {
+  width: 96px;
+  text-align: right;
+}
+
+.mythic-group-funds-display {
+  color: rgba(136, 214, 255, 0.78);
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .mythic-group-description textarea {
   width: 100%;
+  resize: vertical;
+  min-height: 78px;
 }
 
-.mythic-group-link-dropzone {
-  margin-top: 6px;
-  border: 2px dashed rgba(130, 175, 220, 0.7);
+.mythic-group-members-header,
+.mythic-group-inventory-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mythic-group-members-header h2,
+.mythic-group-stats h2,
+.mythic-group-inventory-header h2 {
+  margin: 0;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(231, 241, 255, 0.95);
+}
+
+.mythic-group-bug-flag {
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(220, 160, 80, 0.45);
+  border-radius: 7px;
+  background: rgba(120, 76, 24, 0.2);
+  color: rgba(255, 222, 170, 0.95);
+  font-size: 0.76em;
+  line-height: 1.35;
+}
+
+.mythic-group-link-dropzone,
+.mythic-group-inventory-dropzone {
+  flex: 1;
+  border: 1px dashed rgba(114, 189, 238, 0.58);
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px 10px;
   text-align: center;
-  background: rgba(10, 16, 28, 0.35);
+  font-size: 0.76em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(170, 220, 247, 0.72);
+  background: linear-gradient(180deg, rgba(13, 27, 42, 0.7), rgba(8, 18, 30, 0.72));
+  cursor: copy;
 }
 
-.mythic-group-members-list {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
+.mythic-group-members-scroll {
+  overflow-y: auto;
+  max-height: 220px;
+}
+
+.mythic-group-members-table,
+.mythic-group-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: rgba(4, 9, 16, 0.34);
+  border: 1px solid rgba(111, 177, 218, 0.12);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mythic-group-members-table {
+  font-size: 0.78em;
+}
+
+.mythic-group-stats-table {
+  font-size: 0.8em;
+}
+
+.mythic-group-members-table th,
+.mythic-group-members-table td,
+.mythic-group-stats-table th,
+.mythic-group-stats-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid rgba(124, 186, 221, 0.08);
+  vertical-align: middle;
+}
+
+.mythic-group-members-table thead th,
+.mythic-group-stats-table thead th {
+  color: rgba(145, 202, 243, 0.82);
+  font-weight: 600;
+  font-size: 0.8em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, rgba(36, 54, 76, 0.86), rgba(30, 42, 61, 0.9));
+  border-bottom: 1px solid rgba(130, 175, 220, 0.22);
+}
+
+.mythic-group-members-table thead th,
+.mythic-group-members-table td,
+.mythic-group-stats-table thead th:not(:first-child),
+.mythic-group-stats-table td:not(:first-child) {
+  text-align: center;
+}
+
+.mythic-group-stats-table thead th:first-child,
+.mythic-group-stats-table td:first-child,
+.mythic-group-members-table .col-name {
+  text-align: left;
+}
+
+.mythic-group-members-table tbody tr:nth-child(even),
+.mythic-group-stats-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mythic-group-members-table tbody tr:hover {
+  background: rgba(111, 177, 218, 0.08);
+}
+
+.mythic-group-members-table .col-portrait {
+  width: 40px;
+}
+
+.mythic-group-member-portrait {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(140, 210, 255, 0.32);
+  box-shadow: 0 0 0 1px rgba(79, 135, 179, 0.22), 0 0 12px rgba(74, 162, 218, 0.12);
+  display: block;
+}
+
+.mythic-group-members-table .col-name {
+  width: 24%;
+}
+
+.mythic-group-member-name {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mythic-group-members-table .col-stat,
+.mythic-group-stats-table td:not(:first-child) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mythic-group-members-table .col-remove {
+  width: 28px;
+}
+
+.mythic-group-remove-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  color: rgba(220, 100, 100, 0.7);
+  cursor: pointer;
+  font-size: 0.78em;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.mythic-group-remove-btn:hover {
+  color: rgba(255, 120, 120, 1);
+  background: rgba(180, 40, 40, 0.2);
+}
+
+.mythic-group-stats-col-label {
+  width: 40%;
+}
+
+.mythic-group-stats-col-value {
+  width: 30%;
+}
+
+.mythic-group-stats-table td:first-child {
+  color: rgba(180, 210, 240, 0.75);
+  font-weight: 500;
+}
+
+.mythic-group-inventory-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.mythic-group-members-list li {
+.mythic-group-inventory-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 6px;
-  background: rgba(10, 16, 28, 0.32);
+  gap: 10px;
+  padding: 7px 8px;
+  border: 1px solid rgba(111, 177, 218, 0.12);
+  border-radius: 8px;
+  background: rgba(4, 9, 16, 0.34);
 }
 
-.mythic-group-stats-table {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.mythic-group-inventory-main {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.mythic-group-inventory-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(140, 210, 255, 0.28);
+}
+
+.mythic-group-inventory-text {
+  min-width: 0;
+}
+
+.mythic-group-inventory-name {
+  font-size: 0.84em;
+  font-weight: 600;
+  color: rgba(233, 241, 255, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mythic-group-inventory-meta,
+.mythic-group-inventory-empty {
+  font-size: 0.76em;
+  color: rgba(170, 220, 247, 0.64);
+  letter-spacing: 0.03em;
+}
+
+.mythic-group-inventory-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mythic-group-inventory-qty-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(173, 221, 249, 0.84);
+}
+
+.mythic-group-inventory-qty-input {
+  width: 60px;
+  border: 1px solid rgba(111, 177, 218, 0.2);
+  border-radius: 6px;
+  background: rgba(16, 27, 41, 0.95);
+  color: rgba(219, 236, 250, 0.93);
+  font-size: 0.82em;
+  text-align: right;
+  padding: 4px 6px;
+}
+
+.mythic-group-item-btn {
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+.mythic-group-item-btn.danger {
+  color: rgba(255, 182, 182, 0.92);
+  border-color: rgba(186, 91, 91, 0.24);
+}
+
+.mythic-group-future-ideas {
+  border: 1px solid rgba(111, 177, 218, 0.18);
+  border-radius: 8px;
+  background: rgba(4, 9, 16, 0.28);
+  padding: 6px 8px;
+}
+
+.mythic-group-future-ideas > summary {
+  cursor: pointer;
+  font-size: 0.78em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(161, 216, 249, 0.84);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mythic-group-future-ideas ul {
+  margin: 8px 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mythic-group-future-ideas li {
+  font-size: 0.78em;
+  line-height: 1.35;
+  color: rgba(201, 223, 241, 0.86);
+}
+
+@media (max-width: 760px) {
+  .mythic-group-header {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-group-header-media {
+    flex-direction: row;
+  }
+
+  .mythic-group-media-card {
+    min-width: 0;
+  }
 }
 
 /* ============================================================

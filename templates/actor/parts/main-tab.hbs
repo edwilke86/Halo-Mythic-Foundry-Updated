@@ -32,8 +32,8 @@
           {{#if mythicHasBlurAbility}}
             <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flySprint}}{{else}}{{mythicDerived.movement.sprint}}{{/if}}</div><div class="movement-label movement-label-sprint">Sprint</div></div>
           {{/if}}
-          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}â€”{{else}}{{mythicDerived.movement.jump}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Jump{{else}}Jump{{/if}}</div></div>
-          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}â€”{{else}}{{mythicDerived.movement.leap}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Leap{{else}}Leap{{/if}}</div></div>
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}-{{else}}{{mythicDerived.movement.jump}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Jump{{else}}Jump{{/if}}</div></div>
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}-{{else}}{{mythicDerived.movement.leap}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Leap{{else}}Leap{{/if}}</div></div>
         </div>
         {{#if mythicDerived.movement.hasFlightTrait}}
         {{#unless mythicIsHuragok}}
@@ -49,11 +49,11 @@
               <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flySprint}}</div><div class="movement-label movement-label-sprint">Sprint</div></div>
             {{/if}}
             <div class="movement-block movement-block-wide movement-fly-action-block">
-              <button type="button" class="action-btn movement-fly-action-btn {{#if mythicSystem.mythic.flyCombatActive}}fly-mode-active{{/if}}" title="{{#if mythicSystem.mythic.flyCombatActive}}Disable fly mode{{else}}Enable fly mode{{/if}}">{{#if mythicSystem.mythic.flyCombatActive}}âœ“ FLY{{else}}Fly{{/if}}</button>
+              <button type="button" class="action-btn movement-fly-action-btn {{#if mythicSystem.mythic.flyCombatActive}}fly-mode-active{{/if}}" title="{{#if mythicSystem.mythic.flyCombatActive}}Disable fly mode{{else}}Enable fly mode{{/if}}">{{#if mythicSystem.mythic.flyCombatActive}}FLY ON{{else}}Fly{{/if}}</button>
             </div>
           </div>
           {{else}}
-          <div class="movement-fly-unavailable">Unable to fly â€” carrying capacity over 75%</div>
+          <div class="movement-fly-unavailable">Unable to fly - carrying capacity over 75%</div>
           {{/if}}
           <div class="movement-fly-encumbrance">Carry: {{mythicDerived.movement.carryPercentage}}%</div>
         </div>
@@ -72,12 +72,12 @@
             <p><strong>Ruler Color Key:</strong> Half = green, Full = blue, Charge = yellow, Run = orange, Sprint = red. These colors match token movement banding while measuring.</p>
             <p><strong>No Grid Maps:</strong> If the Scene grid type is set to No Grid, the ruler path line itself changes color by movement band, but no grid squares or hexes are highlighted.</p>
             <hr />
-            <p><strong>Simple Climb:</strong> Hands-free = no test. Hurried or one-handed: âˆ’10 Test. Fail = no progress; 2+ DOF = fall.</p>
+            <p><strong>Simple Climb:</strong> Hands-free = no test. Hurried or one-handed: -10 Test. Fail = no progress; 2+ DOF = fall.</p>
             <p><strong>Difficult Climb:</strong> Climb Test required. Abseiling/harnessing: +40 and doubles Climb Speed.</p>
             <hr />
-            <p><strong>Simple Swim:</strong> Hands-free, calm water = no test. Hurried or carrying: âˆ’10 Test. Fail = Speed halved; 2+ DOF = no distance.</p>
-            <p><strong>Swim Weight Penalties:</strong> &gt;50% Carry: âˆ’10 / âˆ’1 spd &nbsp;Â·&nbsp; &gt;75%: âˆ’30 / âˆ’2 spd &nbsp;Â·&nbsp; â‰¥90%: âˆ’50 / âˆ’3 spd &nbsp;Â·&nbsp; Over-encumbered: can't swim without flotation.</p>
-            <p><strong>Swim Endurance:</strong> TOU MOD hours; then Toughness Test per hour (cumulative âˆ’10). Fail: +1 Fatigue per DOF.</p>
+            <p><strong>Simple Swim:</strong> Hands-free, calm water = no test. Hurried or carrying: -10 Test. Fail = Speed halved; 2+ DOF = no distance.</p>
+            <p><strong>Swim Weight Penalties:</strong> &gt;50% Carry: -10 / -1 spd &nbsp;&middot;&nbsp; &gt;75%: -30 / -2 spd &nbsp;&middot;&nbsp; &gt;=90%: -50 / -3 spd &nbsp;&middot;&nbsp; Over-encumbered: can't swim without flotation.</p>
+            <p><strong>Swim Endurance:</strong> TOU MOD hours; then Toughness Test per hour (cumulative -10). Fail: +1 Fatigue per DOF.</p>
           </div>
         </details>
       </details>
@@ -97,10 +97,10 @@
           <div class="movement-ref-content">
             <div class="movement-ref-row"><span>Bright / Low-Light</span><span>{{mythicDerived.perceptiveRange.brightOrLowLight}} m</span></div>
             <div class="movement-ref-row"><span>Blinding / Darkness</span><span>{{mythicDerived.perceptiveRange.blindingOrDarkness}} m</span></div>
-            <div class="movement-ref-row"><span>âˆ’20 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty20Max}} m</span></div>
-            <div class="movement-ref-row"><span>âˆ’60 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty60Max}} m</span></div>
-            <p>Scopes and sights multiply Perceptive Range (e.g. 2Ã— Scope doubles range).</p>
-            <p>Attacks beyond 3Ã— Perceptive Range are impossible.</p>
+            <div class="movement-ref-row"><span>-20 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty20Max}} m</span></div>
+            <div class="movement-ref-row"><span>-60 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty60Max}} m</span></div>
+            <p>Scopes and sights multiply Perceptive Range (e.g. 2x Scope doubles range).</p>
+            <p>Attacks beyond 3x Perceptive Range are impossible.</p>
           </div>
         </details>
       </details>
@@ -118,10 +118,10 @@
             <div class="movement-ref-row gravity-input-row">
               <label>Current Gravity</label>
               <input type="number" name="system.gravity" min="0" max="4" step="0.1" value="{{mythicGravityValue}}" readonly
-                title="{{#if mythicIsGM}}World gravity is set in Game Settings â†’ Configure Settings â†’ System Settings â†’ World Gravity Level.{{else}}Set by the Game Master via Game Settings.{{/if}}" />
+                title="{{#if mythicIsGM}}World gravity is set in Game Settings -> Configure Settings -> System Settings -> World Gravity Level.{{else}}Set by the Game Master via Game Settings.{{/if}}" />
               {{#if mythicIsGM}}<span class="mythic-gravity-gm-hint">Set in <strong>Game Settings</strong></span>{{/if}}
             </div>
-            <p>Gravity modifies Carry, Lift, Push, Jump, Leap, and Climb Speed (Ã· gravity). Ultra-High/Low gravity also applies AGI penalties. Zero-G: normal movement requires a surface or propulsion to push off.</p>
+            <p>Gravity modifies Carry, Lift, Push, Jump, Leap, and Climb Speed (/ gravity). Ultra-High/Low gravity also applies AGI penalties. Zero-G: normal movement requires a surface or propulsion to push off.</p>
           </div>
         </details>
       </details>
@@ -221,7 +221,7 @@
             <div class="mythic-reaction-penalty">Cumulative Penalty: <strong>{{mythicCombat.reactions.penalty}}</strong></div>
             <div class="mythic-reaction-controls">
               <button type="button" class="action-btn reaction-add-btn">+ Use Reaction</button>
-              <button type="button" class="action-btn reaction-reset-btn">â†º Reset</button>
+              <button type="button" class="action-btn reaction-reset-btn">Reset</button>
             </div>
           </div>
         </div>

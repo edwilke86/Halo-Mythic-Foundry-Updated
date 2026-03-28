@@ -27,7 +27,15 @@
       </div>
       <div class="mythic-header-row">
         <label>Size</label>
-        <input name="system.header.buildSize" type="text" value="{{mythicHeader.values.buildSize}}" {{#if mythicHeader.locks.buildSize}}readonly class="mythic-header-locked"{{/if}} />
+        {{#if mythicHeader.locks.buildSize}}
+          <input type="hidden" name="system.header.buildSize" value="{{mythicHeader.values.buildSize}}" />
+          <input type="text" value="{{mythicHeader.values.buildSize}}" readonly class="mythic-header-locked" />
+        {{else}}
+          <select name="system.header.buildSize">
+            <option value=""{{#unless mythicHeader.values.buildSize}} selected{{/unless}}></option>
+            {{selectOptions mythicHeader.sizeOptions selected=mythicHeader.values.buildSize}}
+          </select>
+        {{/if}}
       </div>
       {{#if mythicHeader.smartAi.enabled}}
         <div class="mythic-header-row mythic-header-core-identity-row">

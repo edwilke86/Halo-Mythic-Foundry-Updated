@@ -30,6 +30,20 @@ Current direction (next):
 - Treat Warzone content as in-scope for base system compendia and rules support (not deferred to a separate expansion module)
 - Add clickable resource/section labels (e.g., Luck title) that can post concise stat snapshots to chat; awaiting curated list of labels to enable
 - Add per-turn action economy tracking (free/half/full spent state + reset hooks) to gate actions like wield-and-attack based on remaining actions
+- P0 (done): Implement GM-only language add/remove workflow in Character Creation and Advancement, with first language free, XP consumption placement, and XP refund on GM removal.
+- P1 (done): Add manual analysis field in setup tab `system.advancements.purchases.languageCapacityBonus` for manual cap bonus.
+- P1 (done): Change Intimidation skill characteristic options from special to Strength / Charisma / Leadership / Intellect.
+
+## Bug List
+
+- Resolved: Character Creation language queue UI replaced with immediate Known Languages list and cap-computed unconditional behavior.
+- Resolved: `Dialog.confirm` usage replaced with `foundry.applications.api.DialogV2.confirm` to avoid V1 deprecation warning.
+- Resolved: Characteristics builder "Other" fields now accept negative integers for downward upbringing/environment/lifestyle modifiers. Fixed `normalization.mjs` misc row clamping and all `charBuilder.misc` read sites in `actor-sheet.mjs`.
+- Resolved: General Equipment subtype now omits Weapon Type and includes a long freeform Description field for custom item notes.
+- Resolved: Group Sheet average cR now computes from member credits correctly (no longer locked to 350).
+- Resolved: Equipment subtypes Container / Weapon Modification / Armor Permutation / Ammo Modification now use long Description-focused UI and no Weapon Type field where applicable.
+- **Open (P1):** Group inventory repeated drop behavior can still create duplicate rows in some flows; current workaround is to increase Qty on the existing row rather than dropping the same item repeatedly.
+- **Open (P1):** Actor sheet textarea indentation drift — multiline text in any big text box (e.g. GM Notes, General Description) gains extra leading spaces on every blur/save. Multiple normalization attempts in `_onChangeForm` and `_prepareSubmitData` did not resolve it. Suspected root cause: Handlebars re-render inserts whitespace from HBS template indentation into `<textarea>` content. Potential fix: ensure no whitespace between `>{{value}}</textarea>` in all actor HBS textarea tags.
 
 ## How to use this file
 
@@ -215,6 +229,7 @@ Alpha-known issues tracked in UI:
 - [ ] P0 GM specialization override can leave prior specialization grants
 - [x] P0 CRITICAL (Alpha Release): Ionized Particle needs Plasma Battery-style support path (energy-cell-like handling, UI, and reload/combat behavior parity) - investigate and implement
 - [ ] P1 Ability drop XP handling not 100% reliable
+- [x] P2 Cosmetic: cleaned up mojibake in actor templates/chat/prompt strings
 
 Alpha communications and reporting quality:
 

@@ -716,7 +716,9 @@ export function normalizeCharacterSystemData(systemData) {
       ? merged.charBuilder[rowKey] : {};
     for (const statKey of MYTHIC_CHARACTERISTIC_KEYS) {
       let v = Number(merged.charBuilder[rowKey][statKey] ?? 0);
-      v = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
+      if (!Number.isFinite(v)) v = 0;
+      // misc row allows negative integers (e.g. negative upbringing/environment/lifestyle modifiers)
+      v = rowKey === "misc" ? Math.floor(v) : Math.max(0, Math.floor(v));
       // Advancement rows: clamp to valid tier values only
       if (rowKey === "advancements" || rowKey === "purchasedAdvancements" || rowKey === "soldierTypeAdvancementsRow") {
         v = _cbAdvValidValues.includes(v) ? v : 0;

@@ -6,6 +6,7 @@ import {
   MYTHIC_CHARACTERISTIC_KEYS,
   MYTHIC_OUTLIER_DEFINITIONS,
   MYTHIC_SPECIALIZATION_PACKS,
+  MYTHIC_SIZE_CATEGORIES,
   MYTHIC_BASE_SKILL_DEFINITIONS,
   MYTHIC_WEAPON_TRAINING_DEFINITIONS,
   MYTHIC_FACTION_TRAINING_DEFINITIONS,
@@ -29,6 +30,7 @@ import {
 
 import {
   toNonNegativeWhole,
+  toWholeNumber,
   normalizeStringList,
   normalizeLookupText,
   toSlug,
@@ -1962,7 +1964,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const hasSoldierType = values.soldierType.length > 0;
     if (hasSoldierType) {
-      for (const key of ["soldierType", "race", "buildSize"]) {
+      // Keep soldier type and race controlled, but allow manual size override when desired.
+      for (const key of ["soldierType", "race"]) {
         locks[key] = true;
       }
       // If these are populated by soldier type data, treat as controlled and lock too.
@@ -2012,9 +2015,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const coreIdentityLabel = String(smartAiFlag?.coreIdentityLabel ?? "Cognitive Pattern").trim() || "Cognitive Pattern";
 
     const actorAiCp = String(this.actor.system?.ai?.cognitivePattern ?? "").trim();
+    const mythicSizeOptions = MYTHIC_SIZE_CATEGORIES.map((category) => ({
+      value: String(category.label ?? "").trim(),
+      label: String(category.label ?? "").trim()
+    }));
     return {
       values,
       locks,
+      sizeOptions: mythicSizeOptions,
       smartAi: {
         enabled: smartAiEnabled,
         coreIdentityLabel,
@@ -3977,6 +3985,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalized = normalizeSkillsData(skillsData);
     const chars = characteristics ?? {};
 
+    // Auto-migrate legacy Intimidation "special" selection to valid characteristic options
+    const legacyIntimidation = skillsData?.base?.intimidation;
+    const needsIntimidationPatch = legacyIntimidation && (
+      String(legacyIntimidation.selectedCharacteristic ?? "").trim().toLowerCase() === "special"
+      || (Array.isArray(legacyIntimidation.characteristicOptions) && legacyIntimidation.characteristicOptions.includes("special"))
+    );
+    if (needsIntimidationPatch && this.actor?.isOwner) {
+      const patch = {
+        "system.skills.base.intimidation.characteristicOptions": ["str", "cha", "ldr", "int"],
+        "system.skills.base.intimidation.selectedCharacteristic": "str"
+      };
+      this.actor.update(patch).catch(() => null);
+    }
+
     const SKILL_GROUP_LABELS = {
       "social": "Social",
       "movement": "Movement",
@@ -5167,6 +5189,27 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _prepareSubmitData(event, form, formData, updateData = {}) {
+    const normalizeMultilineNotes = (raw) => {
+      if (typeof raw !== "string" || !raw.includes("\n")) return raw;
+      const lines = raw.split(/\r?\n/);
+      const afterFirst = lines.slice(1);
+      const indents = afterFirst
+        .filter((line) => line.length > 0)
+        .map((line) => {
+          const match = line.match(/^(\s+)/);
+          return match ? match[1].length : 0;
+        })
+        .filter((len) => len > 0);
+      if (!indents.length) return raw;
+      const commonIndent = Math.min(...indents);
+      if (commonIndent <= 0) return raw;
+      const prefix = " ".repeat(commonIndent);
+      return lines.map((line, index) => {
+        if (index === 0 || !line.startsWith(prefix)) return line;
+        return line.slice(commonIndent);
+      }).join("\n");
+    };
+
     const submitData = super._prepareSubmitData(event, form, formData, updateData);
     const arrayPaths = [
       "system.skills.custom",
@@ -5275,6 +5318,40 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (foundry.utils.getProperty(submitData, "mythic") !== undefined) {
       delete submitData.mythic;
     }
+
+    const multilinePaths = [
+      "system.advancements.transactionNotes",
+      "system.biography.physical.generalDescription",
+      "system.equipment.inventoryNotes",
+      "system.medical.treatmentNotes",
+      "system.medical.recoveryNotes",
+      "system.notes.missionLog",
+      "system.notes.personalNotes",
+      "system.notes.gmNotes",
+      "system.vehicles.notes"
+    ];
+
+    for (const path of multilinePaths) {
+      const raw = foundry.utils.getProperty(submitData, path);
+      if (typeof raw === "string") {
+        foundry.utils.setProperty(submitData, path, normalizeMultilineNotes(raw));
+      }
+    }
+
+    const normalizeBiographyTextArrays = (path, field) => {
+      const rows = foundry.utils.getProperty(submitData, path);
+      if (!Array.isArray(rows)) return;
+      for (let i = 0; i < rows.length; i += 1) {
+        const value = foundry.utils.getProperty(rows[i], field);
+        if (typeof value !== "string") continue;
+        foundry.utils.setProperty(rows[i], field, normalizeMultilineNotes(value));
+      }
+      foundry.utils.setProperty(submitData, path, rows);
+    };
+
+    normalizeBiographyTextArrays("system.biography.physical.extraFields", "value");
+    normalizeBiographyTextArrays("system.biography.history.education", "notes");
+    normalizeBiographyTextArrays("system.biography.generalEntries", "text");
 
     // Header specialization is always controlled by setup flow, not free-form header edits.
     if (foundry.utils.getProperty(submitData, "system.header.specialisation") !== undefined) {
@@ -5394,6 +5471,31 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this._rememberSheetScrollPosition();
 
     const input = event.target;
+
+    const normalizeMultilineNotes = (raw) => {
+      if (typeof raw !== "string" || !raw.includes("\n")) return raw;
+      const lines = raw.split(/\r?\n/);
+      const afterFirst = lines.slice(1);
+      const indents = afterFirst
+        .filter((line) => line.length > 0)
+        .map((line) => {
+          const match = line.match(/^(\s+)/);
+          return match ? match[1].length : 0;
+        })
+        .filter((len) => len > 0);
+      if (!indents.length) return raw;
+      const commonIndent = Math.min(...indents);
+      if (commonIndent <= 0) return raw;
+      const prefix = " ".repeat(commonIndent);
+      return lines.map((line, index) => {
+        if (index === 0 || !line.startsWith(prefix)) return line;
+        return line.slice(commonIndent);
+      }).join("\n");
+    };
+
+    if (input instanceof HTMLTextAreaElement && String(input.name ?? "").startsWith("system.")) {
+      input.value = normalizeMultilineNotes(String(input.value ?? ""));
+    }
 
     if (input instanceof HTMLInputElement) {
       if (input.name === "system.header.gender" || input.name === "system.biography.physical.gender") {
@@ -6854,32 +6956,117 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const raw = input instanceof HTMLInputElement ? input.value : "";
     const name = String(raw ?? "").trim();
     if (!name) return;
-    await this._updateAdvancementQueue((queue, normalized) => {
-      const official = normalizeStringList(Array.isArray(normalized?.biography?.languages) ? normalized.biography.languages : []);
-      const intModifier = Math.max(0, Number(computeCharacteristicModifiers(normalized?.characteristics ?? {}).int ?? 0));
-      const capBonus = toNonNegativeWhole(normalized?.advancements?.purchases?.languageCapacityBonus, 0);
-      const cap = Math.max(0, intModifier + capBonus);
-      const currentTotal = official.length + normalizeStringList(queue.languages).length;
-      if (currentTotal >= cap) {
-        ui.notifications?.warn(`Language cap reached (${cap}).`);
-        return;
-      }
-      const normalizedName = normalizeLookupText(name);
-      const alreadyKnown = official.some((entry) => normalizeLookupText(entry) === normalizedName)
-        || normalizeStringList(queue.languages).some((entry) => normalizeLookupText(entry) === normalizedName);
-      if (alreadyKnown) return;
-      queue.languages.push(name);
-    });
+
+    const normalizedSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+    const official = normalizeStringList(Array.isArray(normalizedSystem?.biography?.languages) ? normalizedSystem.biography.languages : []);
+    const normalizedName = normalizeLookupText(name);
+    if (!normalizedName) return;
+
+    const intModifier = Math.max(0, Number(computeCharacteristicModifiers(normalizedSystem?.characteristics ?? {}).int ?? 0));
+    const capBonus = toNonNegativeWhole(normalizedSystem?.advancements?.purchases?.languageCapacityBonus, 0);
+    const cap = Math.max(0, intModifier + capBonus);
+
+    if (official.length >= cap) {
+      ui.notifications?.warn(`Language cap reached (${cap}).`);
+      return;
+    }
+
+    const alreadyKnown = official.some((entry) => normalizeLookupText(entry) === normalizedName);
+    if (alreadyKnown) {
+      ui.notifications?.warn(`${name} is already known.`);
+      return;
+    }
+
+    const ordinal = official.length + 1;
+    const cost = ordinal <= 1 ? 0 : MYTHIC_ADVANCEMENT_LANGUAGE_XP_COST;
+    const currentXp = toNonNegativeWhole(normalizedSystem?.advancements?.xpEarned, 0);
+    const spentXp = toNonNegativeWhole(normalizedSystem?.advancements?.xpSpent, 0);
+    const freeXp = Math.max(0, currentXp - spentXp);
+
+    if (cost > 0 && freeXp < cost) {
+      ui.notifications?.warn(`Not enough free XP to buy language ${name} (${cost} XP required, ${freeXp} remaining).`);
+      return;
+    }
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "Add Language" },
+      content: `<p>${foundry.utils.escapeHTML(name)} will be added as a language.</p>
+        <p>Only GM can remove languages later. ${ordinal === 1 ? "This one is free." : `This costs ${cost} XP.`}</p>`,
+      yes: { label: "Add" },
+      no: { label: "Cancel" }
+    }).catch(() => false);
+    if (!confirmed) return;
+
+    // Add language to biography and deduct XP if needed.
+    const updateData = {
+      "system.biography.languages": [...official, name]
+    };
+
+    await this.actor.update(updateData);
+
+    if (cost > 0) {
+      await this._appendAdvancementTransaction({
+        label: `Language: ${name}`,
+        amount: cost,
+        source: "language",
+        applyXp: true
+      });
+    }
+
     if (input instanceof HTMLInputElement) input.value = "";
   }
 
   async _onAdvRemoveQueuedLanguage(event) {
     event.preventDefault();
-    const index = Math.max(-1, Math.floor(Number(event.currentTarget?.dataset?.index ?? -1)));
-    if (index < 0) return;
-    await this._updateAdvancementQueue((queue) => {
-      queue.languages.splice(index, 1);
-    });
+    if (!game.user?.isGM) {
+      ui.notifications?.warn("Only a GM can remove a language.");
+      return;
+    }
+
+    const language = String(event.currentTarget?.dataset?.language ?? "").trim();
+    if (!language) return;
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "Remove Language" },
+      content: `<p>Remove language <strong>${foundry.utils.escapeHTML(language)}</strong>?</p>
+        <p>This action is GM-only and refunds XP if it was previously spent.</p>`,
+      yes: { label: "Remove" },
+      no: { label: "Cancel" }
+    }).catch(() => false);
+
+    if (!confirmed) return;
+
+    const normalizedSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+    const official = normalizeStringList(Array.isArray(normalizedSystem?.biography?.languages) ? normalizedSystem.biography.languages : []);
+    const targetIndex = official.findIndex((entry) => normalizeLookupText(entry) === normalizeLookupText(language));
+    if (targetIndex < 0) return;
+
+    const ordinal = targetIndex + 1;
+    const cost = ordinal <= 1 ? 0 : MYTHIC_ADVANCEMENT_LANGUAGE_XP_COST;
+    const filtered = official.filter((_, index) => index !== targetIndex);
+
+    const updateData = {
+      "system.biography.languages": filtered
+    };
+
+    if (cost > 0) {
+      const currentSpent = toNonNegativeWhole(normalizedSystem?.advancements?.xpSpent, 0);
+      const adjustedSpent = Math.max(0, currentSpent - cost);
+      updateData["system.advancements.xpSpent"] = adjustedSpent;
+
+      const existingTransactions = this._normalizeAdvancementTransactions(normalizedSystem?.advancements?.transactions ?? []);
+      const createdAt = Date.now();
+      const nextTransactions = [...existingTransactions, {
+        id: `txn-${createdAt}-${existingTransactions.length + 1}`,
+        label: `Language removed: ${language}`,
+        amount: cost,
+        createdAt,
+        source: "language-refund"
+      }];
+      updateData["system.advancements.transactions"] = nextTransactions;
+    }
+
+    await this.actor.update(updateData);
   }
 
   async _onPurchaseAdvancements(event) {
@@ -7018,7 +7205,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     for (const row of queueView.characteristics.rows) {
       updateData[`system.charBuilder.advancements.${row.key}`] = toNonNegativeWhole(row.queuedAdvancement, 0);
       if (row.queuedOther > 0) {
-        const currentMisc = toNonNegativeWhole(normalized?.charBuilder?.misc?.[row.key], 0);
+        const currentMisc = toWholeNumber(normalized?.charBuilder?.misc?.[row.key], 0);
         updateData[`system.charBuilder.misc.${row.key}`] = currentMisc + row.queuedOther;
       }
     }
@@ -9147,10 +9334,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const yearNote = campaignYear
       ? `<p><strong>Campaign Year:</strong> ${campaignYear}</p>`
-      : `<p><em>No campaign year set â€” all armor types are available.</em></p>`;
+      : `<p><em>No campaign year set - all armor types are available.</em></p>`;
 
     const optionsHtml = available.map(a => {
-      const range = a.yearEnd !== null ? `${a.yearStart}â€“${a.yearEnd}` : `${a.yearStart}+`;
+      const range = a.yearEnd !== null ? `${a.yearStart}-${a.yearEnd}` : `${a.yearStart}+`;
       return `<option value="${foundry.utils.escapeHTML(a.name)}">${foundry.utils.escapeHTML(a.name)} (${range})</option>`;
     }).join("");
 
@@ -10263,7 +10450,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         foundry.utils.getProperty(updateData, "system.equipment.inventoryNotes")
           ?? actorSystem?.equipment?.inventoryNotes
           ?? ""
-      ).trim();
+      );
       const nextInvNotes = currentInvNotes ? `${currentInvNotes}\n\n${packEntry}` : packEntry;
       setField("system.equipment.inventoryNotes", nextInvNotes);
     }
@@ -10327,9 +10514,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
-    const packageNotes = String(templateSystem?.notes ?? "").trim();
+    const packageNotes = String(templateSystem?.notes ?? "");
     if (packageNotes) {
-      const currentNotes = String(actorSystem?.notes?.personalNotes ?? "").trim();
+      const currentNotes = String(actorSystem?.notes?.personalNotes ?? "");
       const nextNotes = mode === "overwrite" || !currentNotes
         ? packageNotes
         : `${currentNotes}\n\n${packageNotes}`;
@@ -10422,7 +10609,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     );
 
     if (pendingChoicesBlock) {
-      const baseNotes = String(foundry.utils.getProperty(updateData, "system.notes.personalNotes") ?? actorSystem?.notes?.personalNotes ?? "").trim();
+      const baseNotes = String(foundry.utils.getProperty(updateData, "system.notes.personalNotes") ?? actorSystem?.notes?.personalNotes ?? "");
       if (!baseNotes.includes(pendingChoicesBlock)) {
         const nextNotes = baseNotes ? `${baseNotes}\n\n${pendingChoicesBlock}` : pendingChoicesBlock;
         setField("system.notes.personalNotes", nextNotes);
@@ -11188,10 +11375,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const currentNotes = String(this.actor.system?.skills?.base?.camouflage?.notes ?? "");
     const baseLines = currentNotes
       .split(/\r?\n/gu)
-      .map((line) => String(line ?? "").trim())
+      .map((line) => String(line ?? ""))
       .filter((line) => line && !line.startsWith("[Armor Rule]"));
     const nextLines = Array.isArray(nextEffects?.camouflageNotes)
-      ? nextEffects.camouflageNotes.map((line) => String(line ?? "").trim()).filter(Boolean)
+      ? nextEffects.camouflageNotes.map((line) => String(line ?? "")).filter(Boolean)
       : [];
     const mergedNotes = [...baseLines, ...nextLines].join("\n");
     updateData["system.skills.base.camouflage.notes"] = mergedNotes;
@@ -12818,14 +13005,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       updateData["system.combat.supportPoints.current"] = supportCurrent + 2;
       updateData["system.combat.supportPoints.max"] = supportMax + 2;
     } else if (definition.key === "aptitude" && choiceKey) {
-      const current = toNonNegativeWhole(systemData?.charBuilder?.misc?.[choiceKey], 0);
+      const current = toWholeNumber(systemData?.charBuilder?.misc?.[choiceKey], 0);
       updateData[`system.charBuilder.misc.${choiceKey}`] = current + 5;
     } else if (definition.key === "forte" && choiceKey) {
       const current = toNonNegativeWhole(systemData?.mythic?.characteristics?.[choiceKey], 0);
       updateData[`system.mythic.characteristics.${choiceKey}`] = current + 1;
     } else if (definition.key === "imposing") {
-      const strCurrent = toNonNegativeWhole(systemData?.charBuilder?.misc?.str, 0);
-      const touCurrent = toNonNegativeWhole(systemData?.charBuilder?.misc?.tou, 0);
+      const strCurrent = toWholeNumber(systemData?.charBuilder?.misc?.str, 0);
+      const touCurrent = toWholeNumber(systemData?.charBuilder?.misc?.tou, 0);
       updateData["system.charBuilder.misc.str"] = strCurrent + 3;
       updateData["system.charBuilder.misc.tou"] = touCurrent + 3;
       const currentSize = String(systemData?.header?.buildSize ?? "Normal").trim() || "Normal";
@@ -12910,16 +13097,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       updateData["system.combat.supportPoints.max"] = nextSupportMax;
       updateData["system.combat.supportPoints.current"] = Math.min(nextSupportMax, Math.max(0, supportCurrent - 2));
     } else if (definition.key === "aptitude" && choiceKey) {
-      const current = toNonNegativeWhole(systemData?.charBuilder?.misc?.[choiceKey], 0);
-      updateData[`system.charBuilder.misc.${choiceKey}`] = Math.max(0, current - 5);
+      const current = toWholeNumber(systemData?.charBuilder?.misc?.[choiceKey], 0);
+      updateData[`system.charBuilder.misc.${choiceKey}`] = current - 5;
     } else if (definition.key === "forte" && choiceKey) {
       const current = toNonNegativeWhole(systemData?.mythic?.characteristics?.[choiceKey], 0);
       updateData[`system.mythic.characteristics.${choiceKey}`] = Math.max(0, current - 1);
     } else if (definition.key === "imposing") {
-      const strCurrent = toNonNegativeWhole(systemData?.charBuilder?.misc?.str, 0);
-      const touCurrent = toNonNegativeWhole(systemData?.charBuilder?.misc?.tou, 0);
-      updateData["system.charBuilder.misc.str"] = Math.max(0, strCurrent - 3);
-      updateData["system.charBuilder.misc.tou"] = Math.max(0, touCurrent - 3);
+      const strCurrent = toWholeNumber(systemData?.charBuilder?.misc?.str, 0);
+      const touCurrent = toWholeNumber(systemData?.charBuilder?.misc?.tou, 0);
+      updateData["system.charBuilder.misc.str"] = strCurrent - 3;
+      updateData["system.charBuilder.misc.tou"] = touCurrent - 3;
       const currentSize = String(systemData?.header?.buildSize ?? "Normal").trim() || "Normal";
       const prevSize = getPreviousSizeCategoryLabel(currentSize);
       if (prevSize) {
@@ -14288,7 +14475,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const outcomeClass = "success";
       const content = `<article class="mythic-chat-card ${outcomeClass}">
         <header class="mythic-chat-header">
-          <span class="mythic-chat-title">${esc(this.actor.name)} â€” Courage Test</span>
+          <span class="mythic-chat-title">${esc(this.actor.name)} - Courage Test</span>
           <span class="mythic-chat-outcome ${outcomeClass}">SUCCESS</span>
         </header>
         <div class="mythic-stat-label">CRG ${crgStat} vs 1d100 rolled ${rollResult}${dosText}</div>
@@ -14310,7 +14497,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const outcomeClass = "failure";
       const content = `<article class="mythic-chat-card ${outcomeClass}">
         <header class="mythic-chat-header">
-          <span class="mythic-chat-title">${esc(this.actor.name)} â€” Courage Test</span>
+          <span class="mythic-chat-title">${esc(this.actor.name)} - Courage Test</span>
           <span class="mythic-chat-outcome ${outcomeClass}">FAILURE</span>
         </header>
         <div class="mythic-stat-label">CRG ${crgStat} vs 1d100 rolled ${rollResult}${dosText}</div>
@@ -14497,8 +14684,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       const escExec = (v) => foundry.utils.escapeHTML(String(v ?? ""));
       const executionPrompt = isMelee
-        ? `<p>Choose how to finish off <em>${escExec(targetName ?? "the target")}</em>:</p><p><strong>Execution (Half Action):</strong> Single attack, max damage Ã—2.</p><p><strong>Assassination (Full Action):</strong> Single attack, max damage Ã—4, ignores shields.</p>`
-        : `<p>Choose how to finish off <em>${escExec(targetName ?? "the target")}</em>:</p><p><strong>Execution (Half Action):</strong> Single attack, max damage Ã—2.</p><p><strong>Assassination (Full Action):</strong> Uses buttstroke damage profile, ignores shields.</p>`;
+        ? `<p>Choose how to finish off <em>${escExec(targetName ?? "the target")}</em>:</p><p><strong>Execution (Half Action):</strong> Single attack, max damage x2.</p><p><strong>Assassination (Full Action):</strong> Single attack, max damage x4, ignores shields.</p>`
+        : `<p>Choose how to finish off <em>${escExec(targetName ?? "the target")}</em>:</p><p><strong>Execution (Half Action):</strong> Single attack, max damage x2.</p><p><strong>Assassination (Full Action):</strong> Uses buttstroke damage profile, ignores shields.</p>`;
       const chosenVariant = await foundry.applications.api.DialogV2.wait({
         window: { title: "Execution Style" },
         content: executionPrompt,
@@ -14818,7 +15005,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         total: Number(roll.total ?? 0),
         hasSpecialDamage: true,
         ignoresShields,
-        formula: `${diceStr}+(${strMod}x${strMultiplier}) [${label}, STR ${strRaw}]${ignoresShields ? " â€” Ignores Shields" : ""}`,
+        formula: `${diceStr}+(${strMod}x${strMultiplier}) [${label}, STR ${strRaw}]${ignoresShields ? " - Ignores Shields" : ""}`,
         rollTooltip: buildRollTooltipHtml("Damage roll", roll, Number(roll.total ?? 0), bsFormula)
       };
     };
@@ -14836,7 +15023,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           total: maxDamage * multiplier,
           hasSpecialDamage: true,
           ignoresShields: isAssassination,
-          formula: `${actionLabel} max (${maxDamage}) x${multiplier}${isAssassination ? " â€” Ignores Shields" : ""}`,
+          formula: `${actionLabel} max (${maxDamage}) x${multiplier}${isAssassination ? " - Ignores Shields" : ""}`,
           rollTooltip: foundry.utils.escapeHTML(`${actionLabel} damage: ${maxDamage * multiplier} | No dice rolled (max damage effect)`)
         };
       }
@@ -15203,8 +15390,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const statLabel = statKey.toUpperCase();
     const displayActionLabel = actionType === "execution"
       ? (executionVariant === "assassination"
-        ? (!isMelee ? "assassination (full, buttstroke damage, ignores shields)" : "assassination (full, Ã—4, ignores shields)")
-        : "execution (half, Ã—2)")
+        ? (!isMelee ? "assassination (full, buttstroke damage, ignores shields)" : "assassination (full, x4, ignores shields)")
+        : "execution (half, x2)")
       : actionType === "buttstroke"
         ? "buttstroke"
         : actionType === "pump-reaction"
@@ -15560,7 +15747,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _promptMiscModifier(label) {
     return foundry.applications.api.DialogV2.wait({
       window: {
-        title: `${label} â€” Test Modifier`
+        title: `${label} - Test Modifier`
       },
       content: `
         <form>
@@ -15649,7 +15836,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     return foundry.applications.api.DialogV2.wait({
       window: {
-        title: `Attack Modifiers â€” ${esc(String(weaponName ?? "Weapon"))}`
+        title: `Attack Modifiers - ${esc(String(weaponName ?? "Weapon"))}`
       },
       content: `
         <style>

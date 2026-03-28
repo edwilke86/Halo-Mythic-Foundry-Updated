@@ -4,7 +4,7 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
-## [Unreleased]
+## [0.2.0-alpha.4] - 2026-03-28
 
 ### Added
 

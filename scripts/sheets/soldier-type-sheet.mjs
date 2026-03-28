@@ -33,7 +33,8 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
     context.cssClass = this.options.classes.join(" ");
     context.item = this.item;
     context.editable = this.isEditable;
-    context.canEditFields = this.isEditable && Boolean(this.item.system?.editMode);
+    // Make training toggles and prompt add/remove available when item is editable.
+    context.canEditFields = this.isEditable;
 
     const sys = normalizeSoldierTypeSystemData(this.item.system ?? {});
     context.soldierType = sys;

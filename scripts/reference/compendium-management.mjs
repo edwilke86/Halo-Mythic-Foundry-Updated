@@ -770,54 +770,55 @@ export async function importSoldierTypesFromJson(options = {}) {
     }
 
     for (const itemData of rows) {
-    const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
-    if (!canonicalId) {
-      skipped += 1;
-      continue;
+      const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+      if (!canonicalId) {
+        skipped += 1;
+        continue;
+      }
+
+      const existing = byCanonicalId.get(canonicalId);
+      if (!existing) {
+        if (!dryRun) createBatch.push(itemData);
+        created += 1;
+        continue;
+      }
+
+      const nextSystem = normalizeSoldierTypeSystemData(itemData.system ?? {}, itemData.name);
+      nextSystem.sync.sourceCollection = pack.collection === MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION
+        ? "soldier-types-system"
+        : "mythic-soldier-types";
+      const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+      const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+      if (foundry.utils.isEmpty(diff) && !nameChanged) {
+        skipped += 1;
+        continue;
+      }
+
+      if (!dryRun) {
+        await existing.update({ name: itemData.name, system: nextSystem });
+      }
+      updated += 1;
     }
 
-    const existing = byCanonicalId.get(canonicalId);
-    if (!existing) {
-      if (!dryRun) createBatch.push(itemData);
-      created += 1;
-      continue;
-    }
-
-    const nextSystem = normalizeSoldierTypeSystemData(itemData.system ?? {}, itemData.name);
-    nextSystem.sync.sourceCollection = pack.collection === MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION
-      ? "soldier-types-system"
-      : "mythic-soldier-types";
-    const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
-    const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
-    if (foundry.utils.isEmpty(diff) && !nameChanged) {
-      skipped += 1;
-      continue;
+    if (!dryRun && createBatch.length) {
+      await Item.createDocuments(createBatch, { pack: pack.collection });
     }
 
     if (!dryRun) {
-      await existing.update({ name: itemData.name, system: nextSystem });
+      ui.notifications?.info(`Soldier type JSON import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
     }
-    updated += 1;
-  }
 
-  if (!dryRun && createBatch.length) {
-    await Item.createDocuments(createBatch, { pack: pack.collection });
-  }
-
-  if (!dryRun) {
-    ui.notifications?.info(`Soldier type JSON import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
-  }
-
-  return { created, updated, skipped };
-} finally {
-  if (wasLocked && unlockedForSync) {
-    try {
-      await pack.configure({ locked: true });
-    } catch (lockError) {
-      console.error(`[mythic-system] Failed to relock compendium ${pack.collection}.`, lockError);
+    return { created, updated, skipped };
+  } finally {
+    if (wasLocked && unlockedForSync) {
+      try {
+        await pack.configure({ locked: true });
+      } catch (lockError) {
+        console.error(`[mythic-system] Failed to relock compendium ${pack.collection}.`, lockError);
+      }
     }
   }
-}
+
 
 export async function refreshTraitsCompendium(options = {}) {
   if (!game.user?.isGM) {

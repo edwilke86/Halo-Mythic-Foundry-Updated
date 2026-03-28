@@ -42,14 +42,25 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
     context.allowedLifestyles = Array.isArray(sys.ruleFlags?.allowedLifestyles?.lifestyles) ? sys.ruleFlags.allowedLifestyles.lifestyles : [];
     context.abilitiesList = Array.isArray(sys.abilities) ? sys.abilities : [];
     context.traitsList = Array.isArray(sys.traits) ? sys.traits : [];
-    context.trainingOptions = [
-      { value: "Basic", label: "Basic", checked: sys.training?.includes("Basic") },
-      { value: "Infantry", label: "Infantry", checked: sys.training?.includes("Infantry") },
-      { value: "Melee", label: "Melee", checked: sys.training?.includes("Melee") },
-      { value: "Heavy", label: "Heavy", checked: sys.training?.includes("Heavy") },
-      { value: "Vehicle", label: "Vehicle", checked: sys.training?.includes("Vehicle") },
-      { value: "Covenant", label: "Covenant", checked: sys.training?.includes("Covenant") }
-    ];
+    const isSelectedTraining = (name) => Array.isArray(sys.training) && sys.training.includes(name);
+    context.trainingOptions = {
+      weapon: [
+        { value: "Basic", label: "Basic", checked: isSelectedTraining("Basic") },
+        { value: "Infantry", label: "Infantry", checked: isSelectedTraining("Infantry") },
+        { value: "Melee", label: "Melee", checked: isSelectedTraining("Melee") },
+        { value: "Heavy", label: "Heavy", checked: isSelectedTraining("Heavy") },
+        { value: "Launcher", label: "Launcher", checked: isSelectedTraining("Launcher") },
+        { value: "Long Range", label: "Long Range", checked: isSelectedTraining("Long Range") },
+        { value: "Ordnance", label: "Ordnance", checked: isSelectedTraining("Ordnance") },
+        { value: "Cannon", label: "Cannon", checked: isSelectedTraining("Cannon") },
+        { value: "Advanced", label: "Advanced", checked: isSelectedTraining("Advanced") }
+      ],
+      faction: [
+        { value: "UNSC", label: "UNSC", checked: isSelectedTraining("UNSC") },
+        { value: "Covenant", label: "Covenant", checked: isSelectedTraining("Covenant") },
+        { value: "Forerunner", label: "Forerunner", checked: isSelectedTraining("Forerunner") }
+      ]
+    };
     const skillChoice = Array.isArray(sys.skillChoices) && sys.skillChoices.length > 0 ? sys.skillChoices[0] : { count: 0, tier: "trained" };
     const skillTier = String(skillChoice.tier ?? "trained").toLowerCase();
     context.skillChoice = {
@@ -67,7 +78,7 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
       isPlus5: educationTier === "+5",
       isPlus10: educationTier === "+10"
     };
-    context.customPromptMessagesText = Array.isArray(sys.customPromptMessages) ? sys.customPromptMessages.join("\n") : "";
+    context.customPromptMessages = Array.isArray(sys.customPromptMessages) ? sys.customPromptMessages : [];
     context.educationsText = (Array.isArray(sys.educations) ? sys.educations : []).join("\n");
     context.abilitiesText = (Array.isArray(sys.abilities) ? sys.abilities : []).join("\n");
     context.traitsText = (Array.isArray(sys.traits) ? sys.traits : []).join("\n");
@@ -134,9 +145,13 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
       foundry.utils.setProperty(submitData, "system.educationChoices", []);
     }
 
-    const customPromptMessagesText = foundry.utils.getProperty(submitData, "mythic.customPromptMessagesText");
-    if (customPromptMessagesText !== undefined) {
-      foundry.utils.setProperty(submitData, "system.customPromptMessages", parseLines(customPromptMessagesText));
+    const customPromptMessages = foundry.utils.getProperty(submitData, "mythic.customPromptMessages");
+    if (customPromptMessages !== undefined) {
+      const list = Array.isArray(customPromptMessages)
+        ? customPromptMessages.map((entry) => String(entry ?? "").trim())
+        : [String(customPromptMessages ?? "").trim()];
+      const cleaned = Array.from(new Set(list.filter(Boolean)));
+      foundry.utils.setProperty(submitData, "system.customPromptMessages", cleaned);
     }
 
     const allowedUpbringingsText = foundry.utils.getProperty(submitData, "mythic.allowedUpbringingsText");
@@ -332,5 +347,28 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
     bindDropZone("#allowed-lifestyle-dropzone", "lifestyle", "#soldier-allowed-lifestyle");
     bindDropZone("#abilities-dropzone", "ability", "#soldier-abilities");
     bindDropZone("#traits-dropzone", "trait", "#soldier-traits");
+
+    const customPromptsContainer = this.element.querySelector("#custom-prompts-container");
+    const addPromptBtn = this.element.querySelector("#custom-prompt-add-btn");
+    if (addPromptBtn) {
+      addPromptBtn.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const currentPrompts = Array.isArray(this.item.system?.customPromptMessages) ? this.item.system.customPromptMessages : [];
+        await this.item.update({ "system.customPromptMessages": [...currentPrompts, ""] });
+      });
+    }
+
+    if (customPromptsContainer) {
+      customPromptsContainer.addEventListener("click", async (event) => {
+        const target = /** @type {HTMLElement} */ (event.target);
+        if (!target || !target.classList.contains("custom-prompt-remove-btn")) return;
+        const index = Number(target.dataset.index);
+        if (!Number.isFinite(index)) return;
+        const currentPrompts = Array.isArray(this.item.system?.customPromptMessages) ? [...this.item.system.customPromptMessages] : [];
+        if (index < 0 || index >= currentPrompts.length) return;
+        currentPrompts.splice(index, 1);
+        await this.item.update({ "system.customPromptMessages": currentPrompts });
+      });
+    }
   }
 }

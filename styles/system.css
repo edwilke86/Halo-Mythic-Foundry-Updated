@@ -3690,6 +3690,21 @@
   opacity: 0.8;
 }
 
+.mythic-ability-item-sheet .custom-prompt-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.mythic-ability-item-sheet .custom-prompt-row input[type="text"] {
+  flex: 1;
+}
+
+.mythic-ability-item-sheet .custom-prompt-remove-btn {
+  min-width: 36px;
+}
+
 .mythic-ability-item-sheet .ability-col {
   grid-template-columns: 1fr;
   align-items: stretch;

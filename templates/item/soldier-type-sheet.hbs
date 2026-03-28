@@ -14,7 +14,7 @@
 
   <section class="ability-sheet-body">
     <div class="ability-info-row">
-      <label for="soldier-name">Name</label>
+      <label for="soldier-name">Full Name</label>
       <input id="soldier-name" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
     </div>
 
@@ -25,32 +25,28 @@
 
     <div class="ability-grid-3">
       <div class="ability-info-row ability-col">
-        <label for="soldier-header-type">Soldier Type</label>
+        <label for="soldier-header-type">Soldier Type (Short Name)</label>
         <input id="soldier-header-type" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
       </div>
       <div class="ability-info-row ability-col">
-        <label for="soldier-header-rank">Rank</label>
+        <label for="soldier-header-rank">Minimum Rank</label>
         <input id="soldier-header-rank" type="text" name="system.header.rank" value="{{soldierType.header.rank}}" {{#unless canEditFields}}disabled{{/unless}} />
-      </div>
-      <div class="ability-info-row ability-col">
-        <label>Specialisation</label>
-        <span class="muted-text">Removed</span>
       </div>
     </div>
 
     <div class="ability-grid-3">
       <div class="ability-info-row ability-col">
-        <label>Allowed Upbringing (drop Upbringing items)</label>
+        <label>Allowed Upbringing</label>
         <div id="allowed-upbringing-dropzone" class="soldier-type-drop-zone" data-kind="upbringing">{{#each soldierType.ruleFlags.allowedUpbringings.upbringings}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
         <textarea id="soldier-allowed-upbringing" name="mythic.allowedUpbringingsText" rows="2" style="display:none;">{{#each soldierType.ruleFlags.allowedUpbringings.upbringings}}{{this}}\n{{/each}}</textarea>
       </div>
       <div class="ability-info-row ability-col">
-        <label>Allowed Environment (drop Environment items)</label>
+        <label>Allowed Environment</label>
         <div id="allowed-environment-dropzone" class="soldier-type-drop-zone" data-kind="environment">{{#each soldierType.ruleFlags.allowedEnvironments.environments}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
         <textarea id="soldier-allowed-environment" name="mythic.allowedEnvironmentsText" rows="2" style="display:none;">{{#each soldierType.ruleFlags.allowedEnvironments.environments}}{{this}}\n{{/each}}</textarea>
       </div>
       <div class="ability-info-row ability-col">
-        <label>Allowed Lifestyle (drop Lifestyle items)</label>
+        <label>Allowed Lifestyle</label>
         <div id="allowed-lifestyle-dropzone" class="soldier-type-drop-zone" data-kind="lifestyle">{{#each soldierType.ruleFlags.allowedLifestyles.lifestyles}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
         <textarea id="soldier-allowed-lifestyle" name="mythic.allowedLifestylesText" rows="2" style="display:none;">{{#each soldierType.ruleFlags.allowedLifestyles.lifestyles}}{{this}}\n{{/each}}</textarea>
       </div>
@@ -71,10 +67,11 @@
       <div class="ability-info-row ability-col"><label for="soldier-char-cha">CHA</label><input id="soldier-char-cha" type="number" min="0" step="1" name="system.characteristics.cha" value="{{soldierType.characteristics.cha}}" {{#unless canEditFields}}disabled{{/unless}} /></div>
       <div class="ability-info-row ability-col"><label for="soldier-char-ldr">LDR</label><input id="soldier-char-ldr" type="number" min="0" step="1" name="system.characteristics.ldr" value="{{soldierType.characteristics.ldr}}" {{#unless canEditFields}}disabled{{/unless}} /></div>
     </div>
-    <div class="ability-grid-3">
+    <div class="ability-grid-4">
       <div class="ability-info-row ability-col"><label for="soldier-mythic-str">Mythic STR</label><input id="soldier-mythic-str" type="number" min="0" step="1" name="system.mythic.str" value="{{soldierType.mythic.str}}" {{#unless canEditFields}}disabled{{/unless}} /></div>
       <div class="ability-info-row ability-col"><label for="soldier-mythic-tou">Mythic TOU</label><input id="soldier-mythic-tou" type="number" min="0" step="1" name="system.mythic.tou" value="{{soldierType.mythic.tou}}" {{#unless canEditFields}}disabled{{/unless}} /></div>
       <div class="ability-info-row ability-col"><label for="soldier-mythic-agi">Mythic AGI</label><input id="soldier-mythic-agi" type="number" min="0" step="1" name="system.mythic.agi" value="{{soldierType.mythic.agi}}" {{#unless canEditFields}}disabled{{/unless}} /></div>
+      <div class="ability-info-row ability-col"></div>
     </div>
 
     <div class="ability-info-row ability-notes-row">
@@ -90,9 +87,18 @@
     </div>
 
     <div class="ability-info-row ability-notes-row">
-      <label>Training Options</label>
+      <label>Weapon Training (select any)</label>
       <div class="ability-grid-4">
-        {{#each trainingOptions}}
+        {{#each trainingOptions.weapon}}
+          <div class="ability-col"><label><input type="checkbox" name="mythic.trainingOptions" value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label>Faction Training (select any)</label>
+      <div class="ability-grid-3">
+        {{#each trainingOptions.faction}}
           <div class="ability-col"><label><input type="checkbox" name="mythic.trainingOptions" value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
         {{/each}}
       </div>
@@ -100,7 +106,7 @@
 
     <div class="ability-grid-3">
       <div class="ability-info-row ability-col">
-        <label for="skill-choice-count">Skills Choosen</label>
+        <label for="skill-choice-count">Skills Granted</label>
         <input id="skill-choice-count" type="number" min="0" step="1" name="mythic.skillChoiceCount" value="{{skillChoice.count}}" {{#unless canEditFields}}disabled{{/unless}} />
       </div>
       <div class="ability-info-row ability-col">
@@ -111,13 +117,14 @@
           <option value="+20" {{#if skillChoice.isPlus20}}selected{{/if}}>+20</option>
         </select>
       </div>
-      <div class="ability-info-row ability-col">
-        <label for="education-choice-count">Educations Choosen</label>
-        <input id="education-choice-count" type="number" min="0" step="1" name="mythic.educationChoiceCount" value="{{educationChoice.count}}" {{#unless canEditFields}}disabled{{/unless}} />
-      </div>
+      <div class="ability-info-row ability-col"></div>
     </div>
 
     <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="education-choice-count">Educations Granted</label>
+        <input id="education-choice-count" type="number" min="0" step="1" name="mythic.educationChoiceCount" value="{{educationChoice.count}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
       <div class="ability-info-row ability-col">
         <label for="education-choice-tier">Education Tier</label>
         <select id="education-choice-tier" name="mythic.educationChoiceTier" {{#unless canEditFields}}disabled{{/unless}}>
@@ -125,10 +132,20 @@
           <option value="+10" {{#if educationChoice.isPlus10}}selected{{/if}}>+10</option>
         </select>
       </div>
-      <div class="ability-info-row ability-col" style="grid-column: span 2;">
-        <label for="custom-prompt-messages">Custom Prompt Messages (one per line)</label>
-        <textarea id="custom-prompt-messages" name="mythic.customPromptMessagesText" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{customPromptMessagesText}}</textarea>
+      <div class="ability-info-row ability-col"></div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label>Custom Prompt Messages</label>
+      <div id="custom-prompts-container">
+        {{#each customPromptMessages}}
+          <div class="custom-prompt-row">
+            <input type="text" name="mythic.customPromptMessages" value="{{this}}" {{#unless canEditFields}}disabled{{/unless}} />
+            {{#if canEditFields}}<button type="button" class="action-btn custom-prompt-remove-btn" data-index="{{@index}}">Remove</button>{{/if}}
+          </div>
+        {{/each}}
       </div>
+      {{#if canEditFields}}<button type="button" id="custom-prompt-add-btn" class="action-btn">Add Prompt</button>{{/if}}
     </div>
 
     <div class="ability-info-row ability-notes-row">

@@ -37,6 +37,39 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
 
     const sys = normalizeSoldierTypeSystemData(this.item.system ?? {});
     context.soldierType = sys;
+    context.allowedUpbringings = Array.isArray(sys.ruleFlags?.allowedUpbringings?.upbringings) ? sys.ruleFlags.allowedUpbringings.upbringings : [];
+    context.allowedEnvironments = Array.isArray(sys.ruleFlags?.allowedEnvironments?.environments) ? sys.ruleFlags.allowedEnvironments.environments : [];
+    context.allowedLifestyles = Array.isArray(sys.ruleFlags?.allowedLifestyles?.lifestyles) ? sys.ruleFlags.allowedLifestyles.lifestyles : [];
+    context.abilitiesList = Array.isArray(sys.abilities) ? sys.abilities : [];
+    context.traitsList = Array.isArray(sys.traits) ? sys.traits : [];
+    context.trainingOptions = [
+      { value: "Basic", label: "Basic", checked: sys.training?.includes("Basic") },
+      { value: "Infantry", label: "Infantry", checked: sys.training?.includes("Infantry") },
+      { value: "Melee", label: "Melee", checked: sys.training?.includes("Melee") },
+      { value: "Heavy", label: "Heavy", checked: sys.training?.includes("Heavy") },
+      { value: "Vehicle", label: "Vehicle", checked: sys.training?.includes("Vehicle") },
+      { value: "Covenant", label: "Covenant", checked: sys.training?.includes("Covenant") }
+    ];
+    const skillChoice = Array.isArray(sys.skillChoices) && sys.skillChoices.length > 0 ? sys.skillChoices[0] : { count: 0, tier: "trained" };
+    context.skillChoice = {
+      count: Number(skillChoice.count ?? 0),
+      tier: String(skillChoice.tier ?? "trained"),
+      selectedTiers: {
+        trained: String(skillChoice.tier ?? "trained").toLowerCase() === "trained",
+        "+10": String(skillChoice.tier ?? "").toLowerCase() === "+10",
+        "+20": String(skillChoice.tier ?? "").toLowerCase() === "+20"
+      }
+    };
+    const educationChoice = Array.isArray(sys.educationChoices) && sys.educationChoices.length > 0 ? sys.educationChoices[0] : { count: 0, tier: "+5" };
+    context.educationChoice = {
+      count: Number(educationChoice.count ?? 0),
+      tier: String(educationChoice.tier ?? "+5"),
+      selectedTiers: {
+        "+5": String(educationChoice.tier ?? "").toLowerCase() === "+5",
+        "+10": String(educationChoice.tier ?? "").toLowerCase() === "+10"
+      }
+    };
+    context.customPromptMessagesText = Array.isArray(sys.customPromptMessages) ? sys.customPromptMessages.join("\n") : "";
     context.educationsText = (Array.isArray(sys.educations) ? sys.educations : []).join("\n");
     context.abilitiesText = (Array.isArray(sys.abilities) ? sys.abilities : []).join("\n");
     context.traitsText = (Array.isArray(sys.traits) ? sys.traits : []).join("\n");
@@ -75,6 +108,70 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
     const trainingText = foundry.utils.getProperty(submitData, "mythic.trainingText");
     if (trainingText !== undefined) {
       foundry.utils.setProperty(submitData, "system.training", parseLines(trainingText));
+    }
+
+    const trainingOptions = foundry.utils.getProperty(submitData, "mythic.trainingOptions");
+    if (trainingOptions !== undefined) {
+      const list = Array.isArray(trainingOptions)
+        ? trainingOptions.map((entry) => String(entry ?? "").trim()).filter(Boolean)
+        : parseLines(String(trainingOptions ?? ""));
+      if (list.length) {
+        foundry.utils.setProperty(submitData, "system.training", Array.from(new Set(list)));
+      }
+    }
+
+    const skillChoiceCount = Number(foundry.utils.getProperty(submitData, "mythic.skillChoiceCount") ?? 0);
+    const skillChoiceTier = String(foundry.utils.getProperty(submitData, "mythic.skillChoiceTier") ?? "trained").trim() || "trained";
+    if (Number.isFinite(skillChoiceCount) && skillChoiceCount > 0) {
+      foundry.utils.setProperty(submitData, "system.skillChoices", [{ count: Math.max(0, Math.floor(skillChoiceCount)), tier: skillChoiceTier }]);
+    } else {
+      foundry.utils.setProperty(submitData, "system.skillChoices", []);
+    }
+
+    const educationChoiceCount = Number(foundry.utils.getProperty(submitData, "mythic.educationChoiceCount") ?? 0);
+    const educationChoiceTier = String(foundry.utils.getProperty(submitData, "mythic.educationChoiceTier") ?? "+5").trim() || "+5";
+    if (Number.isFinite(educationChoiceCount) && educationChoiceCount > 0) {
+      foundry.utils.setProperty(submitData, "system.educationChoices", [{ count: Math.max(0, Math.floor(educationChoiceCount)), tier: educationChoiceTier }]);
+    } else {
+      foundry.utils.setProperty(submitData, "system.educationChoices", []);
+    }
+
+    const customPromptMessagesText = foundry.utils.getProperty(submitData, "mythic.customPromptMessagesText");
+    if (customPromptMessagesText !== undefined) {
+      foundry.utils.setProperty(submitData, "system.customPromptMessages", parseLines(customPromptMessagesText));
+    }
+
+    const allowedUpbringingsText = foundry.utils.getProperty(submitData, "mythic.allowedUpbringingsText");
+    if (allowedUpbringingsText !== undefined) {
+      const list = parseLines(allowedUpbringingsText);
+      foundry.utils.setProperty(submitData, "system.ruleFlags.allowedUpbringings", {
+        enabled: list.length > 0,
+        upbringings: list,
+        removeOtherUpbringings: false,
+        notes: ""
+      });
+    }
+
+    const allowedEnvironmentsText = foundry.utils.getProperty(submitData, "mythic.allowedEnvironmentsText");
+    if (allowedEnvironmentsText !== undefined) {
+      const list = parseLines(allowedEnvironmentsText);
+      foundry.utils.setProperty(submitData, "system.ruleFlags.allowedEnvironments", {
+        enabled: list.length > 0,
+        environments: list,
+        removeOtherEnvironments: false,
+        notes: ""
+      });
+    }
+
+    const allowedLifestylesText = foundry.utils.getProperty(submitData, "mythic.allowedLifestylesText");
+    if (allowedLifestylesText !== undefined) {
+      const list = parseLines(allowedLifestylesText);
+      foundry.utils.setProperty(submitData, "system.ruleFlags.allowedLifestyles", {
+        enabled: list.length > 0,
+        lifestyles: list,
+        removeOtherLifestyles: false,
+        notes: ""
+      });
     }
 
     const skillsBaseJson = foundry.utils.getProperty(submitData, "mythic.skillsBaseJson");
@@ -162,5 +259,80 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
       });
       fp.browse();
     });
+
+    const bindDropZone = (zoneId, type, targetTextArea) => {
+      const zone = this.element.querySelector(zoneId);
+      if (!zone) return;
+      zone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        zone.classList.add("is-dragover");
+      });
+      zone.addEventListener("dragleave", () => zone.classList.remove("is-dragover"));
+      zone.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        zone.classList.remove("is-dragover");
+
+        let added = "";
+        const data = event.dataTransfer.getData("text/plain");
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed?.uuid) {
+            const doc = await fromUuid(parsed.uuid).catch(() => null);
+            if (doc && doc.type === type) {
+              added = String(doc.name ?? "").trim();
+            }
+          }
+        } catch {
+          // ignore
+        }
+
+        if (!added) {
+          const raw = String(data ?? "").trim();
+          if (raw) {
+            added = raw.replace(/\s*\(.*\)$/, "").trim();
+          }
+        }
+
+        if (!added) return;
+
+        const existingItems = Array.from(zone.querySelectorAll(".drop-tag")).map((tag) => String(tag.dataset.value ?? "").trim()).filter(Boolean);
+        if (!existingItems.includes(added)) {
+          const tag = document.createElement("span");
+          tag.className = "drop-tag";
+          tag.dataset.value = added;
+          tag.textContent = `${added} ×`;
+          zone.appendChild(tag);
+          if (targetTextArea) {
+            const ta = this.element.querySelector(targetTextArea);
+            if (ta) {
+              const lines = String(ta.value ?? "").split(/\r?\n/).map((x) => String(x ?? "").trim()).filter(Boolean);
+              lines.push(added);
+              ta.value = lines.join("\n");
+            }
+          }
+        }
+      });
+
+      zone.addEventListener("click", (event) => {
+        const target = /** @type {HTMLElement} */ (event.target);
+        if (target?.classList.contains("drop-tag")) {
+          const value = String(target.dataset.value ?? "").trim();
+          if (!value) return;
+          target.remove();
+          const ta = this.element.querySelector(targetTextArea);
+          if (ta) {
+            const lines = String(ta.value ?? "").split(/\r?\n/).map((x) => String(x ?? "").trim()).filter(Boolean).filter((entry) => entry !== value);
+            ta.value = lines.join("\n");
+          }
+        }
+      });
+    };
+
+    bindDropZone("#allowed-upbringing-dropzone", "upbringing", "#soldier-allowed-upbringing");
+    bindDropZone("#allowed-environment-dropzone", "environment", "#soldier-allowed-environment");
+    bindDropZone("#allowed-lifestyle-dropzone", "lifestyle", "#soldier-allowed-lifestyle");
+    bindDropZone("#abilities-dropzone", "ability", "#soldier-abilities");
+    bindDropZone("#traits-dropzone", "trait", "#soldier-traits");
   }
 }

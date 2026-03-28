@@ -885,6 +885,12 @@ export function normalizeSoldierTypeSystemData(systemData, itemName = "") {
       .filter(Boolean)
   ));
 
+  merged.customPromptMessages = Array.from(new Set(
+    (Array.isArray(merged.customPromptMessages) ? merged.customPromptMessages : [])
+      .map((entry) => String(entry ?? "").trim())
+      .filter(Boolean)
+  ));
+
   const branchTransitionSource = merged?.ruleFlags?.branchTransition && typeof merged.ruleFlags.branchTransition === "object"
     ? merged.ruleFlags.branchTransition
     : {};
@@ -1049,6 +1055,24 @@ export function normalizeSoldierTypeSystemData(systemData, itemName = "") {
     upbringings: normalizeStringList(Array.isArray(allowedUpbringingsSource?.upbringings) ? allowedUpbringingsSource.upbringings : []),
     removeOtherUpbringings: Boolean(allowedUpbringingsSource?.removeOtherUpbringings),
     notes: String(allowedUpbringingsSource?.notes ?? "").trim()
+  };
+  const allowedEnvironmentsSource = (merged?.ruleFlags?.allowedEnvironments && typeof merged.ruleFlags.allowedEnvironments === "object")
+    ? merged.ruleFlags.allowedEnvironments
+    : {};
+  merged.ruleFlags.allowedEnvironments = {
+    enabled: Boolean(allowedEnvironmentsSource?.enabled),
+    environments: normalizeStringList(Array.isArray(allowedEnvironmentsSource?.environments) ? allowedEnvironmentsSource.environments : []),
+    removeOtherEnvironments: Boolean(allowedEnvironmentsSource?.removeOtherEnvironments),
+    notes: String(allowedEnvironmentsSource?.notes ?? "").trim()
+  };
+  const allowedLifestylesSource = (merged?.ruleFlags?.allowedLifestyles && typeof merged.ruleFlags.allowedLifestyles === "object")
+    ? merged.ruleFlags.allowedLifestyles
+    : {};
+  merged.ruleFlags.allowedLifestyles = {
+    enabled: Boolean(allowedLifestylesSource?.enabled),
+    lifestyles: normalizeStringList(Array.isArray(allowedLifestylesSource?.lifestyles) ? allowedLifestylesSource.lifestyles : []),
+    removeOtherLifestyles: Boolean(allowedLifestylesSource?.removeOtherLifestyles),
+    notes: String(allowedLifestylesSource?.notes ?? "").trim()
   };
   const gammaCompanyOptionSource = (merged?.ruleFlags?.gammaCompanyOption && typeof merged.ruleFlags.gammaCompanyOption === "object")
     ? merged.ruleFlags.gammaCompanyOption

@@ -3651,6 +3651,45 @@
   gap: 8px;
 }
 
+.mythic-ability-item-sheet .ability-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mythic-ability-item-sheet .soldier-type-drop-zone {
+  min-height: 44px;
+  border: 1px dashed rgba(255,255,255,0.5);
+  border-radius: 4px;
+  padding: 4px;
+  background: rgba(255,255,255,0.03);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.mythic-ability-item-sheet .soldier-type-drop-zone.is-dragover {
+  border-color: #70c0ff;
+  background: rgba(112,192,255,0.1);
+}
+
+.mythic-ability-item-sheet .drop-tag {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  padding: 0 6px;
+  height: 22px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.mythic-ability-item-sheet .drop-tag:hover {
+  opacity: 0.8;
+}
+
 .mythic-ability-item-sheet .ability-col {
   grid-template-columns: 1fr;
   align-items: stretch;

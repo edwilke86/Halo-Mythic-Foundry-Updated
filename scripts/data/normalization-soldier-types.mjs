@@ -88,6 +88,7 @@ export function getCanonicalSoldierTypeSystemData() {
       choices: []
     },
     advancementOptions: [],
+    customPromptMessages: [],
     ruleFlags: {
       airForceVehicleBenefit: false,
       fixedCarryWeight: 0,

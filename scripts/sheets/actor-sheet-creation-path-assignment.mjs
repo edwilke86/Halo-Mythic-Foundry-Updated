@@ -74,6 +74,19 @@ export const creationPathAssignmentMethods = {
           return;
         }
       }
+
+      const allowedEnvironmentsFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedEnvironments") ?? {};
+      const allowedEnvironmentNames = Boolean(allowedEnvironmentsFlag?.enabled)
+        ? normalizeStringList(Array.isArray(allowedEnvironmentsFlag?.environments) ? allowedEnvironmentsFlag.environments : []).map((entry) => normalizeLookupText(entry)).filter(Boolean)
+        : [];
+      if (allowedEnvironmentNames.length > 0) {
+        const selectedEnv = await this._getCreationPathItemDoc("environment", selectedEnvironmentId);
+        const selectedName = normalizeLookupText(selectedEnv?.name ?? "");
+        if (!allowedEnvironmentNames.includes(selectedName)) {
+          ui.notifications?.warn("That environment is not allowed by this soldier type.");
+          return;
+        }
+      }
     }
 
     creationPath.environmentItemId = selectedEnvironmentId;
@@ -89,6 +102,17 @@ export const creationPathAssignmentMethods = {
   async _assignCreationLifestyle(slotIndex, lifestyleId) {
     const systemData = normalizeCharacterSystemData(this.actor.system);
     const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
+    const allowedLifestylesFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedLifestyles") ?? {};
+    const allowedLifestyleNames = Boolean(allowedLifestylesFlag?.enabled)
+      ? normalizeStringList(Array.isArray(allowedLifestylesFlag?.lifestyles) ? allowedLifestylesFlag.lifestyles : []).map((entry) => normalizeLookupText(entry)).filter(Boolean)
+      : [];
+    const selectedLifestyle = await this._getCreationPathItemDoc("lifestyle", lifestyleId);
+    const selectedName = normalizeLookupText(selectedLifestyle?.name ?? "");
+    if (allowedLifestyleNames.length > 0 && selectedName && !allowedLifestyleNames.includes(selectedName)) {
+      ui.notifications?.warn("That lifestyle is not allowed by this soldier type.");
+      return;
+    }
+
     creationPath.lifestyles ??= [];
     creationPath.lifestyles[slotIndex] = {
       itemId: String(lifestyleId ?? "").trim(),

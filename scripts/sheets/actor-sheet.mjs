@@ -8480,6 +8480,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "ordinanceReadyScaffold", templateRuleFlags.ordinanceReady);
       await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing", templateRuleFlags.requiredUpbringing);
       await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings", templateRuleFlags.allowedUpbringings);
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "allowedEnvironments", templateRuleFlags.allowedEnvironments ?? { enabled: false, environments: [] });
+      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "allowedLifestyles", templateRuleFlags.allowedLifestyles ?? { enabled: false, lifestyles: [] });
       await this.actor.update({
         "system.mythic.fixedCarryWeight": Number(templateRuleFlags.fixedCarryWeight ?? 0),
         "system.mythic.soldierTypeChargeRunAgiBonus": Number(templateRuleFlags.chargeRunAgiBonus ?? 0),

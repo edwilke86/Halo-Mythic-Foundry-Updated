@@ -3060,9 +3060,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const halfActionAttackCount = isInfusionRadius ? 1 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "half"));
       const fullActionAttackCount = isInfusionRadius ? 0 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "full"));
       const hasChargeModeSelected = selectedProfile.kind === "charge" || selectedProfile.kind === "drawback";
-      const configuredChargeMax = toNonNegativeWhole(item.charge?.maxLevel, 0);
       const chargeMaxLevel = hasChargeModeSelected
-        ? Math.max(1, configuredChargeMax || Math.max(1, selectedProfile.count))
+        ? Math.max(1, selectedProfile.count)
         : 0;
       const rawChargeLevel = toNonNegativeWhole(state.chargeLevel, 0);
       const chargeLevel = chargeMaxLevel > 0 ? Math.min(rawChargeLevel, chargeMaxLevel) : 0;
@@ -14010,62 +14009,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const ammoConfig = getAmmoConfig();
-    const ammoPerLevel = toNonNegativeWhole(gear.charge?.ammoPerLevel, 1);
-    const ammoMode = isEnergyCellAmmoMode(gear.ammoMode)
-      ? String(gear.ammoMode ?? "").trim().toLowerCase()
-      : normalizeBallisticAmmoMode(gear.ammoMode);
-    const isEnergyWeapon = isEnergyCellAmmoMode(ammoMode);
-    const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
-    const energyCells = isEnergyWeapon
-      ? foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {})
-      : null;
-    const weaponCells = isEnergyWeapon && energyCells && Array.isArray(energyCells[itemId])
-      ? energyCells[itemId]
-      : [];
-    const activeEnergyCell = isEnergyWeapon
-      ? (weaponCells.find((entry) => String(entry?.id ?? "").trim() === String(state?.activeEnergyCellId ?? "").trim())
-        ?? weaponCells[0]
-        ?? null)
-      : null;
-    const ammoCurrent = isEnergyWeapon
-      ? toNonNegativeWhole(activeEnergyCell?.current, 0)
-      : toNonNegativeWhole(state?.magazineCurrent, magazineMax);
-
     const updateData = {
       [`system.equipment.weaponState.${itemId}.chargeLevel`]: currentLevel + 1
     };
-
-    if (isEnergyWeapon && ammoPerLevel > 0) {
-      const activeEnergyCellId = String(activeEnergyCell?.id ?? "").trim();
-      if (!activeEnergyCellId) {
-        ui.notifications.warn(`${item.name} has no loaded ${ammoMode === "plasma-battery" ? "battery" : getBallisticContainerLabel(ammoMode).toLowerCase()}.`);
-        return;
-      }
-      if (ammoCurrent < ammoPerLevel) {
-        ui.notifications.warn(`${item.name} needs ${ammoPerLevel} battery charge to increase charge.`);
-        return;
-      }
-      const nextCurrent = Math.max(0, ammoCurrent - ammoPerLevel);
-      const cellIndex = weaponCells.findIndex((entry) => String(entry?.id ?? "").trim() === activeEnergyCellId);
-      if (cellIndex >= 0) {
-        weaponCells[cellIndex] = {
-          ...weaponCells[cellIndex],
-          current: nextCurrent,
-          sourceWeaponName: String(weaponCells[cellIndex]?.sourceWeaponName ?? "").trim() || String(item.name ?? "").trim()
-        };
-      }
-      energyCells[itemId] = weaponCells;
-      updateData["system.equipment.energyCells"] = energyCells;
-      updateData[`system.equipment.weaponState.${itemId}.activeEnergyCellId`] = activeEnergyCellId;
-      updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = nextCurrent;
-    } else if (!ammoConfig.ignoreBasicAmmoCounts && ammoPerLevel > 0) {
-      if (ammoCurrent < ammoPerLevel) {
-        ui.notifications.warn(`${item.name} needs ${ammoPerLevel} ammo to increase charge.`);
-        return;
-      }
-      updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = Math.max(0, ammoCurrent - ammoPerLevel);
-    }
 
     await this.actor.update(updateData);
   }
@@ -14617,9 +14563,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : toNonNegativeWhole(state?.magazineCurrent, 0);
     const totalTrackedAmmoBefore = tracksBasicAmmo ? this._getTrackedAmmoTotalByName(ammoName) : 0;
     const isChargeMode = modeProfile.kind === "charge" || modeProfile.kind === "drawback";
+    const isChargeFireAction = actionType === "chargeFire";
+    if (isChargeFireAction && !isChargeMode) {
+      ui.notifications?.warn("Charge Fire is only available on Charge/Drawback fire modes.");
+      return;
+    }
     const chargeDamagePerLevel = toNonNegativeWhole(gear.charge?.damagePerLevel, 0);
     const chargeMaxLevel = isChargeMode
-      ? Math.max(1, toNonNegativeWhole(gear.charge?.maxLevel, 0) || Math.max(1, modeProfile.count))
+      ? Math.max(1, modeProfile.count)
       : 0;
     const storedChargeLevel = toNonNegativeWhole(state?.chargeLevel, 0);
     const activeChargeLevel = chargeMaxLevel > 0 ? Math.min(storedChargeLevel, chargeMaxLevel) : 0;
@@ -14713,7 +14664,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const isSustainedFire = modeProfile.kind === "sustained" && actionType !== "execution" && actionType !== "buttstroke" && actionType !== "pump-reaction";
-    const rawRollIterations = (actionType === "execution" || actionType === "buttstroke" || actionType === "pump-reaction") ? 1 : getAttackIterationsForProfile(modeProfile, actionType);
+    const rawRollIterations = (actionType === "execution" || actionType === "buttstroke" || actionType === "pump-reaction" || actionType === "chargeFire")
+      ? 1
+      : getAttackIterationsForProfile(modeProfile, actionType);
     const sustainedHalfMax = isSustainedFire ? Math.max(1, getAttackIterationsForProfile(modeProfile, "half")) : 0;
     const sustainedFullMax = isSustainedFire ? Math.max(sustainedHalfMax, getAttackIterationsForProfile(modeProfile, "full")) : 0;
     let sustainedSelectedAttacks = isSustainedFire ? sustainedHalfMax : 0;
@@ -14817,10 +14770,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     let ammoPerIteration = 0;
     if (!isMelee && !isInfusionRadiusWeapon && actionType !== "execution" && actionType !== "buttstroke") {
-      if (isChargeMode) ammoPerIteration = activeChargeLevel > 0 ? 0 : 1;
-      else if (modeProfile.kind === "burst") ammoPerIteration = Math.max(1, modeProfile.count);
-      else if (isSustainedFire) ammoPerIteration = sustainedSelectedAttacks;
-      else ammoPerIteration = 1;
+      if (isChargeMode) {
+        ammoPerIteration = activeChargeLevel > 0 ? activeChargeLevel * chargeAmmoPerLevel : 1;
+      } else if (modeProfile.kind === "burst") {
+        ammoPerIteration = Math.max(1, modeProfile.count);
+      } else if (isSustainedFire) {
+        ammoPerIteration = sustainedSelectedAttacks;
+      } else {
+        ammoPerIteration = 1;
+      }
     }
     if (!isMelee && !isInfusionRadiusWeapon && actionType === "execution") ammoPerIteration = 1;
 

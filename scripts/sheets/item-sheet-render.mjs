@@ -264,7 +264,12 @@ function bindFireModeInputs(sheet, root) {
           return count > 0 ? `${label} (${count})` : null;
         })
         .filter(Boolean);
-      await sheet.item.update({ "system.fireModes": nextFireModes });
+      const chargeCount = toWhole(root.querySelector(`.fire-mode-input[data-fire-mode-key="charge"]`)?.value);
+      const updateData = {
+        "system.fireModes": nextFireModes,
+        "system.charge.maxLevel": Math.max(0, chargeCount)
+      };
+      await sheet.item.update(updateData);
     });
   });
 }

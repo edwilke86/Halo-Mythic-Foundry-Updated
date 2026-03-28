@@ -25,6 +25,8 @@ The format is based on Keep a Changelog, and this project follows SemVer pre-rel
 - Cleaned up various mojibake artifacts in the sheet and reference data.
 - Fixed custom outlier persistence: save on change/blur and prevent array push crash when path is non-array.
 - Improved char builder managed hint with post-purchase GM lower-tier unlock guidance.- Upbringing/Environment/Lifestyle visual builder has been reworked (WIP); this section is under active development and requires final polish before `0.2.0-alpha.3` release.
+- Upbringing/Environment/Lifestyle visual builder now supports mechanics effects display and has improved handling for selected warfare characteristic effects.
+
 ### Removed
 
 - Removed separate Custom Outliers panel from Abilities tab.

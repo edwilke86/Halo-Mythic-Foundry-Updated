@@ -16,8 +16,7 @@ export const creationPathAssignmentMethods = {
 
     let selectedUpbringingFromRequest = null;
     if (requestedUpbringingId) {
-      const requestedDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
-      selectedUpbringingFromRequest = requestedDocs.find((doc) => doc.id === requestedUpbringingId) ?? null;
+      selectedUpbringingFromRequest = await this._getCreationPathItemDoc("upbringing", requestedUpbringingId);
       const requestedName = normalizeLookupText(selectedUpbringingFromRequest?.name ?? "");
       const isAllowedByList = allowedUpbringingNames.length > 0 ? allowedUpbringingNames.includes(requestedName) : true;
       const isAllowedByRequired = (requiredUpbringingEnabled && requiredUpbringingName)
@@ -34,15 +33,13 @@ export const creationPathAssignmentMethods = {
     creationPath.upbringingItemId = requestedUpbringingId;
     creationPath.upbringingSelections = {};
 
-    const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
-    const selectedUpbringing = docs.find((doc) => doc.id === creationPath.upbringingItemId) ?? null;
+    const selectedUpbringing = await this._getCreationPathItemDoc("upbringing", creationPath.upbringingItemId);
     const allowedKeys = Array.isArray(selectedUpbringing?.system?.allowedEnvironments)
       ? selectedUpbringing.system.allowedEnvironments.map((entry) => String(entry ?? "").trim().toLowerCase()).filter(Boolean)
       : [];
 
     if (allowedKeys.length > 0 && creationPath.environmentItemId) {
-      const envDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
-      const selectedEnv = envDocs.find((doc) => doc.id === String(creationPath.environmentItemId ?? "").trim()) ?? null;
+      const selectedEnv = await this._getCreationPathItemDoc("environment", String(creationPath.environmentItemId ?? "").trim());
       const envKey = this._creationEnvironmentKeyFromName(selectedEnv?.name ?? "");
       if (!envKey || !allowedKeys.includes(envKey)) {
         creationPath.environmentItemId = "";
@@ -64,15 +61,13 @@ export const creationPathAssignmentMethods = {
 
     const upbringingId = String(creationPath.upbringingItemId ?? "").trim();
     if (upbringingId && selectedEnvironmentId) {
-      const upbringingDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
-      const selectedUpbringing = upbringingDocs.find((doc) => doc.id === upbringingId) ?? null;
+      const selectedUpbringing = await this._getCreationPathItemDoc("upbringing", upbringingId);
       const allowedKeys = Array.isArray(selectedUpbringing?.system?.allowedEnvironments)
         ? selectedUpbringing.system.allowedEnvironments.map((entry) => String(entry ?? "").trim().toLowerCase()).filter(Boolean)
         : [];
 
       if (allowedKeys.length > 0) {
-        const envDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
-        const selectedEnv = envDocs.find((doc) => doc.id === selectedEnvironmentId) ?? null;
+        const selectedEnv = await this._getCreationPathItemDoc("environment", selectedEnvironmentId);
         const envKey = this._creationEnvironmentKeyFromName(selectedEnv?.name ?? "");
         if (!envKey || !allowedKeys.includes(envKey)) {
           ui.notifications?.warn("That environment is not allowed for the selected upbringing.");
@@ -85,8 +80,7 @@ export const creationPathAssignmentMethods = {
     creationPath.environmentSelections = {};
     await this.actor.update({ "system.advancements.creationPath": creationPath });
 
-    const environmentDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
-    const selectedEnvironment = environmentDocs.find((doc) => doc.id === selectedEnvironmentId) ?? null;
+    const selectedEnvironment = await this._getCreationPathItemDoc("environment", selectedEnvironmentId);
     if (this._getCreationChoiceGroups(selectedEnvironment?.system?.modifierGroups).length > 0) {
       await this._promptAndApplyEnvironmentChoices();
     }

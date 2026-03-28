@@ -59,8 +59,15 @@ import {
   normalizeEnvironmentSystemData,
   normalizeLifestyleVariant,
   getCanonicalLifestyleSystemData,
-  normalizeLifestyleSystemData
+  normalizeLifestyleSystemData,
+  normalizeChoiceGroup,
+  choiceGroupToModifierGroup
 } from './normalization-creation-paths.mjs';
+
+export {
+  normalizeChoiceGroup,
+  choiceGroupToModifierGroup
+};
 import {
   getSizeCategoryFromHeightCm, hasOutlierPurchase,
   getOutlierDefinitionByKey, normalizeRangeObject,

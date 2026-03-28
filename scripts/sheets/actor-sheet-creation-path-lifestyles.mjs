@@ -3,6 +3,26 @@ import { normalizeCharacterSystemData } from "../data/normalization.mjs";
 import { formatCreationPathModifier } from "./actor-sheet-helpers.mjs";
 
 export const creationPathLifestyleMethods = {
+  _buildLifestyleVariantRanges(variants = []) {
+    let cursor = 1;
+    return (Array.isArray(variants) ? variants : []).map((variant) => {
+      const weight = this._lifestyleVariantWeight(variant);
+      const rollMin = cursor;
+      const rollMax = Math.min(10, cursor + weight - 1);
+      cursor += weight;
+      return { id: String(variant?.id ?? ""), rollMin, rollMax, weight };
+    });
+  },
+
+  _variantRequiresLifestyleWarfareSelection(variant) {
+    const modifiers = Array.isArray(variant?.modifiers) ? variant.modifiers : [];
+    return modifiers.some((entry) => {
+      if (String(entry?.kind ?? "").trim().toLowerCase() !== "stat") return false;
+      const key = String(entry?.key ?? "").trim().toLowerCase();
+      return key === "selected_warfare" || key === "other_warfare";
+    });
+  },
+
   _lifestyleVariantWeight(variant) {
     const explicitWeight = toNonNegativeWhole(variant?.weight, 0);
     if (explicitWeight > 0) return explicitWeight;
@@ -39,10 +59,9 @@ export const creationPathLifestyleMethods = {
       return;
     }
 
-    const lifestyleDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.lifestyles");
-    const lifestyleDoc = lifestyleDocs.find((doc) => doc.id === selectedLifestyleId) ?? null;
+    const lifestyleDoc = await this._getCreationPathItemDoc("lifestyle", selectedLifestyleId);
     if (!lifestyleDoc) {
-      ui.notifications?.warn("Lifestyle not found in compendium.");
+      ui.notifications?.warn("Lifestyle not found.");
       return;
     }
 
@@ -52,32 +71,54 @@ export const creationPathLifestyleMethods = {
       return;
     }
 
-    const variantButtons = variants.map((variant, index) => {
+    const ranges = this._buildLifestyleVariantRanges(variants);
+    const currentVariantId = String(creationPath?.lifestyles?.[slotIndex]?.variantId ?? "").trim();
+    const radioName = `mythic-lifestyle-variant-${this.actor?.id ?? "actor"}-${slotIndex}`;
+
+    const radioRows = variants.map((variant, index) => {
       const variantId = String(variant?.id ?? `variant-${index + 1}`);
-      const rollMin = toNonNegativeWhole(variant?.rollMin, 1);
-      const rollMax = toNonNegativeWhole(variant?.rollMax, 10);
-      const rangeLabel = rollMin === rollMax ? `${rollMin}` : `${rollMin}-${rollMax}`;
+      const range = ranges[index] ?? {
+        rollMin: toNonNegativeWhole(variant?.rollMin, 1),
+        rollMax: toNonNegativeWhole(variant?.rollMax, 10)
+      };
+      const rangeLabel = range.rollMin === range.rollMax ? `${range.rollMin}` : `${range.rollMin}-${range.rollMax}`;
+      const variantLabel = String(variant?.label ?? `Parent Group ${index + 1}`).trim() || `Parent Group ${index + 1}`;
       const modifierLabel = (() => {
         const modifiers = Array.isArray(variant?.modifiers) ? variant.modifiers : [];
         const formatted = modifiers
           .map((entry) => formatCreationPathModifier(entry))
           .filter((entry) => String(entry ?? "").trim().length > 0);
-        return formatted.length > 0 ? formatted.join(" ") : "No modifiers";
+        return formatted.length > 0 ? formatted.join(", ") : "No modifiers";
       })();
-      return {
-        action: `variant-${index + 1}`,
-        label: `${rangeLabel}: ${modifierLabel}`,
-        callback: () => ({ mode: "manual", variantId })
-      };
-    });
+      const checked = (currentVariantId && currentVariantId === variantId) || (!currentVariantId && index === 0);
+      return `
+        <label style="display:block; margin:0 0 8px 0; padding:6px 8px; border:1px solid rgba(120,144,183,0.35); border-radius:4px;">
+          <input type="radio" name="${foundry.utils.escapeHTML(radioName)}" value="${foundry.utils.escapeHTML(variantId)}" ${checked ? "checked" : ""} style="margin-right:8px;" />
+          <strong>${foundry.utils.escapeHTML(variantLabel)}</strong>
+          <span style="opacity:0.85; margin-left:8px;">(Roll ${foundry.utils.escapeHTML(rangeLabel)})</span>
+          <div style="margin-top:4px; opacity:0.9;">${foundry.utils.escapeHTML(modifierLabel)}</div>
+        </label>
+      `;
+    }).join("");
 
     const selection = await foundry.applications.api.DialogV2.wait({
       window: {
         title: "Lifestyle Variant"
       },
-      content: `<p>Choose a variant for the <strong>${foundry.utils.escapeHTML(lifestyleDoc.name ?? "Lifestyle")}</strong> lifestyle:</p>`,
+      content: `
+        <p>Choose a variant for the <strong>${foundry.utils.escapeHTML(lifestyleDoc.name ?? "Lifestyle")}</strong> lifestyle:</p>
+        <div>${radioRows}</div>
+      `,
       buttons: [
-        ...variantButtons,
+        {
+          action: "confirm",
+          label: "Confirm",
+          callback: () => {
+            const selected = document.querySelector(`input[name="${CSS.escape(radioName)}"]:checked`);
+            const variantId = String(selected?.value ?? "").trim();
+            return variantId ? { mode: "manual", variantId } : null;
+          }
+        },
         {
           action: "random",
           label: "Random",
@@ -97,6 +138,7 @@ export const creationPathLifestyleMethods = {
 
     if (selection.mode === "random") {
       const picked = this._pickWeightedLifestyleVariant(variants);
+      if (!picked.variant) return;
       const choiceSelections = await this._promptForCreationChoiceSelections({
         title: "Lifestyle Choice",
         itemName: `${lifestyleDoc.name}: ${String(picked.variant?.label ?? "Variant")}`,
@@ -104,6 +146,16 @@ export const creationPathLifestyleMethods = {
         currentSelections: {}
       });
       if (choiceSelections == null) return;
+
+      if (this._variantRequiresLifestyleWarfareSelection(picked.variant)) {
+        const warfareSelection = await this._promptForLifestyleWarfareSelection({
+          itemName: `${lifestyleDoc.name}: ${String(picked.variant?.label ?? "Variant")}`,
+          currentSelection: String(choiceSelections.__warfareCharacteristic ?? "")
+        });
+        if (!warfareSelection) return;
+        choiceSelections.__warfareCharacteristic = warfareSelection;
+      }
+
       creationPath.lifestyles[slotIndex].mode = "roll";
       creationPath.lifestyles[slotIndex].variantId = String(picked.variant?.id ?? "");
       creationPath.lifestyles[slotIndex].rollResult = picked.roll;
@@ -122,6 +174,16 @@ export const creationPathLifestyleMethods = {
       currentSelections: {}
     });
     if (choiceSelections == null) return;
+
+    if (this._variantRequiresLifestyleWarfareSelection(selectedVariant)) {
+      const warfareSelection = await this._promptForLifestyleWarfareSelection({
+        itemName: `${lifestyleDoc.name}: ${String(selectedVariant?.label ?? "Variant")}`,
+        currentSelection: String(choiceSelections.__warfareCharacteristic ?? "")
+      });
+      if (!warfareSelection) return;
+      choiceSelections.__warfareCharacteristic = warfareSelection;
+    }
+
     creationPath.lifestyles[slotIndex].mode = "manual";
     creationPath.lifestyles[slotIndex].variantId = selectedVariantId;
     creationPath.lifestyles[slotIndex].rollResult = 0;

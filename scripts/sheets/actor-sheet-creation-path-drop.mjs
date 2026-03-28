@@ -92,12 +92,15 @@ export const creationPathDropMethods = {
     const droppedId = String(dropped?.id ?? "").trim();
     if (droppedPack === expectedPack && droppedId) return droppedId;
 
+    const droppedUuid = String(dropped?.uuid ?? "").trim();
+    if (!droppedPack && droppedUuid) return droppedUuid;
+
     const docs = await this._getCreationPathPackDocs(expectedPack);
     const droppedName = String(dropped?.name ?? "").trim().toLowerCase();
     const byName = docs.find((doc) => String(doc.name ?? "").trim().toLowerCase() === droppedName);
     if (byName?.id) return byName.id;
 
-    ui.notifications?.warn(`Drop from the matching ${kind} compendium, or ensure a compendium item has the same name.`);
+    ui.notifications?.warn(`Drop a matching ${kind} item, or ensure a compendium item has the same name.`);
     return "";
   },
 

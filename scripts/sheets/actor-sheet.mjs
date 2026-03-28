@@ -123,6 +123,7 @@ import { soldierTypeChoiceMethods } from "./actor-sheet-soldier-type-choices.mjs
 import { creationPathChoiceMethods } from "./actor-sheet-creation-path-choices.mjs";
 import { creationPathAssignmentMethods } from "./actor-sheet-creation-path-assignment.mjs";
 import { creationPathDropMethods } from "./actor-sheet-creation-path-drop.mjs";
+import { formatEffectAsSentence } from "./upbringing-sheet.mjs";
 import { creationPathLifestyleMethods } from "./actor-sheet-creation-path-lifestyles.mjs";
 import {
   formatCreationPathModifier,
@@ -1325,8 +1326,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const allEnvironmentOptions = environmentDocs.map((doc) => ({ value: doc.id, label: doc.name }));
     const lifestyleOptions = lifestyleDocs.map((doc) => ({ value: doc.id, label: doc.name }));
 
-    const selectedUpbringing = upbringingDocs.find((doc) => doc.id === creationPath.upbringingItemId) ?? null;
-    const selectedEnvironment = environmentDocs.find((doc) => doc.id === creationPath.environmentItemId) ?? null;
+    const [selectedUpbringing, selectedEnvironment] = await Promise.all([
+      this._getCreationPathItemDoc("upbringing", creationPath.upbringingItemId),
+      this._getCreationPathItemDoc("environment", creationPath.environmentItemId)
+    ]);
     const requiredUpbringingFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing") ?? {};
     const allowedUpbringingsFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings") ?? {};
     const allowedUpbringingNames = Boolean(allowedUpbringingsFlag?.enabled)
@@ -1360,27 +1363,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       || allowedEnvironmentKeys.includes(this._creationEnvironmentKeyFromName(selectedEnvironment.name));
 
     const lifestyles = Array.isArray(creationPath.lifestyles) ? creationPath.lifestyles : [];
-    const lifestyleSlots = Array.from({ length: 3 }, (_, slotIndex) => {
+    const lifestyleSlots = [];
+    for (let slotIndex = 0; slotIndex < 3; slotIndex += 1) {
       const slot = (lifestyles[slotIndex] && typeof lifestyles[slotIndex] === "object") ? lifestyles[slotIndex] : {};
       const mode = String(slot.mode ?? "manual").trim().toLowerCase() === "roll" ? "roll" : "manual";
-      const selectedLifestyle = lifestyleDocs.find((doc) => doc.id === String(slot.itemId ?? "")) ?? null;
+      const selectedLifestyle = await this._getCreationPathItemDoc("lifestyle", String(slot.itemId ?? ""));
       const variantsRaw = Array.isArray(selectedLifestyle?.system?.variants) ? selectedLifestyle.system.variants : [];
+      const variantRanges = this._buildLifestyleVariantRanges(variantsRaw);
       const variantOptions = variantsRaw.map((variant, variantIndex) => ({
         value: String(variant.id ?? `variant-${variantIndex + 1}`),
-        label: `${variant.rollMin}-${variant.rollMax}: ${String(variant.label ?? "Variant")}`
+        label: `${variantRanges[variantIndex]?.rollMin ?? variant.rollMin}-${variantRanges[variantIndex]?.rollMax ?? variant.rollMax}: ${String(variant.label ?? "Variant")}`
       }));
       const rollResult = Math.max(0, Math.min(999, toNonNegativeWhole(slot.rollResult, 0)));
       const resolvedVariant = this._getResolvedLifestyleVariant(slot, selectedLifestyle);
       const variantChoiceState = this._buildCreationChoiceState(resolvedVariant?.choiceGroups, slot.choiceSelections);
       const resolvedModifierSummary = this._summarizeVariantModifiers(resolvedVariant);
+      const warfareSelection = String(slot?.choiceSelections?.__warfareCharacteristic ?? "").trim().toLowerCase();
+      const warfareRequired = this._variantRequiresLifestyleWarfareSelection(resolvedVariant);
       const metaPills = [];
 
       if (mode === "roll" && rollResult > 0) metaPills.push(`Roll ${rollResult}`);
       if (resolvedVariant?.label) metaPills.push(String(resolvedVariant.label));
       else if (selectedLifestyle) metaPills.push("Variant pending");
+      if (warfareRequired) {
+        metaPills.push(warfareSelection === "wfr" ? "Warfare: WFR" : warfareSelection === "wfm" ? "Warfare: WFM" : "Warfare choice pending");
+      }
       metaPills.push(...variantChoiceState.displayPills);
 
-      return {
+      lifestyleSlots.push({
         slotIndex,
         slotNumber: slotIndex + 1,
         selectedLifestyleId: String(slot.itemId ?? ""),
@@ -1392,10 +1402,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         variantOptions,
         resolvedVariantLabel: resolvedVariant ? String(resolvedVariant.label ?? "") : "",
         resolvedModifierSummary,
-        hasVariantChoices: variantChoiceState.hasChoices,
+        hasVariantChoices: variantChoiceState.hasChoices || warfareRequired,
         metaPills
-      };
-    });
+      });
+    }
 
     const environmentMetaPills = [`Allowed: ${hasEnvironmentRestriction
       ? allowedEnvironmentOptions.map((entry) => entry.label).join(", ")
@@ -1968,13 +1978,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.lifestyles")
     ]);
 
-    const selectedUpbringing = upbringingDocs.find((doc) => doc.id === String(creationPath.upbringingItemId ?? "")) ?? null;
+    const selectedUpbringing = await this._getCreationPathItemDoc("upbringing", String(creationPath.upbringingItemId ?? ""));
     if (selectedUpbringing?.name) {
       values.upbringing = String(selectedUpbringing.name).trim();
       locks.upbringing = true;
     }
 
-    const selectedEnvironment = environmentDocs.find((doc) => doc.id === String(creationPath.environmentItemId ?? "")) ?? null;
+    const selectedEnvironment = await this._getCreationPathItemDoc("environment", String(creationPath.environmentItemId ?? ""));
     if (selectedEnvironment?.name) {
       values.environment = String(selectedEnvironment.name).trim();
       locks.environment = true;
@@ -1985,7 +1995,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     for (let slot = 0; slot < 3; slot += 1) {
       const lifestyleId = String(lifestyleRows?.[slot]?.itemId ?? "").trim();
       if (!lifestyleId) continue;
-      const doc = lifestyleDocs.find((entry) => entry.id === lifestyleId) ?? null;
+      const doc = await this._getCreationPathItemDoc("lifestyle", lifestyleId);
       if (!doc?.name) continue;
       lifestyleNames.push(String(doc.name).trim());
     }
@@ -2150,8 +2160,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.lifestyles")
     ]);
 
-    const selectedUpbringing = upbringingDocs.find((doc) => doc.id === String(creationPath.upbringingItemId ?? "")) ?? null;
-    const selectedEnvironment = environmentDocs.find((doc) => doc.id === String(creationPath.environmentItemId ?? "")) ?? null;
+    const [selectedUpbringing, selectedEnvironment] = await Promise.all([
+      this._getCreationPathItemDoc("upbringing", String(creationPath.upbringingItemId ?? "")),
+      this._getCreationPathItemDoc("environment", String(creationPath.environmentItemId ?? ""))
+    ]);
 
     if (selectedUpbringing) {
       const resolved = this._collectCreationPathGroupModifiers(
@@ -2180,7 +2192,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const slot = (lifestyles[slotIndex] && typeof lifestyles[slotIndex] === "object") ? lifestyles[slotIndex] : {};
       const lifestyleId = String(slot.itemId ?? "").trim();
       if (!lifestyleId) continue;
-      const lifestyleDoc = lifestyleDocs.find((doc) => doc.id === lifestyleId) ?? null;
+      const lifestyleDoc = await this._getCreationPathItemDoc("lifestyle", lifestyleId);
       if (!lifestyleDoc) continue;
 
       const slotLabel = `Lifestyle ${slotIndex + 1}: ${lifestyleDoc.name}`;
@@ -2190,10 +2202,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         continue;
       }
 
+      const warfareSelection = String(slot?.choiceSelections?.__warfareCharacteristic ?? "").trim().toLowerCase();
       const baseModifiers = Array.isArray(resolvedVariant.modifiers) ? resolvedVariant.modifiers : [];
-      const normalizedBase = baseModifiers
+      const normalizedBaseRaw = baseModifiers
         .map((entry) => ({ kind: String(entry?.kind ?? "").trim().toLowerCase(), key: String(entry?.key ?? "").trim().toLowerCase(), value: Number(entry?.value ?? 0), source: slotLabel }))
-        .filter((entry) => Number.isFinite(entry.value) && entry.value !== 0 && (entry.kind === "wound" || (entry.kind === "stat" && MYTHIC_CHARACTERISTIC_KEYS.includes(entry.key))));
+        .filter((entry) => Number.isFinite(entry.value) && entry.value !== 0 && (entry.kind === "wound" || entry.kind === "stat"));
+      const resolvedLifestyleBase = this._resolveLifestyleWarfareModifiers(normalizedBaseRaw, warfareSelection);
+      const normalizedBase = resolvedLifestyleBase.modifiers
+        .filter((entry) => entry.kind === "wound" || (entry.kind === "stat" && MYTHIC_CHARACTERISTIC_KEYS.includes(entry.key)))
+        .map((entry) => ({ ...entry, source: slotLabel }));
+
+      if (resolvedLifestyleBase.needsSelection) {
+        outcome.pendingLines.push(`${slotLabel}: selected warfare characteristic pending`);
+      }
+
       this._addCreationPathModifiersToOutcome(outcome, normalizedBase, outcome.lifestylesBonuses);
       outcome.detailLines.push(`${slotLabel}: ${String(resolvedVariant.label ?? "Variant")}`);
 
@@ -2267,6 +2289,41 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
   }
 
+  _getCreationPathWorldDocs(kind = "") {
+    const targetType = String(kind ?? "").trim().toLowerCase();
+    if (!targetType) return [];
+    const worldItems = Array.from(game.items?.contents ?? [])
+      .filter((item) => String(item?.type ?? "").trim().toLowerCase() === targetType && !item?.pack);
+    return worldItems.sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+  }
+
+  async _getCreationPathItemDoc(kind, itemRef = "") {
+    const targetKind = String(kind ?? "").trim().toLowerCase();
+    const ref = String(itemRef ?? "").trim();
+    if (!targetKind || !ref) return null;
+
+    if (ref.includes(".")) {
+      const byUuid = await fromUuid(ref).catch(() => null);
+      if (byUuid && String(byUuid?.type ?? "").trim().toLowerCase() === targetKind) return byUuid;
+    }
+
+    const packMap = {
+      upbringing: "Halo-Mythic-Foundry-Updated.upbringings",
+      environment: "Halo-Mythic-Foundry-Updated.environments",
+      lifestyle: "Halo-Mythic-Foundry-Updated.lifestyles"
+    };
+
+    const expectedPack = packMap[targetKind];
+    if (expectedPack) {
+      const packDocs = await this._getCreationPathPackDocs(expectedPack);
+      const byPackId = packDocs.find((doc) => String(doc?.id ?? "") === ref) ?? null;
+      if (byPackId) return byPackId;
+    }
+
+    const worldDocs = this._getCreationPathWorldDocs(targetKind);
+    return worldDocs.find((doc) => String(doc?.id ?? "") === ref) ?? null;
+  }
+
   _creationEnvironmentKeyFromName(name = "") {
     const normalized = String(name ?? "").trim().toLowerCase();
     if (!normalized) return "";
@@ -2278,9 +2335,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return normalized;
   }
 
+  _formatCreationChoiceOptionLabel(option) {
+    if (!option || typeof option !== "object") return "Option";
+    if (Array.isArray(option.effects) && option.effects.length > 0) {
+      const effectLabels = option.effects.map((e) => formatEffectAsSentence(e)).filter(Boolean);
+      if (effectLabels.length > 0) {
+        return effectLabels.join(" and ");
+      }
+    }
+    return String(option?.label ?? "Option").trim() || "Option";
+  }
+
   _getCreationChoiceGroups(groups) {
     return (Array.isArray(groups) ? groups : [])
-      .filter((group) => String(group?.type ?? "choice").trim().toLowerCase() === "choice")
+      .filter((group) => {
+        const candidateType = String(group?.type ?? "choice").trim().toLowerCase();
+        const isChoiceMode = ["choice", "benefit", "drawback", "mixed"].includes(candidateType);
+        const operator = String(group?.operator ?? (candidateType === "fixed" ? "and" : "or")).trim().toLowerCase();
+        return isChoiceMode || operator === "or";
+      })
       .filter((group) => Array.isArray(group?.options) && group.options.length > 0);
   }
 
@@ -2338,6 +2411,110 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : resolvedById;
   }
 
+  _buildLifestyleVariantRanges(variants = []) {
+    let cursor = 1;
+    return (Array.isArray(variants) ? variants : []).map((variant) => {
+      const weight = this._lifestyleVariantWeight(variant);
+      const rollMin = cursor;
+      const rollMax = Math.min(10, cursor + weight - 1);
+      cursor += weight;
+      return {
+        id: String(variant?.id ?? ""),
+        rollMin,
+        rollMax,
+        weight
+      };
+    });
+  }
+
+  _variantRequiresLifestyleWarfareSelection(variant) {
+    const modifiers = Array.isArray(variant?.modifiers) ? variant.modifiers : [];
+    return modifiers.some((entry) => {
+      if (String(entry?.kind ?? "").trim().toLowerCase() !== "stat") return false;
+      const key = String(entry?.key ?? "").trim().toLowerCase();
+      return key === "selected_warfare" || key === "other_warfare";
+    });
+  }
+
+  _resolveLifestyleWarfareModifiers(modifiers = [], warfareSelection = "") {
+    const selected = String(warfareSelection ?? "").trim().toLowerCase();
+    const selectedKey = selected === "wfr" ? "wfr" : selected === "wfm" ? "wfm" : "";
+    const otherKey = selectedKey === "wfr" ? "wfm" : selectedKey === "wfm" ? "wfr" : "";
+
+    const resolved = [];
+    let needsSelection = false;
+
+    for (const entry of Array.isArray(modifiers) ? modifiers : []) {
+      const kind = String(entry?.kind ?? "").trim().toLowerCase();
+      const value = Number(entry?.value ?? 0);
+      if (!Number.isFinite(value) || value === 0) continue;
+
+      if (kind === "wound") {
+        resolved.push({ kind: "wound", value });
+        continue;
+      }
+
+      if (kind !== "stat") continue;
+      const key = String(entry?.key ?? "").trim().toLowerCase();
+
+      if (key === "selected_warfare") {
+        if (!selectedKey) {
+          needsSelection = true;
+          continue;
+        }
+        resolved.push({ kind: "stat", key: selectedKey, value });
+        continue;
+      }
+
+      if (key === "other_warfare") {
+        if (!otherKey) {
+          needsSelection = true;
+          continue;
+        }
+        resolved.push({ kind: "stat", key: otherKey, value });
+        continue;
+      }
+
+      resolved.push({ kind: "stat", key, value });
+    }
+
+    return { modifiers: resolved, needsSelection };
+  }
+
+  async _promptForLifestyleWarfareSelection({ itemName, currentSelection = "" } = {}) {
+    const escapedItemName = foundry.utils.escapeHTML(String(itemName ?? "Lifestyle"));
+    const current = String(currentSelection ?? "").trim().toLowerCase();
+
+    const selection = await foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "Selected Warfare Characteristic"
+      },
+      content: `<p><strong>${escapedItemName}</strong></p><p>Select which warfare characteristic is "selected" for this lifestyle:</p>`,
+      buttons: [
+        {
+          action: "wfm",
+          label: current === "wfm" ? "WFM (Current)" : "WFM",
+          callback: () => "wfm"
+        },
+        {
+          action: "wfr",
+          label: current === "wfr" ? "WFR (Current)" : "WFR",
+          callback: () => "wfr"
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+
+    if (!selection) return null;
+    return String(selection).trim().toLowerCase() === "wfr" ? "wfr" : "wfm";
+  }
+
   async _promptForCreationChoiceSelections({ title, itemName, groups, currentSelections = {} } = {}) {
     const choiceGroups = this._getCreationChoiceGroups(groups);
     if (!choiceGroups.length) return {};
@@ -2350,7 +2527,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const current = this._getCreationChoiceOption(group, currentSelections?.[group.id]);
       const escapedGroupLabel = foundry.utils.escapeHTML(String(group?.label ?? "Choose one option."));
       const buttons = group.options.map((option, optionIndex) => {
-        const optionLabel = String(option?.label ?? `Option ${optionIndex + 1}`).trim() || `Option ${optionIndex + 1}`;
+        const optionLabel = this._formatCreationChoiceOptionLabel(option);
         return {
           action: `option-${optionIndex + 1}`,
           label: current?.index === optionIndex ? `${optionLabel} (Current)` : optionLabel,
@@ -2393,7 +2570,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _summarizeVariantModifiers(variant) {
     if (!variant || typeof variant !== "object") return "";
-    const baseModifiers = Array.isArray(variant.modifiers) ? variant.modifiers.map((entry) => formatCreationPathModifier(entry)) : [];
+    const baseModifiers = Array.isArray(variant.modifiers)
+      ? variant.modifiers.map((entry) => {
+        const key = String(entry?.key ?? "").trim().toLowerCase();
+        if (String(entry?.kind ?? "").trim().toLowerCase() === "stat" && key === "selected_warfare") {
+          return `${entry.value >= 0 ? "+" : ""}${Number(entry.value ?? 0)} Selected Warfare Characteristic`;
+        }
+        if (String(entry?.kind ?? "").trim().toLowerCase() === "stat" && key === "other_warfare") {
+          return `${entry.value >= 0 ? "+" : ""}${Number(entry.value ?? 0)} Other Warfare Characteristic`;
+        }
+        return formatCreationPathModifier(entry);
+      })
+      : [];
     const choiceGroups = Array.isArray(variant.choiceGroups) ? variant.choiceGroups : [];
     const choiceSummary = choiceGroups.length > 0 ? [`${choiceGroups.length} choice group(s)`] : [];
     return [...baseModifiers, ...choiceSummary].filter(Boolean).join(", ");
@@ -6936,10 +7124,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const lifestyleDocs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.lifestyles");
-    const lifestyleDoc = lifestyleDocs.find((doc) => doc.id === selectedLifestyleId) ?? null;
+    const lifestyleDoc = await this._getCreationPathItemDoc("lifestyle", selectedLifestyleId);
     if (!lifestyleDoc) {
-      ui.notifications?.warn("Lifestyle not found in compendium.");
+      ui.notifications?.warn("Lifestyle not found.");
       return;
     }
 
@@ -6957,6 +7144,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
 
     if (selections == null) return;
+    if (this._variantRequiresLifestyleWarfareSelection(resolvedVariant)) {
+      const warfareSelection = await this._promptForLifestyleWarfareSelection({
+        itemName: `${lifestyleDoc.name}: ${resolvedVariant.label}`,
+        currentSelection: String(slot?.choiceSelections?.__warfareCharacteristic ?? selections.__warfareCharacteristic ?? "")
+      });
+      if (!warfareSelection) return;
+      selections.__warfareCharacteristic = warfareSelection;
+    }
     creationPath.lifestyles[slotIndex].choiceSelections = selections;
     await this.actor.update({ "system.advancements.creationPath": creationPath });
   }

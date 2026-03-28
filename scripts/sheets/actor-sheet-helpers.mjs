@@ -10,6 +10,8 @@ export function formatCreationPathModifier(modifier) {
     agi: 'AGI',
     wfm: 'WFM (Melee)',
     wfr: 'WFR (Ranged)',
+    selected_warfare: 'Selected Warfare Characteristic',
+    other_warfare: 'Other Warfare Characteristic',
     int: 'INT',
     per: 'PER',
     crg: 'CRG',
@@ -58,6 +60,22 @@ export function getSanShyuumGravityPenaltyValue({ actor, systemData, worldGravit
   return 10;
 }
 
+function effectsToModifiers(effects = []) {
+  return (Array.isArray(effects) ? effects : []).map((effect) => {
+    const type = String(effect?.type ?? 'characteristic').trim().toLowerCase();
+    const key = String(effect?.key ?? '').trim().toLowerCase();
+    const value = Number.isFinite(Number(effect?.value)) ? Number(effect.value) : 0;
+    if (!Number.isFinite(value) || value === 0) return null;
+    if (type === 'wound') {
+      return { kind: 'wound', value };
+    }
+    if (type === 'characteristic' || type === 'stat') {
+      return { kind: 'stat', key, value };
+    }
+    return null;
+  }).filter(Boolean);
+}
+
 export function skillTierToRank(tier) {
   const marker = String(tier ?? '').trim().toLowerCase();
   if (marker === 'plus20') return 3;
@@ -104,7 +122,25 @@ export function collectCreationPathGroupModifiers(groups, selections = {}, sourc
     const options = Array.isArray(group?.options) ? group.options : [];
     if (!options.length) continue;
 
-    if (groupType === 'choice') {
+    const groupOperator = String(group?.operator ?? (groupType === 'fixed' ? 'and' : 'or')).trim().toLowerCase();
+    const isChoiceGroup = ['choice', 'benefit', 'drawback', 'mixed'].includes(groupType);
+
+    const getOptionModifiers = (opt) => {
+      if (Array.isArray(opt?.modifiers) && opt.modifiers.length > 0) return opt.modifiers;
+      if (Array.isArray(opt?.effects) && opt.effects.length > 0) return effectsToModifiers(opt.effects);
+      return [];
+    };
+
+    if (groupOperator === 'and' || groupType === 'fixed') {
+      detailLines.push(`${normalizedSource}: ${groupLabel} (all options)`);
+      for (const opt of options) {
+        const optionLabel = String(opt?.label ?? '').trim() || 'Option';
+        pushModifiers(getOptionModifiers(opt), `${groupLabel}: ${optionLabel}`);
+      }
+      continue;
+    }
+
+    if (isChoiceGroup) {
       const resolved = resolveChoiceOption(group, selections?.[group.id]);
       if (!resolved?.option) {
         pendingLines.push(`${normalizedSource}: ${groupLabel} (pending)`);
@@ -112,7 +148,7 @@ export function collectCreationPathGroupModifiers(groups, selections = {}, sourc
       }
       const optionLabel = String(resolved.option?.label ?? `Option ${resolved.index + 1}`).trim() || `Option ${resolved.index + 1}`;
       detailLines.push(`${normalizedSource}: ${optionLabel}`);
-      pushModifiers(resolved.option?.modifiers, `${groupLabel}: ${optionLabel}`);
+      pushModifiers(getOptionModifiers(resolved.option), `${groupLabel}: ${optionLabel}`);
       continue;
     }
 
@@ -120,7 +156,7 @@ export function collectCreationPathGroupModifiers(groups, selections = {}, sourc
     if (!fixed) continue;
     const optionLabel = String(fixed?.label ?? groupLabel).trim() || groupLabel;
     detailLines.push(`${normalizedSource}: ${optionLabel}`);
-    pushModifiers(fixed?.modifiers, `${groupLabel}: ${optionLabel}`);
+    pushModifiers(getOptionModifiers(fixed), `${groupLabel}: ${optionLabel}`);
   }
 
   return { appliedModifiers, detailLines, pendingLines };

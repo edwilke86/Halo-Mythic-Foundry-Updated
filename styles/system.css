@@ -3173,13 +3173,306 @@
   padding: 6px;
   background: rgba(8, 12, 20, 0.55);
 }
-.mythic-upbringing-item-sheet .mechanic-group {
+.mythic-upbringing-item-sheet .mechanics-builder-section {
+  margin-top: 8px;
+  background: rgba(5, 10, 15, 0.7);
+  border: 1px solid rgba(75, 100, 150, 0.3);
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.mythic-upbringing-item-sheet .mechanics-builder-title {
+  margin: 0 0 8px 0;
+  color: rgba(180, 200, 220, 0.9);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+.mythic-upbringing-item-sheet .mechanics-tree-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mythic-upbringing-item-sheet .mechanics-structure-help {
+  margin-bottom: 8px;
+  padding: 4px 0;
+}
+.mythic-upbringing-item-sheet .mechanics-structure-help summary {
+  cursor: pointer;
+  color: rgba(155, 203, 81, 0.85);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  -webkit-user-select: none;
+  user-select: none;
+  padding: 2px 4px;
+}
+.mythic-upbringing-item-sheet .mechanics-structure-help summary:hover {
+  color: rgba(155, 203, 81, 0.95);
+  background: rgba(155, 203, 81, 0.1);
+}
+.mythic-upbringing-item-sheet .mechanics-chart {
+  margin-top: 6px;
+  padding: 8px;
+  background: rgba(15, 25, 40, 0.4);
+  border: 1px solid rgba(155, 203, 81, 0.25);
+  border-radius: 3px;
+  font-size: 0.65rem;
+}
+.mythic-upbringing-item-sheet .chart-level {
+  padding: 4px 6px;
+  margin-bottom: 2px;
+  border-left: 3px solid;
+  border-radius: 2px;
+}
+.mythic-upbringing-item-sheet .chart-level:nth-child(1) {
+  background: rgba(155, 203, 81, 0.12);
+  border-left-color: rgba(155, 203, 81, 0.75);
+}
+.mythic-upbringing-item-sheet .chart-level:nth-child(3) {
+  background: rgba(100, 180, 200, 0.12);
+  border-left-color: rgba(100, 180, 200, 0.75);
+}
+.mythic-upbringing-item-sheet .chart-level:nth-child(5) {
+  background: rgba(120, 170, 220, 0.12);
+  border-left-color: rgba(120, 170, 220, 0.75);
+}
+.mythic-upbringing-item-sheet .chart-level:nth-child(7) {
+  background: rgba(180, 140, 220, 0.12);
+  border-left-color: rgba(180, 140, 220, 0.75);
+}
+.mythic-upbringing-item-sheet .chart-level-label {
+  color: transparent;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.mythic-upbringing-item-sheet .chart-level:nth-child(1) .chart-level-label {
+  color: rgba(155, 203, 81, 0.95);
+}
+.mythic-upbringing-item-sheet .chart-level:nth-child(3) .chart-level-label {
+  color: rgba(100, 180, 200, 0.95);
+}
+.mythic-upbringing-item-sheet .chart-level:nth-child(5) .chart-level-label {
+  color: rgba(120, 170, 220, 0.95);
+}
+.mythic-upbringing-item-sheet .chart-level:nth-child(7) .chart-level-label {
+  color: rgba(180, 140, 220, 0.95);
+}
+.mythic-upbringing-item-sheet .chart-level-desc {
+  color: rgba(160, 180, 210, 0.75);
+  font-size: 0.6rem;
+  margin-top: 1px;
+}
+.mythic-upbringing-item-sheet .chart-arrow {
+  text-align: center;
+  color: rgba(200, 150, 100, 0.7);
+  font-weight: 600;
+  font-size: 0.6rem;
+  margin: 3px 0;
+  letter-spacing: 0.02em;
+}
+.mythic-upbringing-item-sheet .tree-node {
+  border: 1px solid rgba(120, 144, 183, 0.55);
+  background: rgba(12, 19, 33, 0.58);
+  border-radius: 4px;
+  padding: 6px;
+  margin-top: 4px;
+}
+.mythic-upbringing-item-sheet .tree-node[data-depth="0"] {
+  border-color: rgba(180, 140, 220, 0.65);
+  background: rgba(40, 25, 50, 0.4);
+}
+.mythic-upbringing-item-sheet .tree-node[data-depth="1"] {
+  border-color: rgba(120, 170, 220, 0.65);
+  background: rgba(15, 30, 55, 0.45);
+}
+.mythic-upbringing-item-sheet .tree-node[data-depth="2"],
+.mythic-upbringing-item-sheet .tree-node[data-depth="3"],
+.mythic-upbringing-item-sheet .tree-node[data-depth="4"] {
+  border-color: rgba(100, 180, 200, 0.55);
+  background: rgba(20, 40, 50, 0.4);
+}
+.mythic-upbringing-item-sheet .tree-node--root {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.mythic-upbringing-item-sheet .tree-node-header {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 90px auto;
+  gap: 6px;
+  align-items: center;
+}
+.mythic-upbringing-item-sheet .tree-node-header select {
+  height: 24px;
+  font-size: 0.74rem;
+}
+.mythic-upbringing-item-sheet .tree-node-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.mythic-upbringing-item-sheet .tree-node[data-depth="0"] .tree-node-label {
+  color: rgba(180, 140, 220, 0.9);
+}
+.mythic-upbringing-item-sheet .tree-node[data-depth="1"] .tree-node-label {
+  color: rgba(120, 170, 220, 0.9);
+}
+.mythic-upbringing-item-sheet .tree-node[data-depth="2"],
+.mythic-upbringing-item-sheet .tree-node[data-depth="3"],
+.mythic-upbringing-item-sheet .tree-node[data-depth="4"] {
+}
+.mythic-upbringing-item-sheet .tree-node[data-depth="2"] .tree-node-label,
+.mythic-upbringing-item-sheet .tree-node[data-depth="3"] .tree-node-label,
+.mythic-upbringing-item-sheet .tree-node[data-depth="4"] .tree-node-label {
+  color: rgba(100, 180, 200, 0.9);
+}
+.mythic-upbringing-item-sheet .tree-root-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(125, 150, 190, 0.55);
+  background: rgba(30, 44, 66, 0.55);
+  color: rgba(198, 215, 240, 0.92);
+  border-radius: 2px;
+  min-height: 22px;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mythic-upbringing-item-sheet .tree-child-operator-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 6px;
+  padding: 4px 6px;
+  border: 1px dashed rgba(120, 144, 183, 0.35);
+  border-radius: 3px;
+  background: rgba(19, 27, 42, 0.42);
+}
+.mythic-upbringing-item-sheet .tree-child-operator-label {
+  color: rgba(180, 197, 219, 0.82);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.mythic-upbringing-item-sheet .tree-child-operator-row select {
+  width: 90px;
+  height: 24px;
+  font-size: 0.74rem;
+}
+.mythic-upbringing-item-sheet .tree-child-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mythic-upbringing-item-sheet .tree-effect-operator-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 4px 6px;
+  border: 1px dashed rgba(155, 203, 81, 0.28);
+  border-radius: 3px;
+  background: rgba(28, 40, 20, 0.24);
+}
+.mythic-upbringing-item-sheet .tree-effect-operator-label {
+  color: rgba(210, 226, 188, 0.82);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.mythic-upbringing-item-sheet .tree-effect-operator-row select {
+  width: 90px;
+  height: 24px;
+  font-size: 0.74rem;
+}
+.mythic-upbringing-item-sheet .tree-node-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.mythic-upbringing-item-sheet .lifestyle-parent-controls {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.mythic-upbringing-item-sheet .lifestyle-parent-controls label {
+  font-size: 0.7rem;
+  color: rgba(180, 197, 219, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.mythic-upbringing-item-sheet .lifestyle-parent-controls input[type="text"] {
+  min-width: 220px;
+}
+.mythic-upbringing-item-sheet .lifestyle-parent-controls input[type="number"] {
+  width: 78px;
+}
+.mythic-upbringing-item-sheet .tree-self-group {
+  /* No extra box - tree-node provides the outer box */
+}
+.mythic-upbringing-item-sheet .tree-effects {
+  margin-top: 6px;
+}
+.mythic-upbringing-item-sheet .tree-children {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(120, 144, 183, 0.22);
+}
+.mythic-upbringing-item-sheet .tree-effect-row {
+  display: grid;
+  grid-template-columns: 90px 70px auto;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+  padding-left: 4px;
+  border-left: 2px solid rgba(155, 203, 81, 0.6);
+}
+.mythic-upbringing-item-sheet .tree-effect-row select,
+.mythic-upbringing-item-sheet .tree-effect-row input {
+  height: 22px;
+  font-size: 0.72rem;
+}
+.mythic-upbringing-item-sheet .tree-empty {
+  color: rgba(180, 197, 219, 0.7);
+  font-size: 0.7rem;
+  font-style: italic;
+  padding: 2px 0;
+}
+.mythic-upbringing-item-sheet .mechanics-sentence {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  background: rgba(20, 35, 50, 0.5);
+  border-left: 3px solid rgba(155, 203, 81, 0.6);
+  border-radius: 2px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.mythic-upbringing-item-sheet .mechanics-sentence-label {
+  color: rgba(155, 203, 81, 0.9);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.mythic-upbringing-item-sheet .mechanics-sentence-text {
+  color: rgba(200, 220, 240, 0.9);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.mythic-upbringing-item-sheet .mechanic-group,
+.mythic-upbringing-item-sheet .choice-group {
   border: 1px solid rgba(120, 144, 183, 0.35);
   border-radius: 4px;
   padding: 4px;
   margin-bottom: 5px;
 }
-.mythic-upbringing-item-sheet .group-header {
+.mythic-upbringing-item-sheet .group-header,
+.mythic-upbringing-item-sheet .choice-group-header {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -3215,6 +3508,20 @@
 .mythic-upbringing-item-sheet .group-header select {
   height: 24px;
   font-size: 0.75rem;
+}
+.mythic-upbringing-item-sheet .group-operator-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 0.75rem;
+}
+.mythic-upbringing-item-sheet .group-operator-row .operator-label {
+  font-weight: bold;
+}
+.mythic-upbringing-item-sheet .group-operator-row select {
+  min-width: 100px;
+  height: 24px;
 }
 .mythic-upbringing-item-sheet .option-header {
   display: flex;

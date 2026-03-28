@@ -1,4 +1,4 @@
-<div class="{{cssClass}} mythic-lifestyle-item-sheet">
+<div class="{{cssClass}} mythic-lifestyle-item-sheet mythic-upbringing-item-sheet">
 
   <header class="item-sheet-header">
     <img class="lifestyle-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
@@ -9,7 +9,7 @@
           <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
         {{/if}}
         <span class="item-type-badge">Lifestyle</span>
-        <span class="item-variant-count-badge">{{variantRows.length}} variant{{#if (gt variantRows.length 1)}}s{{/if}}</span>
+        <span class="item-variant-count-badge">{{variantRows.length}} parent group{{#if (gt variantRows.length 1)}}s{{/if}}</span>
       </div>
     </div>
   </header>
@@ -18,58 +18,86 @@
 
     {{#if canEditFields}}
     <div class="item-info-block">
-      <div class="item-info-row">
+      <div class="item-info-row compact-row">
         <label for="lifestyle-item-name">Name</label>
         <input id="lifestyle-item-name" type="text" name="name" value="{{item.name}}" />
       </div>
-      <div class="item-info-row item-notes-row">
-        <label for="lifestyle-desc">Notes</label>
+      <div class="item-info-row compact-row upbringing-description-row">
+        <label for="lifestyle-desc">Description / Notes</label>
         <textarea id="lifestyle-desc" name="system.description" rows="3">{{item.system.description}}</textarea>
       </div>
-      <div class="item-info-row item-notes-row">
-        <label for="lifestyle-variants-editor">Variants</label>
-        <textarea id="lifestyle-variants-editor" name="mythic.variantsText" rows="9" placeholder="weight | label | modifiers | optional choices&#10;5 | You worked out more than anything. | +3 str, +3 tou, -3 int, -3 per |&#10;5 | You worked out alone. | +3 str, +3 tou, -3 cha, -3 ldr |&#10;1 | Weapon specialist. | -3 int | +3 wfm OR +3 wfr">{{variantsText}}</textarea>
-      </div>
-      <p class="modifier-none">Format: <strong>weight | label | modifiers | choices</strong>. Choices can use <strong>OR</strong> and multiple groups can be split with <strong>;</strong>.</p>
+      <p class="modifier-none" style="margin:0;">Lifestyle rules are weighted parent groups. Each parent has exactly one child group with effects.</p>
     </div>
-    <hr class="item-divider" />
     {{/if}}
 
-    <div class="lifestyle-variants">
-      {{#each variantRows}}
-        <div class="lifestyle-variant">
-          <div class="lifestyle-variant-header">
-            <span class="lifestyle-variant-range">Roll {{rangeLabel}}</span>
-            <span class="creation-path-pill">Weight {{weight}}</span>
-            <span class="lifestyle-variant-label">{{label}}</span>
+    {{#if canEditFields}}
+    <div class="mechanics-builder-section">
+      <h3 class="mechanics-builder-title">Lifestyle Mechanics</h3>
+      <div class="mechanics-builder" id="mechanics-builder">
+        <details class="mechanics-structure-help">
+          <summary>How to build lifestyles</summary>
+          <div class="mechanics-chart">
+            <div class="chart-level">
+              <div class="chart-level-label">Parent Group (Variant)</div>
+              <div class="chart-level-desc">Has a label and weight. You must have at least 2 parent groups. Total weight should equal 10.</div>
+            </div>
+            <div class="chart-arrow">↑ Exactly one child group per parent ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Child Group</div>
+              <div class="chart-level-desc">Contains unlimited effects. No OR branches inside lifestyles.</div>
+            </div>
+            <div class="chart-arrow">↑ Optional special warfare placeholders ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Selected Warfare Characteristic</div>
+              <div class="chart-level-desc">Use SELECTED_WARFARE for the player-chosen WFM/WFR. If used, OTHER_WARFARE may be used as a second effect.</div>
+            </div>
           </div>
-
-          {{#if modifierDisplay}}
-            <div class="lifestyle-variant-mods">
-              {{modifierDisplay}}
-            </div>
-          {{/if}}
-
-          {{#each choiceLines}}
-            <div class="lifestyle-variant-choice">
-              <span class="lifestyle-choice-label">Choice — {{label}}:</span>
-              <div class="modifier-group modifier-group--choice">
-                {{#each options}}
-                  <div class="modifier-option">
-                    <span class="modifier-option-bullet">◆</span>
-                    <span class="modifier-option-text">{{label}}</span>
-                    {{#if modifiers}}
-                      <span class="modifier-stats">{{modifiers}}</span>
-                    {{/if}}
-                  </div>
-                {{/each}}
-              </div>
-            </div>
-          {{/each}}
+        </details>
+        <div class="tree-node-controls">
+          <button type="button" class="action-btn" id="lifestyle-add-parent-btn">+ Parent Group</button>
+          <span class="creation-path-pill">Total Weight: {{totalWeight}} / 10</span>
+          {{#unless hasValidWeightTotal}}
+            <span class="creation-path-pill warning">Adjust weights to total 10</span>
+          {{/unless}}
         </div>
-      {{else}}
-        <p class="modifier-none">No variants defined.</p>
-      {{/each}}
+        <div class="mechanics-tree-builder" id="lifestyle-variant-builder"></div>
+        <textarea
+          id="lifestyle-tree-editor"
+          name="mythic.lifestyleTreeEditor"
+          rows="2"
+          hidden
+          aria-hidden="true"
+        >{{lifestyleTreeEditor}}</textarea>
+      </div>
+    </div>
+    {{/if}}
+
+    <div class="modifier-groups">
+      {{#if mechanicsSentence}}
+        <div class="mechanics-sentence">
+          <span class="mechanics-sentence-label">Mechanics:</span>
+          <span class="mechanics-sentence-text">{{mechanicsSentence}}</span>
+        </div>
+      {{/if}}
+
+      <div class="lifestyle-variants">
+        {{#each variantRows}}
+          <div class="lifestyle-variant">
+            <div class="lifestyle-variant-header">
+              <span class="lifestyle-variant-range">Roll {{rangeLabel}}</span>
+              <span class="creation-path-pill">Weight {{weight}}</span>
+              <span class="lifestyle-variant-label">{{label}}</span>
+            </div>
+            {{#if modifierDisplay}}
+              <div class="lifestyle-variant-mods">{{modifierDisplay}}</div>
+            {{else}}
+              <div class="modifier-none">No effects.</div>
+            {{/if}}
+          </div>
+        {{else}}
+          <p class="modifier-none">No parent groups defined.</p>
+        {{/each}}
+      </div>
     </div>
 
     {{#unless canEditFields}}

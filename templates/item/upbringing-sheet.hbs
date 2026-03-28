@@ -41,66 +41,58 @@
         <textarea id="upbringing-notes" name="system.description" rows="3">{{item.system.description}}</textarea>
       </div>
 
-      <div class="item-info-row compact-row">
-        <label>Mechanics</label>
-        <div class="mechanics-builder" id="mechanics-builder">
-          {{#if sys.modifierGroups.length}}
-            {{#each sys.modifierGroups as |group|}}
-              <div class="mechanic-group" data-group-id="{{group.id}}">
-                <div class="group-header">
-                  <div class="group-name-row"><input class="group-label" type="text" value="{{group.label}}" placeholder="(e.g. Military training) - text only, optional" /></div>
-                  <div class="group-controls"><select class="group-type"><option value="choice" {{#if (eq group.type "choice")}}selected{{/if}}>Choice</option><option value="fixed" {{#if (eq group.type "fixed")}}selected{{/if}}>Fixed</option></select><button type="button" class="group-remove-btn">✕</button></div>
-                </div>
-                <div class="group-options">
-                  {{#each group.options as |opt|}}
-                    <div class="option-row" data-option-id="{{opt.id}}">
-                      <div class="option-header">
-                        <input class="option-label" type="text" value="{{opt.label}}" placeholder="Option label" />
-                        <button type="button" class="option-remove-btn">−</button>
-                      </div>
-                      <div class="option-modifiers">
-                        {{#each opt.modifiers as |mod|}}
-                          <div class="modifier-row">
-                            <select class="modifier-key">
-                              <option value="str" {{#if (eq mod.key "str")}}selected{{/if}}>str</option>
-                              <option value="tou" {{#if (eq mod.key "tou")}}selected{{/if}}>tou</option>
-                              <option value="agi" {{#if (eq mod.key "agi")}}selected{{/if}}>agi</option>
-                              <option value="wfr" {{#if (eq mod.key "wfr")}}selected{{/if}}>wfr</option>
-                              <option value="wfm" {{#if (eq mod.key "wfm")}}selected{{/if}}>wfm</option>
-                              <option value="int" {{#if (eq mod.key "int")}}selected{{/if}}>int</option>
-                              <option value="per" {{#if (eq mod.key "per")}}selected{{/if}}>per</option>
-                              <option value="crg" {{#if (eq mod.key "crg")}}selected{{/if}}>crg</option>
-                              <option value="cha" {{#if (eq mod.key "cha")}}selected{{/if}}>cha</option>
-                              <option value="ldr" {{#if (eq mod.key "ldr")}}selected{{/if}}>ldr</option>
-                              <option value="wounds" {{#if (eq mod.key "wounds")}}selected{{/if}}>wounds</option>
-                            </select>
-                            <input class="modifier-value" type="number" value="{{mod.value}}" step="1" style="width: 60px;" />
-                            <button type="button" class="modifier-remove-btn">×</button>
-                          </div>
-                        {{/each}}
-                      </div>
-                      <button type="button" class="modifier-add-btn">+ Modifier</button>
-                    </div>
-                  {{/each}}
-                </div>
-                <button type="button" class="option-add-btn">+ Option</button>
-              </div>
-            {{/each}}
-          {{else}}
-            <p class="modifier-none">No mechanics defined.</p>
-          {{/if}}
-          <button type="button" id="group-add-btn" class="action-btn">+ Choice Group</button>
-        </div>
-      </div>
-
       <input type="hidden" name="mythic.allowedEnvironmentsEditor" value="{{allowedEnvironmentsEditor}}" />
-      <input type="hidden" name="mythic.rulesText" value="{{rulesText}}" />
 
-      <p class="modifier-none" style="margin:0;">Use the visual modifier groups above; the text editor is kept for compatibility.</p>
+      <p class="modifier-none" style="margin:0;">Build mechanics as nested AND/OR groups. Each OR group is one runtime choice.</p>
+    </div>
+    {{/if}}
+
+    {{#if canEditFields}}
+    <div class="mechanics-builder-section">
+      <h3 class="mechanics-builder-title">Mechanics</h3>
+      <div class="mechanics-builder" id="mechanics-builder">
+        <details class="mechanics-structure-help">
+          <summary>How to build mechanics</summary>
+          <div class="mechanics-chart">
+            <div class="chart-level">
+              <div class="chart-level-label">Effect</div>
+              <div class="chart-level-desc">Individual modifiers (+1 STR, +2 Wounds, etc.)</div>
+            </div>
+            <div class="chart-arrow">↑ Use AND/OR ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Child Group</div>
+              <div class="chart-level-desc">Contains 1+ effects, combined by AND/OR</div>
+            </div>
+            <div class="chart-arrow">↑ Use AND/OR ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Parent Group</div>
+              <div class="chart-level-desc">Container for 1+ child groups, combined by AND/OR, Separated by semicolon in the rules text</div>
+            </div>
+            <div class="chart-arrow">↑ Multiple parents (implicit AND) ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Root (Upbringing)</div>
+            </div>
+          </div>
+        </details>
+        <div class="mechanics-tree-builder" id="mechanics-tree-builder"></div>
+        <textarea
+          id="upbringing-mechanics-tree-editor"
+          name="mythic.mechanicsTreeEditor"
+          rows="2"
+          hidden
+          aria-hidden="true"
+        >{{mechanicsTreeEditor}}</textarea>
+      </div>
     </div>
     {{/if}}
 
     <div class="modifier-groups">
+      {{#if mechanicsSentence}}
+        <div class="mechanics-sentence">
+          <span class="mechanics-sentence-label">Mechanics:</span>
+          <span class="mechanics-sentence-text">{{mechanicsSentence}}</span>
+        </div>
+      {{/if}}
       {{#each modifierSummaryLines}}
         <div class="modifier-group modifier-group--{{type}}">
           <div class="modifier-group-label">{{label}}</div>

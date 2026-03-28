@@ -9,6 +9,21 @@ import {
 } from '../utils/helpers.mjs';
 
 /**
+ * A choice effect: one fundamental change inside an option.
+ * @typedef {{ type: string, key?: string, value: number }} MythicChoiceEffect
+ */
+
+/**
+ * A choice option: one branch within a choice group.
+ * @typedef {{ id: string, label: string, effects: MythicChoiceEffect[] }} MythicChoiceOption
+ */
+
+/**
+ * A choice group: a structured “pick one” or multi-pick block.
+ * @typedef {{ id: string, label: string, type: "benefit"|"drawback"|"mixed", pick: number, options: MythicChoiceOption[] }} MythicChoiceGroup
+ */
+
+/**
  * A modifier group option: one selectable set of characteristic/wound changes.
  * @typedef {{ label: string, modifiers: Array<{kind: string, key?: string, value: number}> }} MythicModifierOption
  */
@@ -45,11 +60,13 @@ export function normalizeModifierOption(opt) {
 export function normalizeModifierGroup(group) {
   const id = String(group?.id ?? foundry.utils.randomID()).trim();
   const label = String(group?.label ?? '').trim();
-  const type = String(group?.type ?? 'choice').toLowerCase() === 'fixed' ? 'fixed' : 'choice';
+  let type = String(group?.type ?? 'choice').toLowerCase() === 'fixed' ? 'fixed' : 'choice';
+  const operator = String(group?.operator ?? (type === 'fixed' ? 'and' : 'or')).trim().toLowerCase() === 'and' ? 'and' : 'or';
+  if (operator === 'and') type = 'fixed';
   const options = Array.isArray(group?.options)
     ? group.options.map(normalizeModifierOption)
     : [];
-  return { id, label, type, options };
+  return { id, label, type, operator, options };
 }
 
 export function getCanonicalUpbringingSystemData() {
@@ -59,6 +76,7 @@ export function getCanonicalUpbringingSystemData() {
     description: '',
     allowedEnvironments: [],
     modifierGroups: [],
+    choiceGroups: [],
     sync: {}
   };
 }
@@ -75,11 +93,124 @@ export function normalizeUpbringingSystemData(systemData, itemName = '') {
   merged.allowedEnvironments = Array.isArray(merged.allowedEnvironments)
     ? merged.allowedEnvironments.map((entry) => String(entry).toLowerCase().trim()).filter(Boolean)
     : [];
-  merged.modifierGroups = Array.isArray(merged.modifierGroups)
-    ? merged.modifierGroups.map(normalizeModifierGroup)
+
+  // Normalize choiceGroups first (new schema).
+  const rawChoiceGroups = Array.isArray(source.choiceGroups)
+    ? source.choiceGroups
+    : Array.isArray(source.modifierGroups)
+      ? source.modifierGroups.map(modifierGroupToChoiceGroup)
+      : [];
+  merged.choiceGroups = Array.isArray(rawChoiceGroups)
+    ? rawChoiceGroups.map(normalizeChoiceGroup)
     : [];
+
+  // Keep modifierGroups for compatibility with existing code paths.
+  const rawModifierGroups = Array.isArray(source.modifierGroups)
+    ? source.modifierGroups
+    : merged.choiceGroups.length
+      ? merged.choiceGroups.map(choiceGroupToModifierGroup)
+      : [];
+  merged.modifierGroups = Array.isArray(rawModifierGroups)
+    ? rawModifierGroups.map(normalizeModifierGroup)
+    : [];
+
   merged.sync = normalizeItemSyncData(merged.sync, 'upbringing', itemName);
   return merged;
+}
+
+export function normalizeChoiceEffect(effect) {
+  const type = String(effect?.type ?? 'characteristic').trim().toLowerCase();
+  const rawKey = String(effect?.key ?? '').trim().toLowerCase();
+  const value = Number.isFinite(Number(effect?.value)) ? Number(effect.value) : 0;
+  if (!Number.isFinite(value) || value === 0) return null;
+
+  if (type === 'wound') {
+    return { kind: 'wound', value };
+  }
+  if (type === 'characteristic' || type === 'stat') {
+    if (!rawKey) return null;
+    return { kind: 'stat', key: rawKey, value };
+  }
+  return null;
+}
+
+export function normalizeChoiceOption(option) {
+  const id = String(option?.id ?? foundry.utils.randomID()).trim();
+  const label = String(option?.label ?? '').trim();
+
+  const effects = Array.isArray(option?.effects)
+    ? option.effects.map(normalizeChoiceEffect).filter(Boolean)
+    : [];
+
+  const modifiers = Array.isArray(option?.modifiers)
+    ? (option.modifiers || []).map((m) => ({ kind: String(m?.kind ?? 'stat'), key: m?.key != null ? String(m.key).toLowerCase() : undefined, value: Number.isFinite(Number(m?.value)) ? Number(m.value) : 0 }))
+      .filter((m) => (m.kind === 'wound' || (m.kind === 'stat' && m.key)) && Number.isFinite(Number(m.value)) && Number(m.value) !== 0)
+    : [];
+
+  // Migrate existing style modifier objects into effects for newer UI.
+  const mergedEffects = effects.length > 0 ? effects : modifiers.map((m) => {
+    if (m.kind === 'wound') return { type: 'wound', value: m.value };
+    return { type: 'characteristic', key: m.key, value: m.value };
+  });
+
+  return {
+    id: id || foundry.utils.randomID(),
+    label,
+    effects: mergedEffects
+  };
+}
+
+export function normalizeChoiceGroup(group) {
+  const id = String(group?.id ?? foundry.utils.randomID()).trim();
+  const rawType = String(group?.type ?? 'benefit').trim().toLowerCase();
+  const type = ['benefit', 'drawback', 'mixed'].includes(rawType) ? rawType : 'benefit';
+  const pick = Number.isFinite(Number(group?.pick)) && Number(group.pick) >= 1 ? Math.max(1, Math.floor(Number(group.pick))) : 1;
+  const label = String(group?.label ?? '').trim();
+
+  const options = Array.isArray(group?.options)
+    ? group.options.map(normalizeChoiceOption)
+                         .filter((opt) => opt && (opt.effects || []).length > 0)
+    : [];
+
+  return { id: id || foundry.utils.randomID(), label, type, pick, options };
+}
+
+export function modifierGroupToChoiceGroup(modGroup) {
+  const id = String(modGroup?.id ?? foundry.utils.randomID()).trim();
+  const label = String(modGroup?.label ?? '').trim();
+  const type = ['choice', 'fixed'].includes(String(modGroup?.type ?? '').trim().toLowerCase()) ? 'mixed' : 'mixed';
+  const options = Array.isArray(modGroup?.options) ? modGroup.options : [];
+
+  return {
+    id: id || foundry.utils.randomID(),
+    label,
+    type,
+    pick: 1,
+    options: options.map((opt) => normalizeChoiceOption({
+      id: String(opt?.id ?? foundry.utils.randomID()).trim(),
+      label: String(opt?.label ?? '').trim(),
+      modifiers: Array.isArray(opt?.modifiers) ? opt.modifiers : []
+    }))
+  };
+}
+
+export function choiceGroupToModifierGroup(choiceGroup) {
+  const id = String(choiceGroup?.id ?? foundry.utils.randomID()).trim();
+  const label = String(choiceGroup?.label ?? '').trim();
+  const groupType = String(choiceGroup?.type ?? 'mixed').trim().toLowerCase();
+  const options = Array.isArray(choiceGroup?.options) ? choiceGroup.options : [];
+
+  return {
+    id: id || foundry.utils.randomID(),
+    label,
+    type: groupType === 'benefit' || groupType === 'drawback' || groupType === 'mixed' ? 'choice' : 'choice',
+    options: options.map((opt) => {
+      const modifiers = Array.isArray(opt?.effects)
+        ? opt.effects.map((eff) => normalizeChoiceEffect(eff)).filter(Boolean)
+        : [];
+      return { id: String(opt?.id ?? foundry.utils.randomID()).trim(), label: String(opt?.label ?? '').trim(), modifiers };
+    })
+  };
 }
 
 export function getCanonicalEnvironmentSystemData() {
@@ -88,6 +219,7 @@ export function getCanonicalEnvironmentSystemData() {
     editMode: false,
     description: '',
     modifierGroups: [],
+    choiceGroups: [],
     sync: {}
   };
 }
@@ -101,9 +233,25 @@ export function normalizeEnvironmentSystemData(systemData, itemName = '') {
   merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ENVIRONMENT_SCHEMA_VERSION);
   merged.editMode = Boolean(merged.editMode);
   merged.description = String(merged.description ?? '');
-  merged.modifierGroups = Array.isArray(merged.modifierGroups)
-    ? merged.modifierGroups.map(normalizeModifierGroup)
+
+  const rawChoiceGroups = Array.isArray(source.choiceGroups)
+    ? source.choiceGroups
+    : Array.isArray(source.modifierGroups)
+      ? source.modifierGroups.map(modifierGroupToChoiceGroup)
+      : [];
+  merged.choiceGroups = Array.isArray(rawChoiceGroups)
+    ? rawChoiceGroups.map(normalizeChoiceGroup)
     : [];
+
+  const rawModifierGroups = Array.isArray(source.modifierGroups)
+    ? source.modifierGroups
+    : merged.choiceGroups.length
+      ? merged.choiceGroups.map(choiceGroupToModifierGroup)
+      : [];
+  merged.modifierGroups = Array.isArray(rawModifierGroups)
+    ? rawModifierGroups.map(normalizeModifierGroup)
+    : [];
+
   merged.sync = normalizeItemSyncData(merged.sync, 'environment', itemName);
   return merged;
 }
@@ -126,8 +274,10 @@ export function normalizeLifestyleVariant(v) {
         }))
       : [],
     choiceGroups: Array.isArray(v?.choiceGroups)
-      ? v.choiceGroups.map(normalizeModifierGroup)
-      : []
+      ? v.choiceGroups.map(normalizeChoiceGroup)
+      : Array.isArray(v?.modifierGroups)
+        ? v.modifierGroups.map(modifierGroupToChoiceGroup).map(normalizeChoiceGroup)
+        : []
   };
 }
 

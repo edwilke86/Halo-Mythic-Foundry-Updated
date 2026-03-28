@@ -10,10 +10,9 @@ export const creationPathChoiceMethods = {
       return;
     }
 
-    const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.upbringings");
-    const selectedUpbringing = docs.find((doc) => doc.id === selectedUpbringingId) ?? null;
+    const selectedUpbringing = await this._getCreationPathItemDoc("upbringing", selectedUpbringingId);
     if (!selectedUpbringing) {
-      ui.notifications?.warn("Upbringing not found in compendium.");
+      ui.notifications?.warn("Upbringing not found.");
       return;
     }
 
@@ -38,10 +37,9 @@ export const creationPathChoiceMethods = {
       return;
     }
 
-    const docs = await this._getCreationPathPackDocs("Halo-Mythic-Foundry-Updated.environments");
-    const selectedEnvironment = docs.find((doc) => doc.id === selectedEnvironmentId) ?? null;
+    const selectedEnvironment = await this._getCreationPathItemDoc("environment", selectedEnvironmentId);
     if (!selectedEnvironment) {
-      ui.notifications?.warn("Environment not found in compendium.");
+      ui.notifications?.warn("Environment not found.");
       return;
     }
 

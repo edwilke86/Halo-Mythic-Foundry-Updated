@@ -7,6 +7,8 @@ const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
 
 export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
+  _sheetScrollTop = 0;
+
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
       classes: ["mythic-system", "sheet", "item", "soldier-type"],
       position: {
@@ -238,17 +240,38 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
       }
     }
 
+    this._rememberSheetScrollPosition();
+
     const mythicData = foundry.utils.getProperty(submitData, "mythic");
     if (mythicData !== undefined) {
       delete submitData.mythic;
     }
 
     const normalizedSystem = normalizeSoldierTypeSystemData(foundry.utils.getProperty(submitData, "system") ?? {});
-    // Keep edit mode active while editing fields.
     normalizedSystem.editMode = Boolean(this.item.system?.editMode);
     foundry.utils.setProperty(submitData, "system", normalizedSystem);
 
     return submitData;
+  }
+
+  _rememberSheetScrollPosition() {
+    const scrollable = this.element?.querySelector(".sheet-body") ?? this.element;
+    if (!scrollable || !(scrollable instanceof HTMLElement)) return;
+    this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop || 0));
+  }
+
+  _restoreSheetScrollPosition() {
+    const scrollable = this.element?.querySelector(".sheet-body") ?? this.element;
+    if (!scrollable || !(scrollable instanceof HTMLElement)) return;
+    const saved = Math.max(0, Number(this._sheetScrollTop || 0));
+    if (!saved) return;
+    scrollable.scrollTop = saved;
+    requestAnimationFrame(() => {
+      scrollable.scrollTop = saved;
+      requestAnimationFrame(() => {
+        scrollable.scrollTop = saved;
+      });
+    });
   }
 
   async _onRender(context, options) {
@@ -275,6 +298,8 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
       });
       fp.browse();
     });
+
+    this._restoreSheetScrollPosition();
 
     const bindDropZone = (zoneId, type, targetTextArea) => {
       const zone = this.element.querySelector(zoneId);

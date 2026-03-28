@@ -255,23 +255,49 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
   }
 
   _rememberSheetScrollPosition() {
-    const scrollable = this.element?.querySelector(".sheet-body") ?? this.element;
-    if (!scrollable || !(scrollable instanceof HTMLElement)) return;
-    this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop || 0));
+    const root = this.element;
+    if (!root) return;
+
+    const windowContent = root.querySelector(".window-content")
+      ?? root.closest?.(".window-content");
+    const sheetRoot = root.querySelector(".mythic-soldier-type-sheet") ?? root;
+    const body = root.querySelector(".ability-sheet-body");
+
+    this._sheetScrollState = {
+      windowContentTop: windowContent instanceof HTMLElement ? Math.max(0, Number(windowContent.scrollTop || 0)) : 0,
+      sheetRootTop: sheetRoot instanceof HTMLElement ? Math.max(0, Number(sheetRoot.scrollTop || 0)) : 0,
+      bodyTop: body instanceof HTMLElement ? Math.max(0, Number(body.scrollTop || 0)) : 0
+    };
   }
 
   _restoreSheetScrollPosition() {
-    const scrollable = this.element?.querySelector(".sheet-body") ?? this.element;
-    if (!scrollable || !(scrollable instanceof HTMLElement)) return;
-    const saved = Math.max(0, Number(this._sheetScrollTop || 0));
-    if (!saved) return;
-    scrollable.scrollTop = saved;
-    requestAnimationFrame(() => {
-      scrollable.scrollTop = saved;
-      requestAnimationFrame(() => {
-        scrollable.scrollTop = saved;
-      });
-    });
+    const state = this._sheetScrollState;
+    if (!state) return;
+
+    const apply = () => {
+      const root = this.element;
+      if (!root) return;
+
+      const windowContent = root.querySelector(".window-content")
+        ?? root.closest?.(".window-content");
+      const sheetRoot = root.querySelector(".mythic-soldier-type-sheet") ?? root;
+      const body = root.querySelector(".ability-sheet-body");
+
+      if (windowContent instanceof HTMLElement) {
+        windowContent.scrollTop = Math.max(0, Number(state.windowContentTop || 0));
+      }
+      if (sheetRoot instanceof HTMLElement) {
+        sheetRoot.scrollTop = Math.max(0, Number(state.sheetRootTop || 0));
+      }
+      if (body instanceof HTMLElement) {
+        body.scrollTop = Math.max(0, Number(state.bodyTop || 0));
+      }
+    };
+
+    apply();
+    requestAnimationFrame(apply);
+    setTimeout(apply, 60);
+    setTimeout(apply, 180);
   }
 
   async _onRender(context, options) {

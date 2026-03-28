@@ -106,9 +106,9 @@
       <div class="ability-info-row ability-col">
         <label for="skill-choice-tier">Skill Tier</label>
         <select id="skill-choice-tier" name="mythic.skillChoiceTier" {{#unless canEditFields}}disabled{{/unless}}>
-          <option value="trained" {{#if skillChoice.selectedTiers.trained}}selected{{/if}}>Trained</option>
-          <option value="+10" {{#if skillChoice.selectedTiers['+10']}}selected{{/if}}>+10</option>
-          <option value="+20" {{#if skillChoice.selectedTiers['+20']}}selected{{/if}}>+20</option>
+          <option value="trained" {{#if skillChoice.isTrained}}selected{{/if}}>Trained</option>
+          <option value="+10" {{#if skillChoice.isPlus10}}selected{{/if}}>+10</option>
+          <option value="+20" {{#if skillChoice.isPlus20}}selected{{/if}}>+20</option>
         </select>
       </div>
       <div class="ability-info-row ability-col">
@@ -121,8 +121,8 @@
       <div class="ability-info-row ability-col">
         <label for="education-choice-tier">Education Tier</label>
         <select id="education-choice-tier" name="mythic.educationChoiceTier" {{#unless canEditFields}}disabled{{/unless}}>
-          <option value="+5" {{#if educationChoice.selectedTiers['+5']}}selected{{/if}}>+5</option>
-          <option value="+10" {{#if educationChoice.selectedTiers['+10']}}selected{{/if}}>+10</option>
+          <option value="+5" {{#if educationChoice.isPlus5}}selected{{/if}}>+5</option>
+          <option value="+10" {{#if educationChoice.isPlus10}}selected{{/if}}>+10</option>
         </select>
       </div>
       <div class="ability-info-row ability-col" style="grid-column: span 2;">

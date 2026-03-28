@@ -51,23 +51,21 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
       { value: "Covenant", label: "Covenant", checked: sys.training?.includes("Covenant") }
     ];
     const skillChoice = Array.isArray(sys.skillChoices) && sys.skillChoices.length > 0 ? sys.skillChoices[0] : { count: 0, tier: "trained" };
+    const skillTier = String(skillChoice.tier ?? "trained").toLowerCase();
     context.skillChoice = {
       count: Number(skillChoice.count ?? 0),
-      tier: String(skillChoice.tier ?? "trained"),
-      selectedTiers: {
-        trained: String(skillChoice.tier ?? "trained").toLowerCase() === "trained",
-        "+10": String(skillChoice.tier ?? "").toLowerCase() === "+10",
-        "+20": String(skillChoice.tier ?? "").toLowerCase() === "+20"
-      }
+      tier: skillTier,
+      isTrained: skillTier === "trained",
+      isPlus10: skillTier === "+10",
+      isPlus20: skillTier === "+20"
     };
     const educationChoice = Array.isArray(sys.educationChoices) && sys.educationChoices.length > 0 ? sys.educationChoices[0] : { count: 0, tier: "+5" };
+    const educationTier = String(educationChoice.tier ?? "+5").toLowerCase();
     context.educationChoice = {
       count: Number(educationChoice.count ?? 0),
-      tier: String(educationChoice.tier ?? "+5"),
-      selectedTiers: {
-        "+5": String(educationChoice.tier ?? "").toLowerCase() === "+5",
-        "+10": String(educationChoice.tier ?? "").toLowerCase() === "+10"
-      }
+      tier: educationTier,
+      isPlus5: educationTier === "+5",
+      isPlus10: educationTier === "+10"
     };
     context.customPromptMessagesText = Array.isArray(sys.customPromptMessages) ? sys.customPromptMessages.join("\n") : "";
     context.educationsText = (Array.isArray(sys.educations) ? sys.educations : []).join("\n");

@@ -818,7 +818,7 @@ export async function importSoldierTypesFromJson(options = {}) {
       }
     }
   }
-
+}
 
 export async function refreshTraitsCompendium(options = {}) {
   if (!game.user?.isGM) {

@@ -485,6 +485,10 @@ export function registerAllHooks() {
 
     if (game.user?.isGM) {
       await maybeRunCompendiumCanonicalMigration();
+      // Ensure reference compendiums are reconciled with canonical JSON on GM startup.
+      await importSoldierTypesFromJson();
+      await refreshAbilitiesCompendium();
+      await refreshTraitsCompendium();
       await applyMythicTokenDefaultsToWorld();
     }
 

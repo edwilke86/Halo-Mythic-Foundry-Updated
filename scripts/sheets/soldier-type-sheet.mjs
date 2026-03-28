@@ -244,6 +244,8 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
     }
 
     const normalizedSystem = normalizeSoldierTypeSystemData(foundry.utils.getProperty(submitData, "system") ?? {});
+    // Keep edit mode active while editing fields.
+    normalizedSystem.editMode = Boolean(this.item.system?.editMode);
     foundry.utils.setProperty(submitData, "system", normalizedSystem);
 
     return submitData;

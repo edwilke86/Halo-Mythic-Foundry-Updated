@@ -23,7 +23,7 @@
       <textarea id="soldier-description" name="system.description" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{soldierType.description}}</textarea>
     </div>
 
-    <div class="ability-grid-3">
+    <div class="ability-grid-4">
       <div class="ability-info-row ability-col">
         <label for="soldier-header-short-name">Short Name <span style="font-size:9px;opacity:0.6;">(on character sheet)</span></label>
         <input id="soldier-header-short-name" type="text" name="system.header.shortName" value="{{soldierType.header.shortName}}" placeholder="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
@@ -31,6 +31,14 @@
       <div class="ability-info-row ability-col">
         <label for="soldier-header-rank">Minimum Rank</label>
         <input id="soldier-header-rank" type="text" name="system.header.rank" value="{{soldierType.header.rank}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-header-race">Race</label>
+        <input id="soldier-header-race" type="text" name="system.header.race" value="{{soldierType.header.race}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="soldier-creation-xp">XP Cost</label>
+        <input id="soldier-creation-xp" type="number" min="0" step="1" name="system.creation.xpCost" value="{{soldierType.creation.xpCost}}" {{#unless canEditFields}}disabled{{/unless}} />
       </div>
     </div>
 
@@ -90,7 +98,7 @@
       <label>Weapon Training (select any)</label>
       <div class="ability-grid-4">
         {{#each trainingOptions.weapon}}
-          <div class="ability-col"><label><input type="checkbox" data-training-value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
+          <div class="ability-col"><label><input type="checkbox" data-training-value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
         {{/each}}
       </div>
     </div>
@@ -99,7 +107,7 @@
       <label>Faction Training (select any)</label>
       <div class="ability-grid-3">
         {{#each trainingOptions.faction}}
-          <div class="ability-col"><label><input type="checkbox" data-training-value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
+          <div class="ability-col"><label><input type="checkbox" data-training-value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
         {{/each}}
       </div>
     </div>
@@ -140,8 +148,8 @@
       <div id="custom-prompts-container">
         {{#each customPromptMessages}}
           <div class="custom-prompt-row">
-            <input type="text" name="mythic.customPromptMessages" value="{{this}}" {{#unless canEditFields}}disabled{{/unless}} />
-            {{#if canEditFields}}<button type="button" class="action-btn custom-prompt-remove-btn" data-index="{{@index}}">Remove</button>{{/if}}
+            <textarea data-custom-prompt-index="{{@index}}" rows="3" {{#unless ../canEditFields}}disabled{{/unless}}>{{this}}</textarea>
+            {{#if ../canEditFields}}<button type="button" class="action-btn custom-prompt-remove-btn" data-index="{{@index}}">Remove</button>{{/if}}
           </div>
         {{/each}}
       </div>

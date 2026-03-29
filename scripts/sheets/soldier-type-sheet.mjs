@@ -123,14 +123,17 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
       foundry.utils.setProperty(submitData, "system.training", parseLines(trainingText));
     }
 
-    const trainingOptions = foundry.utils.getProperty(submitData, "mythic.trainingOptions");
-    if (trainingOptions !== undefined) {
-      const list = Array.isArray(trainingOptions)
-        ? trainingOptions.map((entry) => String(entry ?? "").trim()).filter(Boolean)
-        : parseLines(String(trainingOptions ?? ""));
-      if (list.length) {
-        foundry.utils.setProperty(submitData, "system.training", Array.from(new Set(list)));
-      }
+    // When the training checkbox section is present in the form, always write from it.
+    // Unchecked checkboxes are absent from formData, so we treat absent as an empty array.
+    const hasTrainingSection = foundry.utils.getProperty(submitData, "mythic.hasTrainingSection");
+    if (hasTrainingSection !== undefined) {
+      const trainingOptions = foundry.utils.getProperty(submitData, "mythic.trainingOptions");
+      const list = trainingOptions === undefined
+        ? []
+        : Array.isArray(trainingOptions)
+          ? trainingOptions.map((entry) => String(entry ?? "").trim()).filter(Boolean)
+          : [String(trainingOptions ?? "").trim()].filter(Boolean);
+      foundry.utils.setProperty(submitData, "system.training", Array.from(new Set(list)));
     }
 
     const skillChoiceCount = Number(foundry.utils.getProperty(submitData, "mythic.skillChoiceCount") ?? 0);

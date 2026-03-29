@@ -88,6 +88,7 @@
 
     <div class="ability-info-row ability-notes-row">
       <label>Weapon Training (select any)</label>
+      <input type="hidden" name="mythic.hasTrainingSection" value="1" />
       <div class="ability-grid-4">
         {{#each trainingOptions.weapon}}
           <div class="ability-col"><label><input type="checkbox" name="mythic.trainingOptions" value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>

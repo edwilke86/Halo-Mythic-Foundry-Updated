@@ -22,7 +22,8 @@ export class MythicAbilitySheet extends HandlebarsApplicationMixin(ItemSheetV2) 
 
   static PARTS = {
     sheet: {
-      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/ability-sheet.hbs"
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/ability-sheet.hbs",
+      scrollable: [".ability-sheet-body"]
     }
   };
 

@@ -784,7 +784,7 @@ export function normalizeSoldierTypeSystemData(systemData, itemName = "") {
   merged.description = String(merged.description ?? "").trim();
   merged.notes = String(merged.notes ?? "").trim();
 
-  for (const key of ["faction", "soldierType", "rank", "specialisation", "race", "buildSize", "upbringing", "environment", "lifestyle"]) {
+  for (const key of ["shortName", "faction", "soldierType", "rank", "specialisation", "race", "buildSize", "upbringing", "environment", "lifestyle"]) {
     merged.header[key] = String(merged.header?.[key] ?? "").trim();
   }
 

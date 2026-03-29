@@ -205,7 +205,10 @@ export class MythicLifestyleSheet extends HandlebarsApplicationMixin(ItemSheetV2
   }, { inplace: false });
 
   static PARTS = {
-    sheet: { template: "systems/Halo-Mythic-Foundry-Updated/templates/item/lifestyle-sheet.hbs" }
+    sheet: {
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/lifestyle-sheet.hbs",
+      scrollable: [".item-sheet-body"]
+    }
   };
 
   async _prepareContext(options) {

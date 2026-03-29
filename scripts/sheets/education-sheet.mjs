@@ -24,7 +24,8 @@ export class MythicEducationSheet extends HandlebarsApplicationMixin(ItemSheetV2
 
   static PARTS = {
     sheet: {
-      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/education-sheet.hbs"
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/education-sheet.hbs",
+      scrollable: [".edu-sheet-body"]
     }
   };
 

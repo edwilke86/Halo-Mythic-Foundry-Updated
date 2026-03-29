@@ -10332,8 +10332,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const headerKeys = ["faction", "soldierType", "rank", "race", "buildSize", "upbringing", "environment", "lifestyle"];
     const soldierTypeControlledHeaderKeys = new Set(["faction", "soldierType", "race", "buildSize"]);
     const headerValues = foundry.utils.deepClone(templateHeaderSource ?? {});
+    // Use shortName (if set) as the display name on the character sheet, falling back to the item name.
+    const shortName = String(templateSystem?.header?.shortName ?? "").trim();
     if (!String(headerValues.soldierType ?? "").trim()) {
-      headerValues.soldierType = String(templateName ?? "").trim();
+      headerValues.soldierType = shortName || String(templateName ?? "").trim();
     }
     if (this._normalizeNameForMatch(templateName) === "civilian") {
       headerValues.race = "Human";

@@ -24,6 +24,7 @@ export function getCanonicalSoldierTypeSystemData() {
       xpCost: 0
     },
     header: {
+      shortName: "",
       faction: "",
       soldierType: "",
       rank: "",

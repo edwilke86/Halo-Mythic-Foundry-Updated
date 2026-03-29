@@ -14,8 +14,8 @@
 
   <section class="ability-sheet-body">
     <div class="ability-info-row">
-      <label for="soldier-name">Full Name</label>
-      <input id="soldier-name" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
+      <label for="soldier-full-name">Full Name</label>
+      <input id="soldier-full-name" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
     </div>
 
     <div class="ability-info-row ability-notes-row">
@@ -25,8 +25,8 @@
 
     <div class="ability-grid-3">
       <div class="ability-info-row ability-col">
-        <label for="soldier-header-type">Soldier Type (Short Name)</label>
-        <input id="soldier-header-type" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
+        <label for="soldier-header-short-name">Short Name <span style="font-size:9px;opacity:0.6;">(on character sheet)</span></label>
+        <input id="soldier-header-short-name" type="text" name="system.header.shortName" value="{{soldierType.header.shortName}}" placeholder="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
       </div>
       <div class="ability-info-row ability-col">
         <label for="soldier-header-rank">Minimum Rank</label>

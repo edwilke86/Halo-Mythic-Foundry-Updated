@@ -7,7 +7,7 @@ const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
 
 export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
-  _sheetScrollTop = 0;
+  _lastBodyScrollTop = 0;
 
   static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
       classes: ["mythic-system", "sheet", "item", "soldier-type"],
@@ -26,7 +26,8 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
 
   static PARTS = {
     sheet: {
-      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/soldier-type-sheet.hbs"
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/soldier-type-sheet.hbs",
+      scrollable: [".ability-sheet-body"]
     }
   };
 
@@ -240,7 +241,8 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
       }
     }
 
-    this._rememberSheetScrollPosition();
+    const bodyEl = this.element?.querySelector(".ability-sheet-body");
+    this._lastBodyScrollTop = bodyEl instanceof HTMLElement ? bodyEl.scrollTop : 0;
 
     const mythicData = foundry.utils.getProperty(submitData, "mythic");
     if (mythicData !== undefined) {
@@ -254,54 +256,19 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
     return submitData;
   }
 
-  _rememberSheetScrollPosition() {
-    const root = this.element;
-    if (!root) return;
-
-    const windowContent = root.querySelector(".window-content")
-      ?? root.closest?.(".window-content");
-    const sheetRoot = root.querySelector(".mythic-soldier-type-sheet") ?? root;
-    const body = root.querySelector(".ability-sheet-body");
-
-    this._sheetScrollState = {
-      windowContentTop: windowContent instanceof HTMLElement ? Math.max(0, Number(windowContent.scrollTop || 0)) : 0,
-      sheetRootTop: sheetRoot instanceof HTMLElement ? Math.max(0, Number(sheetRoot.scrollTop || 0)) : 0,
-      bodyTop: body instanceof HTMLElement ? Math.max(0, Number(body.scrollTop || 0)) : 0
-    };
-  }
-
-  _restoreSheetScrollPosition() {
-    const state = this._sheetScrollState;
-    if (!state) return;
-
-    const apply = () => {
-      const root = this.element;
-      if (!root) return;
-
-      const windowContent = root.querySelector(".window-content")
-        ?? root.closest?.(".window-content");
-      const sheetRoot = root.querySelector(".mythic-soldier-type-sheet") ?? root;
-      const body = root.querySelector(".ability-sheet-body");
-
-      if (windowContent instanceof HTMLElement) {
-        windowContent.scrollTop = Math.max(0, Number(state.windowContentTop || 0));
-      }
-      if (sheetRoot instanceof HTMLElement) {
-        sheetRoot.scrollTop = Math.max(0, Number(state.sheetRootTop || 0));
-      }
-      if (body instanceof HTMLElement) {
-        body.scrollTop = Math.max(0, Number(state.bodyTop || 0));
-      }
-    };
-
-    apply();
-    requestAnimationFrame(apply);
-    setTimeout(apply, 60);
-    setTimeout(apply, 180);
-  }
-
   async _onRender(context, options) {
     await super._onRender(context, options);
+
+    if (Number.isFinite(Number(this._lastBodyScrollTop))) {
+      const bodyEl = this.element?.querySelector(".ability-sheet-body");
+      if (bodyEl instanceof HTMLElement) {
+        const scrollTop = Number(this._lastBodyScrollTop) || 0;
+        requestAnimationFrame(() => {
+          bodyEl.scrollTop = scrollTop;
+        });
+      }
+    }
+
     if (!this.isEditable) return;
 
     const toggleBtn = this.element?.querySelector(".mythic-toggle-edit-btn");
@@ -314,18 +281,17 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
     }
 
     const imgEl = this.element?.querySelector(".ability-sheet-icon");
-    if (!imgEl) return;
-    imgEl.style.cursor = "pointer";
-    imgEl.addEventListener("click", () => {
-      const fp = new FilePicker({
-        type: "image",
-        current: this.item.img,
-        callback: (path) => this.item.update({ img: path })
+    if (imgEl) {
+      imgEl.style.cursor = "pointer";
+      imgEl.addEventListener("click", () => {
+        const fp = new FilePicker({
+          type: "image",
+          current: this.item.img,
+          callback: (path) => this.item.update({ img: path })
+        });
+        fp.browse();
       });
-      fp.browse();
-    });
-
-    this._restoreSheetScrollPosition();
+    }
 
     const bindDropZone = (zoneId, type, targetTextArea) => {
       const zone = this.element.querySelector(zoneId);

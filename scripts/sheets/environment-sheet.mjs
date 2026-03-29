@@ -30,7 +30,10 @@ export class MythicEnvironmentSheet extends HandlebarsApplicationMixin(ItemSheet
   }, { inplace: false });
 
   static PARTS = {
-    sheet: { template: "systems/Halo-Mythic-Foundry-Updated/templates/item/environment-sheet.hbs" }
+    sheet: {
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/environment-sheet.hbs",
+      scrollable: [".item-sheet-body"]
+    }
   };
 
   async _prepareContext(options) {

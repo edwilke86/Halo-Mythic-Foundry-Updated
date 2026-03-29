@@ -24,7 +24,8 @@ export class MythicArmorVariantSheet extends HandlebarsApplicationMixin(ItemShee
 
   static PARTS = {
     sheet: {
-      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/armor-variant-sheet.hbs"
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/armor-variant-sheet.hbs",
+      scrollable: [".ability-sheet-body"]
     }
   };
 

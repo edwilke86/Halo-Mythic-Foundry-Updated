@@ -466,7 +466,10 @@ export class MythicUpbringingSheet extends HandlebarsApplicationMixin(ItemSheetV
   }, { inplace: false });
 
   static PARTS = {
-    sheet: { template: "systems/Halo-Mythic-Foundry-Updated/templates/item/upbringing-sheet.hbs" }
+    sheet: {
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/upbringing-sheet.hbs",
+      scrollable: [".item-sheet-body"]
+    }
   };
 
   async _prepareContext(options) {

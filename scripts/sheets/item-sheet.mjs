@@ -141,7 +141,8 @@ export class MythicItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 
   static PARTS = {
     sheet: {
-      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/item-sheet.hbs"
+      template: "systems/Halo-Mythic-Foundry-Updated/templates/item/item-sheet.hbs",
+      scrollable: [".ability-sheet-body", ".gear-item-body"]
     }
   };
 

@@ -123,18 +123,6 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
       foundry.utils.setProperty(submitData, "system.training", parseLines(trainingText));
     }
 
-    // When the training checkbox section is present in the form, always write from it.
-    // Unchecked checkboxes are absent from formData, so we treat absent as an empty array.
-    const hasTrainingSection = foundry.utils.getProperty(submitData, "mythic.hasTrainingSection");
-    if (hasTrainingSection !== undefined) {
-      const trainingOptions = foundry.utils.getProperty(submitData, "mythic.trainingOptions");
-      const list = trainingOptions === undefined
-        ? []
-        : Array.isArray(trainingOptions)
-          ? trainingOptions.map((entry) => String(entry ?? "").trim()).filter(Boolean)
-          : [String(trainingOptions ?? "").trim()].filter(Boolean);
-      foundry.utils.setProperty(submitData, "system.training", Array.from(new Set(list)));
-    }
 
     const skillChoiceCount = Number(foundry.utils.getProperty(submitData, "mythic.skillChoiceCount") ?? 0);
     const skillChoiceTier = String(foundry.utils.getProperty(submitData, "mythic.skillChoiceTier") ?? "trained").trim() || "trained";
@@ -380,6 +368,21 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
         await this.item.update({ "system.customPromptMessages": [...currentPrompts, ""] });
       });
     }
+
+      // Training checkboxes — no form name, handled via direct JS update to avoid
+      // FormData's inability to reliably aggregate multiple same-name checkboxes.
+      const trainingCheckboxes = this.element.querySelectorAll("[data-training-value]");
+      if (trainingCheckboxes.length) {
+        const updateTraining = async () => {
+          const checked = [...this.element.querySelectorAll("[data-training-value]:checked")]
+            .map((cb) => String(cb.dataset.trainingValue ?? "").trim())
+            .filter(Boolean);
+          await this.item.update({ "system.training": Array.from(new Set(checked)) });
+        };
+        for (const cb of trainingCheckboxes) {
+          cb.addEventListener("change", updateTraining);
+        }
+      }
 
     if (customPromptsContainer) {
       customPromptsContainer.addEventListener("click", async (event) => {

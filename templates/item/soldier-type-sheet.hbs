@@ -88,10 +88,9 @@
 
     <div class="ability-info-row ability-notes-row">
       <label>Weapon Training (select any)</label>
-      <input type="hidden" name="mythic.hasTrainingSection" value="1" />
       <div class="ability-grid-4">
         {{#each trainingOptions.weapon}}
-          <div class="ability-col"><label><input type="checkbox" name="mythic.trainingOptions" value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
+          <div class="ability-col"><label><input type="checkbox" data-training-value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
         {{/each}}
       </div>
     </div>
@@ -100,7 +99,7 @@
       <label>Faction Training (select any)</label>
       <div class="ability-grid-3">
         {{#each trainingOptions.faction}}
-          <div class="ability-col"><label><input type="checkbox" name="mythic.trainingOptions" value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
+          <div class="ability-col"><label><input type="checkbox" data-training-value="{{this.value}}" {{#if this.checked}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} /> {{this.label}}</label></div>
         {{/each}}
       </div>
     </div>

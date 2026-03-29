@@ -1934,9 +1934,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _getHeaderViewData(systemData) {
     const normalized = normalizeCharacterSystemData(systemData);
     const header = normalized?.header ?? {};
+    const soldierTypeFactionChoice = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeFactionChoice") ?? {};
     const values = {
       faction: String(header.faction ?? "").trim(),
       soldierType: String(header.soldierType ?? "").trim(),
+      soldierTypeFull: String(soldierTypeFactionChoice?.soldierTypeName ?? "").trim(),
       rank: String(header.rank ?? "").trim(),
       buildSize: String(header.buildSize ?? "").trim(),
       specialisation: String(header.specialisation ?? "").trim(),
@@ -1961,6 +1963,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       gender: false,
       playerName: false
     };
+
+    if (!values.soldierTypeFull) values.soldierTypeFull = values.soldierType;
+
+    const soldierTypeCanonicalId = String(soldierTypeFactionChoice?.soldierTypeCanonicalId ?? "").trim().toLowerCase();
+    if (soldierTypeCanonicalId) {
+      try {
+        const referenceRows = await loadReferenceSoldierTypeItems();
+        const matched = referenceRows.find((entry) => String(entry?.system?.sync?.canonicalId ?? "").trim().toLowerCase() === soldierTypeCanonicalId) ?? null;
+        if (matched?.name) values.soldierTypeFull = String(matched.name).trim();
+      } catch (_err) {
+        // Non-fatal lookup fallback.
+      }
+    }
 
     const hasSoldierType = values.soldierType.length > 0;
     if (hasSoldierType) {
@@ -8552,10 +8567,29 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeFactionChoice", {
         soldierTypeCanonicalId: canonicalId,
+        soldierTypeName: String(itemData?.name ?? "").trim(),
         choiceKey: selectedChoiceKey,
         faction: String(factionChoice?.faction ?? "").trim(),
         insurrectionist: isInsurrectionist
       });
+
+      // Ensure base Soldier Type XP always lands for overwrite flow.
+      const appliedSoldierTypeXp = toNonNegativeWhole(resolvedTemplate?.creation?.xpCost ?? 0, 0);
+      const soldierTypeLabel = `Soldier-Type: ${String(itemData?.name ?? "Selected Soldier Type").trim() || "Selected Soldier Type"}`;
+      const xpTransactions = appliedSoldierTypeXp > 0
+        ? [{
+            id: `txn-${Date.now()}-soldiertype`,
+            label: soldierTypeLabel,
+            amount: appliedSoldierTypeXp,
+            createdAt: Date.now(),
+            source: "soldiertype"
+          }]
+        : [];
+      await this.actor.update({
+        "system.advancements.xpSpent": appliedSoldierTypeXp,
+        "system.advancements.transactions": xpTransactions
+      });
+
       await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "soldierTypeTrainingPathChoice", {
         soldierTypeCanonicalId: canonicalId,
         choiceKey: selectedTrainingPathKey,

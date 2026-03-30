@@ -788,7 +788,7 @@
                                 "int":  25,
                                 "per":  35,
                                 "crg":  40,
-                                "cha":  25,
+                                "cha":  10,
                                 "ldr":  30
                             },
         "characteristicAdvancements":  {
@@ -818,7 +818,8 @@
                              }
                          ],
         "abilities":  [
-                          "Emotionally Broken"
+                          "Emotionally Broken",
+                          "Fast Foot"
                       ],
         "traits":  [
                        "Rank (Spartan II)",

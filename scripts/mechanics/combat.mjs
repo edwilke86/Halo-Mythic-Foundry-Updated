@@ -45,7 +45,7 @@ export function parseFireModeProfile(modeValue) {
   let kind = "single";
   if (/\bsemi\b|\bsa\b/u.test(normalized)) kind = "semi";
   else if (/\bburst\b|\bbf\b/u.test(normalized)) kind = "burst";
-  else if (/\bfull\s*auto\b|\bfa\b|\bauto\b/u.test(normalized)) kind = "auto";
+  else if (/\bfull\s*auto\b|\bfa\b|\bauto\b|\bautomatic\b/u.test(normalized)) kind = "auto";
   else if (/\bsustained\b/u.test(normalized)) kind = "sustained";
   else if (/\bpump\b/u.test(normalized)) kind = "pump";
   else if (/\bflintlock\b/u.test(normalized)) kind = "flintlock";
@@ -63,7 +63,9 @@ export function getAttackIterationsForProfile(profile, actionType) {
   const perHalf = Math.max(1, profile.count);
   if (profile.kind === "charge" || profile.kind === "drawback") return 1;
   if (profile.kind === "auto" || profile.kind === "sustained") {
-    return action === "full" ? perHalf : Math.max(1, Math.floor(perHalf / 2));
+    if (action === "full") return perHalf;
+    if (profile.kind === "auto") return Math.floor(perHalf / 2);
+    return Math.max(1, Math.floor(perHalf / 2));
   }
   if (profile.kind === "burst") return action === "full" ? 2 : 1;
   return action === "full" ? perHalf * 2 : perHalf;

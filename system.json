@@ -44,6 +44,11 @@
           "biography.physical.definingFeatures"
         ]
       },
+      "bestiary": {
+        "htmlFields": [
+          "biography.physical.generalDescription"
+        ]
+      },
       "Group": {
         "label": "Group",
         "htmlFields": [

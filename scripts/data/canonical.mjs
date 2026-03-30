@@ -55,7 +55,9 @@ export function getCanonicalCharacterSystemData() {
       soldierTypeTouCarryMultiplier: 1,
       soldierTypeTouWoundsMultiplier: 1,
       soldierTypeLeapMultiplier: 1,
+      soldierTypeJumpMultiplier: 1,
       soldierTypeLeapModifier: 0,
+      soldierTypeLeapAgiBonus: 0,
       miscLeapModifier: 0,
       miscCarryBonus: 0,
       miscWoundsModifier: 0,
@@ -117,6 +119,18 @@ export function getCanonicalCharacterSystemData() {
         }
       },
       reactions: { count: 0 },
+      actionEconomy: {
+        combatId: "",
+        round: 0,
+        turn: 0,
+        halfActionsSpent: 0,
+        history: []
+      },
+      autoFireTracker: {
+        combatId: "",
+        round: 0,
+        weapons: {}
+      },
       targetSwitch: {
         combatId: "",
         round: 0,
@@ -159,6 +173,7 @@ export function getCanonicalCharacterSystemData() {
       status: "",
       treatmentNotes: "",
       recoveryNotes: "",
+      activeEffects: [],
       gammaCompany: {
         enabled: false,
         smootherApplications: 0,
@@ -275,4 +290,73 @@ export function getCanonicalCharacterSystemData() {
       oniSerial: ""
     }
   };
+}
+
+export function getCanonicalBestiarySystemData() {
+  const base = getCanonicalCharacterSystemData();
+  const baseCharacteristics = {
+    str: 0,
+    tou: 0,
+    agi: 0,
+    wfm: 0,
+    wfr: 0,
+    int: 0,
+    per: 0,
+    crg: 0,
+    cha: 0,
+    ldr: 0
+  };
+
+  base.header.playerName = "";
+  base.header.upbringing = "";
+  base.header.environment = "";
+  base.header.lifestyle = "";
+
+  base.bestiary = {
+    rank: 1,
+    singleDifficulty: false,
+    advanceMythicStats: false,
+    baseCharacteristics: foundry.utils.deepClone(baseCharacteristics),
+    miscCharacteristics: foundry.utils.deepClone(baseCharacteristics),
+    mythicBase: {
+      str: 0,
+      tou: 0,
+      agi: 0
+    },
+    xpPayouts: {
+      br1: 0,
+      br2: 0,
+      br3: 0,
+      br4: 0,
+      br5: 0
+    },
+    woundsByRank: {
+      br1: 0,
+      br2: 0,
+      br3: 0,
+      br4: 0,
+      br5: 0
+    },
+    size: "Normal",
+    heightRangeCm: {
+      min: MYTHIC_DEFAULT_HEIGHT_RANGE_CM.min,
+      max: MYTHIC_DEFAULT_HEIGHT_RANGE_CM.max
+    },
+    weightRangeKg: {
+      min: MYTHIC_DEFAULT_WEIGHT_RANGE_KG.min,
+      max: MYTHIC_DEFAULT_WEIGHT_RANGE_KG.max
+    },
+    modifiers: {
+      jumpMultiplier: 1,
+      leapAgiBonus: 0,
+      leapMultiplier: 1,
+      runChargeAgiBonus: 0,
+      naturalArmor: 0
+    },
+    equipmentList: [],
+    armorProfiles: [],
+    activeArmorProfileId: ""
+  };
+
+  return base;
 }

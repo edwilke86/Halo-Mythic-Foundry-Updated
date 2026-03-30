@@ -1,0 +1,521 @@
+<div class="{{cssClass}} mythic-character-sheet mythic-bestiary-shell" data-faction="1">
+  <aside class="sheet-nav">
+    <nav class="sheet-tabs tabs" data-group="primary">
+      <a class="item" data-tab="main" title="Main">
+        <i class="fas fa-user"></i>
+      </a>
+      <a class="item" data-tab="equipment" title="Equipment">
+        <i class="fas fa-toolbox"></i>
+      </a>
+      <a class="item" data-tab="medical" title="Medical">
+        <i class="fas fa-heart-pulse"></i>
+      </a>
+      <a class="item" data-tab="biography" title="Biography">
+        <i class="fas fa-book-open"></i>
+      </a>
+      <a class="item" data-tab="setup" title="Setup">
+        <i class="fas fa-gear"></i>
+      </a>
+    </nav>
+  </aside>
+
+  <section class="sheet-content">
+    <header class="mythic-bestiary-header mythic-bestiary-sticky-header">
+      <div class="mythic-bestiary-portrait-wrap">
+        <img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" alt="{{actor.name}}" />
+      </div>
+      <div class="mythic-bestiary-header-fields">
+        <h1><input name="name" type="text" value="{{actor.name}}" placeholder="Bestiary Entry" /></h1>
+        <div class="mythic-bestiary-header-grid">
+          <label>
+            BR Level
+            <select name="system.bestiary.rank">
+              {{#each rankOptions as |opt|}}
+                <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+              {{/each}}
+            </select>
+          </label>
+          <label>
+            Soldier Type
+            <input type="text" name="system.header.soldierType" value="{{system.header.soldierType}}" />
+          </label>
+          <label>
+            Race
+            <input type="text" name="system.header.race" value="{{system.header.race}}" />
+          </label>
+          <label>
+            Faction
+            <input type="text" name="system.header.faction" value="{{system.header.faction}}" />
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <div class="sheet-tab-scrollable">
+      <div class="tab main" data-group="primary" data-tab="main">
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab-characteristics-panel.hbs" }}
+
+        <section class="panel mythic-derived-panel">
+          <div class="mythic-derived-4col">
+
+            <details class="mythic-derived-card" data-collapse-key="mythic-card" open>
+              <summary>Mythic</summary>
+              <div class="mythic-mini-strip">
+                <div class="mythic-mini-block">
+                  <div class="mythic-mini-label">STR</div>
+                  <input type="number" min="0" name="system.mythic.characteristics.str" value="{{mythicDerived.mythicCharacteristics.str}}" readonly />
+                </div>
+                <div class="mythic-mini-block">
+                  <div class="mythic-mini-label">TOU</div>
+                  <input type="number" min="0" name="system.mythic.characteristics.tou" value="{{mythicDerived.mythicCharacteristics.tou}}" readonly />
+                </div>
+                <div class="mythic-mini-block">
+                  <div class="mythic-mini-label">AGI</div>
+                  <input type="number" min="0" name="system.mythic.characteristics.agi" value="{{mythicDerived.mythicCharacteristics.agi}}" readonly />
+                </div>
+              </div>
+            </details>
+
+            <details class="mythic-derived-card movement-card" data-collapse-key="movement-card" open>
+              <summary>{{#if mythicIsHuragok}}Character Movement (ONLY FLIGHT){{else}}Character Movement{{/if}}</summary>
+              <div class="movement-strip">
+                <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flyHalf}}{{else}}{{mythicDerived.movement.half}}{{/if}}</div><div class="movement-label movement-label-half">Half</div></div>
+                <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flyFull}}{{else}}{{mythicDerived.movement.full}}{{/if}}</div><div class="movement-label movement-label-full">Full</div></div>
+                <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flyCharge}}{{else}}{{mythicDerived.movement.charge}}{{/if}}</div><div class="movement-label movement-label-charge">Charge</div></div>
+                <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flyRun}}{{else}}{{mythicDerived.movement.run}}{{/if}}</div><div class="movement-label movement-label-run">Run</div></div>
+                {{#if mythicHasBlurAbility}}
+                  <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flySprint}}{{else}}{{mythicDerived.movement.sprint}}{{/if}}</div><div class="movement-label movement-label-sprint">Sprint</div></div>
+                {{/if}}
+                <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}-{{else}}{{mythicDerived.movement.jump}}{{/if}}</div><div class="movement-label">Jump</div></div>
+                <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}-{{else}}{{mythicDerived.movement.leap}}{{/if}}</div><div class="movement-label">Leap</div></div>
+              </div>
+              {{#if mythicDerived.movement.hasFlightTrait}}
+              {{#unless mythicIsHuragok}}
+              <div class="movement-fly-section">
+                <div class="movement-fly-header">Fly Speeds</div>
+                {{#if mythicDerived.movement.canFly}}
+                <div class="movement-strip">
+                  <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flyHalf}}</div><div class="movement-label movement-label-half">Half</div></div>
+                  <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flyFull}}</div><div class="movement-label movement-label-full">Full</div></div>
+                  <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flyCharge}}</div><div class="movement-label movement-label-charge">Charge</div></div>
+                  <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flyRun}}</div><div class="movement-label movement-label-run">Run</div></div>
+                  {{#if mythicHasBlurAbility}}
+                    <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flySprint}}</div><div class="movement-label movement-label-sprint">Sprint</div></div>
+                  {{/if}}
+                </div>
+                {{else}}
+                <div class="movement-fly-unavailable">Unable to fly - carrying capacity over 75%</div>
+                {{/if}}
+                <div class="movement-fly-encumbrance">Carry: {{mythicDerived.movement.carryPercentage}}%</div>
+              </div>
+              {{/unless}}
+              {{/if}}
+
+              <details class="movement-reference" data-collapse-key="movement-reference">
+                <summary>Movement Reference</summary>
+                <div class="movement-ref-content">
+                  <p><strong>Jump Distance:</strong> {{mythicDerived.movement.jump}} m. This is the maximum vertical height your character can jump.</p>
+                  <p><strong>Leap Distance:</strong> {{mythicDerived.movement.leap}} m. This is the maximum horizontal distance your character can clear.</p>
+                  <p><strong>Climb Speed:</strong> Full Action up to {{mythicDerived.movement.climbNoTest}} m with no test. Up to {{mythicDerived.movement.climbWithTest}} m with a Climb Test.</p>
+                  <p><strong>Jump Bonus While Moving:</strong> Add +1 m leap distance for every 10 m moved this turn.</p>
+                  <p><strong>Swim Speed:</strong> {{mythicDerived.movement.swimSpeed}} m/turn (STR MOD, no Mythic).</p>
+                  <p><strong>Initiative Formula:</strong> 1d10 + AGI MOD + (Mythic AGI / 2) + Manual Bonus + Misc.</p>
+                </div>
+              </details>
+            </details>
+
+            <details class="mythic-derived-card" data-collapse-key="sight-card" open>
+              <summary>Sight</summary>
+              <div class="movement-strip">
+                <div class="movement-block movement-block-wide">
+                  <div class="movement-value">{{mythicDerived.perceptiveRange.standard}}</div>
+                  <div class="movement-label">Perceptive Range</div>
+                </div>
+              </div>
+              <details class="movement-reference" data-collapse-key="sight-reference">
+                <summary>Lighting &amp; Range Penalties</summary>
+                <div class="movement-ref-content">
+                  <div class="movement-ref-row"><span>Bright / Low-Light</span><span>{{mythicDerived.perceptiveRange.brightOrLowLight}} m</span></div>
+                  <div class="movement-ref-row"><span>Blinding / Darkness</span><span>{{mythicDerived.perceptiveRange.blindingOrDarkness}} m</span></div>
+                  <div class="movement-ref-row"><span>-20 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty20Max}} m</span></div>
+                  <div class="movement-ref-row"><span>-60 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty60Max}} m</span></div>
+                </div>
+              </details>
+            </details>
+
+            <details class="mythic-derived-card" data-collapse-key="weight-card" open>
+              <summary>Weight</summary>
+              <div class="movement-strip">
+                <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.carry}}</div><div class="movement-label">Carry</div></div>
+                <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.lift}}</div><div class="movement-label">Lift</div></div>
+                <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.push}}</div><div class="movement-label">Push</div></div>
+              </div>
+              <details class="movement-reference" data-collapse-key="weight-reference">
+                <summary>Gravity</summary>
+                <div class="movement-ref-content">
+                  <div class="movement-ref-row gravity-input-row">
+                    <label>Current Gravity</label>
+                    <input type="number" name="system.gravity" min="0" max="4" step="0.1" value="{{mythicGravityValue}}" readonly />
+                    {{#if mythicIsGM}}<span class="mythic-gravity-gm-hint">Set in <strong>Game Settings</strong></span>{{/if}}
+                  </div>
+                </div>
+              </details>
+            </details>
+          </div>
+        </section>
+
+        <section class="panel mythic-combat-panel">
+          <div class="mythic-combat-section-header">
+            <h2>Combat Resources</h2>
+            <div class="mythic-initiative-control">
+              <span class="mythic-initiative-label">Init:</span>
+              <button type="button" class="action-btn mythic-initiative-roll-btn" title="Roll Initiative: 1d10 + AGI Mod + (Mythic AGI / 2) + Manual Bonus + Misc.">
+                <i class="fa-solid fa-dice-d10"></i>
+              </button>
+              <button type="button" class="action-btn fear-test-btn" title="Run a Fear Test flow (Courage -> Shock -> PTSD).">Fear Test</button>
+            </div>
+          </div>
+          <div class="mythic-combat-grid">
+            <div class="mythic-combat-column left">
+              <div class="mythic-resource-line">
+                <div class="mythic-resource-label">Wounds</div>
+                <div class="mythic-resource-values">
+                  <div class="mythic-mini-field"><span>Current</span><input type="number" min="0" name="system.combat.wounds.current" value="{{mythicCombat.wounds.current}}" /></div>
+                  <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.wounds.max" value="{{mythicCombat.wounds.max}}" readonly /></div>
+                </div>
+                <div class="mythic-resource-actions">
+                  <button type="button" class="action-btn wounds-full-heal-btn">Full Heal</button>
+                </div>
+              </div>
+
+              <div class="mythic-resource-line">
+                <div class="mythic-resource-label">Fatigue</div>
+                <div class="mythic-resource-values">
+                  <div class="mythic-mini-field"><span>Current</span><input type="number" min="0" name="system.combat.fatigue.current" value="{{mythicCombat.fatigue.current}}" /></div>
+                  <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.fatigue.max" value="{{mythicCombat.fatigue.max}}" readonly /></div>
+                </div>
+              </div>
+
+              <div class="mythic-resource-line">
+                <div class="mythic-resource-label">Luck</div>
+                <div class="mythic-resource-values">
+                  <div class="mythic-mini-field"><span>Current</span><input type="number" min="0" name="system.combat.luck.current" value="{{mythicCombat.luck.current}}" /></div>
+                  <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.luck.max" value="{{mythicCombat.luck.max}}" /></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mythic-combat-column center">
+              <div class="mythic-dr-headings">
+                <div></div>
+                <div class="mythic-dr-column-label">DR</div>
+                <div class="mythic-dr-column-label">Armor Only</div>
+              </div>
+              <div class="mythic-dr-row"><div class="mythic-dr-label">Head</div><div class="mythic-dr-value">{{mythicCombat.dr.head.total}}</div><input type="number" min="0" name="system.combat.dr.armor.head" value="{{mythicCombat.dr.head.armor}}" readonly /></div>
+              <div class="mythic-dr-row"><div class="mythic-dr-label">Chest</div><div class="mythic-dr-value">{{mythicCombat.dr.chest.total}}</div><input type="number" min="0" name="system.combat.dr.armor.chest" value="{{mythicCombat.dr.chest.armor}}" readonly /></div>
+              <div class="mythic-dr-row"><div class="mythic-dr-label">L Arm</div><div class="mythic-dr-value">{{mythicCombat.dr.lArm.total}}</div><input type="number" min="0" name="system.combat.dr.armor.lArm" value="{{mythicCombat.dr.lArm.armor}}" readonly /></div>
+              <div class="mythic-dr-row"><div class="mythic-dr-label">R Arm</div><div class="mythic-dr-value">{{mythicCombat.dr.rArm.total}}</div><input type="number" min="0" name="system.combat.dr.armor.rArm" value="{{mythicCombat.dr.rArm.armor}}" readonly /></div>
+              <div class="mythic-dr-row"><div class="mythic-dr-label">L Leg</div><div class="mythic-dr-value">{{mythicCombat.dr.lLeg.total}}</div><input type="number" min="0" name="system.combat.dr.armor.lLeg" value="{{mythicCombat.dr.lLeg.armor}}" readonly /></div>
+              <div class="mythic-dr-row"><div class="mythic-dr-label">R Leg</div><div class="mythic-dr-value">{{mythicCombat.dr.rLeg.total}}</div><input type="number" min="0" name="system.combat.dr.armor.rLeg" value="{{mythicCombat.dr.rLeg.armor}}" readonly /></div>
+              <div class="mythic-dr-row tou-row"><div class="mythic-dr-label">Base</div><div class="mythic-dr-value">{{mythicCombat.dr.touCombined}}</div><div class="mythic-dr-note">--</div></div>
+              {{#if mythicDerived.naturalArmor.enabled}}
+              <div class="mythic-dr-row mythic-dr-nat-armor-row">
+                <div class="mythic-dr-label">Nat.</div>
+                <div class="mythic-dr-value">+{{mythicCombat.dr.naturalArmorBody}}</div>
+                <div class="mythic-dr-note">Natural Armor{{#if mythicDerived.naturalArmor.isWearingArmor}} (halved){{/if}}</div>
+              </div>
+              {{/if}}
+            </div>
+
+            <div class="mythic-combat-column right">
+              <div class="mythic-right-block">
+                <div class="mythic-resource-label">Shields</div>
+                <div class="mythic-shield-grid">
+                  <div class="mythic-mini-field"><span>Current Integrity</span><input type="number" min="0" name="system.combat.shields.current" value="{{mythicCombat.shields.current}}" /></div>
+                  <div class="mythic-mini-field"><span>Max Integrity</span><input type="number" min="0" name="system.combat.shields.integrity" value="{{mythicCombat.shields.integrity}}" readonly /></div>
+                  <div class="mythic-mini-field"><span>Recharge Delay</span><input type="number" min="0" name="system.combat.shields.rechargeDelay" value="{{mythicCombat.shields.rechargeDelay}}" readonly /></div>
+                  <div class="mythic-mini-field"><button type="button" class="shields-recharge-btn mythic-mini-action-label">Recharge</button><input type="number" min="0" name="system.combat.shields.rechargeRate" value="{{mythicCombat.shields.rechargeRate}}" readonly /></div>
+                </div>
+              </div>
+
+              <div class="mythic-right-block">
+                <div class="mythic-resource-label">Support Points</div>
+                <div class="mythic-resource-values">
+                  <div class="mythic-mini-field"><span>Current</span><input type="number" min="0" name="system.combat.supportPoints.current" value="{{mythicCombat.supportPoints.current}}" /></div>
+                  <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.supportPoints.max" value="{{mythicCombat.supportPoints.max}}" /></div>
+                </div>
+              </div>
+
+              <div class="mythic-right-block">
+                <div class="mythic-resource-label">Turn Economy</div>
+                <div class="mythic-reactions-tracker mythic-action-economy-tracker">
+                  <div class="mythic-turn-economy-row">
+                    <span>Reactions: <strong class="mythic-turn-economy-symbols">{{mythicCombat.reactions.symbols}}</strong></span>
+                    <span>Half Actions: <strong>{{mythicCombat.actionEconomy.compactLabel}}</strong></span>
+                  </div>
+                  <div class="mythic-turn-economy-row">
+                    <span>Penalty: <strong>{{mythicCombat.reactions.penaltyLabel}}</strong></span>
+                    <span>Status: <strong>{{mythicCombat.actionEconomy.statusText}}</strong></span>
+                  </div>
+                  {{#if mythicCombat.actionEconomy.hasHistory}}
+                    <div class="mythic-action-economy-history">
+                      {{#each mythicCombat.actionEconomy.history}}<div>{{label}} ({{halfActions}} HA)</div>{{/each}}
+                    </div>
+                  {{/if}}
+                  <div class="mythic-reaction-controls">
+                    <button type="button" class="action-btn reaction-add-btn">+ Reaction</button>
+                    <button type="button" class="action-btn action-economy-advance-half-btn" title="Advance one Half Action.">+HA</button>
+                    <button type="button" class="action-btn turn-economy-reset-btn">Reset Turn</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mythic-ready-weapons-section">
+            <h3>Readied Weapons</h3>
+            <p class="mythic-ready-weapon-empty">No readied weapons yet. Bestiary weapon cards will hook in later.</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="tab equipment" data-group="primary" data-tab="equipment">
+        <section class="mythic-bestiary-sheet">
+          <section class="mythic-bestiary-panel">
+            <div class="mythic-bestiary-section-head">
+              <h2>Equipment List</h2>
+              <button type="button" data-action="add-equipment">Add Row</button>
+            </div>
+            {{#if equipmentList.length}}
+              <div class="mythic-bestiary-equipment-list">
+                {{#each equipmentList as |entry index|}}
+                  <div class="mythic-bestiary-equipment-row">
+                    <label>Item<input type="text" name="system.bestiary.equipmentList.{{index}}.name" value="{{entry.name}}" /></label>
+                    <label>Qty<input type="number" min="0" step="1" name="system.bestiary.equipmentList.{{index}}.quantity" value="{{entry.quantity}}" /></label>
+                    <button type="button" data-remove-equipment-id="{{entry.id}}">Remove</button>
+                    <input type="hidden" name="system.bestiary.equipmentList.{{index}}.id" value="{{entry.id}}" />
+                  </div>
+                {{/each}}
+              </div>
+            {{else}}
+              <p class="mythic-empty-state">No equipment rows yet.</p>
+            {{/if}}
+          </section>
+        </section>
+      </div>
+
+      <div class="tab medical" data-group="primary" data-tab="medical">
+        <section class="mythic-bestiary-sheet">
+          <section class="mythic-bestiary-panel">
+            <h2>Medical</h2>
+            <div class="mythic-bestiary-grid-3">
+              <label>Status<input type="text" name="system.medical.status" value="{{system.medical.status}}" /></label>
+              <label>Treatment Notes<textarea name="system.medical.treatmentNotes" rows="2">{{system.medical.treatmentNotes}}</textarea></label>
+              <label>Recovery Notes<textarea name="system.medical.recoveryNotes" rows="2">{{system.medical.recoveryNotes}}</textarea></label>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <div class="tab biography" data-group="primary" data-tab="biography">
+        <section class="mythic-bestiary-sheet">
+          <section class="mythic-bestiary-panel">
+            <div class="mythic-bestiary-section-head">
+              <h2>Bio</h2>
+              <button type="button" data-action="generate-height-weight">Generate Height/Weight (40%-60%)</button>
+            </div>
+            <div class="mythic-bestiary-grid-3">
+              <label>Height (cm)<input type="number" min="0" step="1" name="system.biography.physical.heightCm" value="{{system.biography.physical.heightCm}}" /></label>
+              <label>Weight (kg)<input type="number" min="0" step="1" name="system.biography.physical.weightKg" value="{{system.biography.physical.weightKg}}" /></label>
+              <label>Description<textarea name="system.biography.physical.generalDescription" rows="3">{{system.biography.physical.generalDescription}}</textarea></label>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <div class="tab setup" data-group="primary" data-tab="setup">
+        <section class="mythic-bestiary-sheet">
+          <section class="mythic-bestiary-panel">
+            <h2>Characteristics</h2>
+            <div class="mythic-bestiary-controls-row">
+              <label>
+                <input type="checkbox" name="system.bestiary.singleDifficulty" {{#if system.bestiary.singleDifficulty}}checked{{/if}} />
+                Single Difficulty
+              </label>
+            </div>
+            <table class="mythic-bestiary-stat-table">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  {{#each characteristicColumns as |col|}}
+                    <th>{{col.label}}</th>
+                  {{/each}}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Base Characteristics</td>
+                  {{#each characteristicColumns as |col index|}}
+                    <td><input type="number" step="1" name="system.bestiary.baseCharacteristics.{{col.key}}" value="{{lookup ../characteristicBaseValues index}}" /></td>
+                  {{/each}}
+                </tr>
+                <tr>
+                  <td>BR Modifier</td>
+                  {{#each characteristicBrValues as |value|}}
+                    <td><input type="number" value="{{value}}" disabled /></td>
+                  {{/each}}
+                </tr>
+                <tr>
+                  <td>Misc</td>
+                  {{#each characteristicColumns as |col index|}}
+                    <td><input type="number" step="1" name="system.bestiary.miscCharacteristics.{{col.key}}" value="{{lookup ../characteristicMiscValues index}}" /></td>
+                  {{/each}}
+                </tr>
+                <tr>
+                  <td>Total</td>
+                  {{#each characteristicTotalValues as |value|}}
+                    <td><input type="number" value="{{value}}" disabled /></td>
+                  {{/each}}
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <div class="mythic-bestiary-panel-row mythic-bestiary-panel-row-flex">
+            <section class="mythic-bestiary-panel mythic-bestiary-mythic-panel">
+              <h2>Mythic Characteristics</h2>
+              <div class="mythic-bestiary-controls-row">
+                <label>
+                  <input type="checkbox" name="system.bestiary.advanceMythicStats" {{#if system.bestiary.advanceMythicStats}}checked{{/if}} />
+                  Advance Mythic Stats
+                </label>
+              </div>
+              <table class="mythic-bestiary-stat-table mythic-bestiary-mythic-table">
+                <thead>
+                  <tr>
+                    <th>Source</th>
+                    {{#each mythicColumns as |col|}}
+                      <th>{{col.label}}</th>
+                    {{/each}}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Base</td>
+                    {{#each mythicColumns as |col index|}}
+                      <td><input type="number" step="1" name="system.bestiary.mythicBase.{{col.key}}" value="{{lookup ../mythicBaseValues index}}" /></td>
+                    {{/each}}
+                  </tr>
+                  <tr>
+                    <td>BR Modifier</td>
+                    {{#each mythicBrValues as |value|}}
+                      <td><input type="number" value="{{value}}" disabled /></td>
+                    {{/each}}
+                  </tr>
+                  <tr>
+                    <td>Total</td>
+                    {{#each mythicTotalValues as |value|}}
+                      <td><input type="number" value="{{value}}" disabled /></td>
+                    {{/each}}
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="mythic-bestiary-panel mythic-bestiary-xp-wounds-panel">
+              <h2>XP & Wounds By BR</h2>
+              <table class="mythic-bestiary-xp-wounds-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>BR1</th>
+                    <th>BR2</th>
+                    <th>BR3</th>
+                    <th>BR4</th>
+                    <th>BR5</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>XP</td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.xpPayouts.br1" value="{{system.bestiary.xpPayouts.br1}}" /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.xpPayouts.br2" value="{{system.bestiary.xpPayouts.br2}}" /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.xpPayouts.br3" value="{{system.bestiary.xpPayouts.br3}}" /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.xpPayouts.br4" value="{{system.bestiary.xpPayouts.br4}}" /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.xpPayouts.br5" value="{{system.bestiary.xpPayouts.br5}}" /></td>
+                  </tr>
+                  <tr>
+                    <td>Wounds</td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.woundsByRank.br1" value="{{system.bestiary.woundsByRank.br1}}" /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.woundsByRank.br2" value="{{system.bestiary.woundsByRank.br2}}" /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.woundsByRank.br3" value="{{system.bestiary.woundsByRank.br3}}" /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.woundsByRank.br4" value="{{system.bestiary.woundsByRank.br4}}" /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.woundsByRank.br5" value="{{system.bestiary.woundsByRank.br5}}" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+
+          <section class="mythic-bestiary-panel">
+            <h2>Profile And Modifiers</h2>
+            <div class="mythic-bestiary-grid-3">
+              <label>
+                Size
+                <select name="system.bestiary.size">
+                  {{#each sizeOptions as |opt|}}
+                    <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+                  {{/each}}
+                </select>
+              </label>
+              <label>Height Min (cm)<input type="number" min="0" step="1" name="system.bestiary.heightRangeCm.min" value="{{system.bestiary.heightRangeCm.min}}" /></label>
+              <label>Height Max (cm)<input type="number" min="0" step="1" name="system.bestiary.heightRangeCm.max" value="{{system.bestiary.heightRangeCm.max}}" /></label>
+              <label>Weight Min (kg)<input type="number" min="0" step="1" name="system.bestiary.weightRangeKg.min" value="{{system.bestiary.weightRangeKg.min}}" /></label>
+              <label>Weight Max (kg)<input type="number" min="0" step="1" name="system.bestiary.weightRangeKg.max" value="{{system.bestiary.weightRangeKg.max}}" /></label>
+              <label>Jump Multiplier<input type="number" step="0.1" name="system.bestiary.modifiers.jumpMultiplier" value="{{system.bestiary.modifiers.jumpMultiplier}}" /></label>
+              <label>Leap AGI Bonus<input type="number" step="1" name="system.bestiary.modifiers.leapAgiBonus" value="{{system.bestiary.modifiers.leapAgiBonus}}" /></label>
+              <label>Leap Multiplier<input type="number" step="0.1" name="system.bestiary.modifiers.leapMultiplier" value="{{system.bestiary.modifiers.leapMultiplier}}" /></label>
+              <label>AGI Bonus Run/Charge<input type="number" step="1" name="system.bestiary.modifiers.runChargeAgiBonus" value="{{system.bestiary.modifiers.runChargeAgiBonus}}" /></label>
+              <label>Natural Armor<input type="number" step="1" name="system.bestiary.modifiers.naturalArmor" value="{{system.bestiary.modifiers.naturalArmor}}" /></label>
+            </div>
+          </section>
+
+          <section class="mythic-bestiary-panel">
+            <div class="mythic-bestiary-section-head">
+              <h2>Armor Profiles</h2>
+              <button type="button" data-action="add-armor-profile">Add Armor Profile</button>
+            </div>
+            {{#if armorProfiles.length}}
+              <div class="mythic-bestiary-armor-list">
+                {{#each armorProfiles as |profile index|}}
+                  <div class="mythic-bestiary-armor-row">
+                    <div class="mythic-bestiary-grid-4">
+                      <label>Name<input type="text" name="system.bestiary.armorProfiles.{{index}}.name" value="{{profile.name}}" /></label>
+                      <label>Head<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.head" value="{{profile.head}}" /></label>
+                      <label>Chest<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.chest" value="{{profile.chest}}" /></label>
+                      <label>Arms<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.arms" value="{{profile.arms}}" /></label>
+                      <label>Legs<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.legs" value="{{profile.legs}}" /></label>
+                      <label>Shield Integrity<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.shieldIntegrity" value="{{profile.shieldIntegrity}}" /></label>
+                      <label>Recharge Delay<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.rechargeDelay" value="{{profile.rechargeDelay}}" /></label>
+                      <label>Recharge Rate<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.rechargeRate" value="{{profile.rechargeRate}}" /></label>
+                    </div>
+                    <div class="mythic-bestiary-controls-row">
+                      <label>
+                        <input type="radio" name="system.bestiary.activeArmorProfileId" value="{{profile.id}}" {{#if profile.isActive}}checked{{/if}} />
+                        Active Profile
+                      </label>
+                      <button type="button" data-remove-armor-id="{{profile.id}}">Remove</button>
+                    </div>
+                    <input type="hidden" name="system.bestiary.armorProfiles.{{index}}.id" value="{{profile.id}}" />
+                  </div>
+                {{/each}}
+              </div>
+            {{else}}
+              <p class="mythic-empty-state">No armor profiles yet.</p>
+            {{/if}}
+          </section>
+        </section>
+      </div>
+    </div>
+  </section>
+</div>

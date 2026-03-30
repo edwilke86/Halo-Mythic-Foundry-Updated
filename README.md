@@ -2,25 +2,23 @@
 
 Community Foundry VTT system project for the Halo Mythic ruleset.
 
-This project is actively in development and currently tracks Foundry v12/v13 compatibility.
+This project is actively in development and currently targets Foundry v13.
 
 ## Current Status
 
-- Implemented: core actor sheet scaffold, faction logos, faction background switching, characteristic rolls, computed characteristic modifiers, responsive header tuning, collapsible sidebar, and ongoing UI parity work.
-- In progress: data model completion, automation engine depth, and compendium-driven character building polish.
+- Implemented: modular v13 system architecture, unified actor/item sheets, characteristic and combat automation foundations, fear/shock/PTSD chat workflow, and tracked medical effects with structured duration controls.
+- In progress: deeper rules automation, Character Creation and Advancement parity polish, and compendium/content coverage expansion.
 - Roadmap: see [TODO.md](TODO.md).
 
 ## Alpha Readiness
 
-Current build target: `0.2.0-alpha.2` (playtest-ready alpha)
+Current build target: `0.2.0-alpha.4` (playtest alpha)
 
 Known alpha limitations:
 
-- Soldier Type application may require dropping the same Soldier Type twice in some cases.
-- GM specialization override can leave prior specialization grants behind.
-- Ability-drop XP handling is not fully reliable yet.
-- Ammo cannot always be manually deleted (still removed when emptied by firing).
-- Battery reload time currently does not receive characteristic-based reduction (temporary alpha behavior; remove this caveat if final rules differ).
+- Some Character Creation and Advancement workflows are still being hardened for edge cases.
+- Group inventory duplicate-row behavior can still occur in some drop flows.
+- Content/compendium coverage is incomplete and still under active import/reconciliation.
 
 Recommended alpha test focus:
 
@@ -31,7 +29,7 @@ Recommended alpha test focus:
 
 Alpha bug reporting focus (important):
 
-- On system load, players are shown an alpha bug-report notice with this guidance and a "Don't show again" option.
+- On system load, users are shown an alpha playtest notice dialog with this guidance and a "Don't show again" option.
 
 - Report calculation/rules breakages and clearly broken intended behavior.
   - Examples: "This damage calculation is incorrect." / "This flow should work but crashes or applies the wrong result."
@@ -44,7 +42,7 @@ Where to report:
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.2.0-alpha.2`
+1. Build/version: `0.2.0-alpha.4`
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -63,7 +61,7 @@ Format:
 
 Current working version:
 
-- `0.2.0-alpha.2`
+- `0.2.0-alpha.4`
 
 Rules used:
 
@@ -75,14 +73,13 @@ Rules used:
 
 Use this section for short public-facing updates as development progresses.
 
-### 0.2.0-alpha.2
+### 0.2.0-alpha.4
 
-- Established first pre-release SemVer baseline
-- Added significant sheet UI and interaction improvements
-- Added structured roadmap and milestone planning in [TODO.md](TODO.md)
-- Consolidated Character Creation + Advancement into one unified collapsible flow
-- Added XP transactions ledger with notes and automated spend entries
-- Added known-bug surfacing in-tab to support alpha testers
+- Added fear flow chat workflow updates and readability improvements (Courage -> Shock -> PTSD continuation).
+- Added structured tracked-effect duration input (number + unit) in Add Medical Effect dialog.
+- Added Minutes duration support mapped to combat countdown via `1 minute = 10 rounds`.
+- Removed load-time alpha notice chat post; retained startup modal notice flow.
+- Updated roadmap/changelog/reporting docs for alpha.4 consistency.
 
 ## Planned Major Features
 
@@ -119,7 +116,7 @@ Include a link to this repository and indicate whether changes were made.
 
 ## Development Notes
 
-- Foundry compatibility target: minimum 12, verified 13
+- Foundry compatibility target: minimum 13, verified 13.351
 - Main manifest: [system.json](system.json)
 - Main logic entry: [system.mjs](system.mjs)
 - Main stylesheet: [styles/system.css](styles/system.css)

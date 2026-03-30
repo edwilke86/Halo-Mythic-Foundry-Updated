@@ -72,20 +72,24 @@ export function computeCharacterDerivedValues(systemData = {}) {
   const rawChargeRunAgiBonus = Number(systemData?.mythic?.soldierTypeChargeRunAgiBonus);
   const chargeRunAgiBonus = Number.isFinite(rawChargeRunAgiBonus) ? rawChargeRunAgiBonus : 0;
   const chargeRunBase = Math.max(0, halfBase + chargeRunAgiBonus);
-  const jumpDistanceBase = Math.max(0, modifiers.str / 4);
+  const rawJumpMultiplier = Number(systemData?.mythic?.soldierTypeJumpMultiplier);
+  const jumpMultiplier = Number.isFinite(rawJumpMultiplier) ? Math.max(0, rawJumpMultiplier) : 1;
+  const jumpDistanceBase = Math.max(0, (modifiers.str * jumpMultiplier) / 4);
   const rawSoldierTypeLeapMultiplier = Number(systemData?.mythic?.soldierTypeLeapMultiplier);
   const soldierTypeLeapMultiplier = Number.isFinite(rawSoldierTypeLeapMultiplier)
     ? Math.max(0, rawSoldierTypeLeapMultiplier)
     : 1;
   const rawSoldierTypeLeapModifier = Number(systemData?.mythic?.soldierTypeLeapModifier);
   const soldierTypeLeapModifier = Number.isFinite(rawSoldierTypeLeapModifier) ? rawSoldierTypeLeapModifier : 0;
+  const rawLeapAgiBonus = Number(systemData?.mythic?.soldierTypeLeapAgiBonus);
+  const leapAgiBonus = Number.isFinite(rawLeapAgiBonus) ? rawLeapAgiBonus : 0;
   const rawMiscLeapModifier = Number(systemData?.mythic?.miscLeapModifier);
   const miscLeapModifier = Number.isFinite(rawMiscLeapModifier) ? rawMiscLeapModifier : 0;
   const leapDistanceBase = Math.max(
     0,
     Math.max(
       ((modifiers.str * soldierTypeLeapMultiplier) + soldierTypeLeapModifier) / 2,
-      ((modifiers.agi * soldierTypeLeapMultiplier) + soldierTypeLeapModifier) / 2
+      (((modifiers.agi + leapAgiBonus) * soldierTypeLeapMultiplier) + soldierTypeLeapModifier) / 2
     ) + miscLeapModifier
   );
 

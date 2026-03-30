@@ -137,6 +137,7 @@
         <button type="button" class="action-btn mythic-initiative-roll-btn" title="Roll Initiative: 1d10 + AGI Mod + (Mythic AGI / 2) + Manual Bonus + Misc. Fast Foot upgrades to 2d10 keep highest.">
           <i class="fa-solid fa-dice-d10"></i>
         </button>
+        <button type="button" class="action-btn fear-test-btn" title="Run a Fear Test flow (Courage -> Shock -> PTSD).">Fear Test</button>
       </div>
     </div>
     <div class="mythic-combat-grid">
@@ -212,16 +213,25 @@
         </div>
 
         <div class="mythic-right-block">
-          <div class="mythic-resource-label">Reactions</div>
-          <div class="mythic-reactions-tracker">
-            <div class="mythic-reaction-ticks">
-              {{#each mythicCombat.reactions.ticks}}<span class="mythic-reaction-tick" title="Reaction {{this}}">&#9670;</span>{{/each}}
-              {{#unless mythicCombat.reactions.count}}<span class="mythic-reaction-none">No reactions used</span>{{/unless}}
+          <div class="mythic-resource-label">Turn Economy</div>
+          <div class="mythic-reactions-tracker mythic-action-economy-tracker">
+            <div class="mythic-turn-economy-row">
+              <span>Reactions: <strong class="mythic-turn-economy-symbols">{{mythicCombat.reactions.symbols}}</strong></span>
+              <span>Half Actions: <strong>{{mythicCombat.actionEconomy.compactLabel}}</strong></span>
             </div>
-            <div class="mythic-reaction-penalty">Cumulative Penalty: <strong>{{mythicCombat.reactions.penalty}}</strong></div>
+            <div class="mythic-turn-economy-row">
+              <span>Penalty: <strong>{{mythicCombat.reactions.penaltyLabel}}</strong></span>
+              <span>Status: <strong>{{mythicCombat.actionEconomy.statusText}}</strong></span>
+            </div>
+            {{#if mythicCombat.actionEconomy.hasHistory}}
+              <div class="mythic-action-economy-history">
+                {{#each mythicCombat.actionEconomy.history}}<div>{{label}} ({{halfActions}} HA)</div>{{/each}}
+              </div>
+            {{/if}}
             <div class="mythic-reaction-controls">
-              <button type="button" class="action-btn reaction-add-btn">+ Use Reaction</button>
-              <button type="button" class="action-btn reaction-reset-btn">Reset</button>
+              <button type="button" class="action-btn reaction-add-btn">+ Reaction</button>
+              <button type="button" class="action-btn action-economy-advance-half-btn" title="Advance one Half Action if you do something that the sheet is not mechanically programmed to count as a Half Action.">+HA</button>
+              <button type="button" class="action-btn turn-economy-reset-btn">Reset Turn</button>
             </div>
           </div>
         </div>

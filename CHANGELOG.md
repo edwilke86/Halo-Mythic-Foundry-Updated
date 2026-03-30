@@ -4,9 +4,27 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
-## [0.2.0-alpha.4] - 2026-03-28
+## [Unreleased] - 2026-03-30
 
 ### Added
+
+- Add Medical Effect dialog now uses structured duration input: numeric value + unit selector.
+- New duration units supported for manual tracked effects: Half Actions, Rounds, Minutes, Hours, Days, Indefinite.
+
+### Changed
+
+- Minutes now map to combat countdown using `1 minute = 10 rounds` for tracked effects.
+- Manual tracked effect duration display now prefers user-facing labels (for example `5 min`) when present.
+- Add Medical Effect duration unit default changed to `Rounds`.
+- README/TODO/BUG_REPORTS docs and reporting template were synchronized to alpha.4 state.
+
+### Removed
+
+- Removed automatic startup alpha notice chat post; startup modal notice remains.
+
+## [0.2.0-alpha.4] - 2026-03-28
+
+### Added2   (0.2.0-alpha.4)
 
 - New user-facing changelog for release-to-release updates.
 - Added custom outlier entries directly into the main outliers list in the Abilities tab.
@@ -19,7 +37,7 @@ The format is based on Keep a Changelog, and this project follows SemVer pre-rel
 - Added live Group Sheet refresh hooks so member/resource displays update while the sheet is open.
 - Added in-sheet Known Issue warning banner above Group Inventory with current workaround guidance.
 
-### Changed
+### Changed (0.2.0-alpha.4)
 
 - General Equipment subtype no longer shows Weapon Type and now provides a long freeform Description field for custom notes.
 - Container, Weapon Modification, Armor Permutation, and Ammo Modification now follow the same long Description-focused behavior as General subtype.
@@ -34,17 +52,24 @@ The format is based on Keep a Changelog, and this project follows SemVer pre-rel
 - Removed Builder Active and Manual Mode badges from the Characteristics Builder header.
 - Cleaned up various mojibake artifacts in the sheet and reference data.
 - Fixed custom outlier persistence: save on change/blur and prevent array push crash when path is non-array.
-- Improved char builder managed hint with post-purchase GM lower-tier unlock guidance.- Upbringing/Environment/Lifestyle visual builder has been reworked (WIP); this section is under active development and requires final polish before `0.2.0-alpha.3` release.
+- Improved char builder managed hint with post-purchase GM lower-tier unlock guidance.
+- Soldier Type editing and apply flow enhancements:
+  - customPromptMessages now persist and are shown first when applying a Soldier Type (Continue / Cancel dialog)
+  - training/skill/education and dropped upbringings/lifestyles/environments/tags now persist correctly with locked/edit interactions and newline normalization
+  - drop-zone tags are non-interactive in locked mode and deletable in edit mode.
+- Upbringing/Environment/Lifestyle visual builder has been reworked (WIP); this section is under active development and requires final polish before `0.2.0-alpha.3` release.
 - Upbringing/Environment/Lifestyle visual builder now supports mechanics effects display and has improved handling for selected warfare characteristic effects.
--- Allowed for manual size selection independent of soldier type and race, while still allowing for automatic population of size based on soldier type. This allows for more flexibility in character creation while maintaining the benefits of automatic population when desired.
+- Allowed for manual size selection independent of soldier type and race, while still allowing for automatic population of size based on soldier type. This allows for more flexibility in character creation while maintaining the benefits of automatic population when desired.
 
-### Removed
+### Removed (0.2.0-alpha.4)
 
 - Removed separate Custom Outliers panel from Abilities tab.
 - Removed Character Creation finalization action control from the Character Creation panel.
 - Removed Disable Builder button from Characteristics Builder.
 
 ## [0.2.0-alpha.2] - 2026-03-26
+
+### Added (0.2.0-alpha.2)
 
 ### Release Highlights
 

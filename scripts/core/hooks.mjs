@@ -14,6 +14,14 @@ import {
   MYTHIC_CAMPAIGN_YEAR_SETTING_KEY,
   MYTHIC_WORLD_GRAVITY_SETTING_KEY,
   MYTHIC_GOOD_FORTUNE_MODE_SETTING_KEY,
+  MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY,
+  MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY,
+  MYTHIC_BESTIARY_DIFFICULTY_MODE_CHOICES,
+  MYTHIC_BESTIARY_DIFFICULTY_MODES,
+  MYTHIC_BESTIARY_RANK_CHOICES,
+  MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY,
+  MYTHIC_ENVIRONMENTAL_AUTOMATION_ENABLED_SETTING_KEY,
+  MYTHIC_FEAR_AUTOMATION_ENABLED_SETTING_KEY,
   MYTHIC_ACTOR_PARTIAL_TEMPLATES,
   MYTHIC_ITEM_PARTIAL_TEMPLATES,
   MYTHIC_EDUCATION_DEFAULT_ICON,
@@ -56,6 +64,16 @@ import {
   mythicApplyDirectAttackDamage as mythicApplyDirectAttackDamageImpl,
   mythicApplyWoundDamage as mythicApplyWoundDamageImpl
 } from "../core/chat-combat.mjs";
+
+import {
+  mythicFearRollShockTest as mythicFearRollShockTestImpl,
+  mythicFearRollPtsdTest as mythicFearRollPtsdTestImpl,
+  mythicFearRollFollowup as mythicFearRollFollowupImpl,
+  mythicFearShowReference as mythicFearShowReferenceImpl,
+  mythicCanInteractWithFearFlowMessage as mythicCanInteractWithFearFlowMessageImpl,
+  mythicGetFearFlowFlag as mythicGetFearFlowFlagImpl,
+  mythicDescribeFearFlowPermissionHint as mythicDescribeFearFlowPermissionHintImpl
+} from "../core/chat-fear.mjs";
 
 import {
   syncCreationPathItemIcons,
@@ -108,6 +126,7 @@ import {
 } from "../reference/compendium-management.mjs";
 
 import { MythicActorSheet } from "../sheets/actor-sheet.mjs";
+import { MythicBestiarySheet } from "../sheets/bestiary-sheet.mjs";
 import { MythicGroupSheet } from "../sheets/group-sheet.mjs";
 import { MythicItemSheet } from "../sheets/item-sheet.mjs";
 import { MythicSoldierTypeSheet } from "../sheets/soldier-type-sheet.mjs";
@@ -120,7 +139,7 @@ import { MythicLifestyleSheet } from "../sheets/lifestyle-sheet.mjs";
 
 const MYTHIC_ALPHA_PLAYTEST_NOTICE_FLAG = "dismissAlphaPlaytestNoticeV1";
 const MYTHIC_ALPHA_BUG_REPORT_TEMPLATE = [
-  "Build/version: 0.2.0-alpha.2",
+  "Build/version: 0.2.0-alpha.4",
   "Actor type and whether newly created or existing:",
   "Exact steps to reproduce:",
   "Expected result:",
@@ -236,6 +255,34 @@ export async function mythicApplyDirectAttackDamage(...args) {
 
 export async function mythicApplyWoundDamage(...args) {
   return mythicApplyWoundDamageImpl(...args);
+}
+
+export async function mythicFearRollShockTest(...args) {
+  return mythicFearRollShockTestImpl(...args);
+}
+
+export async function mythicFearRollPtsdTest(...args) {
+  return mythicFearRollPtsdTestImpl(...args);
+}
+
+export async function mythicFearRollFollowup(...args) {
+  return mythicFearRollFollowupImpl(...args);
+}
+
+export async function mythicFearShowReference(...args) {
+  return mythicFearShowReferenceImpl(...args);
+}
+
+export function mythicCanInteractWithFearFlowMessage(...args) {
+  return mythicCanInteractWithFearFlowMessageImpl(...args);
+}
+
+export function mythicGetFearFlowFlag(...args) {
+  return mythicGetFearFlowFlagImpl(...args);
+}
+
+export function mythicDescribeFearFlowPermissionHint(...args) {
+  return mythicDescribeFearFlowPermissionHintImpl(...args);
 }
 
 export function registerAllHooks() {
@@ -406,6 +453,53 @@ export function registerAllHooks() {
       default: false
     });
 
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY, {
+      name: "Bestiary Difficulty Control",
+      hint: "Choose whether Bestiary tokens use the campaign rank automatically, or prompt for rank per token drop.",
+      scope: "world",
+      config: true,
+      type: String,
+      choices: MYTHIC_BESTIARY_DIFFICULTY_MODE_CHOICES,
+      default: MYTHIC_BESTIARY_DIFFICULTY_MODES.global
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY, {
+      name: "Bestiary Campaign Rank",
+      hint: "Default Bestiary Rank applied to dropped Bestiary tokens when campaign mode is enabled.",
+      scope: "world",
+      config: true,
+      type: String,
+      choices: MYTHIC_BESTIARY_RANK_CHOICES,
+      default: "1"
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY, {
+      name: "Automation: Medical Effects",
+      hint: "If enabled, the system automatically records supported medical outcomes, including Special Damage, into tracked effects.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_ENVIRONMENTAL_AUTOMATION_ENABLED_SETTING_KEY, {
+      name: "Automation: Environmental Effects",
+      hint: "If enabled, the system may automatically apply supported environmental rule outcomes to tracked effects.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_FEAR_AUTOMATION_ENABLED_SETTING_KEY, {
+      name: "Automation: Fear/PTSD Effects",
+      hint: "If enabled, the system may automatically track supported fear, shock, and PTSD outcomes.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true
+    });
+
     await foundry.applications.handlebars.loadTemplates(MYTHIC_ACTOR_PARTIAL_TEMPLATES);
     await foundry.applications.handlebars.loadTemplates(MYTHIC_ITEM_PARTIAL_TEMPLATES);
 
@@ -415,6 +509,11 @@ export function registerAllHooks() {
     ActorCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicActorSheet, {
       makeDefault: true,
       types: ["character"]
+    });
+
+    ActorCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicBestiarySheet, {
+      makeDefault: true,
+      types: ["bestiary"]
     });
 
     ActorCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicGroupSheet, {
@@ -471,6 +570,15 @@ export function registerAllHooks() {
           "combat.shields.current",
           "combat.shields.integrity"
         ]
+      },
+      bestiary: {
+        bar: ["combat.woundsBar", "combat.shieldsBar"],
+        value: [
+          "combat.wounds.current",
+          "combat.wounds.max",
+          "combat.shields.current",
+          "combat.shields.integrity"
+        ]
       }
     };
   });
@@ -480,7 +588,6 @@ export function registerAllHooks() {
     void maybeRunWorldMigration();
     await migrateAmmoWeightOptionalRuleSetting();
     await migrateLegacyAiIconsToFoundryDefaults();
-    await postAlphaPlaytestChatNotice();
     await maybeShowAlphaPlaytestNotice();
 
     if (game.user?.isGM) {
@@ -755,6 +862,13 @@ export function registerAllHooks() {
   registerMythicDocumentAndChatHooks({
     mythicRollEvasion,
     mythicApplyDirectAttackDamage,
-    mythicApplyWoundDamage
+    mythicApplyWoundDamage,
+    mythicFearRollShockTest,
+    mythicFearRollPtsdTest,
+    mythicFearRollFollowup,
+    mythicFearShowReference,
+    mythicCanInteractWithFearFlowMessage,
+    mythicGetFearFlowFlag,
+    mythicDescribeFearFlowPermissionHint
   });
 }

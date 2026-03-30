@@ -1,9 +1,160 @@
-import { toNonNegativeWhole } from "../utils/helpers.mjs";
-import { normalizeSkillsData } from "../data/normalization.mjs";
+import { toNonNegativeWhole, normalizeLookupText } from "../utils/helpers.mjs";
+import { normalizeCharacterSystemData, normalizeSkillsData } from "../data/normalization.mjs";
+import { loadMythicMedicalEffectDefinitions, loadMythicSpecialDamageDefinitions } from "../data/content-loading.mjs";
 import { computeCharacterDerivedValues } from "../mechanics/derived.mjs";
 import { computeAttackDOS } from "../mechanics/combat.mjs";
 import { getSkillTierBonus } from "../reference/ref-utils.mjs";
 import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
+import { MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY } from "../config.mjs";
+
+const SPECIAL_DAMAGE_LOCATION_KEY_OVERRIDES = Object.freeze({
+  eyes: "eye",
+  hands: "hand",
+  hand: "hand",
+  forearm: "bicep-and-forearm",
+  bicep: "bicep-and-forearm",
+  elbow: "elbow-and-shoulder",
+  shoulder: "elbow-and-shoulder",
+  shin: "shin-and-thigh",
+  thigh: "shin-and-thigh",
+  knee: "knee-and-hip",
+  hip: "knee-and-hip",
+  ribcage: "ribcage-or-no-organ-struck",
+  "stomach kidney or liver": "stomach-kidney-and-liver",
+  "stomach kidney and liver": "stomach-kidney-and-liver"
+});
+
+function toEffectSlug(value = "") {
+  return normalizeLookupText(value).replace(/\s+/gu, "-");
+}
+
+function normalizeSpecialDamageLocationKey(hitLoc = null) {
+  const subZone = normalizeLookupText(hitLoc?.subZone ?? "");
+  if (!subZone) return "";
+  return SPECIAL_DAMAGE_LOCATION_KEY_OVERRIDES[subZone] ?? subZone.replace(/\s+/gu, "-");
+}
+
+function parseRangeNumber(value = "") {
+  const numeric = Number(String(value ?? "").trim());
+  return Number.isFinite(numeric) ? Math.floor(numeric) : null;
+}
+
+function isSpecialDamageRangeMatch(total, rangeText = "") {
+  const text = String(rangeText ?? "").trim();
+  if (!text) return false;
+  if (/^\d+\+$/u.test(text)) {
+    const min = parseRangeNumber(text.slice(0, -1));
+    return min !== null && total >= min;
+  }
+  if (/^\d+-\d+$/u.test(text)) {
+    const [minText, maxText] = text.split("-");
+    const min = parseRangeNumber(minText);
+    const max = parseRangeNumber(maxText);
+    return min !== null && max !== null && total >= min && total <= max;
+  }
+  const exact = parseRangeNumber(text);
+  return exact !== null && total === exact;
+}
+
+function parseSpecialDamageEffectLabel(label = "") {
+  const raw = String(label ?? "").trim();
+  if (!raw) return { displayName: "", effectName: "", parameter: "" };
+  const match = raw.match(/^(.*?)\s*\(([^)]+)\)\s*$/u);
+  if (!match) {
+    return {
+      displayName: raw,
+      effectName: raw,
+      parameter: ""
+    };
+  }
+  return {
+    displayName: raw,
+    effectName: String(match[1] ?? "").trim(),
+    parameter: String(match[2] ?? "").trim()
+  };
+}
+
+function buildMedicalEffectLookup(definitions = []) {
+  const lookup = new Map();
+  for (const entry of Array.isArray(definitions) ? definitions : []) {
+    const key = String(entry?.key ?? "").trim();
+    const name = String(entry?.name ?? "").trim();
+    if (key) lookup.set(key, entry);
+    if (name) lookup.set(toEffectSlug(name), entry);
+  }
+  return lookup;
+}
+
+function createSpecialDamageEffectEntries(locationEntry, matchedOutcome, hitLoc, specialDamageTotal, medicalLookup) {
+  const effects = Array.isArray(matchedOutcome?.effects) ? matchedOutcome.effects : [];
+  const locationName = String(locationEntry?.name ?? hitLoc?.subZone ?? "Special Damage").trim() || "Special Damage";
+  const locationKey = String(locationEntry?.key ?? normalizeSpecialDamageLocationKey(hitLoc)).trim() || "special-damage";
+  const createdAt = new Date().toISOString();
+
+  return effects.map((label, index) => {
+    const parsed = parseSpecialDamageEffectLabel(label);
+    const medicalDefinition = medicalLookup.get(toEffectSlug(parsed.effectName));
+    return {
+      id: `special-${locationKey}-${toEffectSlug(parsed.effectName || `effect-${index + 1}`)}-${Date.now()}-${index + 1}`,
+      domain: "medical",
+      effectKey: `special-damage-${locationKey}-${toEffectSlug(parsed.effectName || `effect-${index + 1}`)}`,
+      displayName: parsed.displayName || label,
+      severityTier: String(matchedOutcome?.range ?? "").trim(),
+      sourceRule: `Special Damage: ${locationName}`,
+      summaryText: String(medicalDefinition?.summaryText ?? "").trim(),
+      mechanicalText: String(medicalDefinition?.mechanicalText ?? medicalDefinition?.sourceText ?? "").trim(),
+      durationLabel: parsed.parameter || String(medicalDefinition?.durationText ?? "").trim(),
+      recoveryLabel: String(medicalDefinition?.recoveryText ?? medicalDefinition?.recoveryLabel ?? medicalDefinition?.durationText ?? "").trim(),
+      stackingBehavior: String(medicalDefinition?.stackingText ?? "").trim() || "Duplicate Special Damage effects extend duration but do not increase penalties unless otherwise specified.",
+      triggerReason: "special-damage",
+      hitLocation: String(hitLoc?.subZone ?? locationName).trim(),
+      specialDamageValueRaw: Math.max(0, Math.floor(Number(specialDamageTotal ?? 0) || 0)),
+      createdAt,
+      active: true,
+      systemApplied: true,
+      notes: `Resolved from ${Math.max(0, Math.floor(Number(specialDamageTotal ?? 0) || 0))} Special Damage to ${locationName}.`,
+      tags: ["special-damage", String(locationEntry?.locationClass ?? "").trim()].filter(Boolean)
+    };
+  });
+}
+
+async function resolveSpecialDamageEffects(hitLoc, specialDamageTotal) {
+  const specialDefinitions = await loadMythicSpecialDamageDefinitions();
+  const medicalDefinitions = await loadMythicMedicalEffectDefinitions();
+  const locationKey = normalizeSpecialDamageLocationKey(hitLoc);
+  if (!locationKey) return [];
+
+  const locationEntry = (Array.isArray(specialDefinitions) ? specialDefinitions : [])
+    .find((entry) => String(entry?.type ?? "").trim() === "location" && String(entry?.key ?? "").trim() === locationKey);
+  if (!locationEntry) return [];
+
+  const total = Math.max(0, Math.floor(Number(specialDamageTotal ?? 0) || 0));
+  const matchedOutcome = (Array.isArray(locationEntry.outcomes) ? locationEntry.outcomes : [])
+    .find((entry) => isSpecialDamageRangeMatch(total, entry?.range));
+  if (!matchedOutcome) return [];
+
+  const medicalLookup = buildMedicalEffectLookup(medicalDefinitions);
+  return createSpecialDamageEffectEntries(locationEntry, matchedOutcome, hitLoc, total, medicalLookup);
+}
+
+async function appendActorMedicalEffects(actor, effects = []) {
+  const additions = Array.isArray(effects) ? effects.filter(Boolean) : [];
+  if (!actor || !additions.length) return [];
+
+  const normalized = normalizeCharacterSystemData(actor.system ?? {});
+  const currentEffects = Array.isArray(normalized?.medical?.activeEffects) ? normalized.medical.activeEffects : [];
+  const nextEffects = [...currentEffects, ...additions];
+  await actor.update({ "system.medical.activeEffects": nextEffects });
+  return additions;
+}
+
+function isMedicalAutomationEnabled() {
+  try {
+    return Boolean(game?.settings?.get("Halo-Mythic-Foundry-Updated", MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY));
+  } catch (_error) {
+    return true;
+  }
+}
 
 function resolveIncomingDamageAgainstDefenses(targetActor, incoming = {}) {
   const baseDamage = Math.max(0, Number(incoming.damageTotal ?? 0) || 0);
@@ -245,9 +396,31 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
       const lineClass = incoming.appliesShieldPierce
         ? "mythic-evasion-line is-shield-pierce-active"
         : "mythic-evasion-line";
-      const applyBtnClass = incoming.appliesShieldPierce
-        ? "action-btn mythic-apply-dmg-btn is-shield-pierce-active"
-        : "action-btn mythic-apply-dmg-btn";
+      const applyInstances = !isEvaded
+        ? (Array.isArray(incoming.damageInstances) && incoming.damageInstances.length > 0
+          ? incoming.damageInstances
+          : [{
+            damageTotal: incoming.damageTotal,
+            damagePierce: incoming.damagePierce,
+            hitLoc: incoming.hitLoc,
+            ignoresShields: incoming.ignoresShields,
+            appliesShieldPierce: incoming.appliesShieldPierce,
+            explosiveShieldPierce: incoming.explosiveShieldPierce,
+            isPenetrating: incoming.isPenetrating,
+            isHeadshot: incoming.isHeadshot,
+            hasBlastOrKill: incoming.hasBlastOrKill,
+            isKinetic: incoming.isKinetic,
+            isHardlight: incoming.isHardlight,
+            hasSpecialDamage: incoming.hasSpecialDamage
+          }])
+        : [];
+      const applyButtonsHtml = applyInstances.map((inst, instIdx) => {
+        const btnClass = (inst.appliesShieldPierce ?? false)
+          ? "action-btn mythic-apply-dmg-btn is-shield-pierce-active"
+          : "action-btn mythic-apply-dmg-btn";
+        const label = applyInstances.length > 1 ? `Apply Hit ${instIdx + 1} (${inst.damageTotal})` : "Apply";
+        return `<button type="button" class="${btnClass}" data-actor-id="${esc(targetActor.id)}" data-token-id="${esc(targetToken?.id ?? "")}" data-scene-id="${esc(attackData.sceneId ?? canvas?.scene?.id ?? "")}" data-damage="${esc(String(inst.damageTotal ?? 0))}" data-pierce="${esc(String(inst.damagePierce ?? 0))}" data-dr-key="${esc(String(inst.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""))}" data-hit-zone="${esc(String(inst.hitLoc?.zone ?? incoming.hitLoc?.zone ?? ""))}" data-hit-subzone="${esc(String(inst.hitLoc?.subZone ?? incoming.hitLoc?.subZone ?? ""))}" data-ignore-shields="${(inst.ignoresShields ?? false) ? "true" : "false"}" data-shield-pierce="${(inst.appliesShieldPierce ?? false) ? "true" : "false"}" data-explosive-shield="${(inst.explosiveShieldPierce ?? false) ? "true" : "false"}" data-penetrating="${(inst.isPenetrating ?? false) ? "true" : "false"}" data-headshot="${(inst.isHeadshot ?? false) ? "true" : "false"}" data-blast-kill="${(inst.hasBlastOrKill ?? false) ? "true" : "false"}" data-kinetic="${(inst.isKinetic ?? false) ? "true" : "false"}" data-hardlight="${(inst.isHardlight ?? false) ? "true" : "false"}" data-special-damage="${(inst.hasSpecialDamage ?? false) ? "true" : "false"}">${esc(label)}</button>`;
+      }).join("");
       const line = `<div class="${lineClass}">
         <details class="mythic-evasion-detail-row">
           <summary>
@@ -260,7 +433,7 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
           ${kineticDetailLine}
           ${headshotDetailLine}
         </details>
-        ${!isEvaded ? `<button type="button" class="${applyBtnClass}" data-actor-id="${esc(targetActor.id)}" data-token-id="${esc(targetToken?.id ?? "")}" data-scene-id="${esc(attackData.sceneId ?? canvas?.scene?.id ?? "")}" data-damage="${esc(String(incoming.damageTotal ?? 0))}" data-pierce="${esc(String(incoming.damagePierce ?? 0))}" data-dr-key="${esc(String(incoming.hitLoc?.drKey ?? ""))}" data-ignore-shields="${incoming.ignoresShields ? "true" : "false"}" data-shield-pierce="${incoming.appliesShieldPierce ? "true" : "false"}" data-explosive-shield="${incoming.explosiveShieldPierce ? "true" : "false"}" data-penetrating="${incoming.isPenetrating ? "true" : "false"}" data-headshot="${incoming.isHeadshot ? "true" : "false"}" data-blast-kill="${incoming.hasBlastOrKill ? "true" : "false"}" data-kinetic="${incoming.isKinetic ? "true" : "false"}" data-hardlight="${incoming.isHardlight ? "true" : "false"}">Apply</button>` : ""}
+        ${applyButtonsHtml}
       </div>`;
       rows.push(line);
 
@@ -368,25 +541,29 @@ export async function mythicApplyDirectAttackDamage(messageId, targetMode, attac
     const targetActor = targetEntry.actor;
     const targetToken = targetEntry.token ?? null;
     for (const incoming of incomingRows) {
-      const repeats = Math.max(1, Number(incoming.repeatCount ?? 1));
-      for (let i = 0; i < repeats; i += 1) {
+      const instancesToApply = Array.isArray(incoming.damageInstances) && incoming.damageInstances.length > 0
+        ? incoming.damageInstances
+        : Array.from({ length: Math.max(1, Number(incoming.repeatCount ?? 1)) }, () => incoming);
+      for (const inst of instancesToApply) {
         await mythicApplyWoundDamage(
           targetActor.id,
-          Number(incoming.damageTotal ?? 0),
+          Number(inst.damageTotal ?? 0),
           targetToken?.id ?? null,
           attackData.sceneId ?? canvas?.scene?.id ?? null,
           {
-            isHardlight: Boolean(incoming.isHardlight),
+            hasSpecialDamage: Boolean(inst.hasSpecialDamage ?? incoming.hasSpecialDamage),
+            hitLoc: inst.hitLoc ?? incoming.hitLoc ?? null,
+            isHardlight: Boolean(inst.isHardlight ?? incoming.isHardlight),
             resolveHit: true,
-            damagePierce: Number(incoming.damagePierce ?? 0),
-            drKey: String(incoming.hitLoc?.drKey ?? ""),
-            ignoresShields: Boolean(incoming.ignoresShields),
-            appliesShieldPierce: Boolean(incoming.appliesShieldPierce),
-            explosiveShieldPierce: Boolean(incoming.explosiveShieldPierce),
-            isPenetrating: Boolean(incoming.isPenetrating),
-            isHeadshot: Boolean(incoming.isHeadshot),
-            hasBlastOrKill: Boolean(incoming.hasBlastOrKill),
-            isKinetic: Boolean(incoming.isKinetic)
+            damagePierce: Number(inst.damagePierce ?? incoming.damagePierce ?? 0),
+            drKey: String(inst.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""),
+            ignoresShields: Boolean(inst.ignoresShields ?? incoming.ignoresShields),
+            appliesShieldPierce: Boolean(inst.appliesShieldPierce ?? incoming.appliesShieldPierce),
+            explosiveShieldPierce: Boolean(inst.explosiveShieldPierce ?? incoming.explosiveShieldPierce),
+            isPenetrating: Boolean(inst.isPenetrating ?? incoming.isPenetrating),
+            isHeadshot: Boolean(inst.isHeadshot ?? incoming.isHeadshot),
+            hasBlastOrKill: Boolean(inst.hasBlastOrKill ?? incoming.hasBlastOrKill),
+            isKinetic: Boolean(inst.isKinetic ?? incoming.isKinetic)
           }
         );
         applications += 1;
@@ -461,6 +638,18 @@ export async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sc
   }
   await targetActor.update(updateData);
 
+  const qualifiesForSpecialDamage = isMedicalAutomationEnabled() && woundDamage > 0 && (
+    Boolean(options?.hasSpecialDamage)
+    || currentWounds <= 0
+    || newWounds <= 0
+  );
+  const appliedSpecialEffects = qualifiesForSpecialDamage
+    ? await appendActorMedicalEffects(
+        targetActor,
+        await resolveSpecialDamageEffects(options?.hitLoc ?? null, Number(damage ?? 0))
+      )
+    : [];
+
   const shieldLine = resolveHit
     ? `<div>Shields: <strong>${shieldDamageApplied}</strong> (${currentShields} -> ${shieldsRemaining})</div>`
     : "";
@@ -484,9 +673,12 @@ export async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sc
     ? `<div>Headshot: TOU modifier ignored for head DR.</div>`
     : "";
   const woundLine = `<div>Wounds: <strong>${woundDamage}</strong> (${currentWounds} -> ${newWounds} / ${maxWounds})</div>`;
+  const specialDamageLine = appliedSpecialEffects.length
+    ? `<div>Special Damage Effects: <strong>${appliedSpecialEffects.map((entry) => foundry.utils.escapeHTML(entry.displayName)).join(", ")}</strong></div>`
+    : "";
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor: targetActor }),
-    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(targetName)}</strong>${shieldLine}${shieldPierceLine}${kineticLine}${headshotLine}${woundLine}</div>`,
+    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(targetName)}</strong>${shieldLine}${shieldPierceLine}${kineticLine}${headshotLine}${woundLine}${specialDamageLine}</div>`,
     type: CONST.CHAT_MESSAGE_STYLES.OTHER
   });
 

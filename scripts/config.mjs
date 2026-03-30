@@ -130,6 +130,10 @@ export { MYTHIC_EDUCATION_DEFINITIONS } from "./config/education-and-cognitive.m
 // --- Data Paths ---
 export const MYTHIC_ABILITY_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/abilities.json";
 export const MYTHIC_TRAIT_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/traits.json";
+export const MYTHIC_MEDICAL_EFFECT_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/medical-effects.json";
+export const MYTHIC_ENVIRONMENTAL_EFFECT_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/environmental-effects.json";
+export const MYTHIC_FEAR_EFFECT_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/fear-effects.json";
+export const MYTHIC_SPECIAL_DAMAGE_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/special-damage-effects.json";
 
 // --- Weapon Training Definitions ---
 export const MYTHIC_WEAPON_TRAINING_DEFINITIONS = [
@@ -311,7 +315,7 @@ export const MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS = Object.freeze([
 ]);
 
 // --- Schema Versions ---
-export const MYTHIC_ACTOR_SCHEMA_VERSION = 2;
+export const MYTHIC_ACTOR_SCHEMA_VERSION = 3;
 // --- Ammo Modifier Compatibility Codes ---
 // Canonical short-code dictionary for validating ammo-modification compatibility lists.
 // Each entry: code → { label, description }
@@ -397,6 +401,36 @@ export const MYTHIC_CREATION_XP_PLAYER_EDIT_SETTING_KEY = "letPlayersHandleXp";
 export const MYTHIC_CAMPAIGN_YEAR_SETTING_KEY = "campaignYear";
 export const MYTHIC_WORLD_GRAVITY_SETTING_KEY = "worldGravityLevel";
 export const MYTHIC_GOOD_FORTUNE_MODE_SETTING_KEY = "goodFortuneMode";
+export const MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY = "medicalAutomationEnabled";
+export const MYTHIC_ENVIRONMENTAL_AUTOMATION_ENABLED_SETTING_KEY = "environmentalAutomationEnabled";
+export const MYTHIC_FEAR_AUTOMATION_ENABLED_SETTING_KEY = "fearAutomationEnabled";
+export const MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY = "bestiaryDifficultyMode";
+export const MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY = "bestiaryGlobalRank";
+
+export const MYTHIC_BESTIARY_DIFFICULTY_MODES = Object.freeze({
+  global: "global",
+  individual: "individual"
+});
+
+export const MYTHIC_BESTIARY_DIFFICULTY_MODE_CHOICES = Object.freeze({
+  [MYTHIC_BESTIARY_DIFFICULTY_MODES.global]: "Use campaign Bestiary Rank",
+  [MYTHIC_BESTIARY_DIFFICULTY_MODES.individual]: "Control for individual Bestiary actors"
+});
+
+export const MYTHIC_BESTIARY_RANK_OPTIONS = Object.freeze([
+  { value: 1, label: "BR 1 - Easy" },
+  { value: 2, label: "BR 2 - Normal" },
+  { value: 3, label: "BR 3 - Heroic" },
+  { value: 4, label: "BR 4 - Legendary" },
+  { value: 5, label: "BR 5 - Nemesis" }
+]);
+
+export const MYTHIC_BESTIARY_RANK_CHOICES = Object.freeze(
+  MYTHIC_BESTIARY_RANK_OPTIONS.reduce((acc, entry) => {
+    acc[String(entry.value)] = entry.label;
+    return acc;
+  }, {})
+);
 
 // --- Mjolnir Armor & Kig-Yar Shields ---
 export const MYTHIC_MJOLNIR_ARMOR_LIST = Object.freeze([

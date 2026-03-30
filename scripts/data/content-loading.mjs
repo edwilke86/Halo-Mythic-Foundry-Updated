@@ -3,7 +3,11 @@ import {
   MYTHIC_TRAIT_DEFINITIONS_PATH,
   MYTHIC_TRAIT_TEXT_TO_STAT,
   MYTHIC_EQUIPMENT_PACK_DEFINITIONS_PATH,
-  MYTHIC_AMMO_TYPE_DEFINITIONS_PATH
+  MYTHIC_AMMO_TYPE_DEFINITIONS_PATH,
+  MYTHIC_MEDICAL_EFFECT_DEFINITIONS_PATH,
+  MYTHIC_ENVIRONMENTAL_EFFECT_DEFINITIONS_PATH,
+  MYTHIC_FEAR_EFFECT_DEFINITIONS_PATH,
+  MYTHIC_SPECIAL_DAMAGE_DEFINITIONS_PATH
 } from '../config.mjs';
 
 let mythicAbilityDefinitionsCache = null;
@@ -11,7 +15,23 @@ let mythicTraitDefinitionsCache = null;
 let mythicEquipmentPackDefinitionsCache = null;
 let mythicAmmoTypeDefinitionsCache = null;
 let mythicSpecialAmmoCategoryOptionsCache = null;
+let mythicMedicalEffectDefinitionsCache = null;
+let mythicEnvironmentalEffectDefinitionsCache = null;
+let mythicFearEffectDefinitionsCache = null;
+let mythicSpecialDamageDefinitionsCache = null;
 const MYTHIC_AMMO_TYPES_SYSTEM_COLLECTION = "Halo-Mythic-Foundry-Updated.ammo-types";
+
+async function loadDefinitionArray(path, errorLabel) {
+  try {
+    const response = await fetch(path);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    return Array.isArray(json) ? json : [];
+  } catch (error) {
+    console.error(`[mythic-system] Failed to load ${errorLabel}.`, error);
+    return [];
+  }
+}
 
 function parseMythicAmmoTypeNumeric(value, fallback = 0) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -50,50 +70,44 @@ function normalizeMythicAmmoTypeDefinition(entry = {}, fallbackName = "") {
 
 export async function loadMythicAbilityDefinitions() {
   if (Array.isArray(mythicAbilityDefinitionsCache)) return mythicAbilityDefinitionsCache;
-  try {
-    const response = await fetch(MYTHIC_ABILITY_DEFINITIONS_PATH);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const json = await response.json();
-    const defs = Array.isArray(json) ? json : [];
-    mythicAbilityDefinitionsCache = defs;
-    return defs;
-  } catch (error) {
-    console.error("[mythic-system] Failed to load ability definitions JSON.", error);
-    mythicAbilityDefinitionsCache = [];
-    return mythicAbilityDefinitionsCache;
-  }
+  mythicAbilityDefinitionsCache = await loadDefinitionArray(MYTHIC_ABILITY_DEFINITIONS_PATH, "ability definitions JSON");
+  return mythicAbilityDefinitionsCache;
 }
 
 export async function loadMythicTraitDefinitions() {
   if (Array.isArray(mythicTraitDefinitionsCache)) return mythicTraitDefinitionsCache;
-  try {
-    const response = await fetch(MYTHIC_TRAIT_DEFINITIONS_PATH);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const json = await response.json();
-    const defs = Array.isArray(json) ? json : [];
-    mythicTraitDefinitionsCache = defs;
-    return defs;
-  } catch (error) {
-    console.error("[mythic-system] Failed to load trait definitions JSON.", error);
-    mythicTraitDefinitionsCache = [];
-    return mythicTraitDefinitionsCache;
-  }
+  mythicTraitDefinitionsCache = await loadDefinitionArray(MYTHIC_TRAIT_DEFINITIONS_PATH, "trait definitions JSON");
+  return mythicTraitDefinitionsCache;
 }
 
 export async function loadMythicEquipmentPackDefinitions() {
   if (Array.isArray(mythicEquipmentPackDefinitionsCache)) return mythicEquipmentPackDefinitionsCache;
-  try {
-    const response = await fetch(MYTHIC_EQUIPMENT_PACK_DEFINITIONS_PATH);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const json = await response.json();
-    const defs = Array.isArray(json) ? json : [];
-    mythicEquipmentPackDefinitionsCache = defs;
-    return defs;
-  } catch (error) {
-    console.error("[mythic-system] Failed to load equipment pack definitions JSON.", error);
-    mythicEquipmentPackDefinitionsCache = [];
-    return mythicEquipmentPackDefinitionsCache;
-  }
+  mythicEquipmentPackDefinitionsCache = await loadDefinitionArray(MYTHIC_EQUIPMENT_PACK_DEFINITIONS_PATH, "equipment pack definitions JSON");
+  return mythicEquipmentPackDefinitionsCache;
+}
+
+export async function loadMythicMedicalEffectDefinitions() {
+  if (Array.isArray(mythicMedicalEffectDefinitionsCache)) return mythicMedicalEffectDefinitionsCache;
+  mythicMedicalEffectDefinitionsCache = await loadDefinitionArray(MYTHIC_MEDICAL_EFFECT_DEFINITIONS_PATH, "medical effect definitions JSON");
+  return mythicMedicalEffectDefinitionsCache;
+}
+
+export async function loadMythicEnvironmentalEffectDefinitions() {
+  if (Array.isArray(mythicEnvironmentalEffectDefinitionsCache)) return mythicEnvironmentalEffectDefinitionsCache;
+  mythicEnvironmentalEffectDefinitionsCache = await loadDefinitionArray(MYTHIC_ENVIRONMENTAL_EFFECT_DEFINITIONS_PATH, "environmental effect definitions JSON");
+  return mythicEnvironmentalEffectDefinitionsCache;
+}
+
+export async function loadMythicFearEffectDefinitions() {
+  if (Array.isArray(mythicFearEffectDefinitionsCache)) return mythicFearEffectDefinitionsCache;
+  mythicFearEffectDefinitionsCache = await loadDefinitionArray(MYTHIC_FEAR_EFFECT_DEFINITIONS_PATH, "fear effect definitions JSON");
+  return mythicFearEffectDefinitionsCache;
+}
+
+export async function loadMythicSpecialDamageDefinitions() {
+  if (Array.isArray(mythicSpecialDamageDefinitionsCache)) return mythicSpecialDamageDefinitionsCache;
+  mythicSpecialDamageDefinitionsCache = await loadDefinitionArray(MYTHIC_SPECIAL_DAMAGE_DEFINITIONS_PATH, "special damage definitions JSON");
+  return mythicSpecialDamageDefinitionsCache;
 }
 
 async function loadMythicAmmoTypeDefinitionsFromCompendium() {

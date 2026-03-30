@@ -57,7 +57,11 @@ import {
   substituteSoldierTypeInTraitText,
   loadMythicAbilityDefinitions,
   loadMythicEquipmentPackDefinitions,
-  loadMythicAmmoTypeDefinitions
+  loadMythicAmmoTypeDefinitions,
+  loadMythicMedicalEffectDefinitions,
+  loadMythicEnvironmentalEffectDefinitions,
+  loadMythicFearEffectDefinitions,
+  loadMythicSpecialDamageDefinitions
 } from "../data/content-loading.mjs";
 
 import {
@@ -97,6 +101,7 @@ import {
   computeAttackDOS,
   resolveHitLocation
 } from "../mechanics/combat.mjs";
+import { consumeActorHalfActions } from "../mechanics/action-economy.mjs";
 
 import { generateSmartAiCognitivePattern } from "../mechanics/cognitive.mjs";
 
@@ -117,6 +122,8 @@ import {
 } from "../reference/ref-utils.mjs";
 
 import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
+import { openEffectReferenceDialog } from "../ui/effect-reference-dialog.mjs";
+import { mythicStartFearTest } from "../core/chat-fear.mjs";
 import {
   buildInitiativeChatCard,
   buildUniversalTestChatCard
@@ -814,6 +821,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _showTokenPortrait = false;
   _batteryGroupExpanded = {};
   _ballisticGroupExpanded = {};
+  _tabSelectArmed = false;
+  _tabSelectTimestamp = 0;
 
   async _prepareContext(options) {
     await this._backfillEnergyCellsForExistingWeapons();
@@ -863,6 +872,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicCreationFinalizeSummary = this._getCreationFinalizeSummaryViewData(normalizedSystem, context.mythicAdvancements, context.mythicOutliers);
     context.mythicEquipment = await this._getEquipmentViewData(effectiveSystem, derived);
     context.mythicGammaCompany = this._getGammaCompanyViewData(normalizedSystem);
+    context.mythicMedicalEffects = await this._getMedicalEffectsViewData(normalizedSystem);
     const worldGravity = getWorldGravity();
     context.mythicGravityValue = String(worldGravity !== null ? worldGravity : (normalizedSystem?.gravity ?? 1.0));
     context.mythicIsGM = Boolean(game?.user?.isGM);
@@ -3861,6 +3871,52 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
   }
 
+  async _getMedicalEffectsViewData(systemData) {
+    const normalized = normalizeCharacterSystemData(systemData);
+    const effectEntries = Array.isArray(normalized?.medical?.activeEffects) ? normalized.medical.activeEffects : [];
+    await Promise.all([
+      loadMythicMedicalEffectDefinitions(),
+      loadMythicEnvironmentalEffectDefinitions(),
+      loadMythicFearEffectDefinitions(),
+      loadMythicSpecialDamageDefinitions()
+    ]);
+
+    const buildDurationSummary = (entry) => {
+      if (entry.durationHalfActions > 0) return `${entry.durationHalfActions} HA`;
+      const label = String(entry.durationLabel ?? "").trim();
+      if (entry.durationRounds > 0 && label) return label;
+      if (entry.durationRounds > 0) return `${entry.durationRounds} R`;
+      if (entry.durationMinutes > 0) return `${entry.durationMinutes} min`;
+      return label || "Ongoing";
+    };
+
+    const compactEntries = effectEntries.map((entry) => ({
+      ...entry,
+      displayName: String(entry.displayName ?? entry.name ?? entry.effectKey ?? "Effect").trim() || "Effect",
+      durationSummary: buildDurationSummary(entry),
+      referenceAvailable: Boolean(String(entry.effectKey ?? entry.metadata?.manualDefinitionKey ?? entry.displayName ?? "").trim())
+    }));
+
+    const buildSection = (domain) => {
+      const entries = compactEntries.filter((entry) => entry.domain === domain);
+      return {
+        entries,
+        hasEntries: entries.length > 0
+      };
+    };
+
+    return {
+      canManage: true,
+      medical: {
+        ...buildSection("medical"),
+        healthyLabel: "Healthy",
+        healthySummary: "No active medical or special damage effects are currently tracked."
+      },
+      environmental: buildSection("environmental"),
+      fear: buildSection("fear-ptsd")
+    };
+  }
+
   _getMythicDerivedData(systemData, precomputed = null) {
     const derivedSource = this._buildDerivedSystemData(systemData);
     const derived = precomputed ?? computeCharacterDerivedValues(derivedSource);
@@ -3934,6 +3990,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const naturalArmorHead = Boolean(derived?.naturalArmor?.halvedOnHeadshot)
       ? asWhole(derived?.naturalArmor?.headShotValue)
       : naturalArmorBody;
+    const actionEconomy = combat?.actionEconomy ?? {};
+    const actionEconomySpent = asWhole(actionEconomy?.halfActionsSpent);
+    const actionEconomyHistory = (Array.isArray(actionEconomy?.history) ? actionEconomy.history : [])
+      .filter((entry) => entry && typeof entry === "object")
+      .slice(-3)
+      .reverse()
+      .map((entry) => ({
+        label: String(entry.label ?? "Action").trim() || "Action",
+        halfActions: asWhole(entry.halfActions)
+      }));
 
     const withArmor = (key) => {
       const armorValue = asWhole(armor?.[key]);
@@ -3986,12 +4052,27 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       },
       reactions: (() => {
         const count = Math.max(0, Math.floor(Number(combat?.reactions?.count ?? 0)));
+        const penalty = count * -10;
         return {
           count,
-          penalty: count * -10,
+          penalty,
+          penaltyLabel: penalty === 0 ? "0" : String(penalty),
+          symbols: count > 0 ? "◆".repeat(count) : "-",
           ticks: Array.from({ length: count }, (_, i) => i + 1)
         };
-      })()
+      })(),
+      actionEconomy: {
+        halfActionsSpent: actionEconomySpent,
+        halfActionsRemaining: Math.max(0, 2 - actionEconomySpent),
+        isOverLimit: actionEconomySpent > 2,
+        history: actionEconomyHistory,
+        hasHistory: actionEconomyHistory.length > 0,
+        compactLabel: `${actionEconomySpent} / 2`,
+        statusText: actionEconomySpent > 2
+          ? "Overextended"
+          : (actionEconomySpent >= 2 ? "Spent" : "Available"),
+        statusLabel: `${actionEconomySpent}/2 Half Actions`
+      }
     };
   }
 
@@ -5636,6 +5717,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
     if (!root) return;
 
+    // Make tab-based entry faster by auto-selecting field contents when tabbing into an input.
+    root.addEventListener("keydown", (event) => {
+      if (event.key !== "Tab") return;
+      this._tabSelectArmed = true;
+      this._tabSelectTimestamp = Date.now();
+    });
+    root.addEventListener("pointerdown", () => {
+      this._tabSelectArmed = false;
+      this._tabSelectTimestamp = 0;
+    }, true);
+    root.addEventListener("focusin", (event) => {
+      const tabSelectionStillValid = this._tabSelectArmed || ((Date.now() - this._tabSelectTimestamp) < 400);
+      if (!tabSelectionStillValid) return;
+      const target = event.target;
+      const isTextInput = target instanceof HTMLInputElement
+        && ["text", "number", "email", "search", "tel", "url", "password"].includes(String(target.type ?? "").toLowerCase());
+      const isTextArea = target instanceof HTMLTextAreaElement;
+      if ((!isTextInput && !isTextArea) || target.readOnly || target.disabled) return;
+      window.setTimeout(() => {
+        try {
+          target.select();
+        } catch (_error) {
+          // No-op when the browser rejects selection for a focused control.
+        }
+      }, 0);
+      this._tabSelectArmed = false;
+    });
+
     // Faction background on the outer window so it fills the rounded frame.
     // Use root.dataset.faction â€” the correct computed value already rendered.
     const factionIndex = Number(root.dataset?.faction ?? 1);
@@ -6178,6 +6287,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".action-economy-advance-half-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAdvanceHalfAction(event);
+      });
+    });
+
+    root.querySelectorAll(".action-economy-reset-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onActionEconomyReset(event);
+      });
+    });
+
+    root.querySelectorAll(".turn-economy-reset-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onTurnEconomyReset(event);
+      });
+    });
+
     root.querySelectorAll(".wounds-full-heal-btn").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onWoundsFullHeal(event);
@@ -6187,6 +6314,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".mythic-initiative-roll-btn").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onRollInitiative(event);
+      });
+    });
+
+    root.querySelectorAll(".fear-test-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onFearTest(event);
       });
     });
 
@@ -6200,6 +6333,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".gamma-smoother-apply-btn").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onGammaSmootherApply(event);
+      });
+    });
+
+    root.querySelectorAll(".medical-effect-add-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onMedicalEffectAdd(event);
+      });
+    });
+
+    root.querySelectorAll(".medical-effect-remove-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onMedicalEffectRemove(event);
+      });
+    });
+
+    root.querySelectorAll(".medical-effect-reference-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onMedicalEffectReferenceOpen(event);
       });
     });
 
@@ -8177,6 +8328,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (item.type === "soldierType") {
       const itemData = item.toObject();
       const templateSystem = await this._augmentSoldierTypeTemplateFromReference(itemData.name, itemData.system ?? {});
+
+      const customPromptAccepted = await this._promptSoldierTypeCustomMessages(itemData.name, templateSystem);
+      if (customPromptAccepted !== true) return false;
+
       const factionChoice = await this._promptSoldierTypeFactionChoice(itemData.name, templateSystem);
       if (factionChoice === null) return false;
 
@@ -8574,7 +8729,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
 
       // Ensure base Soldier Type XP always lands for overwrite flow.
-      const appliedSoldierTypeXp = toNonNegativeWhole(resolvedTemplate?.creation?.xpCost ?? 0, 0);
+      let appliedSoldierTypeXp = Math.max(
+        toNonNegativeWhole(resolvedTemplate?.creation?.xpCost ?? 0, 0),
+        toNonNegativeWhole(itemData?.system?.creation?.xpCost ?? 0, 0)
+      );
+      if (appliedSoldierTypeXp <= 0) {
+        const canonicalName = normalizeName(canonicalId || itemData?.name);
+        if (canonicalName) {
+          try {
+            const referenceItems = await loadReferenceSoldierTypeItems();
+            const matchedReference = referenceItems.find((entry) => normalizeName(entry?.name) === canonicalName);
+            appliedSoldierTypeXp = Math.max(
+              appliedSoldierTypeXp,
+              toNonNegativeWhole(matchedReference?.system?.creation?.xpCost ?? 0, 0)
+            );
+          } catch (_error) {
+            // Ignore reference lookup failures and keep the best known local value.
+          }
+        }
+      }
       const soldierTypeLabel = `Soldier-Type: ${String(itemData?.name ?? "Selected Soldier Type").trim() || "Selected Soldier Type"}`;
       const xpTransactions = appliedSoldierTypeXp > 0
         ? [{
@@ -13058,9 +13231,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         updateData["system.header.buildSize"] = nextSize;
       }
     } else if (definition.key === "robust") {
-      const woundsMax = toNonNegativeWhole(systemData?.combat?.wounds?.max, 0);
+      const miscWoundsModifier = Number(systemData?.mythic?.miscWoundsModifier ?? 0);
+      const safeMiscWoundsModifier = Number.isFinite(miscWoundsModifier) ? miscWoundsModifier : 0;
       const woundsCurrent = toNonNegativeWhole(systemData?.combat?.wounds?.current, 0);
-      updateData["system.combat.wounds.max"] = woundsMax + 18;
+      updateData["system.mythic.miscWoundsModifier"] = safeMiscWoundsModifier + 18;
       updateData["system.combat.wounds.current"] = woundsCurrent + 18;
     }
 
@@ -13150,10 +13324,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         updateData["system.header.buildSize"] = prevSize;
       }
     } else if (definition.key === "robust") {
+      const miscWoundsModifier = Number(systemData?.mythic?.miscWoundsModifier ?? 0);
+      const safeMiscWoundsModifier = Number.isFinite(miscWoundsModifier) ? miscWoundsModifier : 0;
+      const nextMiscWoundsModifier = safeMiscWoundsModifier - 18;
       const woundsMax = toNonNegativeWhole(systemData?.combat?.wounds?.max, 0);
       const woundsCurrent = toNonNegativeWhole(systemData?.combat?.wounds?.current, 0);
       const nextWoundsMax = Math.max(0, woundsMax - 18);
-      updateData["system.combat.wounds.max"] = nextWoundsMax;
+      updateData["system.mythic.miscWoundsModifier"] = nextMiscWoundsModifier;
       updateData["system.combat.wounds.current"] = Math.min(nextWoundsMax, Math.max(0, woundsCurrent - 18));
     }
 
@@ -13996,6 +14173,227 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ui.notifications?.info("Applied one Smoother Drug (Gamma Company).");
   }
 
+  _getTrackedEffectDomainLabel(domain = "") {
+    const key = String(domain ?? "").trim().toLowerCase();
+    if (key === "environmental") return "Environmental";
+    if (key === "fear-ptsd") return "Fear/PTSD";
+    return "Medical";
+  }
+
+  async _loadTrackedEffectCatalog(domain = "medical") {
+    const normalizedDomain = String(domain ?? "medical").trim().toLowerCase() || "medical";
+    const loaders = {
+      medical: loadMythicMedicalEffectDefinitions,
+      environmental: loadMythicEnvironmentalEffectDefinitions,
+      "fear-ptsd": loadMythicFearEffectDefinitions
+    };
+    const loader = loaders[normalizedDomain] ?? loadMythicMedicalEffectDefinitions;
+    const definitions = await loader();
+    return (Array.isArray(definitions) ? definitions : [])
+      .filter((entry) => String(entry?.domain ?? normalizedDomain).trim().toLowerCase() === normalizedDomain)
+      .sort((left, right) => String(left?.name ?? "").localeCompare(String(right?.name ?? "")));
+  }
+
+  _buildTrackedEffectEntryFromDefinition(definition = {}, options = {}) {
+    const domain = String(definition?.domain ?? options?.domain ?? "medical").trim().toLowerCase() || "medical";
+    const durationValue = Math.max(0, Math.floor(Number(options?.durationValue ?? 0)));
+    const durationUnit = String(options?.durationUnit ?? "indefinite").trim().toLowerCase() || "indefinite";
+    const notes = String(options?.notes ?? "").trim();
+    const baseName = String(definition?.name ?? "Tracked Effect").trim() || "Tracked Effect";
+
+    let durationHalfActions = 0;
+    let durationRounds = 0;
+    let durationLabel = "";
+    if (durationUnit === "ha") {
+      durationHalfActions = durationValue;
+    } else if (durationUnit === "rounds") {
+      durationRounds = durationValue;
+    } else if (durationUnit === "minutes") {
+      durationRounds = durationValue * 10;
+      durationLabel = `${durationValue} min`;
+    } else if (durationUnit === "hours") {
+      durationLabel = `${durationValue} hr`;
+    } else if (durationUnit === "days") {
+      durationLabel = `${durationValue} days`;
+    } else {
+      durationLabel = "Indefinite";
+    }
+
+    const effectiveDurationLabel = durationLabel || String(definition?.durationText ?? "").trim();
+
+    return {
+      id: `manual-${domain}-${String(definition?.key ?? normalizeLookupText(baseName)).trim() || "effect"}-${foundry.utils.randomID()}`,
+      domain,
+      effectKey: String(definition?.key ?? normalizeLookupText(baseName)).trim() || "tracked-effect",
+      displayName: baseName,
+      severityTier: "",
+      sourceRule: `Manual ${this._getTrackedEffectDomainLabel(domain)}`,
+      summaryText: String(definition?.summaryText ?? "").trim(),
+      mechanicalText: String(definition?.mechanicalText ?? definition?.sourceText ?? "").trim(),
+      durationLabel: effectiveDurationLabel,
+      recoveryLabel: String(definition?.recoveryText ?? "").trim(),
+      stackingBehavior: String(definition?.stackingText ?? "").trim(),
+      durationHalfActions,
+      durationRounds,
+      durationMinutes: 0,
+      triggerReason: "manual-entry",
+      createdAt: new Date().toISOString(),
+      active: true,
+      systemApplied: false,
+      notes,
+      tags: [domain, String(definition?.category ?? "").trim()].filter(Boolean),
+      metadata: {
+        manualDefinitionKey: String(definition?.key ?? "").trim()
+      }
+    };
+  }
+
+  async _onMedicalEffectAdd(event) {
+    event.preventDefault();
+
+    const domain = String(event.currentTarget?.dataset?.domain ?? "medical").trim().toLowerCase() || "medical";
+    const definitions = await this._loadTrackedEffectCatalog(domain);
+    if (!definitions.length) {
+      ui.notifications?.warn(`No ${this._getTrackedEffectDomainLabel(domain)} catalog entries are available.`);
+      return;
+    }
+
+    const selected = await foundry.applications.api.DialogV2.wait({
+      window: {
+        title: `Add ${this._getTrackedEffectDomainLabel(domain)} Effect`
+      },
+      content: `
+        <div class="mythic-modal-body">
+          <label style="display:block;margin-bottom:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">Catalog Entry</div>
+            <select id="mythic-medical-effect-key" style="width:100%;">
+              ${definitions.map((entry) => `<option value="${foundry.utils.escapeHTML(String(entry.key ?? ""))}">${foundry.utils.escapeHTML(String(entry.name ?? entry.key ?? "Tracked Effect"))}</option>`).join("")}
+            </select>
+          </label>
+          <div style="margin-bottom:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">Duration</div>
+            <div style="display:flex;gap:6px;">
+              <input id="mythic-medical-effect-duration-value" type="number" min="0" step="1" value="1" style="width:70px;" />
+              <select id="mythic-medical-effect-duration-unit" style="flex:1;">
+                <option value="ha">Half Actions</option>
+                <option value="rounds" selected>Rounds</option>
+                <option value="minutes">Minutes (× 10 Rounds)</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+                <option value="indefinite">Indefinite</option>
+              </select>
+            </div>
+          </div>
+          <label style="display:block;">
+            <div style="font-weight:600;margin-bottom:4px;">Notes</div>
+            <textarea id="mythic-medical-effect-notes" rows="4" style="width:100%;" placeholder="Optional context or GM note"></textarea>
+          </label>
+        </div>
+      `,
+      buttons: [
+        {
+          action: "apply",
+          label: "Add Effect",
+          default: true,
+          callback: () => ({
+            key: String(document.getElementById("mythic-medical-effect-key")?.value ?? "").trim(),
+            durationValue: Math.max(0, Math.floor(Number(document.getElementById("mythic-medical-effect-duration-value")?.value ?? 0))),
+            durationUnit: String(document.getElementById("mythic-medical-effect-duration-unit")?.value ?? "indefinite").trim().toLowerCase() || "indefinite",
+            notes: String(document.getElementById("mythic-medical-effect-notes")?.value ?? "").trim()
+          })
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+
+    const selectedKey = String(selected?.key ?? "").trim();
+    if (!selectedKey) return;
+
+    const definition = definitions.find((entry) => String(entry?.key ?? "").trim() === selectedKey);
+    if (!definition) {
+      ui.notifications?.warn("The selected effect could not be resolved from the catalog.");
+      return;
+    }
+
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const currentEffects = Array.isArray(normalized?.medical?.activeEffects) ? normalized.medical.activeEffects : [];
+    const nextEntry = this._buildTrackedEffectEntryFromDefinition(definition, {
+      domain,
+      durationValue: selected?.durationValue,
+      durationUnit: selected?.durationUnit,
+      notes: selected?.notes
+    });
+
+    await this.actor.update({
+      "system.medical.activeEffects": [...currentEffects, nextEntry]
+    });
+
+    ui.notifications?.info(`${nextEntry.displayName} added to tracked effects.`);
+  }
+
+  async _onMedicalEffectRemove(event) {
+    event.preventDefault();
+
+    const effectId = String(event.currentTarget?.dataset?.effectId ?? "").trim();
+    if (!effectId) return;
+
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const currentEffects = Array.isArray(normalized?.medical?.activeEffects) ? normalized.medical.activeEffects : [];
+    const targetEffect = currentEffects.find((entry) => String(entry?.id ?? "").trim() === effectId);
+    if (!targetEffect) return;
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: {
+        title: "Remove Tracked Effect"
+      },
+      content: `<p>Remove <strong>${foundry.utils.escapeHTML(String(targetEffect.displayName ?? "Tracked Effect"))}</strong> from this actor?</p>`,
+      modal: true,
+      rejectClose: false
+    });
+    if (!confirmed) return;
+
+    await this.actor.update({
+      "system.medical.activeEffects": currentEffects.filter((entry) => String(entry?.id ?? "").trim() !== effectId)
+    });
+
+    ui.notifications?.info(`${String(targetEffect.displayName ?? "Tracked Effect")} removed.`);
+  }
+
+  async _onMedicalEffectReferenceOpen(event) {
+    event.preventDefault();
+
+    const effectId = String(event.currentTarget?.dataset?.effectId ?? "").trim();
+    if (!effectId) return;
+
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const currentEffects = Array.isArray(normalized?.medical?.activeEffects) ? normalized.medical.activeEffects : [];
+    const targetEffect = currentEffects.find((entry) => String(entry?.id ?? "").trim() === effectId);
+    if (!targetEffect) return;
+
+    const _durLabel = String(targetEffect.durationLabel ?? "").trim();
+    const durationSummary = targetEffect.durationHalfActions > 0
+      ? `${targetEffect.durationHalfActions} HA`
+      : (targetEffect.durationRounds > 0 && _durLabel
+        ? _durLabel
+        : (targetEffect.durationRounds > 0
+          ? `${targetEffect.durationRounds} R`
+          : (targetEffect.durationMinutes > 0 ? `${targetEffect.durationMinutes} min` : (_durLabel || "Ongoing"))));
+
+    await openEffectReferenceDialog({
+      actor: this.actor,
+      effectEntry: {
+        ...targetEffect,
+        durationSummary
+      }
+    });
+  }
+
   async _onShieldsRecharge(event) {
     event.preventDefault();
     const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
@@ -14703,9 +15101,42 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const isSustainedFire = modeProfile.kind === "sustained" && actionType !== "execution" && actionType !== "buttstroke" && actionType !== "pump-reaction";
-    const rawRollIterations = (actionType === "execution" || actionType === "buttstroke" || actionType === "pump-reaction" || actionType === "chargeFire")
+    const isAutomaticFire = modeProfile.kind === "auto" && actionType !== "execution" && actionType !== "buttstroke" && actionType !== "pump-reaction" && actionType !== "chargeFire";
+    const autoShotsPerTurn = isAutomaticFire ? Math.max(1, modeProfile.count) : 0;
+    const autoHalfFloor = isAutomaticFire ? Math.floor(autoShotsPerTurn / 2) : 0;
+    const autoHalfCeil = isAutomaticFire ? (autoShotsPerTurn - autoHalfFloor) : 0;
+    const combatIdForAuto = String(game.combat?.id ?? "");
+    const combatRoundForAuto = Math.max(0, Number(game.combat?.round ?? 0));
+    const autoTrackerRoot = this.actor.system?.combat?.autoFireTracker ?? {};
+    const isAutoTrackerCurrentRound = isAutomaticFire
+      && String(autoTrackerRoot?.combatId ?? "") === combatIdForAuto
+      && Number(autoTrackerRoot?.round ?? -1) === combatRoundForAuto;
+    const autoTrackerWeapons = isAutoTrackerCurrentRound && autoTrackerRoot?.weapons && typeof autoTrackerRoot.weapons === "object"
+      ? foundry.utils.deepClone(autoTrackerRoot.weapons)
+      : {};
+    const autoTrackerEntry = isAutomaticFire
+      ? (autoTrackerWeapons[itemId] ?? { halfAutoActions: 0, shotsSpent: 0 })
+      : null;
+
+    let rawRollIterations = (actionType === "execution" || actionType === "buttstroke" || actionType === "pump-reaction" || actionType === "chargeFire")
       ? 1
       : getAttackIterationsForProfile(modeProfile, actionType);
+
+    if (isAutomaticFire && actionType === "half") {
+      if (autoHalfFloor <= 0) {
+        ui.notifications.warn(`${modeLabel} can only fire as a Full Action.`);
+        return;
+      }
+      const priorHalfActions = Math.max(0, Number(autoTrackerEntry?.halfAutoActions ?? 0));
+      const priorShotsSpent = Math.max(0, Number(autoTrackerEntry?.shotsSpent ?? 0));
+      const remainingShots = Math.max(0, autoShotsPerTurn - priorShotsSpent);
+      const halfActionCap = priorHalfActions <= 0 ? autoHalfFloor : autoHalfCeil;
+      rawRollIterations = Math.max(0, Math.min(halfActionCap, remainingShots));
+      if (rawRollIterations <= 0) {
+        ui.notifications.warn(`No Auto shots remain for ${modeLabel} this turn.`);
+        return;
+      }
+    }
     const sustainedHalfMax = isSustainedFire ? Math.max(1, getAttackIterationsForProfile(modeProfile, "half")) : 0;
     const sustainedFullMax = isSustainedFire ? Math.max(sustainedHalfMax, getAttackIterationsForProfile(modeProfile, "full")) : 0;
     let sustainedSelectedAttacks = isSustainedFire ? sustainedHalfMax : 0;
@@ -14835,6 +15266,22 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const ammoToConsume = executedIterations * Math.max(0, ammoPerIteration);
     let newAmmoCurrent = ammoCurrent;
     let totalTrackedAmmoAfter = totalTrackedAmmoBefore;
+
+    if (isAutomaticFire && actionType === "half") {
+      const priorHalfActions = Math.max(0, Number(autoTrackerEntry?.halfAutoActions ?? 0));
+      const priorShotsSpent = Math.max(0, Number(autoTrackerEntry?.shotsSpent ?? 0));
+      autoTrackerWeapons[itemId] = {
+        halfAutoActions: priorHalfActions + 1,
+        shotsSpent: Math.min(autoShotsPerTurn, priorShotsSpent + rollIterations)
+      };
+      await this.actor.update({
+        "system.combat.autoFireTracker": {
+          combatId: combatIdForAuto,
+          round: combatRoundForAuto,
+          weapons: autoTrackerWeapons
+        }
+      });
+    }
 
     if (isEnergyWeapon) {
       const updateData = {};
@@ -15261,6 +15708,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           evasionRows.push({
             attackIndex: row.index,
             repeatCount: row.damageInstances.length,
+            damageInstances: row.damageInstances,
             damageTotal: first.damageTotal,
             damagePierce: first.damagePierce,
             hitLoc: row.hitLoc,
@@ -15432,13 +15880,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const verdictClass = row.isCritFail ? "crit-fail" : row.isSuccess ? "success" : "failure";
 
       const successDetail = row.isSuccess && row.damageInstances.length
-        ? row.damageInstances.map((entry, idx) => {
-          const locHtml = row.hitLoc
-            ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
-            : `<em>-</em>`;
-          const damageTitle = entry.rollTooltip || esc(`Damage roll: ${entry.damageTotal} [${entry.damageFormula}]`);
-          return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Hit ${idx + 1}: <span class="mythic-roll-inline" title="${damageTitle}">${entry.damageTotal}</span> [${esc(entry.damageFormula)}], Pierce ${entry.damagePierce} @ ${locHtml}${entry.hasSpecialDamage ? ' <span class="mythic-special-dmg">&#9888; Special</span>' : ""}${entry.ignoresShields ? ' <span class="mythic-special-dmg">&#9762; Ignores Shields</span>' : ""}</div>`;
-        }).join("")
+        ? (() => {
+          const hitLines = row.damageInstances.map((entry, idx) => {
+            const locHtml = row.hitLoc
+              ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
+              : `<em>-</em>`;
+            const damageTitle = entry.rollTooltip || esc(`Damage roll: ${entry.damageTotal} [${entry.damageFormula}]`);
+            const specialBadge = entry.hasSpecialDamage ? ' <span class="mythic-special-dmg" title="Special Damage Applies">&#9888;</span>' : "";
+            const shieldBadge = entry.ignoresShields ? ' <span class="mythic-special-dmg" title="Ignores Shields">&#9762;</span>' : "";
+            const hardlightBadge = entry.isHardlight && entry.damageFormula && entry.damageFormula.includes("Hardlight") ? ' <span class="mythic-special-dmg" title="Hardlight Explosion">&#9889;</span>' : "";
+            return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Hit ${idx + 1}: <span class="mythic-roll-inline" title="${damageTitle}">${entry.damageTotal}</span> @ ${locHtml}${specialBadge}${shieldBadge}${hardlightBadge}</div>`;
+          }).join("");
+          return hitLines;
+        })()
         : "";
       const calledShotDetail = row.calledShotInfo
         ? (() => {
@@ -15479,10 +15933,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : "";
 
     const anySuccess = attackRows.some((row) => row.isSuccess && row.damageInstances.length);
+    const cardFormulaFooter = anySuccess
+      ? `<div class="mythic-attack-formula-note">${esc(damageFormula)}, Pierce ${effectivePierce}</div>`
+      : "";
 
-    const ammoHtml = (isMelee || isInfusionRadiusWeapon)
-      ? ""
-      : ` <span class="mythic-ammo-note">(Mag ${newAmmoCurrent}/${magazineMax}${tracksBasicAmmo ? ` | Inv ${totalTrackedAmmoAfter}` : ""})</span>`;
+    const ammoHtml = "";
     const clickHtml = clickIterations > 0
       ? ` <span class="mythic-ammo-note">[${clickIterations} dry fire]</span>`
       : "";
@@ -15503,6 +15958,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   ${badgeHtml}
   ${rowHtml}
   ${failureDetails}
+  ${cardFormulaFooter}
   <hr class="mythic-card-hr">
 </div>`;
 
@@ -15562,6 +16018,21 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       flags: { "Halo-Mythic-Foundry-Updated": { attackData } }
     });
 
+    const actionEconomyCost = actionType === "full"
+      ? 2
+      : actionType === "half"
+        ? 1
+        : actionType === "execution"
+          ? (executionVariant === "assassination" ? 2 : 1)
+          : 0;
+    if (actionEconomyCost > 0) {
+      await consumeActorHalfActions(this.actor, {
+        halfActions: actionEconomyCost,
+        label: `${weaponDisplayName} ${actionType === "execution" ? executionVariant : actionType} attack`,
+        source: "weapon-attack"
+      });
+    }
+
     if (isChargeMode && activeChargeLevel > 0) {
       await this.actor.update({
         [`system.equipment.weaponState.${itemId}.chargeLevel`]: 0
@@ -15598,6 +16069,48 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _onReactionReset(event) {
     event.preventDefault();
     await this.actor.update({ "system.combat.reactions.count": 0 });
+  }
+
+  async _onAdvanceHalfAction(event) {
+    event.preventDefault();
+    await consumeActorHalfActions(this.actor, {
+      halfActions: 1,
+      label: "Manual Half Action",
+      source: "manual"
+    });
+  }
+
+  async _onActionEconomyReset(event) {
+    event.preventDefault();
+    const combatId = String(game.combat?.id ?? "").trim();
+    const round = Math.max(0, Math.floor(Number(game.combat?.round ?? 0)));
+    const turn = Math.max(0, Math.floor(Number(game.combat?.turn ?? 0)));
+    await this.actor.update({
+      "system.combat.actionEconomy": {
+        combatId,
+        round,
+        turn,
+        halfActionsSpent: 0,
+        history: []
+      }
+    });
+  }
+
+  async _onTurnEconomyReset(event) {
+    event.preventDefault();
+    const combatId = String(game.combat?.id ?? "").trim();
+    const round = Math.max(0, Math.floor(Number(game.combat?.round ?? 0)));
+    const turn = Math.max(0, Math.floor(Number(game.combat?.turn ?? 0)));
+    await this.actor.update({
+      "system.combat.reactions.count": 0,
+      "system.combat.actionEconomy": {
+        combatId,
+        round,
+        turn,
+        halfActionsSpent: 0,
+        history: []
+      }
+    });
   }
 
   async _onRollInitiative(event) {
@@ -15705,6 +16218,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     await postChatOnly();
+  }
+
+  async _onFearTest(event) {
+    event.preventDefault();
+
+    await mythicStartFearTest({
+      actor: this.actor,
+      promptModifier: (label) => this._promptMiscModifier(label)
+    });
   }
 
   async _promptInitiativeMiscModifier() {

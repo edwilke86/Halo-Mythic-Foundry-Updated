@@ -1,4 +1,4 @@
-<div class="{{cssClass}} mythic-ability-item-sheet mythic-soldier-type-sheet">
+<div class="{{cssClass}} mythic-ability-item-sheet mythic-soldier-type-sheet {{#unless canEditFields}}soldier-sheet-locked{{/unless}}">
   <header class="ability-sheet-header">
     <img class="ability-sheet-icon" src="{{item.img}}" title="{{item.name}}" alt="{{item.name}}" />
     <div class="ability-sheet-header-text">
@@ -45,18 +45,18 @@
     <div class="ability-grid-3">
       <div class="ability-info-row ability-col">
         <label>Allowed Upbringing</label>
-        <div id="allowed-upbringing-dropzone" class="soldier-type-drop-zone" data-kind="upbringing">{{#each soldierType.ruleFlags.allowedUpbringings.upbringings}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
-        <textarea id="soldier-allowed-upbringing" name="mythic.allowedUpbringingsText" rows="2" style="display:none;">{{#each soldierType.ruleFlags.allowedUpbringings.upbringings}}{{this}}\n{{/each}}</textarea>
+        <div id="allowed-upbringing-dropzone" class="soldier-type-drop-zone" data-kind="upbringing">{{#each allowedUpbringings}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
+        <textarea id="soldier-allowed-upbringing" name="mythic.allowedUpbringingsText" rows="2" style="display:none;">{{allowedUpbringingsText}}</textarea>
       </div>
       <div class="ability-info-row ability-col">
         <label>Allowed Environment</label>
-        <div id="allowed-environment-dropzone" class="soldier-type-drop-zone" data-kind="environment">{{#each soldierType.ruleFlags.allowedEnvironments.environments}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
-        <textarea id="soldier-allowed-environment" name="mythic.allowedEnvironmentsText" rows="2" style="display:none;">{{#each soldierType.ruleFlags.allowedEnvironments.environments}}{{this}}\n{{/each}}</textarea>
+        <div id="allowed-environment-dropzone" class="soldier-type-drop-zone" data-kind="environment">{{#each allowedEnvironments}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
+        <textarea id="soldier-allowed-environment" name="mythic.allowedEnvironmentsText" rows="2" style="display:none;">{{allowedEnvironmentsText}}</textarea>
       </div>
       <div class="ability-info-row ability-col">
         <label>Allowed Lifestyle</label>
-        <div id="allowed-lifestyle-dropzone" class="soldier-type-drop-zone" data-kind="lifestyle">{{#each soldierType.ruleFlags.allowedLifestyles.lifestyles}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
-        <textarea id="soldier-allowed-lifestyle" name="mythic.allowedLifestylesText" rows="2" style="display:none;">{{#each soldierType.ruleFlags.allowedLifestyles.lifestyles}}{{this}}\n{{/each}}</textarea>
+        <div id="allowed-lifestyle-dropzone" class="soldier-type-drop-zone" data-kind="lifestyle">{{#each allowedLifestyles}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
+        <textarea id="soldier-allowed-lifestyle" name="mythic.allowedLifestylesText" rows="2" style="display:none;">{{allowedLifestylesText}}</textarea>
       </div>
     </div>
 
@@ -84,14 +84,14 @@
 
     <div class="ability-info-row ability-notes-row">
       <label>Granted Abilities (drop Ability items)</label>
-      <div id="abilities-dropzone" class="soldier-type-drop-zone">{{#each soldierType.abilities}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
-      <textarea id="soldier-abilities" name="mythic.abilitiesText" rows="3" style="display:none;">{{#each soldierType.abilities}}{{this}}\n{{/each}}</textarea>
+      <div id="abilities-dropzone" class="soldier-type-drop-zone">{{#each abilitiesList}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
+      <textarea id="soldier-abilities" name="mythic.abilitiesText" rows="3" style="display:none;">{{abilitiesText}}</textarea>
     </div>
 
     <div class="ability-info-row ability-notes-row">
       <label>Granted Traits (drop Trait items)</label>
-      <div id="traits-dropzone" class="soldier-type-drop-zone">{{#each soldierType.traits}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
-      <textarea id="soldier-traits" name="mythic.traitsText" rows="3" style="display:none;">{{#each soldierType.traits}}{{this}}\n{{/each}}</textarea>
+      <div id="traits-dropzone" class="soldier-type-drop-zone">{{#each traitsList}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>
+      <textarea id="soldier-traits" name="mythic.traitsText" rows="3" style="display:none;">{{traitsText}}</textarea>
     </div>
 
     <div class="ability-info-row ability-notes-row">
@@ -121,8 +121,8 @@
         <label for="skill-choice-tier">Skill Tier</label>
         <select id="skill-choice-tier" name="mythic.skillChoiceTier" {{#unless canEditFields}}disabled{{/unless}}>
           <option value="trained" {{#if skillChoice.isTrained}}selected{{/if}}>Trained</option>
-          <option value="+10" {{#if skillChoice.isPlus10}}selected{{/if}}>+10</option>
-          <option value="+20" {{#if skillChoice.isPlus20}}selected{{/if}}>+20</option>
+          <option value="plus10" {{#if skillChoice.isPlus10}}selected{{/if}}>+10</option>
+          <option value="plus20" {{#if skillChoice.isPlus20}}selected{{/if}}>+20</option>
         </select>
       </div>
       <div class="ability-info-row ability-col"></div>
@@ -136,8 +136,8 @@
       <div class="ability-info-row ability-col">
         <label for="education-choice-tier">Education Tier</label>
         <select id="education-choice-tier" name="mythic.educationChoiceTier" {{#unless canEditFields}}disabled{{/unless}}>
-          <option value="+5" {{#if educationChoice.isPlus5}}selected{{/if}}>+5</option>
-          <option value="+10" {{#if educationChoice.isPlus10}}selected{{/if}}>+10</option>
+          <option value="plus5" {{#if educationChoice.isPlus5}}selected{{/if}}>+5</option>
+          <option value="plus10" {{#if educationChoice.isPlus10}}selected{{/if}}>+10</option>
         </select>
       </div>
       <div class="ability-info-row ability-col"></div>

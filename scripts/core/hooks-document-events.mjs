@@ -1,6 +1,9 @@
 import {
   MYTHIC_DEFAULT_CHARACTER_ICON,
   MYTHIC_DEFAULT_GROUP_ICON,
+  MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY,
+  MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY,
+  MYTHIC_BESTIARY_DIFFICULTY_MODES,
   MYTHIC_EDUCATION_DEFAULT_ICON,
   MYTHIC_ABILITY_DEFAULT_ICON,
   MYTHIC_UPBRINGING_DEFAULT_ICON,
@@ -12,6 +15,7 @@ import { toNonNegativeWhole } from "../utils/helpers.mjs";
 
 import {
   normalizeCharacterSystemData,
+  normalizeBestiarySystemData,
   normalizeGearSystemData,
   normalizeAbilitySystemData,
   normalizeTraitSystemData,
@@ -30,6 +34,7 @@ import {
 } from "../mechanics/xp.mjs";
 
 import { isGoodFortuneModeEnabled } from "../mechanics/derived.mjs";
+import { applyCombatTurnStart } from "../mechanics/action-economy.mjs";
 
 import { getMythicTokenDefaultsForCharacter } from "../core/token-defaults.mjs";
 
@@ -442,10 +447,84 @@ function cleanupRemovedWeaponSupportData(actor, energyCells = {}, weaponState = 
   return changed;
 }
 
+function getBestiaryRankValue(rankRaw) {
+  const rank = Math.floor(Number(rankRaw ?? 1));
+  if (!Number.isFinite(rank)) return 1;
+  return Math.max(1, Math.min(5, rank));
+}
+
+function getMiddleBandRoll(minValue, maxValue) {
+  const min = Number(minValue ?? 0);
+  const max = Number(maxValue ?? 0);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return null;
+  const span = max - min;
+  const low = min + (span * 0.4);
+  const high = min + (span * 0.6);
+  const roll = low + (Math.random() * Math.max(0, high - low));
+  return Math.round(roll);
+}
+
+async function promptBestiaryRankSelection(actorName = "Bestiary Actor") {
+  const result = await foundry.applications.api.DialogV2.wait({
+    window: { title: "Bestiary Rank" },
+    content: `
+      <form class="mythic-bestiary-rank-dialog">
+        <div class="form-group">
+          <label for="mythic-bestiary-rank-select">Select rank for ${foundry.utils.escapeHTML(actorName)}:</label>
+          <select id="mythic-bestiary-rank-select" name="rank">
+            <option value="1">BR 1 - Easy</option>
+            <option value="2">BR 2 - Normal</option>
+            <option value="3">BR 3 - Heroic</option>
+            <option value="4">BR 4 - Legendary</option>
+            <option value="5">BR 5 - Nemesis</option>
+          </select>
+        </div>
+      </form>
+    `,
+    buttons: [
+      {
+        action: "cancel",
+        label: "Cancel",
+        callback: () => ({ cancelled: true })
+      },
+      {
+        action: "apply",
+        label: "Apply",
+        default: true,
+        callback: () => {
+          const selectEl = document.getElementById("mythic-bestiary-rank-select");
+          return {
+            cancelled: false,
+            rank: getBestiaryRankValue(selectEl?.value ?? 1)
+          };
+        }
+      }
+    ],
+    rejectClose: false,
+    modal: true
+  });
+
+  if (result?.cancelled) return null;
+  return getBestiaryRankValue(result?.rank ?? 1);
+}
+
+function buildBestiaryTokenSystemWithRank(actorSystem = {}, rank = 1) {
+  const source = foundry.utils.deepClone(actorSystem ?? {});
+  foundry.utils.setProperty(source, "bestiary.rank", getBestiaryRankValue(rank));
+  return normalizeBestiarySystemData(source);
+}
+
 export function registerMythicDocumentAndChatHooks({
   mythicRollEvasion,
   mythicApplyDirectAttackDamage,
-  mythicApplyWoundDamage
+  mythicApplyWoundDamage,
+  mythicFearRollShockTest,
+  mythicFearRollPtsdTest,
+  mythicFearRollFollowup,
+  mythicFearShowReference,
+  mythicCanInteractWithFearFlowMessage,
+  mythicGetFearFlowFlag,
+  mythicDescribeFearFlowPermissionHint
 } = {}) {
   Hooks.on("preCreateItem", (item, createData) => {
     const initialName = String(createData?.name ?? item?.name ?? "").trim();
@@ -622,6 +701,21 @@ export function registerMythicDocumentAndChatHooks({
       foundry.utils.setProperty(createData, "prototypeToken.bar1.attribute", tokenDefaults.bar1.attribute);
       foundry.utils.setProperty(createData, "prototypeToken.bar2.attribute", tokenDefaults.bar2.attribute);
       foundry.utils.setProperty(createData, "prototypeToken.displayBars", tokenDefaults.displayBars);
+    } else if (actor.type === "bestiary") {
+      const normalized = normalizeBestiarySystemData(createData.system ?? {});
+      foundry.utils.setProperty(createData, "system", normalized);
+      const tokenDefaults = getMythicTokenDefaultsForCharacter(normalized);
+      foundry.utils.setProperty(createData, "prototypeToken.bar1.attribute", tokenDefaults.bar1.attribute);
+      foundry.utils.setProperty(createData, "prototypeToken.bar2.attribute", tokenDefaults.bar2.attribute);
+      foundry.utils.setProperty(createData, "prototypeToken.displayBars", tokenDefaults.displayBars);
+      const currentImg = String(createData.img ?? "").trim();
+      if (!currentImg || currentImg.startsWith("icons/svg/")) {
+        foundry.utils.setProperty(createData, "img", MYTHIC_DEFAULT_CHARACTER_ICON);
+      }
+      const currentTokenImg = String(foundry.utils.getProperty(createData, "prototypeToken.texture.src") ?? "").trim();
+      if (!currentTokenImg || currentTokenImg.startsWith("icons/svg/")) {
+        foundry.utils.setProperty(createData, "prototypeToken.texture.src", MYTHIC_DEFAULT_CHARACTER_ICON);
+      }
     } else if (actor.type === "Group") {
       applyGroupCreationDefaults(createData);
     }
@@ -672,6 +766,29 @@ export function registerMythicDocumentAndChatHooks({
           if (currentLuck < 7) foundry.utils.setProperty(updates, "system.combat.luck.current", 7);
           if (maxLuck < 7) foundry.utils.setProperty(updates, "system.combat.luck.max", 7);
         }
+
+        if (Object.keys(updates).length) await actor.update(updates, { diff: false, recursive: false });
+        return;
+      }
+
+      if (actor.type === "bestiary") {
+        const updates = {};
+        const currentImg = String(actor.img ?? "").trim();
+        if (!currentImg || currentImg.startsWith("icons/svg/")) {
+          foundry.utils.setProperty(updates, "img", MYTHIC_DEFAULT_CHARACTER_ICON);
+        }
+
+        const currentTokenImg = String(foundry.utils.getProperty(actor, "prototypeToken.texture.src") ?? "").trim();
+        if (!currentTokenImg || currentTokenImg.startsWith("icons/svg/")) {
+          foundry.utils.setProperty(updates, "prototypeToken.texture.src", MYTHIC_DEFAULT_CHARACTER_ICON);
+        }
+
+        const normalized = normalizeBestiarySystemData(actor.system ?? {});
+        const tokenDefaults = getMythicTokenDefaultsForCharacter(normalized);
+        foundry.utils.setProperty(updates, "system", normalized);
+        foundry.utils.setProperty(updates, "prototypeToken.bar1.attribute", tokenDefaults.bar1.attribute);
+        foundry.utils.setProperty(updates, "prototypeToken.bar2.attribute", tokenDefaults.bar2.attribute);
+        foundry.utils.setProperty(updates, "prototypeToken.displayBars", tokenDefaults.displayBars);
 
         if (Object.keys(updates).length) await actor.update(updates, { diff: false, recursive: false });
         return;
@@ -742,6 +859,22 @@ export function registerMythicDocumentAndChatHooks({
       for (const [path, value] of preservedUpdates.entries()) {
         foundry.utils.setProperty(changes.system, path, value);
       }
+
+      const tokenDefaults = getMythicTokenDefaultsForCharacter(changes.system);
+      foundry.utils.setProperty(changes, "prototypeToken.bar1.attribute", tokenDefaults.bar1.attribute);
+      foundry.utils.setProperty(changes, "prototypeToken.bar2.attribute", tokenDefaults.bar2.attribute);
+      foundry.utils.setProperty(changes, "prototypeToken.displayBars", tokenDefaults.displayBars);
+    }
+
+    if (actor.type === "bestiary" && changes.system !== undefined) {
+      const nextSystem = foundry.utils.mergeObject(foundry.utils.deepClone(actor.system ?? {}), changes.system ?? {}, {
+        inplace: false,
+        insertKeys: true,
+        insertValues: true,
+        overwrite: true,
+        recursive: true
+      });
+      changes.system = normalizeBestiarySystemData(nextSystem);
 
       const tokenDefaults = getMythicTokenDefaultsForCharacter(changes.system);
       foundry.utils.setProperty(changes, "prototypeToken.bar1.attribute", tokenDefaults.bar1.attribute);
@@ -895,16 +1028,64 @@ export function registerMythicDocumentAndChatHooks({
     await actor.update(updateData);
   });
 
-  Hooks.on("preCreateToken", (tokenDocument, createData) => {
+  Hooks.on("preCreateToken", async (tokenDocument, createData) => {
     const actor = tokenDocument.actor ?? game.actors.get(String(createData.actorId ?? ""));
-    if (!actor || actor.type !== "character") return;
-    const systemData = normalizeCharacterSystemData(actor.system ?? {});
-    const tokenDefaults = getMythicTokenDefaultsForCharacter(systemData);
+    if (!actor) return;
+
+    if (actor.type === "character") {
+      const systemData = normalizeCharacterSystemData(actor.system ?? {});
+      const tokenDefaults = getMythicTokenDefaultsForCharacter(systemData);
+      foundry.utils.setProperty(createData, "bar1.attribute", tokenDefaults.bar1.attribute);
+      foundry.utils.setProperty(createData, "bar2.attribute", tokenDefaults.bar2.attribute);
+      foundry.utils.setProperty(createData, "displayBars", tokenDefaults.displayBars);
+      if (isHuragokCharacterSystem(systemData)) {
+        applyHuragokTokenFlightDefaults(createData);
+      }
+      return;
+    }
+
+    if (actor.type !== "bestiary") return;
+
+    let targetRank = getBestiaryRankValue(foundry.utils.getProperty(actor, "system.bestiary.rank") ?? 1);
+    const controlMode = String(
+      game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY)
+      ?? MYTHIC_BESTIARY_DIFFICULTY_MODES.global
+    ).trim().toLowerCase();
+
+    if (controlMode === MYTHIC_BESTIARY_DIFFICULTY_MODES.individual) {
+      if (!game.user?.isGM) return false;
+      const selectedRank = await promptBestiaryRankSelection(actor.name ?? "Bestiary Actor");
+      if (!selectedRank) return false;
+      targetRank = selectedRank;
+    } else {
+      const configuredRank = game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY);
+      targetRank = getBestiaryRankValue(configuredRank ?? targetRank);
+    }
+
+    const tokenSystem = buildBestiaryTokenSystemWithRank(actor.system ?? {}, targetRank);
+    const randomHeight = getMiddleBandRoll(tokenSystem?.bestiary?.heightRangeCm?.min, tokenSystem?.bestiary?.heightRangeCm?.max);
+    const randomWeight = getMiddleBandRoll(tokenSystem?.bestiary?.weightRangeKg?.min, tokenSystem?.bestiary?.weightRangeKg?.max);
+    if (randomHeight !== null) {
+      foundry.utils.setProperty(tokenSystem, "biography.physical.heightCm", randomHeight);
+      foundry.utils.setProperty(tokenSystem, "biography.physical.height", `${randomHeight} cm`);
+    }
+    if (randomWeight !== null) {
+      foundry.utils.setProperty(tokenSystem, "biography.physical.weightKg", randomWeight);
+      foundry.utils.setProperty(tokenSystem, "biography.physical.weight", `${randomWeight} kg`);
+    }
+
+    const normalizedTokenSystem = normalizeBestiarySystemData(tokenSystem);
+    const tokenDefaults = getMythicTokenDefaultsForCharacter(normalizedTokenSystem);
     foundry.utils.setProperty(createData, "bar1.attribute", tokenDefaults.bar1.attribute);
     foundry.utils.setProperty(createData, "bar2.attribute", tokenDefaults.bar2.attribute);
     foundry.utils.setProperty(createData, "displayBars", tokenDefaults.displayBars);
-    if (isHuragokCharacterSystem(systemData)) {
-      applyHuragokTokenFlightDefaults(createData);
+    foundry.utils.setProperty(createData, "flags.Halo-Mythic-Foundry-Updated.bestiaryRank", targetRank);
+    foundry.utils.setProperty(createData, "delta.system", normalizedTokenSystem);
+    foundry.utils.setProperty(createData, "delta.type", "bestiary");
+
+    const actorLink = Boolean(foundry.utils.getProperty(createData, "actorLink") ?? actor.prototypeToken?.actorLink);
+    if (actorLink) {
+      await actor.update({ system: normalizedTokenSystem });
     }
   });
 
@@ -913,7 +1094,7 @@ export function registerMythicDocumentAndChatHooks({
     if (!game.user.isGM) return;
     const actor = combat.combatant?.actor;
     if (actor?.type === "character") {
-      await actor.update({ "system.combat.reactions.count": 0 });
+      await applyCombatTurnStart(actor, combat);
     }
   });
 
@@ -982,6 +1163,12 @@ export function registerMythicDocumentAndChatHooks({
               btn.dataset.tokenId,
               btn.dataset.sceneId,
               {
+                hasSpecialDamage: String(btn.dataset.specialDamage ?? "").trim().toLowerCase() === "true",
+                hitLoc: {
+                  zone: String(btn.dataset.hitZone ?? "").trim(),
+                  subZone: String(btn.dataset.hitSubzone ?? "").trim(),
+                  drKey: String(btn.dataset.drKey ?? "").trim()
+                },
                 isHardlight: String(btn.dataset.hardlight ?? "").trim().toLowerCase() === "true",
                 resolveHit: true,
                 damagePierce: Number(btn.dataset.pierce ?? 0),
@@ -995,6 +1182,72 @@ export function registerMythicDocumentAndChatHooks({
                 isKinetic: String(btn.dataset.kinetic ?? "").trim().toLowerCase() === "true"
               }
             );
+          }
+        });
+      });
+    }
+
+    const fearFlow = (typeof mythicGetFearFlowFlag === "function")
+      ? mythicGetFearFlowFlag(message)
+      : null;
+    if (fearFlow) {
+      const canInteract = (typeof mythicCanInteractWithFearFlowMessage === "function")
+        ? mythicCanInteractWithFearFlowMessage(message)
+        : false;
+      const permissionHint = (typeof mythicDescribeFearFlowPermissionHint === "function")
+        ? mythicDescribeFearFlowPermissionHint()
+        : "Only the actor owner or GM can use this control.";
+
+      const applyPermissionState = (button) => {
+        if (canInteract) return;
+        button.disabled = true;
+        button.title = permissionHint;
+      };
+
+      cardEl.querySelectorAll(".mythic-fear-roll-shock-btn").forEach((btn) => {
+        applyPermissionState(btn);
+        if (!canInteract) return;
+        btn.addEventListener("click", async () => {
+          if (typeof mythicFearRollShockTest === "function") {
+            await mythicFearRollShockTest(message.id);
+          }
+        });
+      });
+
+      cardEl.querySelectorAll(".mythic-fear-roll-ptsd-btn").forEach((btn) => {
+        applyPermissionState(btn);
+        if (!canInteract) return;
+        btn.addEventListener("click", async () => {
+          if (typeof mythicFearRollPtsdTest === "function") {
+            await mythicFearRollPtsdTest(message.id);
+          }
+        });
+      });
+
+      cardEl.querySelectorAll(".mythic-fear-followup-roll-btn").forEach((btn) => {
+        applyPermissionState(btn);
+        if (!canInteract) return;
+        btn.addEventListener("click", async () => {
+          if (typeof mythicFearRollFollowup === "function") {
+            await mythicFearRollFollowup(message.id, {
+              label: String(btn.dataset.label ?? "Fear Follow-Up"),
+              formula: String(btn.dataset.formula ?? "1d100"),
+              minimum: Number(btn.dataset.minimum ?? 0),
+              unit: String(btn.dataset.unit ?? "")
+            });
+          }
+        });
+      });
+
+      cardEl.querySelectorAll(".mythic-fear-show-reference-btn").forEach((btn) => {
+        applyPermissionState(btn);
+        if (!canInteract) return;
+        btn.addEventListener("click", async () => {
+          if (typeof mythicFearShowReference === "function") {
+            await mythicFearShowReference(message.id, {
+              referenceKey: String(btn.dataset.referenceKey ?? ""),
+              referenceLabel: String(btn.dataset.referenceLabel ?? "Fear/PTSD")
+            });
           }
         });
       });

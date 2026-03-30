@@ -3,25 +3,113 @@
     <h2>Medical</h2>
 
     <div class="mythic-phase4-grid two-column">
-      <div class="mythic-phase4-card">
-        <h3>Current Condition</h3>
-        <div class="mythic-phase4-field-grid compact">
-          <div class="mythic-mini-field"><span>Wounds</span><input type="number" min="0" value="{{mythicCombat.wounds.current}}" readonly title="Edit on Main tab" /></div>
-          <div class="mythic-mini-field"><span>Wounds Max</span><input type="number" min="0" value="{{mythicCombat.wounds.max}}" readonly /></div>
-          <div class="mythic-mini-field"><span>Fatigue</span><input type="number" min="0" value="{{mythicCombat.fatigue.current}}" readonly title="Edit on Main tab" /></div>
-          <div class="mythic-mini-field"><span>Coma Threshold</span><input type="number" min="0" value="{{mythicCombat.fatigue.max}}" readonly /></div>
-          <div class="mythic-mini-field"><span>Luck</span><input type="number" min="0" value="{{mythicCombat.luck.current}}" readonly title="Edit on Main tab" /></div>
-          <div class="mythic-mini-field"><span>Shields</span><input type="number" min="0" value="{{mythicCombat.shields.current}}" readonly title="Edit on Main tab" /></div>
+      <div class="mythic-phase4-card mythic-medical-primary-card">
+        <div class="mythic-medical-card-header">
+          <h3>Special Damage / Medical Effects</h3>
+          <button type="button" class="action-btn medical-effect-add-btn" data-domain="medical">Add Effect</button>
         </div>
-        <div class="bio-row"><label>Status Summary</label><input type="text" name="system.medical.status" value="{{mythicSystem.medical.status}}" placeholder="Ex: Stable, critical, medicated" /></div>
+
+        {{#if mythicMedicalEffects.medical.hasEntries}}
+          <div class="mythic-effect-list">
+            {{#each mythicMedicalEffects.medical.entries as |effect|}}
+              <div class="mythic-effect-list-row">
+                <button type="button" class="mythic-effect-list-name medical-effect-reference-btn" data-effect-id="{{effect.id}}" title="Open reference entry">{{effect.displayName}}</button>
+                <span class="mythic-effect-list-duration">{{effect.durationSummary}}</span>
+                <button
+                  type="button"
+                  class="action-btn mythic-effect-list-remove medical-effect-remove-btn"
+                  data-effect-id="{{effect.id}}"
+                  title="Remove effect"
+                  aria-label="Remove {{effect.displayName}}"
+                >
+                  ×
+                </button>
+              </div>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="mythic-medical-healthy-state" aria-label="Healthy status">
+            <div class="mythic-medical-healthy-copy">
+              <strong>{{mythicMedicalEffects.medical.healthyLabel}}</strong>
+              <span>{{mythicMedicalEffects.medical.healthySummary}}</span>
+            </div>
+          </div>
+        {{/if}}
+      </div>
+
+      <div class="mythic-phase4-card mythic-medical-vitals-card">
+        <h3>Vitals</h3>
+        <div class="mythic-vitals-strip" aria-label="Current vitals overview">
+          <div class="mythic-vitals-cell" title="Edit on Main tab">
+            <span class="mythic-vitals-label">Wounds</span>
+            <strong class="mythic-vitals-value">{{mythicCombat.wounds.current}}</strong>
+          </div>
+          <div class="mythic-vitals-cell" title="Derived maximum wounds">
+            <span class="mythic-vitals-label">Max</span>
+            <strong class="mythic-vitals-value">{{mythicCombat.wounds.max}}</strong>
+          </div>
+          <div class="mythic-vitals-cell" title="Edit on Main tab">
+            <span class="mythic-vitals-label">Fatigue</span>
+            <strong class="mythic-vitals-value">{{mythicCombat.fatigue.current}}</strong>
+          </div>
+        </div>
       </div>
 
       <div class="mythic-phase4-card">
-        <h3>Treatment</h3>
-        <label>Treatment Notes</label>
-        <textarea name="system.medical.treatmentNotes" rows="6">{{mythicSystem.medical.treatmentNotes}}</textarea>
-        <label>Recovery Notes</label>
-        <textarea name="system.medical.recoveryNotes" rows="6">{{mythicSystem.medical.recoveryNotes}}</textarea>
+        <div class="mythic-medical-card-header">
+          <h3>Environmental Effects</h3>
+          <button type="button" class="action-btn medical-effect-add-btn" data-domain="environmental">Add Effect</button>
+        </div>
+        {{#if mythicMedicalEffects.environmental.hasEntries}}
+          <div class="mythic-effect-list">
+            {{#each mythicMedicalEffects.environmental.entries as |effect|}}
+              <div class="mythic-effect-list-row">
+                <button type="button" class="mythic-effect-list-name medical-effect-reference-btn" data-effect-id="{{effect.id}}" title="Open reference entry">{{effect.displayName}}</button>
+                <span class="mythic-effect-list-duration">{{effect.durationSummary}}</span>
+                <button
+                  type="button"
+                  class="action-btn mythic-effect-list-remove medical-effect-remove-btn"
+                  data-effect-id="{{effect.id}}"
+                  title="Remove effect"
+                  aria-label="Remove {{effect.displayName}}"
+                >
+                  ×
+                </button>
+              </div>
+            {{/each}}
+          </div>
+        {{else}}
+          <p class="ccadv-note">No active environmental effects.</p>
+        {{/if}}
+      </div>
+
+      <div class="mythic-phase4-card">
+        <div class="mythic-medical-card-header">
+          <h3>Fear / Mental Disorders</h3>
+          <button type="button" class="action-btn fear-test-btn" title="Run a Fear Test flow (Courage -> Shock -> PTSD).">Fear Test</button>
+          <button type="button" class="action-btn medical-effect-add-btn" data-domain="fear-ptsd">Add Effect</button>
+        </div>
+        {{#if mythicMedicalEffects.fear.hasEntries}}
+          <div class="mythic-effect-list">
+            {{#each mythicMedicalEffects.fear.entries as |effect|}}
+              <div class="mythic-effect-list-row">
+                <button type="button" class="mythic-effect-list-name medical-effect-reference-btn" data-effect-id="{{effect.id}}" title="Open reference entry">{{effect.displayName}}</button>
+                <span class="mythic-effect-list-duration">{{effect.durationSummary}}</span>
+                <button
+                  type="button"
+                  class="action-btn mythic-effect-list-remove medical-effect-remove-btn"
+                  data-effect-id="{{effect.id}}"
+                  title="Remove effect"
+                  aria-label="Remove {{effect.displayName}}"
+                >
+                  ×
+                </button>
+              </div>
+            {{/each}}
+          </div>
+        {{else}}
+          <p class="ccadv-note">No active fear or mental disorder effects.</p>
+        {{/if}}
       </div>
 
       {{#if mythicGammaCompany.enabled}}
@@ -38,6 +126,14 @@
         {{/unless}}
       </div>
       {{/if}}
+
+      <div class="mythic-phase4-card full-width">
+        <h3>Treatment</h3>
+        <label>Treatment Notes</label>
+        <textarea name="system.medical.treatmentNotes" rows="6">{{mythicSystem.medical.treatmentNotes}}</textarea>
+        <label>Recovery Notes</label>
+        <textarea name="system.medical.recoveryNotes" rows="6">{{mythicSystem.medical.recoveryNotes}}</textarea>
+      </div>
     </div>
   </section>
 </div>

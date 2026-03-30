@@ -4,6 +4,7 @@ Use this file to paste or write short bug reports for later review.
 
 - Date: 2026-03-26
   - Reporter:
+  - Build/version: 0.2.0-alpha.4
   - Summary:
   - Steps to reproduce:
   - Expected:

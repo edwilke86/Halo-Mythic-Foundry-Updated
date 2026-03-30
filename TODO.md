@@ -1,9 +1,9 @@
 # Halo Mythic Foundry TODO Roadmap
 
-Last updated: 2026-03-26
+Last updated: 2026-03-30
 Scope target: Mythic system v7.0 CU1 parity plus Foundry-native quality-of-life
 
-## Current Status Snapshot (2026-03-26)
+## Current Status Snapshot (2026-03-30)
 
 Completed recently (Phases 2-4):
 
@@ -20,7 +20,12 @@ Completed recently (Phases 2-4):
 - Completed major left-nav redesign to icon-based protruding tab rail with hover labels
 - Added called-shot attack targeting flow (location/sublocation selection, penalties, and fallback handling)
 - Added shield-first damage application with special-rule-aware penetration branches (Hardlight, Kinetic, Penetrating, Headshot)
-- Added alpha startup notice with dismiss option and focused bug-report guidance
+- Added alpha startup notice modal with dismiss option and focused bug-report guidance
+- Added fear test chat workflow continuation (Courage -> Shock -> PTSD) with owner/GM-controlled follow-up actions
+- Added tracked fear/PTSD actor-targeting hardening using UUID-first flow resolution
+- Added Add Medical Effect duration redesign: numeric duration + unit selector (HA/Rounds/Minutes/Hours/Days/Indefinite)
+- Added minute duration combat mapping (`1 minute = 10 rounds`) and aligned duration summaries
+- Removed startup alpha notice chat post; retained startup modal notice
 
 Current direction (next):
 
@@ -42,6 +47,8 @@ Current direction (next):
 - Resolved: General Equipment subtype now omits Weapon Type and includes a long freeform Description field for custom item notes.
 - Resolved: Group Sheet average cR now computes from member credits correctly (no longer locked to 350).
 - Resolved: Equipment subtypes Container / Weapon Modification / Armor Permutation / Ammo Modification now use long Description-focused UI and no Weapon Type field where applicable.
+- Resolved: Soldier Type custom prompt messages now persist to template data and appear before faction/training/infusion/skill/education prompts on apply; cancel now aborts apply.
+- Resolved: Soldier Type drop tag editing now normalizes CRLF/newline and prevents duplicate escaped literal `\n`, and locked mode prevents tag clicks.
 - **Open (P1):** Group inventory repeated drop behavior can still create duplicate rows in some flows; current workaround is to increase Qty on the existing row rather than dropping the same item repeatedly.
 - **Open (P1):** Actor sheet textarea indentation drift — multiline text in any big text box (e.g. GM Notes, General Description) gains extra leading spaces on every blur/save. Multiple normalization attempts in `_onChangeForm` and `_prepareSubmitData` did not resolve it. Suspected root cause: Handlebars re-render inserts whitespace from HBS template indentation into `<textarea>` content. Potential fix: ensure no whitespace between `>{{value}}</textarea>` in all actor HBS textarea tags.
 
@@ -55,12 +62,12 @@ Current direction (next):
 
 ## Milestone 1: Core System Foundation (Playable MVP)
 
-- [ ] P0 Finalize actor data model schema in system.json for all core character fields
-- [ ] P0 Add default values and data type safeguards for missing/null fields
-- [ ] P0 Define item data model(s): weapons, armor, gear, talents/abilities, traits, conditions
-- [ ] P0 Ensure all current sheet fields are persisted and no orphaned fields remain
+- [x] P0 Finalize actor data model schema in system.json for all core character fields
+- [x] P0 Add default values and data type safeguards for missing/null fields
+- [x] P0 Define item data model(s): weapons, armor, gear, talents/abilities, traits, conditions
+- [x] P0 Ensure all current sheet fields are persisted and no orphaned fields remain
 - [x] P0 Add robust migration logic for schema/version changes
-- [ ] P0 Establish constants module for repeated keys (characteristics, skills, wound states, etc.)
+- [x] P0 Establish constants module for repeated keys (characteristics, skills, wound states, etc.)
 - [x] P1 Create reusable utility functions for formulas, rounding, validation, and coercion
 - [ ] P1 Add localization pass for labels and system strings in lang files
 
@@ -81,7 +88,7 @@ Current direction (next):
 ## Milestone 3: Rolls and Automation Engine
 
 - [x] P0 Implement universal test resolver with configurable success/failure outputs
-- [ ] P0 Degrees of success/failure handling aligned with Mythic 7.0 CU1 wording
+- [x] P0 Degrees of success/failure handling aligned with Mythic 7.0 CU1 wording
 - [x] P0 Centralize roll card rendering templates for consistency
 - [x] P1 Add roll modifiers dialog (situational bonuses/penalties)
 - [ ] P1 Add quick-roll buttons for common checks from each relevant tab
@@ -97,8 +104,8 @@ Implementation note:
 - Equipment/Medical/Advancements/Vehicles tabs are scaffolded and rendered; deeper rules workflows remain in the unchecked P0 items below.
 
 - [x] P0 Complete left-nav tabs to match intended structure and ordering
-- [ ] P0 Build out Core tab sections (skills, education, languages, abilities)
-- [ ] P0 Build Equipment tab (weapons, armor, inventory, encumbrance if used)
+- [x] P0 Build out Core tab sections (skills, education, languages, abilities)
+- [x] P0 Build Equipment tab (weapons, armor, inventory, encumbrance if used)
 - [ ] P0 Build Medical tab (wounds, treatment, statuses, recovery trackers)
 - [x] P0 Build Advancements tab (XP/spend log, unlocked features)
 - [x] P1 Build Journal/Notes tab with structured and freeform notes

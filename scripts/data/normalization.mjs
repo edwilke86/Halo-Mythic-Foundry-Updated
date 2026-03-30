@@ -25,7 +25,7 @@ import {
 import { getCanonicalTrainingData, normalizeTrainingData } from '../mechanics/training.mjs';
 import { buildSkillRankDefaults } from '../mechanics/skills.mjs';
 import { computeCharacterDerivedValues } from '../mechanics/derived.mjs';
-import { getCanonicalCharacterSystemData } from './canonical.mjs';
+import { getCanonicalCharacterSystemData, getCanonicalBestiarySystemData } from './canonical.mjs';
 import { normalizeSkillEntry, normalizeSkillsData } from './normalization-skills.mjs';
 import {
   getCanonicalAbilitySystemData,
@@ -77,6 +77,77 @@ import {
 } from '../mechanics/size.mjs';
 
 const MYTHIC_BATTERY_SUBTYPES = Object.freeze(new Set(["plasma", "ionized-particle", "unsc-cell", "grindell"]));
+
+function normalizeMedicalActiveEffectEntry(entry = {}, index = 0) {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+
+  const requestedDomain = String(entry.domain ?? "medical").trim().toLowerCase() || "medical";
+  const domain = ["medical", "environmental", "fear-ptsd"].includes(requestedDomain)
+    ? requestedDomain
+    : "medical";
+  const displayName = String(entry.displayName ?? entry.name ?? "").trim();
+  const fallbackKey = normalizeLookupText(displayName).replace(/\s+/gu, "-");
+  const effectKey = String(entry.effectKey ?? entry.key ?? fallbackKey).trim();
+  if (!displayName && !effectKey) return null;
+
+  const metadata = (entry.metadata && typeof entry.metadata === "object" && !Array.isArray(entry.metadata))
+    ? foundry.utils.deepClone(entry.metadata)
+    : {};
+  const tags = normalizeStringList(Array.isArray(entry.tags) ? entry.tags : []);
+  const specialDamageValueRaw = Number(entry.specialDamageValueRaw ?? 0);
+  const durationRounds = Number(entry.durationRounds ?? 0);
+  const durationHalfActions = Number(entry.durationHalfActions ?? 0);
+  const durationMinutes = Number(entry.durationMinutes ?? 0);
+  const generatedId = `${domain}-${effectKey || `effect-${index + 1}`}`;
+  const durationLabel = String(entry.durationLabel ?? "").trim();
+  const recoveryLabel = String(entry.recoveryLabel ?? "").trim();
+  const combinedDurationHints = [
+    durationLabel,
+    recoveryLabel,
+    String(entry.summaryText ?? "").trim(),
+    String(entry.mechanicalText ?? "").trim()
+  ].filter(Boolean).join(" ");
+  const inferredCount = (() => {
+    const explicitNumber = Number(durationLabel);
+    if (Number.isFinite(explicitNumber) && explicitNumber > 0) return Math.floor(explicitNumber);
+    const match = durationLabel.match(/(\d+)/u);
+    return match ? Math.max(0, Math.floor(Number(match[1] ?? 0))) : 0;
+  })();
+  const inferredHalfActions = Number.isFinite(durationHalfActions) && durationHalfActions > 0
+    ? Math.max(0, Math.floor(durationHalfActions))
+    : (/half\s*actions?/iu.test(combinedDurationHints) && inferredCount > 0 ? inferredCount : 0);
+  const inferredRounds = Number.isFinite(durationRounds) && durationRounds > 0
+    ? Math.max(0, Math.floor(durationRounds))
+    : (/\brounds?\b|\bturns?\b/iu.test(combinedDurationHints) && inferredCount > 0 ? inferredCount : 0);
+
+  return {
+    id: String(entry.id ?? generatedId).trim() || generatedId,
+    domain,
+    effectKey: effectKey || `effect-${index + 1}`,
+    displayName: displayName || effectKey || `Effect ${index + 1}`,
+    severityTier: String(entry.severityTier ?? "").trim(),
+    sourceRule: String(entry.sourceRule ?? "").trim(),
+    summaryText: String(entry.summaryText ?? "").trim(),
+    mechanicalText: String(entry.mechanicalText ?? "").trim(),
+    durationLabel,
+    recoveryLabel,
+    stackingBehavior: String(entry.stackingBehavior ?? "").trim(),
+    triggerReason: String(entry.triggerReason ?? "").trim(),
+    hitLocation: String(entry.hitLocation ?? "").trim(),
+    sourceAttackId: String(entry.sourceAttackId ?? "").trim(),
+    specialDamageValueRaw: Number.isFinite(specialDamageValueRaw) ? Math.max(0, Math.floor(specialDamageValueRaw)) : 0,
+    createdAt: String(entry.createdAt ?? "").trim(),
+    expiresAt: String(entry.expiresAt ?? "").trim(),
+    active: entry.active !== false,
+    systemApplied: entry.systemApplied === true,
+    notes: String(entry.notes ?? "").trim(),
+    tags,
+    durationRounds: inferredRounds,
+    durationHalfActions: inferredHalfActions,
+    durationMinutes: Number.isFinite(durationMinutes) ? Math.max(0, Math.floor(durationMinutes)) : 0,
+    metadata
+  };
+}
 
 function normalizeBatterySubtype(value = "", ammoMode = "") {
   if (String(ammoMode ?? "").trim().toLowerCase() !== "plasma-battery") return "plasma";
@@ -169,8 +240,12 @@ export function normalizeCharacterSystemData(systemData) {
   merged.mythic.soldierTypeTouWoundsMultiplier = Number.isFinite(touWoundsMultiplierRaw) ? Math.max(0, touWoundsMultiplierRaw) : 1;
   const soldierTypeLeapMultiplierRaw = Number(merged.mythic?.soldierTypeLeapMultiplier ?? 1);
   merged.mythic.soldierTypeLeapMultiplier = Number.isFinite(soldierTypeLeapMultiplierRaw) ? Math.max(0, soldierTypeLeapMultiplierRaw) : 1;
+  const soldierTypeJumpMultiplierRaw = Number(merged.mythic?.soldierTypeJumpMultiplier ?? 1);
+  merged.mythic.soldierTypeJumpMultiplier = Number.isFinite(soldierTypeJumpMultiplierRaw) ? Math.max(0, soldierTypeJumpMultiplierRaw) : 1;
   const soldierTypeLeapModifierRaw = Number(merged.mythic?.soldierTypeLeapModifier ?? 0);
   merged.mythic.soldierTypeLeapModifier = Number.isFinite(soldierTypeLeapModifierRaw) ? soldierTypeLeapModifierRaw : 0;
+  const soldierTypeLeapAgiBonusRaw = Number(merged.mythic?.soldierTypeLeapAgiBonus ?? 0);
+  merged.mythic.soldierTypeLeapAgiBonus = Number.isFinite(soldierTypeLeapAgiBonusRaw) ? soldierTypeLeapAgiBonusRaw : 0;
   const miscLeapModifierRaw = Number(merged.mythic?.miscLeapModifier ?? 0);
   merged.mythic.miscLeapModifier = Number.isFinite(miscLeapModifierRaw) ? miscLeapModifierRaw : 0;
   const miscCarryBonusRaw = Number(merged.mythic?.miscCarryBonus ?? 0);
@@ -237,6 +312,26 @@ export function normalizeCharacterSystemData(systemData) {
 
   merged.combat.reactions ??= {};
   merged.combat.reactions.count = Math.max(0, Math.floor(Number(merged.combat.reactions?.count ?? 0)));
+  merged.combat.actionEconomy ??= {};
+  merged.combat.actionEconomy.combatId = String(merged.combat.actionEconomy?.combatId ?? "");
+  merged.combat.actionEconomy.round = Math.max(0, Math.floor(Number(merged.combat.actionEconomy?.round ?? 0)));
+  merged.combat.actionEconomy.turn = Math.max(0, Math.floor(Number(merged.combat.actionEconomy?.turn ?? 0)));
+  merged.combat.actionEconomy.halfActionsSpent = Math.max(0, Math.floor(Number(merged.combat.actionEconomy?.halfActionsSpent ?? 0)));
+  merged.combat.actionEconomy.history = (Array.isArray(merged.combat.actionEconomy?.history) ? merged.combat.actionEconomy.history : [])
+    .filter((entry) => entry && typeof entry === "object")
+    .map((entry, index) => ({
+      id: String(entry.id ?? `history-${index + 1}`).trim() || `history-${index + 1}`,
+      label: String(entry.label ?? "Action").trim() || "Action",
+      source: String(entry.source ?? "manual").trim() || "manual",
+      halfActions: Math.max(0, Math.floor(Number(entry.halfActions ?? 0))),
+      recordedAt: String(entry.recordedAt ?? "").trim()
+    }));
+  merged.combat.autoFireTracker ??= {};
+  merged.combat.autoFireTracker.combatId = String(merged.combat.autoFireTracker?.combatId ?? "");
+  merged.combat.autoFireTracker.round = Math.max(0, Math.floor(Number(merged.combat.autoFireTracker?.round ?? 0)));
+  merged.combat.autoFireTracker.weapons = (merged.combat.autoFireTracker?.weapons && typeof merged.combat.autoFireTracker.weapons === "object" && !Array.isArray(merged.combat.autoFireTracker.weapons))
+    ? foundry.utils.deepClone(merged.combat.autoFireTracker.weapons)
+    : {};
   merged.combat.targetSwitch ??= {};
   merged.combat.targetSwitch.combatId = String(merged.combat.targetSwitch?.combatId ?? "");
   merged.combat.targetSwitch.round = Math.max(0, Math.floor(Number(merged.combat.targetSwitch?.round ?? 0)));
@@ -502,6 +597,9 @@ export function normalizeCharacterSystemData(systemData) {
   merged.medical.gammaCompany.enabled = Boolean(merged.medical.gammaCompany?.enabled);
   merged.medical.gammaCompany.smootherApplications = toNonNegativeWhole(merged.medical.gammaCompany?.smootherApplications, 0);
   merged.medical.gammaCompany.lastAppliedAt = String(merged.medical.gammaCompany?.lastAppliedAt ?? "").trim();
+  merged.medical.activeEffects = (Array.isArray(merged.medical?.activeEffects) ? merged.medical.activeEffects : [])
+    .map((entry, index) => normalizeMedicalActiveEffectEntry(entry, index))
+    .filter(Boolean);
 
   merged.advancements ??= {};
   merged.advancements.xpEarned = toNonNegativeWhole(merged.advancements.xpEarned, 0);
@@ -751,6 +849,188 @@ export function normalizeCharacterSystemData(systemData) {
   return merged;
 }
 
+function normalizeBestiaryArmorProfile(entry = {}, index = 0) {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+  const id = String(entry.id ?? `armor-${index + 1}`).trim() || `armor-${index + 1}`;
+  const toWhole = (value, fallback = 0) => {
+    const numeric = Number(value ?? fallback);
+    return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : Math.max(0, Math.floor(fallback));
+  };
+  return {
+    id,
+    name: String(entry.name ?? "").trim(),
+    head: toWhole(entry.head, 0),
+    chest: toWhole(entry.chest, 0),
+    arms: toWhole(entry.arms, 0),
+    legs: toWhole(entry.legs, 0),
+    shieldIntegrity: toWhole(entry.shieldIntegrity, 0),
+    rechargeDelay: toWhole(entry.rechargeDelay, 0),
+    rechargeRate: toWhole(entry.rechargeRate, 0)
+  };
+}
+
+function getBestiaryRankValue(rankRaw) {
+  const rank = Math.floor(Number(rankRaw ?? 1));
+  if (!Number.isFinite(rank)) return 1;
+  return Math.min(5, Math.max(1, rank));
+}
+
+function getBestiaryMythicBonus(rank = 1) {
+  if (rank >= 5) return 2;
+  if (rank >= 2) return 1;
+  return 0;
+}
+
+function getBestiaryCharacteristicBonus(rank = 1) {
+  if (rank >= 5) return 25;
+  return Math.max(0, (rank - 1) * 5);
+}
+
+export function normalizeBestiarySystemData(systemData) {
+  const source = foundry.utils.deepClone(systemData ?? {});
+  const defaults = getCanonicalBestiarySystemData();
+  const mergedBase = foundry.utils.mergeObject(defaults, source, {
+    inplace: false,
+    insertKeys: true,
+    insertValues: true,
+    overwrite: true,
+    recursive: true
+  });
+
+  const merged = normalizeCharacterSystemData(mergedBase);
+
+  merged.bestiary ??= foundry.utils.deepClone(defaults.bestiary);
+  merged.bestiary.rank = getBestiaryRankValue(merged.bestiary.rank);
+  merged.bestiary.singleDifficulty = Boolean(merged.bestiary.singleDifficulty);
+  merged.bestiary.advanceMythicStats = Boolean(merged.bestiary.advanceMythicStats);
+
+  for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+    const baseValue = Number(merged.bestiary?.baseCharacteristics?.[key] ?? 0);
+    const miscValue = Number(merged.bestiary?.miscCharacteristics?.[key] ?? 0);
+    merged.bestiary.baseCharacteristics[key] = Number.isFinite(baseValue) ? Math.max(0, Math.floor(baseValue)) : 0;
+    merged.bestiary.miscCharacteristics[key] = Number.isFinite(miscValue) ? Math.floor(miscValue) : 0;
+  }
+
+  for (const key of ["str", "tou", "agi"]) {
+    const mythicValue = Number(merged.bestiary?.mythicBase?.[key] ?? 0);
+    merged.bestiary.mythicBase[key] = Number.isFinite(mythicValue) ? Math.max(0, Math.floor(mythicValue)) : 0;
+  }
+
+  const xpPayouts = merged.bestiary?.xpPayouts && typeof merged.bestiary.xpPayouts === "object"
+    ? merged.bestiary.xpPayouts
+    : {};
+  merged.bestiary.xpPayouts = {
+    br1: toNonNegativeWhole(xpPayouts.br1, 0),
+    br2: toNonNegativeWhole(xpPayouts.br2, 0),
+    br3: toNonNegativeWhole(xpPayouts.br3, 0),
+    br4: toNonNegativeWhole(xpPayouts.br4, 0),
+    br5: toNonNegativeWhole(xpPayouts.br5, 0)
+  };
+
+  const woundsByRank = merged.bestiary?.woundsByRank && typeof merged.bestiary.woundsByRank === "object"
+    ? merged.bestiary.woundsByRank
+    : {};
+  merged.bestiary.woundsByRank = {
+    br1: toNonNegativeWhole(woundsByRank.br1, 0),
+    br2: toNonNegativeWhole(woundsByRank.br2, 0),
+    br3: toNonNegativeWhole(woundsByRank.br3, 0),
+    br4: toNonNegativeWhole(woundsByRank.br4, 0),
+    br5: toNonNegativeWhole(woundsByRank.br5, 0)
+  };
+
+  const sizeLabel = getCanonicalSizeCategoryLabel(merged.bestiary?.size);
+  merged.bestiary.size = sizeLabel || "Normal";
+  merged.bestiary.heightRangeCm = normalizeRangeObject(merged.bestiary?.heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
+  merged.bestiary.weightRangeKg = normalizeRangeObject(merged.bestiary?.weightRangeKg, MYTHIC_DEFAULT_WEIGHT_RANGE_KG);
+
+  const modifiers = (merged.bestiary?.modifiers && typeof merged.bestiary.modifiers === "object")
+    ? merged.bestiary.modifiers
+    : {};
+  merged.bestiary.modifiers = {
+    jumpMultiplier: Number.isFinite(Number(modifiers.jumpMultiplier)) ? Math.max(0, Number(modifiers.jumpMultiplier)) : 1,
+    leapAgiBonus: Number.isFinite(Number(modifiers.leapAgiBonus)) ? Number(modifiers.leapAgiBonus) : 0,
+    leapMultiplier: Number.isFinite(Number(modifiers.leapMultiplier)) ? Math.max(0, Number(modifiers.leapMultiplier)) : 1,
+    runChargeAgiBonus: Number.isFinite(Number(modifiers.runChargeAgiBonus)) ? Number(modifiers.runChargeAgiBonus) : 0,
+    naturalArmor: Number.isFinite(Number(modifiers.naturalArmor)) ? Number(modifiers.naturalArmor) : 0
+  };
+
+  const equipmentListRaw = Array.isArray(merged.bestiary?.equipmentList) ? merged.bestiary.equipmentList : [];
+  merged.bestiary.equipmentList = equipmentListRaw
+    .map((entry, index) => {
+      if (!entry || typeof entry !== "object") return null;
+      const id = String(entry.id ?? `equipment-${index + 1}`).trim() || `equipment-${index + 1}`;
+      const name = String(entry.name ?? "").trim();
+      const quantity = toNonNegativeWhole(entry.quantity, 1);
+      if (!name && quantity < 1) return null;
+      return { id, name, quantity };
+    })
+    .filter(Boolean);
+
+  const armorProfilesRaw = Array.isArray(merged.bestiary?.armorProfiles) ? merged.bestiary.armorProfiles : [];
+  merged.bestiary.armorProfiles = armorProfilesRaw
+    .map((entry, index) => normalizeBestiaryArmorProfile(entry, index))
+    .filter(Boolean);
+
+  const requestedArmorId = String(merged.bestiary?.activeArmorProfileId ?? "").trim();
+  const activeArmorProfile = merged.bestiary.armorProfiles.find((entry) => entry.id === requestedArmorId)
+    ?? merged.bestiary.armorProfiles[0]
+    ?? null;
+  merged.bestiary.activeArmorProfileId = String(activeArmorProfile?.id ?? "");
+
+  const rank = merged.bestiary.rank;
+  const rankModifier = merged.bestiary.singleDifficulty ? 0 : getBestiaryCharacteristicBonus(rank);
+  for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+    merged.characteristics[key] = Math.max(
+      0,
+      toNonNegativeWhole(merged.bestiary.baseCharacteristics[key], 0)
+      + Math.floor(Number(merged.bestiary.miscCharacteristics[key] ?? 0) || 0)
+      + rankModifier
+    );
+  }
+
+  const mythicBonus = (!merged.bestiary.singleDifficulty && merged.bestiary.advanceMythicStats)
+    ? getBestiaryMythicBonus(rank)
+    : 0;
+  for (const key of ["str", "tou", "agi"]) {
+    merged.mythic.characteristics[key] = Math.max(0, toNonNegativeWhole(merged.bestiary.mythicBase[key], 0) + mythicBonus);
+  }
+
+  merged.header.buildSize = merged.bestiary.size;
+  merged.biography.physical.heightRangeCm = foundry.utils.deepClone(merged.bestiary.heightRangeCm);
+  merged.biography.physical.weightRangeKg = foundry.utils.deepClone(merged.bestiary.weightRangeKg);
+
+  merged.mythic.soldierTypeTouWoundsMultiplier = 1;
+  merged.mythic.soldierTypeJumpMultiplier = merged.bestiary.modifiers.jumpMultiplier;
+  merged.mythic.soldierTypeLeapAgiBonus = merged.bestiary.modifiers.leapAgiBonus;
+  merged.mythic.soldierTypeLeapMultiplier = merged.bestiary.modifiers.leapMultiplier;
+  merged.mythic.soldierTypeChargeRunAgiBonus = merged.bestiary.modifiers.runChargeAgiBonus;
+  merged.mythic.naturalArmorModifier = merged.bestiary.modifiers.naturalArmor;
+
+  const woundsKey = `br${rank}`;
+  const woundsMaxByRank = toNonNegativeWhole(merged.bestiary?.woundsByRank?.[woundsKey], 0);
+  const currentWounds = toNonNegativeWhole(merged.combat?.wounds?.current, woundsMaxByRank);
+  merged.combat.wounds.max = woundsMaxByRank;
+  merged.combat.wounds.current = Math.min(currentWounds, woundsMaxByRank);
+
+  if (activeArmorProfile) {
+    merged.combat.dr.armor.head = activeArmorProfile.head;
+    merged.combat.dr.armor.chest = activeArmorProfile.chest;
+    merged.combat.dr.armor.lArm = activeArmorProfile.arms;
+    merged.combat.dr.armor.rArm = activeArmorProfile.arms;
+    merged.combat.dr.armor.lLeg = activeArmorProfile.legs;
+    merged.combat.dr.armor.rLeg = activeArmorProfile.legs;
+    merged.combat.shields.integrity = activeArmorProfile.shieldIntegrity;
+    merged.combat.shields.rechargeDelay = activeArmorProfile.rechargeDelay;
+    merged.combat.shields.rechargeRate = activeArmorProfile.rechargeRate;
+    const currentShield = toNonNegativeWhole(merged.combat?.shields?.current, activeArmorProfile.shieldIntegrity);
+    merged.combat.shields.current = Math.min(currentShield, activeArmorProfile.shieldIntegrity);
+  }
+
+  const recalculated = normalizeCharacterSystemData(merged);
+  recalculated.bestiary = merged.bestiary;
+  return recalculated;
+}
+
 // ─── Dispatch ────────────────────────────────────────────────────────────────
 
 export function normalizeSupportedItemSystemData(itemType, systemData, itemName = "") {
@@ -885,11 +1165,8 @@ export function normalizeSoldierTypeSystemData(systemData, itemName = "") {
       .filter(Boolean)
   ));
 
-  merged.customPromptMessages = Array.from(new Set(
-    (Array.isArray(merged.customPromptMessages) ? merged.customPromptMessages : [])
-      .map((entry) => String(entry ?? "").trim())
-      .filter(Boolean)
-  ));
+  merged.customPromptMessages = (Array.isArray(merged.customPromptMessages) ? merged.customPromptMessages : [])
+    .map((entry) => String(entry ?? ""));
 
   const branchTransitionSource = merged?.ruleFlags?.branchTransition && typeof merged.ruleFlags.branchTransition === "object"
     ? merged.ruleFlags.branchTransition

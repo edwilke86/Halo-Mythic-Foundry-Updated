@@ -18,6 +18,47 @@ import { soldierTypeChoicePackHelperMethods } from "./actor-sheet-soldier-type-c
 
 export const soldierTypeChoiceMethods = {
 
+  _promptSoldierTypeCustomMessages(templateName, templateSystem) {
+    const messages = Array.isArray(templateSystem?.customPromptMessages)
+      ? templateSystem.customPromptMessages
+        .map((entry) => String(entry ?? "").trim())
+        .filter(Boolean)
+      : [];
+
+    if (!messages.length) return Promise.resolve(true);
+
+    const messageMarkup = messages
+      .map((message) => `<li>${foundry.utils.escapeHTML(message)}</li>`)
+      .join("");
+
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: "Soldier Type Notice"
+      },
+      content: `
+        <div class="mythic-modal-body">
+          <p><strong>${foundry.utils.escapeHTML(templateName)}</strong></p>
+          <p>Review the following before continuing:</p>
+          <ul>${messageMarkup}</ul>
+        </div>
+      `,
+      buttons: [
+        {
+          action: "continue",
+          label: "Continue",
+          callback: () => true
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => false
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  },
+
   _normalizeSoldierTypeFactionChoiceConfig(templateSystem) {
     const source = templateSystem?.factionChoice;
     if (!source || typeof source !== "object") return null;

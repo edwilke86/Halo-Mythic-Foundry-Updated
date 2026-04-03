@@ -10,7 +10,7 @@ export const MYTHIC_TOKEN_RULER_COLORS = Object.freeze({
 
 export function getMythicMovementThresholds(token) {
   const actor = token?.actor;
-  if (!actor || actor.type !== "character") return null;
+  if (!actor || (actor.type !== "character" && actor.type !== "bestiary")) return null;
 
   const scope = "Halo-Mythic-Foundry-Updated";
   const source = foundry.utils.deepClone(actor.system ?? {});

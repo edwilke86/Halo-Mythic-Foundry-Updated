@@ -1,4 +1,4 @@
-<div class="{{cssClass}} mythic-character-sheet mythic-bestiary-shell" data-faction="1">
+<div class="{{cssClass}} mythic-character-sheet mythic-bestiary-shell" data-faction="1" data-subtype="{{mythicBestiarySubtype}}" data-flood-form="{{mythicFloodFormClass}}">
   <aside class="sheet-nav">
     <nav class="sheet-tabs tabs" data-group="primary">
       <a class="item" data-tab="main" title="Main">
@@ -6,6 +6,9 @@
       </a>
       <a class="item" data-tab="equipment" title="Equipment">
         <i class="fas fa-toolbox"></i>
+      </a>
+      <a class="item" data-tab="knowledge" title="Skills &amp; Knowledge">
+        <i class="fas fa-brain"></i>
       </a>
       <a class="item" data-tab="medical" title="Medical">
         <i class="fas fa-heart-pulse"></i>
@@ -25,7 +28,13 @@
         <img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" alt="{{actor.name}}" />
       </div>
       <div class="mythic-bestiary-header-fields">
-        <h1><input name="name" type="text" value="{{actor.name}}" placeholder="Bestiary Entry" /></h1>
+        <div class="mythic-bestiary-header-title-row">
+          <h1><input name="name" type="text" value="{{actor.name}}" placeholder="Bestiary Entry" /></h1>
+          <label class="mythic-bestiary-header-xp-field" title="Current XP payout for the selected BR.">
+            XP Payout
+            <input type="number" min="0" step="1" value="{{mythicCurrentXpPayout}}" readonly />
+          </label>
+        </div>
         <div class="mythic-bestiary-header-grid">
           <label>
             BR Level
@@ -273,8 +282,145 @@
           </div>
 
           <div class="mythic-ready-weapons-section">
-            <h3>Readied Weapons</h3>
-            <p class="mythic-ready-weapon-empty">No readied weapons yet. Bestiary weapon cards will hook in later.</p>
+            <h3>Readied Weapons <span class="mythic-drop-hint">(drop a weapon item to add)</span></h3>
+            {{#if mythicEquipment.readyWeaponCards.length}}
+              <div class="mythic-ready-weapon-grid">
+                {{#each mythicEquipment.readyWeaponCards as |weapon|}}
+                <article class="mythic-ready-weapon-card">
+                  <header class="mythic-ready-weapon-card-header">
+                    <div>
+                      {{#if weapon.hasTrainingWarning}}
+                      <div class="mythic-ready-weapon-warning" title="{{weapon.trainingWarningText}}">{{weapon.trainingWarningText}}</div>
+                      {{/if}}
+                      <div class="mythic-ready-weapon-name-row">
+                        <div class="mythic-ready-weapon-name">{{weapon.name}}</div>
+                        <button type="button" class="action-btn gear-open-btn mythic-ready-weapon-edit-btn" data-item-id="{{weapon.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+                      </div>
+                      {{#if weapon.nickname}}<div class="mythic-ready-weapon-nickname">"{{weapon.nickname}}"</div>{{/if}}
+                      <div class="mythic-ready-weapon-meta">
+                        {{weapon.displayWeaponClass}}
+                      </div>
+                    </div>
+                    <div class="mythic-ready-weapon-header-actions">
+                      <span class="mythic-ready-weapon-state">Ready</span>
+                      <button type="button" class="action-btn mythic-bestiary-remove-weapon-btn" data-bestiary-remove-item="{{weapon.id}}" title="Remove weapon"><i class="fas fa-times"></i></button>
+                    </div>
+                  </header>
+
+                  {{#if weapon.showStandardFireModes}}
+                  <div class="mythic-ready-weapon-modes">
+                    {{#each weapon.fireModes as |mode|}}
+                    <button type="button" class="action-btn weapon-fire-mode-btn {{#if mode.isSelected}}is-active{{/if}}" data-item-id="{{weapon.id}}" data-fire-mode="{{mode.value}}">{{mode.label}}</button>
+                    {{/each}}
+                  </div>
+                  {{/if}}
+
+                  {{#if weapon.showVariantSelector}}
+                  <div class="mythic-ready-weapon-modes mythic-variant-selector" aria-label="Attack variant">
+                    {{#each weapon.variantOptions as |opt|}}
+                    <button type="button" class="action-btn weapon-variant-btn {{#if opt.isSelected}}is-active{{/if}}" data-item-id="{{weapon.id}}" data-variant-index="{{opt.index}}" aria-pressed="{{#if opt.isSelected}}true{{else}}false{{/if}}" title="Switch to {{opt.label}}">{{opt.label}}</button>
+                    {{/each}}
+                  </div>
+                  {{/if}}
+
+                  <div class="mythic-ready-weapon-attacks">
+                    {{#if weapon.hasChargeModeSelected}}
+                      <button type="button" class="action-btn weapon-attack-btn weapon-charge-fire-btn" data-item-id="{{weapon.id}}" data-action="chargeFire">Fire</button>
+                    {{else}}
+                    {{#if weapon.showSustainedAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="single">Attack</button>{{/if}}
+                    {{#if weapon.showSingleAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="single">Single Attack</button>{{/if}}
+                    {{#if weapon.showHalfAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="half">Half Action ({{weapon.halfActionAttackCount}})</button>{{/if}}
+                    {{#if weapon.showFullAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="full">Full Action ({{weapon.fullActionAttackCount}})</button>{{/if}}
+                    {{#if weapon.showExecutionAttack}}<button type="button" class="action-btn weapon-attack-btn weapon-execution-btn" data-item-id="{{weapon.id}}" data-action="execution" aria-label="Execution Attack">&#9760;</button>{{/if}}
+                    {{#if weapon.showButtstrokeAttack}}<button type="button" class="action-btn weapon-attack-btn weapon-buttstroke-btn" data-item-id="{{weapon.id}}" data-action="buttstroke" aria-label="Buttstroke">Butt</button>{{/if}}
+                    {{#if weapon.showPumpReactionAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="pump-reaction">Reaction Shot</button>{{/if}}
+                    {{/if}}
+                  </div>
+
+                  {{#if weapon.hasChargeModeSelected}}
+                  <div class="mythic-ready-weapon-charge-row">
+                    <div class="mythic-charge-meter" title="Charge Level">
+                      {{#each weapon.chargePips as |pip|}}
+                      <span class="mythic-charge-pip {{#if pip.filled}}is-filled{{/if}}" aria-hidden="true"></span>
+                      {{/each}}
+                    </div>
+                    <div class="mythic-charge-label">Charge {{weapon.chargeLevel}}/{{weapon.chargeMaxLevel}} (+{{weapon.chargeDamageBonusPreview}} dmg)</div>
+                    <button type="button" class="action-btn weapon-charge-btn" data-item-id="{{weapon.id}}">Charge</button>
+                    <button type="button" class="action-btn weapon-clear-charge-btn" data-item-id="{{weapon.id}}">Clear</button>
+                  </div>
+                  {{/if}}
+
+                  {{#if weapon.isMelee}}
+                  <div class="mythic-ready-weapon-row-inline">
+                    <span><strong>Reach:</strong> {{weapon.reach}} m</span>
+                    <span><strong>Damage:</strong> {{weapon.damageDiceLabel}} + {{weapon.displayDamageBase}}</span>
+                    <span><strong>Pierce:</strong> {{weapon.displayDamagePierce}}</span>
+                    {{#if weapon.currentAttackName}}<span class="mythic-attack-type-badge">{{weapon.currentAttackName}}</span>{{/if}}
+                  </div>
+                  {{else}}
+                    {{#if weapon.isEnergyWeapon}}
+                    <div class="mythic-ready-weapon-row-inline mythic-energy-weapon-row">
+                      <div class="mythic-energy-meter-wrap" title="{{weapon.energyCellCurrent}} / {{weapon.energyCellCapacity}}">
+                        <span class="mythic-energy-meter-label"><strong>Battery:</strong></span>
+                        <div class="mythic-energy-meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{weapon.energyCellPercent}}">
+                          <div class="mythic-energy-meter-fill" style="width: {{weapon.energyCellPercent}}%;"></div>
+                          <span class="mythic-energy-meter-text">{{weapon.energyCellPercentDisplay}}%</span>
+                        </div>
+                      </div>
+                      <label>Batteries &mdash; TOTAL
+                        <input type="number" min="0" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="ammoTotal" value="{{weapon.ammoTotal}}" />
+                      </label>
+                      <button type="button" class="action-btn weapon-reload-btn" data-item-id="{{weapon.id}}">Reload</button>
+                      <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>
+                    </div>
+                    {{else}}
+                    <div class="mythic-ready-weapon-row-inline">
+                      <label>Ammo &mdash; TOTAL
+                        <input type="number" min="0" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="ammoTotal" value="{{weapon.ammoTotal}}" />
+                      </label>
+                      <span><strong>{{weapon.ammoLoadLabel}}:</strong> {{weapon.magazineCurrent}} / {{weapon.magazineMax}}</span>
+                      <button type="button" class="action-btn weapon-reload-btn" data-item-id="{{weapon.id}}">Reload</button>
+                      <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>
+                    </div>
+                    {{/if}}
+                  {{/if}}
+
+                  {{#if weapon.hasReadyBadges}}
+                  <div class="mythic-ready-weapon-badges" aria-label="Weapon tags and special rules">
+                    {{#each weapon.readyBadges as |badge|}}
+                    <span class="mythic-ready-weapon-badge {{#if (eq badge.kind "rule")}}is-rule{{else}}is-tag{{/if}}" title="{{badge.fullLabel}}">{{badge.shortLabel}}</span>
+                    {{/each}}
+                  </div>
+                  {{/if}}
+
+                  <div class="mythic-ready-weapon-controls">
+                    {{#unless weapon.isMelee}}
+                    <label>Scope
+                      <select class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="scopeMode">
+                        {{selectOptions weapon.scopeOptions selected=weapon.scopeMode}}
+                      </select>
+                    </label>
+                    {{/unless}}
+                    <label>To Hit Mod
+                      <input type="number" step="1" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="toHitModifier" value="{{weapon.toHitModifier}}" />
+                    </label>
+                    <label>Damage Mod
+                      <input type="number" step="1" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="damageModifier" value="{{weapon.damageModifier}}" />
+                    </label>
+                  </div>
+
+                  {{#unless weapon.isMelee}}
+                  <div class="mythic-ready-weapon-row-inline">
+                    <span><strong>Reload:</strong> {{weapon.rangeReload}}</span>
+                    <span><strong>{{weapon.ammoCapacityLabel}}:</strong> {{weapon.magazineMax}}</span>
+                  </div>
+                  {{/unless}}
+                </article>
+                {{/each}}
+              </div>
+            {{else}}
+              <p class="mythic-ready-weapon-empty">No readied weapons. Drop a weapon item here.</p>
+            {{/if}}
           </div>
         </section>
       </div>
@@ -290,9 +436,9 @@
               <div class="mythic-bestiary-equipment-list">
                 {{#each equipmentList as |entry index|}}
                   <div class="mythic-bestiary-equipment-row">
-                    <label>Item<input type="text" name="system.bestiary.equipmentList.{{index}}.name" value="{{entry.name}}" /></label>
-                    <label>Qty<input type="number" min="0" step="1" name="system.bestiary.equipmentList.{{index}}.quantity" value="{{entry.quantity}}" /></label>
-                    <button type="button" data-remove-equipment-id="{{entry.id}}">Remove</button>
+                    <input type="text" placeholder="Item name" name="system.bestiary.equipmentList.{{index}}.name" value="{{entry.name}}" />
+                    <input type="number" min="0" step="1" name="system.bestiary.equipmentList.{{index}}.quantity" value="{{entry.quantity}}" />
+                    <button type="button" class="mythic-bestiary-embedded-remove" data-remove-equipment-id="{{entry.id}}">✕</button>
                     <input type="hidden" name="system.bestiary.equipmentList.{{index}}.id" value="{{entry.id}}" />
                   </div>
                 {{/each}}
@@ -301,33 +447,186 @@
               <p class="mythic-empty-state">No equipment rows yet.</p>
             {{/if}}
           </section>
+
+          <section class="mythic-bestiary-panel">
+            <h2>Weapons</h2>
+            {{#if mythicEquipment.readyWeaponCards.length}}
+              {{#each mythicEquipment.readyWeaponCards as |weapon|}}
+                <div class="mythic-bestiary-equipped-armor-row">
+                  <img class="mythic-bestiary-embedded-img" src="{{weapon.img}}" alt="{{weapon.name}}" />
+                  <div class="mythic-bestiary-embedded-info">
+                    <span class="mythic-bestiary-embedded-name">{{weapon.name}}</span>
+                    <span class="mythic-bestiary-embedded-tag">{{#if weapon.isMelee}}Melee{{else}}Ranged{{/if}}</span>
+                  </div>
+                  <button type="button" class="mythic-bestiary-embedded-remove" data-bestiary-remove-weapon="{{weapon.id}}" title="Remove weapon">✕</button>
+                </div>
+              {{/each}}
+            {{else}}
+              <p class="mythic-empty-state">No weapons. Drop a weapon item here.</p>
+            {{/if}}
+          </section>
+
+          {{#if bestiaryEquippedArmor}}
+            <section class="mythic-bestiary-panel">
+              <h2>Equipped Armor</h2>
+              <div class="mythic-bestiary-equipped-armor-row">
+                <img class="mythic-bestiary-embedded-img" src="{{bestiaryEquippedArmor.img}}" alt="{{bestiaryEquippedArmor.name}}" />
+                <div class="mythic-bestiary-embedded-info">
+                  <span class="mythic-bestiary-embedded-name">{{bestiaryEquippedArmor.name}}</span>
+                  {{#if bestiaryEquippedArmor.isFloodHalved}}<span class="mythic-bestiary-embedded-tag">Flood (halved)</span>{{/if}}
+                  <span class="mythic-bestiary-embedded-desc">Head {{bestiaryEquippedArmor.head}} | Chest {{bestiaryEquippedArmor.chest}} | Arms {{bestiaryEquippedArmor.arms}} | Legs {{bestiaryEquippedArmor.legs}}</span>
+                  {{#if bestiaryEquippedArmor.shieldIntegrity}}<span class="mythic-bestiary-embedded-desc">Shield {{bestiaryEquippedArmor.shieldIntegrity}} | Delay {{bestiaryEquippedArmor.rechargeDelay}} | Rate {{bestiaryEquippedArmor.rechargeRate}}</span>{{/if}}
+                </div>
+                <button type="button" class="mythic-bestiary-embedded-remove" data-bestiary-unequip-armor="{{bestiaryEquippedArmor.id}}" title="Unequip armor">✕</button>
+              </div>
+            </section>
+          {{else}}
+            <section class="mythic-bestiary-panel">
+              <h2>Equipped Armor</h2>
+              <p class="mythic-empty-state">No armor equipped. Drop an armor item here.</p>
+            </section>
+          {{/if}}
         </section>
       </div>
 
-      <div class="tab medical" data-group="primary" data-tab="medical">
+      <div class="tab knowledge" data-group="primary" data-tab="knowledge">
         <section class="mythic-bestiary-sheet">
-          <section class="mythic-bestiary-panel">
-            <h2>Medical</h2>
-            <div class="mythic-bestiary-grid-3">
-              <label>Status<input type="text" name="system.medical.status" value="{{system.medical.status}}" /></label>
-              <label>Treatment Notes<textarea name="system.medical.treatmentNotes" rows="2">{{system.medical.treatmentNotes}}</textarea></label>
-              <label>Recovery Notes<textarea name="system.medical.recoveryNotes" rows="2">{{system.medical.recoveryNotes}}</textarea></label>
+          {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/skills-tab.hbs" }}
+
+          <section class="mythic-bestiary-panel" style="margin-top:12px;">
+            <h2>Abilities <span class="mythic-drop-hint">(drop an ability to add)</span></h2>
+            {{#if mythicAbilities.length}}
+            <div class="mythic-abilities-table">
+              <div class="mythic-ability-col-headers">
+                <div>Name</div>
+                <div>Cost</div>
+                <div>Action</div>
+                <div>Activation</div>
+                <div>Description</div>
+                <div></div>
+              </div>
+              {{#each mythicAbilities as |ability|}}
+                <div class="mythic-ability-row">
+                  <div class="ability-col-name">
+                    <div class="ability-name-actions">
+                      <button class="ability-open-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Open ability sheet">{{ability.name}}</button>
+                    </div>
+                  </div>
+                  <div class="ability-col-cost">{{ability.cost}}</div>
+                  <div class="ability-col-action">{{ability.actionTypeLabel}}</div>
+                  <div class="ability-col-activation">
+                    {{#if ability.isActivatable}}
+                      <button class="ability-activate-btn action-btn" type="button" data-item-id="{{ability.id}}" {{#unless ability.canActivate}}disabled{{/unless}}>Activate</button>
+                      <button class="ability-cooldown-btn action-btn" type="button" data-item-id="{{ability.id}}" {{#unless ability.cooldownRemaining}}disabled{{/unless}}>Tick CD</button>
+                      <div class="ability-activation-status">Uses {{ability.usesSpent}}{{#if ability.usesMax}}/{{ability.usesMax}}{{else}}/∞{{/if}} | CD {{ability.cooldownRemaining}}</div>
+                    {{else}}
+                      <div class="ability-activation-status">Passive</div>
+                    {{/if}}
+                  </div>
+                  <div class="ability-col-description" title="{{ability.shortDescription}}">{{ability.shortDescription}}</div>
+                  <div class="ability-col-delete">
+                    <button class="ability-remove-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Remove ability"><i class="fas fa-times"></i></button>
+                  </div>
+                </div>
+              {{/each}}
             </div>
+            {{else}}
+              <p class="ability-empty-hint">No abilities yet — drop an ability item to add one.</p>
+            {{/if}}
+          </section>
+
+          <section class="mythic-bestiary-panel" style="margin-top:12px;">
+            <h2>Traits <span class="mythic-drop-hint">(drop a trait to add)</span></h2>
+            {{#if mythicTraits.length}}
+            <div class="mythic-traits-table">
+              <div class="mythic-trait-col-headers">
+                <div>Name</div>
+                <div>Category</div>
+                <div>Access</div>
+                <div>Description</div>
+                <div></div>
+              </div>
+              {{#each mythicTraits as |trait|}}
+                <div class="mythic-trait-row">
+                  <div class="ability-col-name">
+                    <button class="trait-open-btn action-btn" type="button" data-item-id="{{trait.id}}" title="Open trait sheet">{{trait.name}}</button>
+                  </div>
+                  <div class="ability-col-action">{{trait.category}}</div>
+                  <div class="ability-col-action">{{#if trait.grantOnly}}Granted{{else}}Selectable{{/if}}</div>
+                  <div class="ability-col-description" title="{{trait.shortDescription}}">{{trait.shortDescription}}</div>
+                  <div class="ability-col-delete">
+                    <button class="trait-remove-btn action-btn" type="button" data-item-id="{{trait.id}}" title="Remove trait"><i class="fas fa-times"></i></button>
+                  </div>
+                </div>
+              {{/each}}
+            </div>
+            {{else}}
+              <p class="ability-empty-hint">No traits yet.</p>
+            {{/if}}
+          </section>
+
+          <section class="mythic-bestiary-panel" style="margin-top:12px;">
+            <h2>Educations <span class="mythic-drop-hint">(drop an education to add)</span></h2>
+            {{#if mythicEducations.length}}
+            <div class="mythic-abilities-table">
+              <div class="mythic-ability-col-headers">
+                <div>Name</div>
+                <div>Difficulty</div>
+                <div>Characteristic</div>
+                <div>Skills</div>
+                <div></div>
+              </div>
+              {{#each mythicEducations as |edu|}}
+                <div class="mythic-ability-row">
+                  <div class="ability-col-name">
+                    <button class="education-open-btn action-btn" type="button" data-item-id="{{edu.id}}" title="Open education sheet">{{edu.name}}</button>
+                  </div>
+                  <div class="ability-col-action">{{edu.difficultyLabel}}</div>
+                  <div class="ability-col-action">{{edu.characteristic}}</div>
+                  <div class="ability-col-description">{{edu.skills}}</div>
+                  <div class="ability-col-delete">
+                    <button class="mythic-bestiary-embedded-remove action-btn" type="button" data-bestiary-remove-item="{{edu.id}}" title="Remove education"><i class="fas fa-times"></i></button>
+                  </div>
+                </div>
+              {{/each}}
+            </div>
+            {{else}}
+              <p class="ability-empty-hint">No educations yet.</p>
+            {{/if}}
           </section>
         </section>
       </div>
+
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/medical-tab.hbs" }}
 
       <div class="tab biography" data-group="primary" data-tab="biography">
         <section class="mythic-bestiary-sheet">
           <section class="mythic-bestiary-panel">
             <div class="mythic-bestiary-section-head">
-              <h2>Bio</h2>
-              <button type="button" data-action="generate-height-weight">Generate Height/Weight (40%-60%)</button>
+              <h2>Notes</h2>
+              <div class="ccadv-wip-notice"><strong>WIP:</strong> Markdown support coming</div>
+              <button type="button" class="action-btn mythic-bestiary-notes-add-btn">Add Note</button>
             </div>
-            <div class="mythic-bestiary-grid-3">
-              <label>Height (cm)<input type="number" min="0" step="1" name="system.biography.physical.heightCm" value="{{system.biography.physical.heightCm}}" /></label>
-              <label>Weight (kg)<input type="number" min="0" step="1" name="system.biography.physical.weightKg" value="{{system.biography.physical.weightKg}}" /></label>
-              <label>Description<textarea name="system.biography.physical.generalDescription" rows="3">{{system.biography.physical.generalDescription}}</textarea></label>
+            <div class="mythic-bestiary-notes-grid">
+              {{#if mythicBestiaryNotes.length}}
+                {{#each mythicBestiaryNotes as |note index|}}
+                  <article class="mythic-bestiary-note-card" data-note-id="{{note.id}}" data-note-index="{{index}}">
+                    <div class="bestiary-note-card-header">
+                      <div class="bestiary-note-actions">
+                        <button type="button" class="action-btn mythic-bestiary-note-edit-btn" title="Edit note">Edit</button>
+                        <button type="button" class="action-btn mythic-bestiary-note-save-btn" title="Save note">Save</button>
+                        <button type="button" class="action-btn mythic-bestiary-note-delete-btn" title="Delete note">Delete</button>
+                      </div>
+                    </div>
+                    <div class="bestiary-note-editor">
+                      <textarea class="bestiary-note-description-input" rows="10" placeholder="Note (Markdown)">{{note.description}}</textarea>
+                    </div>
+                    <div class="bestiary-note-preview" data-description="{{note.description}}">{{{note.descriptionHtml}}}</div>
+                  </article>
+                {{/each}}
+              {{else}}
+                <p class="mythic-empty-state">No notes yet. Click Add Note to create one.</p>
+              {{/if}}
             </div>
           </section>
         </section>
@@ -335,6 +634,47 @@
 
       <div class="tab setup" data-group="primary" data-tab="setup">
         <section class="mythic-bestiary-sheet">
+          <section class="mythic-bestiary-panel">
+            <h2>Bestiary Classification</h2>
+            <div class="mythic-bestiary-grid-4">
+              <label>
+                Subtype
+                <select name="system.bestiary.subtype">
+                  {{#each bestiarySubtypeOptions as |option|}}
+                    <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+                  {{/each}}
+                </select>
+              </label>
+            </div>
+          </section>
+
+          {{#if mythicIsFloodBestiary}}
+            <section class="mythic-bestiary-panel mythic-flood-setup-panel">
+              <h2>Flood Campaign State</h2>
+              <div class="mythic-bestiary-grid-4">
+                <label>
+                  Form Class
+                  <input type="text" name="system.bestiary.flood.formClass" value="{{mythicFloodFormClass}}" />
+                </label>
+                <label>
+                  Keymind Role
+                  <input type="text" name="system.bestiary.flood.keymindRole" value="{{mythicFloodKeymindRole}}" />
+                </label>
+                <label>
+                  Contamination Level
+                  <input type="number" value="{{mythicFloodCampaign.contaminationLevel}}" disabled />
+                </label>
+              </div>
+              <div class="mythic-flood-state-row">
+                <span>Juggernaut: {{#if mythicFloodCampaign.juggernautActive}}Active{{else}}Inactive{{/if}}</span>
+                <span>Abomination: {{#if mythicFloodCampaign.abominationActive}}Active{{else}}Inactive{{/if}}</span>
+                <span>Proto-Gravemind: {{#if mythicFloodCampaign.protoGravemindActive}}Active{{else}}Inactive{{/if}}</span>
+                <span>Gravemind: {{#if mythicFloodCampaign.gravemindActive}}Active{{else}}Inactive{{/if}}</span>
+              </div>
+              <p class="mythic-flood-state-help">Current control intellect baseline for coordinated Flood behavior: <strong>{{mythicFloodCampaign.controlInt}}</strong>.</p>
+            </section>
+          {{/if}}
+
           <section class="mythic-bestiary-panel">
             <h2>Characteristics</h2>
             <div class="mythic-bestiary-controls-row">
@@ -354,7 +694,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>Base Characteristics</td>
+                  <td>BR1 Characteristics</td>
                   {{#each characteristicColumns as |col index|}}
                     <td><input type="number" step="1" name="system.bestiary.baseCharacteristics.{{col.key}}" value="{{lookup ../characteristicBaseValues index}}" /></td>
                   {{/each}}
@@ -423,7 +763,7 @@
             </section>
 
             <section class="mythic-bestiary-panel mythic-bestiary-xp-wounds-panel">
-              <h2>XP & Wounds By BR</h2>
+              <h2>XP, Wounds, & Luck By BR <span class="mythic-info-indicator" title="You may modify Luck by BR values if needed, but this is not recommended.">(i)</span></h2>
               <table class="mythic-bestiary-xp-wounds-table">
                 <thead>
                   <tr>
@@ -451,6 +791,14 @@
                     <td><input type="number" min="0" step="1" name="system.bestiary.woundsByRank.br3" value="{{system.bestiary.woundsByRank.br3}}" /></td>
                     <td><input type="number" min="0" step="1" name="system.bestiary.woundsByRank.br4" value="{{system.bestiary.woundsByRank.br4}}" /></td>
                     <td><input type="number" min="0" step="1" name="system.bestiary.woundsByRank.br5" value="{{system.bestiary.woundsByRank.br5}}" /></td>
+                  </tr>
+                  <tr>
+                    <td>Luck</td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.luckByRank.br1" value="{{system.bestiary.luckByRank.br1}}" {{#if mythicIsFloodBestiary}}disabled{{/if}} /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.luckByRank.br2" value="{{system.bestiary.luckByRank.br2}}" {{#if mythicIsFloodBestiary}}disabled{{/if}} /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.luckByRank.br3" value="{{system.bestiary.luckByRank.br3}}" {{#if mythicIsFloodBestiary}}disabled{{/if}} /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.luckByRank.br4" value="{{system.bestiary.luckByRank.br4}}" {{#if mythicIsFloodBestiary}}disabled{{/if}} /></td>
+                    <td><input type="number" min="0" step="1" name="system.bestiary.luckByRank.br5" value="{{system.bestiary.luckByRank.br5}}" {{#if mythicIsFloodBestiary}}disabled{{/if}} /></td>
                   </tr>
                 </tbody>
               </table>
@@ -481,37 +829,27 @@
           </section>
 
           <section class="mythic-bestiary-panel">
-            <div class="mythic-bestiary-section-head">
-              <h2>Armor Profiles</h2>
-              <button type="button" data-action="add-armor-profile">Add Armor Profile</button>
-            </div>
-            {{#if armorProfiles.length}}
-              <div class="mythic-bestiary-armor-list">
-                {{#each armorProfiles as |profile index|}}
-                  <div class="mythic-bestiary-armor-row">
-                    <div class="mythic-bestiary-grid-4">
-                      <label>Name<input type="text" name="system.bestiary.armorProfiles.{{index}}.name" value="{{profile.name}}" /></label>
-                      <label>Head<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.head" value="{{profile.head}}" /></label>
-                      <label>Chest<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.chest" value="{{profile.chest}}" /></label>
-                      <label>Arms<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.arms" value="{{profile.arms}}" /></label>
-                      <label>Legs<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.legs" value="{{profile.legs}}" /></label>
-                      <label>Shield Integrity<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.shieldIntegrity" value="{{profile.shieldIntegrity}}" /></label>
-                      <label>Recharge Delay<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.rechargeDelay" value="{{profile.rechargeDelay}}" /></label>
-                      <label>Recharge Rate<input type="number" min="0" step="1" name="system.bestiary.armorProfiles.{{index}}.rechargeRate" value="{{profile.rechargeRate}}" /></label>
-                    </div>
-                    <div class="mythic-bestiary-controls-row">
-                      <label>
-                        <input type="radio" name="system.bestiary.activeArmorProfileId" value="{{profile.id}}" {{#if profile.isActive}}checked{{/if}} />
-                        Active Profile
-                      </label>
-                      <button type="button" data-remove-armor-id="{{profile.id}}">Remove</button>
-                    </div>
-                    <input type="hidden" name="system.bestiary.armorProfiles.{{index}}.id" value="{{profile.id}}" />
-                  </div>
-                {{/each}}
+            <h2>Equipped Armor <span class="mythic-drop-hint">(drop an armor item to equip)</span></h2>
+            {{#if bestiaryEquippedArmor}}
+              <div class="mythic-bestiary-equipped-armor">
+                <div class="mythic-bestiary-armor-header">
+                  <img class="mythic-bestiary-embedded-img" src="{{bestiaryEquippedArmor.img}}" alt="{{bestiaryEquippedArmor.name}}" />
+                  <span class="mythic-bestiary-armor-name">{{bestiaryEquippedArmor.name}}</span>
+                  {{#if bestiaryEquippedArmor.isFloodHalved}}<span class="mythic-bestiary-flood-halved">(½ Flood DR)</span>{{/if}}
+                  <button type="button" class="mythic-bestiary-armor-remove" data-bestiary-unequip-armor="{{bestiaryEquippedArmor.id}}" title="Remove armor">Remove</button>
+                </div>
+                <div class="mythic-bestiary-armor-dr-grid">
+                  <div class="mythic-bestiary-armor-dr-row"><span class="mythic-bestiary-armor-dr-label">Head</span><span class="mythic-bestiary-armor-dr-value">{{bestiaryEquippedArmor.head}}</span></div>
+                  <div class="mythic-bestiary-armor-dr-row"><span class="mythic-bestiary-armor-dr-label">Chest</span><span class="mythic-bestiary-armor-dr-value">{{bestiaryEquippedArmor.chest}}</span></div>
+                  <div class="mythic-bestiary-armor-dr-row"><span class="mythic-bestiary-armor-dr-label">Arms</span><span class="mythic-bestiary-armor-dr-value">{{bestiaryEquippedArmor.arms}}</span></div>
+                  <div class="mythic-bestiary-armor-dr-row"><span class="mythic-bestiary-armor-dr-label">Legs</span><span class="mythic-bestiary-armor-dr-value">{{bestiaryEquippedArmor.legs}}</span></div>
+                  {{#if bestiaryEquippedArmor.shieldIntegrity}}
+                    <div class="mythic-bestiary-armor-dr-row"><span class="mythic-bestiary-armor-dr-label">Shield</span><span class="mythic-bestiary-armor-dr-value">{{bestiaryEquippedArmor.shieldIntegrity}}</span></div>
+                  {{/if}}
+                </div>
               </div>
             {{else}}
-              <p class="mythic-empty-state">No armor profiles yet.</p>
+              <p class="mythic-empty-state">No armor equipped. Drop an armor item to equip it.</p>
             {{/if}}
           </section>
         </section>

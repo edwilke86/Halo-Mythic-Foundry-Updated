@@ -35,6 +35,7 @@ Current direction (next):
 - Treat Warzone content as in-scope for base system compendia and rules support (not deferred to a separate expansion module)
 - Add clickable resource/section labels (e.g., Luck title) that can post concise stat snapshots to chat; awaiting curated list of labels to enable
 - Add per-turn action economy tracking (free/half/full spent state + reset hooks) to gate actions like wield-and-attack based on remaining actions
+- P0 (next): Integrate melee-weapon handheld energy shield fields into character sheet combat flow as a separate channel from armor shields.
 - P0 (done): Implement GM-only language add/remove workflow in Character Creation and Advancement, with first language free, XP consumption placement, and XP refund on GM removal.
 - P1 (done): Add manual analysis field in setup tab `system.advancements.purchases.languageCapacityBonus` for manual cap bonus.
 - P1 (done): Change Intimidation skill characteristic options from special to Strength / Charisma / Leadership / Intellect.
@@ -519,3 +520,5 @@ Implementation intent:
 - [ ] Fix Huragok Infustion attack to use special rules
 - [ ] Add Huragok Overshield trait and rules
 - [ ] Make it so we can drop all compendium items anywhere on the sheet to create them in the correct section (e.g., drop a weapon item and it goes into the weapons section with correct type)
+- [ ] Refine ranged compendium
+- [ ] Separate grenades and explosive to their own compendium and add more options

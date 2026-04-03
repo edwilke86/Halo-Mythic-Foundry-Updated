@@ -4,12 +4,10 @@ import {
   MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY,
   MYTHIC_ADVANCEMENT_TIERS,
   MYTHIC_CHARACTERISTIC_KEYS,
-  MYTHIC_REFERENCE_EQUIPMENT_CSV,
   MYTHIC_REFERENCE_SOLDIER_TYPES_JSON,
   MYTHIC_ABILITY_DEFAULT_ICON
 } from "../config.mjs";
 
-import { splitCsvText, findHeaderRowIndex, buildHeaderMap } from "../utils/csv-parser.mjs";
 import { toNonNegativeWhole, buildCanonicalItemId } from "../utils/helpers.mjs";
 
 import {
@@ -23,222 +21,99 @@ import {
 import {
   loadMythicAbilityDefinitions,
   loadMythicTraitDefinitions,
+  loadMythicGeneralEquipmentDefinitions,
+  loadMythicContainerEquipmentDefinitions,
+  loadMythicArmorDefinitions,
   buildTraitAutoEffects
 } from "../data/content-loading.mjs";
 
 import {
-  getCell,
-  parseWholeOrZero,
-  parseNumericOrZero,
-  classifyWeaponFactionBucket,
-  ensureReferenceWeaponsCompendium,
   buildCompendiumCanonicalMap
 } from "./weapons.mjs";
 
-const MYTHIC_ALLOWED_EQUIPMENT_SOURCES = Object.freeze(new Set(["mythic"]));
 const MYTHIC_ARMOR_ROW_EXCLUSION_REGEX = /stink\s*machine|helldiver|secret\s*helldivers\s*test/i;
 const MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION = "Halo-Mythic-Foundry-Updated.soldier-types";
+const MYTHIC_EQUIPMENT_COLLECTION_BY_FACTION = Object.freeze({
+  UNSC: "Halo-Mythic-Foundry-Updated.mythic-equipment-human",
+  COVENANT: "Halo-Mythic-Foundry-Updated.mythic-equipment-covenant",
+  BANISHED: "Halo-Mythic-Foundry-Updated.mythic-equipment-banished",
+  FORERUNNER: "Halo-Mythic-Foundry-Updated.mythic-equipment-forerunner"
+});
 
-export function getEquipmentCompendiumDescriptor(itemData) {
-  const typeText = String(itemData?.system?.category ?? "").trim().toLowerCase();
-  const nameText = String(itemData?.name ?? "").trim().toLowerCase();
-  if (typeText.includes("ammo") || /\bammo\b|\bmag(?:azine)?s?\b/.test(nameText)) {
-    return {
-      key: "ammo",
-      name: "mythic-ammo",
-      label: "Mythic Ammo"
-    };
+const MYTHIC_ARMOR_COLLECTION_BY_FACTION = Object.freeze({
+  UNSC: "Halo-Mythic-Foundry-Updated.mythic-armor-human",
+  COVENANT: "Halo-Mythic-Foundry-Updated.mythic-armor-covenant",
+  BANISHED: "Halo-Mythic-Foundry-Updated.mythic-armor-banished",
+  FORERUNNER: "Halo-Mythic-Foundry-Updated.mythic-armor-forerunner"
+});
+
+const MYTHIC_ARMOR_RULE_HINT_PATTERNS = Object.freeze([
+  ["biofoam-injector-port", /biofoam\s+injector\s+port/u],
+  ["bulky-special-rule", /\bbulky\b/u],
+  ["communications-unit", /communications?\s+unit/u],
+  ["cryo-resistant", /cryo\s*-?\s*resistant/u],
+  ["demolitions", /\bdemolitions\b/u],
+  ["fire-rescue", /fire\s*-?\s*rescue/u],
+  ["freefall-assistance-microskeleton", /freefall\s+assistance\s+microskeleton/u],
+  ["hybrid-black-surfacing-paneling", /hybrid\s+black\s*-?\s*surfacing\s+paneling/u],
+  ["kevlar-undersuit-liquid-nanocrystal", /kevlar\s+undersuit|liquid\s+nanocrystal/u],
+  ["mobility-boosting-exo-lining", /mobility\s*-?\s*boosting\s+exo\s*-?\s*lining/u],
+  ["photo-reactive-panels", /photo\s*-?\s*reactive\s+panels/u],
+  ["rucksack", /\brucksack\b/u],
+  ["rucksack-medical-extension", /rucksack\s+medical\s+extension/u],
+  ["temperature-regulator", /temperature\s+regulator/u],
+  ["thermal-cooling", /thermal\s+cooling/u],
+  ["thermal-dampener", /thermal\s+dampener/u],
+  ["timeline-special-rule", /timeline\s+special\s+rule/u],
+  ["uu-ppe", /\buu\s*-?\s*ppe\b/u],
+  ["uvh-ba", /\buvh\s*-?\s*ba\b/u],
+  ["vacuum-sealed", /vacuum\s+sealed/u],
+  ["visr", /\bvisr\b/u],
+  ["vr-oxygen-recycler", /vr\s*\/\s*oxygen\s+recycler|vacuum\s+regulator\s+and\s+oxygen\s+recycler/u]
+]);
+
+function inferArmorSpecialRuleKeysFromHints(entry = {}) {
+  const explicit = Array.isArray(entry?.armorSpecialRuleKeys)
+    ? entry.armorSpecialRuleKeys
+    : [];
+
+  const keys = new Set(
+    explicit
+      .map((value) => String(value ?? "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  const hintText = [
+    entry?.name,
+    entry?.specialRules,
+    entry?.modifiers,
+    entry?.description
+  ]
+    .map((value) => String(value ?? "").trim().toLowerCase())
+    .join(" ");
+
+  for (const [key, pattern] of MYTHIC_ARMOR_RULE_HINT_PATTERNS) {
+    if (keys.has(key)) continue;
+    if (pattern.test(hintText)) keys.add(key);
   }
 
-  const faction = classifyWeaponFactionBucket(itemData?.system?.faction);
-  const supported = new Set(["human", "covenant", "banished", "forerunner"]);
-  if (!supported.has(faction.key)) return null;
-
-  return {
-    key: faction.key,
-    name: `mythic-equipment-${faction.key}`,
-    label: `${faction.label} Equipment`
-  };
+  return Array.from(keys);
 }
 
-export function parseReferenceEquipmentRows(rows) {
-  const headerIndex = findHeaderRowIndex(rows, "Equipment");
-  if (headerIndex < 0) return [];
-
-  const headerRow = rows[headerIndex];
-  const headerMap = buildHeaderMap(headerRow);
-  const parsed = [];
-
-  for (let i = headerIndex + 1; i < rows.length; i += 1) {
-    const row = rows[i] ?? [];
-    const name = getCell(row, headerMap, "Equipment");
-    if (!name || /^default$/i.test(name)) continue;
-
-    const source = getCell(row, headerMap, "Source").toLowerCase() || "mythic";
-    if (!MYTHIC_ALLOWED_EQUIPMENT_SOURCES.has(source)) continue;
-
-    const faction = getCell(row, headerMap, "faction");
-    const bucket = classifyWeaponFactionBucket(faction);
-    const type = getCell(row, headerMap, "Type");
-    const typeText = String(type ?? "").trim().toLowerCase();
-    const isAmmo = typeText.includes("ammo") || /\bammo\b|\bmag(?:azine)?s?\b/.test(String(name ?? "").toLowerCase());
-    if (!isAmmo && !["human", "covenant", "banished", "forerunner"].includes(bucket.key)) continue;
-
-    const modType = getCell(row, headerMap, "Mod Type");
-    const damage = getCell(row, headerMap, "Damage");
-    const pierce = getCell(row, headerMap, "Pierce");
-    const uniqueFlag = getCell(row, headerMap, "[U]");
-    const description = getCell(row, headerMap, "Description");
-    const weightKg = parseNumericOrZero(getCell(row, headerMap, "Weight"));
-    const priceAmount = parseWholeOrZero(getCell(row, headerMap, "cR"));
-
-    const specialRules = [
-      type ? `Type: ${type}` : "",
-      modType ? `Mod Type: ${modType}` : "",
-      damage ? `Damage: ${damage}` : "",
-      pierce ? `Pierce: ${pierce}` : "",
-      uniqueFlag ? `Unique: ${uniqueFlag}` : ""
-    ].filter(Boolean).join("\n");
-
-    parsed.push({
-      name,
-      type: "gear",
-      img: MYTHIC_ABILITY_DEFAULT_ICON,
-      system: normalizeGearSystemData({
-        itemClass: "other",
-        weaponClass: "other",
-        faction,
-        source,
-        category: type,
-        description,
-        specialRules,
-        attachments: modType,
-        damage: {
-          baseRollD5: 0,
-          baseRollD10: 0,
-          baseDamage: 0,
-          pierce: parseNumericOrZero(pierce)
-        },
-        price: {
-          amount: priceAmount,
-          currency: "cr"
-        },
-        weightKg,
-        sourceReference: {
-          table: "cr-costing-items",
-          rowNumber: i + 1
-        },
-        sync: {
-          sourceScope: source,
-          sourceCollection: "cr-costing-items",
-          contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
-          canonicalId: buildCanonicalItemId("gear", `${isAmmo ? "ammo" : bucket.key}-${type}-${name}`)
-        }
-      }, name)
-    });
-  }
-
-  return parsed;
+function normalizeFactionCode(raw = "") {
+  const faction = String(raw ?? "").trim().toUpperCase();
+  if (["UNSC", "COVENANT", "BANISHED", "FORERUNNER"].includes(faction)) return faction;
+  if (faction === "HUMAN" || faction === "HUMANS") return "UNSC";
+  return "";
 }
 
-export async function loadReferenceEquipmentItems() {
-  const resp = await fetch(MYTHIC_REFERENCE_EQUIPMENT_CSV);
-  if (!resp.ok) {
-    console.error(`[mythic-system] Could not fetch equipment CSV: ${resp.status} ${resp.statusText}`);
-    return [];
-  }
-  const text = await resp.text();
-  const rows = splitCsvText(text);
-  return parseReferenceEquipmentRows(rows);
+export function getArmorCompendiumDescriptor(entry = {}) {
+  const faction = normalizeFactionCode(entry?.system?.armorySelection ?? entry?.system?.faction ?? "");
+  const collection = MYTHIC_ARMOR_COLLECTION_BY_FACTION[faction];
+  if (!collection) return null;
+  const name = String(collection.split(".").pop() ?? "").trim();
+  return { faction, collection, name };
 }
-
-export async function importReferenceEquipment(options = {}) {
-  if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can import reference equipment data.");
-    return { created: 0, updated: 0, skipped: 0 };
-  }
-
-  const rows = await loadReferenceEquipmentItems();
-  if (!rows.length) {
-    ui.notifications?.warn("No reference equipment rows were loaded from the CSV file.");
-    return { created: 0, updated: 0, skipped: 0 };
-  }
-
-  const dryRun = options?.dryRun === true;
-  let created = 0;
-  let updated = 0;
-  let skipped = 0;
-  const processedPacks = [];
-  const grouped = new Map();
-
-  for (const itemData of rows) {
-    const descriptor = getEquipmentCompendiumDescriptor(itemData);
-    if (!descriptor) {
-      skipped += 1;
-      continue;
-    }
-    if (!grouped.has(descriptor.key)) grouped.set(descriptor.key, { descriptor, items: [] });
-    grouped.get(descriptor.key).items.push(itemData);
-  }
-
-  for (const { descriptor, items } of grouped.values()) {
-    let pack;
-    try {
-      pack = await ensureReferenceWeaponsCompendium(descriptor.name, descriptor.label);
-    } catch (error) {
-      console.error("[mythic-system] Failed to prepare equipment compendium.", error);
-      ui.notifications?.error(`Could not prepare compendium ${descriptor.label}. See console.`);
-      continue;
-    }
-
-    const byCanonicalId = await buildCompendiumCanonicalMap(pack);
-    const createBatch = [];
-
-    for (const itemData of items) {
-      const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
-      if (!canonicalId) {
-        skipped += 1;
-        continue;
-      }
-
-      const existing = byCanonicalId.get(canonicalId);
-      if (!existing) {
-        if (!dryRun) createBatch.push(itemData);
-        created += 1;
-        continue;
-      }
-
-      const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name);
-      nextSystem.sync.sourceCollection = descriptor.name;
-      const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
-      const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
-      if (foundry.utils.isEmpty(diff) && !nameChanged) {
-        skipped += 1;
-        continue;
-      }
-
-      if (!dryRun) {
-        await existing.update({ name: itemData.name, system: nextSystem });
-      }
-      updated += 1;
-    }
-
-    if (!dryRun && createBatch.length) {
-      await Item.createDocuments(createBatch, { pack: pack.collection });
-    }
-
-    processedPacks.push({ label: descriptor.label, created: createBatch.length });
-  }
-
-  if (!dryRun) {
-    ui.notifications?.info(`Equipment import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
-    console.log("[mythic-system] Imported equipment compendium buckets:", processedPacks);
-    await organizeEquipmentCompendiumFolders();
-  }
-
-  return { created, updated, skipped, mode: "split-compendiums", buckets: grouped.size };
-}
-
 export function titleCaseWords(text) {
   return String(text ?? "")
     .toLowerCase()
@@ -732,14 +607,15 @@ export async function loadReferenceSoldierTypeItems(options = {}) {
 }
 
 export async function importSoldierTypesFromJson(options = {}) {
+  const silent = options?.silent === true;
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can import reference soldier types.");
+    if (!silent) ui.notifications?.warn("Only a GM can import reference soldier types.");
     return { created: 0, updated: 0, skipped: 0 };
   }
 
   const rows = await loadReferenceSoldierTypeItemsFromJson();
   if (!rows.length) {
-    ui.notifications?.warn("No soldier type rows were loaded from soldier-types.json.");
+    if (!silent) ui.notifications?.warn("No soldier type rows were loaded from soldier-types.json.");
     return { created: 0, updated: 0, skipped: 0 };
   }
 
@@ -750,11 +626,13 @@ export async function importSoldierTypesFromJson(options = {}) {
 
   let pack;
   try {
-    pack = game.packs.get(MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION)
-      ?? await ensureReferenceWeaponsCompendium("mythic-soldier-types", "Mythic Soldier Types");
+    pack = game.packs.get(MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION);
+    if (!pack) {
+      throw new Error(`Missing required soldier-types system compendium '${MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION}'.`);
+    }
   } catch (error) {
     console.error("[mythic-system] Failed to prepare soldier type compendium.", error);
-    ui.notifications?.error("Could not prepare Soldier Types compendium. See console.");
+    if (!silent) ui.notifications?.error("Could not prepare Soldier Types compendium. See console.");
     return { created, updated, skipped };
   }
 
@@ -804,7 +682,7 @@ export async function importSoldierTypesFromJson(options = {}) {
       await Item.createDocuments(createBatch, { pack: pack.collection });
     }
 
-    if (!dryRun) {
+    if (!dryRun && !silent) {
       ui.notifications?.info(`Soldier type JSON import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
     }
 
@@ -821,21 +699,22 @@ export async function importSoldierTypesFromJson(options = {}) {
 }
 
 export async function refreshTraitsCompendium(options = {}) {
+  const silent = options?.silent === true;
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can refresh the Traits compendium.");
+    if (!silent) ui.notifications?.warn("Only a GM can refresh the Traits compendium.");
     return { created: 0, updated: 0, skipped: 0, dryRun: true };
   }
 
   const dryRun = options?.dryRun === true;
   const defs = await loadMythicTraitDefinitions();
   if (!defs.length) {
-    ui.notifications?.warn("No trait rows were loaded from traits.json.");
+    if (!silent) ui.notifications?.warn("No trait rows were loaded from traits.json.");
     return { created: 0, updated: 0, skipped: 0, dryRun };
   }
 
   const pack = game.packs.get("Halo-Mythic-Foundry-Updated.traits");
   if (!pack) {
-    ui.notifications?.error("Traits compendium was not found.");
+    if (!silent) ui.notifications?.error("Traits compendium was not found.");
     return { created: 0, updated: 0, skipped: 0, dryRun };
   }
 
@@ -925,7 +804,7 @@ export async function refreshTraitsCompendium(options = {}) {
     }
   }
 
-  if (!dryRun) {
+  if (!dryRun && !silent) {
     ui.notifications?.info(`Traits compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
   }
 
@@ -933,21 +812,22 @@ export async function refreshTraitsCompendium(options = {}) {
 }
 
 export async function refreshAbilitiesCompendium(options = {}) {
+  const silent = options?.silent === true;
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can refresh the Abilities compendium.");
+    if (!silent) ui.notifications?.warn("Only a GM can refresh the Abilities compendium.");
     return { created: 0, updated: 0, skipped: 0, dryRun: true };
   }
 
   const dryRun = options?.dryRun === true;
   const defs = await loadMythicAbilityDefinitions();
   if (!defs.length) {
-    ui.notifications?.warn("No ability rows were loaded from abilities.json.");
+    if (!silent) ui.notifications?.warn("No ability rows were loaded from abilities.json.");
     return { created: 0, updated: 0, skipped: 0, dryRun };
   }
 
   const pack = game.packs.get("Halo-Mythic-Foundry-Updated.abilities");
   if (!pack) {
-    ui.notifications?.error("Abilities compendium was not found.");
+    if (!silent) ui.notifications?.error("Abilities compendium was not found.");
     return { created: 0, updated: 0, skipped: 0, dryRun };
   }
 
@@ -1054,11 +934,464 @@ export async function refreshAbilitiesCompendium(options = {}) {
     }
   }
 
-  if (!dryRun) {
+  if (!dryRun && !silent) {
     ui.notifications?.info(`Abilities compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
   }
 
   return { created, updated, skipped, dryRun };
+}
+
+export async function loadReferenceGeneralEquipmentItemsFromJson() {
+  const defs = [
+    ...(await loadMythicGeneralEquipmentDefinitions()),
+    ...(await loadMythicContainerEquipmentDefinitions())
+  ];
+
+  if (!Array.isArray(defs) || defs.length < 1) return [];
+
+  const rows = [];
+  for (const def of defs) {
+    const name = String(def?.name ?? "").trim();
+    const faction = String(def?.faction ?? "").trim().toUpperCase();
+    if (!name || !Object.hasOwn(MYTHIC_EQUIPMENT_COLLECTION_BY_FACTION, faction)) continue;
+
+    const subtypeRaw = String(def?.subtype ?? "general").trim().toLowerCase();
+    const equipmentType = subtypeRaw === "container" ? "container" : "general";
+    const source = String(def?.source ?? "mythic").trim().toLowerCase() || "mythic";
+    const category = String(def?.category ?? "General").trim() || "General";
+    const description = String(def?.description ?? "").trim();
+    const weightKg = Number(def?.weightKg ?? 0);
+    const costCr = toNonNegativeWhole(def?.costCr, 0);
+    const universal = def?.universal === true || String(def?.universal ?? "").trim().toLowerCase() === "true";
+
+    rows.push({
+      name,
+      type: "gear",
+      img: MYTHIC_ABILITY_DEFAULT_ICON,
+      system: normalizeGearSystemData({
+        equipmentType,
+        source,
+        category,
+        description,
+        armorySelection: faction,
+        faction,
+        weightKg: Number.isFinite(weightKg) ? Math.max(0, weightKg) : 0,
+        price: {
+          amount: costCr,
+          currency: "cr"
+        },
+        isUniversal: universal,
+        sync: {
+          sourceScope: "mythic",
+          sourceCollection: "equipment-json",
+          contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
+          canonicalId: buildCanonicalItemId("gear", `${faction}-${equipmentType}-${name}`)
+        }
+      }, name)
+    });
+  }
+
+  return rows;
+}
+
+export async function refreshGeneralEquipmentCompendiums(options = {}) {
+  const silent = options?.silent === true;
+  if (!game.user?.isGM) {
+    if (!silent) ui.notifications?.warn("Only a GM can refresh general equipment compendiums.");
+    return { created: 0, updated: 0, skipped: 0, dryRun: true, byPack: {} };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const rows = await loadReferenceGeneralEquipmentItemsFromJson();
+  if (!rows.length) {
+    if (!silent) ui.notifications?.warn("No general equipment rows were loaded from JSON definitions.");
+    return { created: 0, updated: 0, skipped: 0, dryRun, byPack: {} };
+  }
+
+  const rowsByCollection = new Map();
+  for (const row of rows) {
+    const faction = String(row?.system?.armorySelection ?? row?.system?.faction ?? "").trim().toUpperCase();
+    const collection = MYTHIC_EQUIPMENT_COLLECTION_BY_FACTION[faction];
+    if (!collection) continue;
+
+    const existing = rowsByCollection.get(collection) ?? [];
+    existing.push(row);
+    rowsByCollection.set(collection, existing);
+  }
+
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+  const byPack = {};
+
+  for (const [collection, packRows] of rowsByCollection.entries()) {
+    const pack = game.packs.get(collection);
+    if (!pack) {
+      byPack[collection] = { created: 0, updated: 0, skipped: packRows.length, missing: true };
+      skipped += packRows.length;
+      continue;
+    }
+
+    const byCanonicalId = await buildCompendiumCanonicalMap(pack);
+    const createBatch = [];
+    let packCreated = 0;
+    let packUpdated = 0;
+    let packSkipped = 0;
+
+    const wasLocked = Boolean(pack.locked);
+    let unlockedForRefresh = false;
+
+    try {
+      if (wasLocked && !dryRun) {
+        await pack.configure({ locked: false });
+        unlockedForRefresh = true;
+      }
+
+      for (const itemData of packRows) {
+        const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+        if (!canonicalId) {
+          packSkipped += 1;
+          continue;
+        }
+
+        const existing = byCanonicalId.get(canonicalId);
+        if (!existing) {
+          if (!dryRun) createBatch.push(itemData);
+          packCreated += 1;
+          continue;
+        }
+
+        const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name ?? "");
+        nextSystem.sync.sourceCollection = "equipment-json";
+        const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+        const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+
+        if (foundry.utils.isEmpty(diff) && !nameChanged) {
+          packSkipped += 1;
+          continue;
+        }
+
+        if (!dryRun) {
+          await existing.update({
+            name: itemData.name,
+            system: nextSystem
+          }, { diff: false, recursive: false });
+        }
+        packUpdated += 1;
+      }
+
+      if (!dryRun && createBatch.length) {
+        await Item.createDocuments(createBatch, { pack: pack.collection });
+      }
+    } finally {
+      if (wasLocked && unlockedForRefresh) {
+        try {
+          await pack.configure({ locked: true });
+        } catch (lockError) {
+          console.error(`[mythic-system] Failed to relock compendium ${pack.collection}.`, lockError);
+        }
+      }
+    }
+
+    byPack[collection] = {
+      created: packCreated,
+      updated: packUpdated,
+      skipped: packSkipped,
+      missing: false
+    };
+
+    created += packCreated;
+    updated += packUpdated;
+    skipped += packSkipped;
+  }
+
+  if (!dryRun && !silent) {
+    ui.notifications?.info(`General equipment compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  }
+
+  return { created, updated, skipped, dryRun, byPack };
+}
+
+export async function loadReferenceArmorItemsFromJson() {
+  const defs = await loadMythicArmorDefinitions();
+  if (!Array.isArray(defs) || defs.length < 1) return [];
+
+  const rows = [];
+  for (const def of defs) {
+    const name = String(def?.name ?? "").trim();
+    if (!name) continue;
+
+    const faction = normalizeFactionCode(def?.faction ?? def?.armorySelection ?? "");
+    if (!Object.hasOwn(MYTHIC_ARMOR_COLLECTION_BY_FACTION, faction)) continue;
+
+    const source = String(def?.source ?? "mythic").trim().toLowerCase() || "mythic";
+    if (source !== "mythic") continue;
+
+    const specialRules = String(def?.specialRules ?? "").trim();
+    const modifiers = String(def?.modifiers ?? "").trim();
+    const description = String(def?.description ?? "").trim();
+    const armorSpecialRuleKeys = inferArmorSpecialRuleKeysFromHints({
+      name,
+      specialRules,
+      modifiers,
+      description,
+      armorSpecialRuleKeys: def?.armorSpecialRuleKeys
+    });
+
+    const category = String(def?.category ?? "Armor").trim() || "Armor";
+    const weightKg = Number(def?.weightKg ?? 0);
+    const costCr = toNonNegativeWhole(def?.costCr ?? def?.price?.amount, 0);
+
+    rows.push({
+      name,
+      type: "gear",
+      img: MYTHIC_ABILITY_DEFAULT_ICON,
+      system: normalizeGearSystemData({
+        equipmentType: "armor",
+        source,
+        category,
+        armorySelection: faction,
+        faction,
+        weightKg: Number.isFinite(weightKg) ? Math.max(0, weightKg) : 0,
+        price: {
+          amount: costCr,
+          currency: "cr"
+        },
+        specialRules,
+        modifiers,
+        description,
+        armorSpecialRuleKeys,
+        protection: {
+          head: toNonNegativeWhole(def?.protection?.head ?? 0, 0),
+          chest: toNonNegativeWhole(def?.protection?.chest ?? 0, 0),
+          lArm: toNonNegativeWhole(def?.protection?.lArm ?? 0, 0),
+          rArm: toNonNegativeWhole(def?.protection?.rArm ?? 0, 0),
+          lLeg: toNonNegativeWhole(def?.protection?.lLeg ?? 0, 0),
+          rLeg: toNonNegativeWhole(def?.protection?.rLeg ?? 0, 0)
+        },
+        shields: {
+          integrity: toNonNegativeWhole(def?.shields?.integrity ?? 0, 0),
+          delay: toNonNegativeWhole(def?.shields?.delay ?? 0, 0),
+          rechargeRate: toNonNegativeWhole(def?.shields?.rechargeRate ?? 0, 0)
+        },
+        sync: {
+          sourceScope: "mythic",
+          sourceCollection: "armor-json",
+          contentVersion: MYTHIC_CONTENT_SYNC_VERSION,
+          canonicalId: buildCanonicalItemId("gear", `${faction}-armor-${name}`)
+        }
+      }, name)
+    });
+  }
+
+  return rows;
+}
+
+export async function refreshArmorCompendiums(options = {}) {
+  const silent = options?.silent === true;
+  if (!game.user?.isGM) {
+    if (!silent) ui.notifications?.warn("Only a GM can refresh armor compendiums.");
+    return { created: 0, updated: 0, skipped: 0, dryRun: true, byPack: {} };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const rows = await loadReferenceArmorItemsFromJson();
+  if (!rows.length) {
+    if (!silent) ui.notifications?.warn("No armor rows were loaded from JSON definitions.");
+    return { created: 0, updated: 0, skipped: 0, dryRun, byPack: {} };
+  }
+
+  const rowsByCollection = new Map();
+  for (const row of rows) {
+    const descriptor = getArmorCompendiumDescriptor(row);
+    if (!descriptor) continue;
+    const existing = rowsByCollection.get(descriptor.collection) ?? [];
+    existing.push(row);
+    rowsByCollection.set(descriptor.collection, existing);
+  }
+
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+  const byPack = {};
+
+  for (const [collection, packRows] of rowsByCollection.entries()) {
+    const pack = game.packs.get(collection);
+    if (!pack) {
+      byPack[collection] = { created: 0, updated: 0, skipped: packRows.length, missing: true };
+      skipped += packRows.length;
+      continue;
+    }
+
+    const byCanonicalId = await buildCompendiumCanonicalMap(pack);
+    const createBatch = [];
+    let packCreated = 0;
+    let packUpdated = 0;
+    let packSkipped = 0;
+
+    const wasLocked = Boolean(pack.locked);
+    let unlockedForRefresh = false;
+
+    try {
+      if (wasLocked && !dryRun) {
+        await pack.configure({ locked: false });
+        unlockedForRefresh = true;
+      }
+
+      for (const itemData of packRows) {
+        const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+        if (!canonicalId) {
+          packSkipped += 1;
+          continue;
+        }
+
+        const existing = byCanonicalId.get(canonicalId);
+        if (!existing) {
+          if (!dryRun) createBatch.push(itemData);
+          packCreated += 1;
+          continue;
+        }
+
+        const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name ?? "");
+        nextSystem.sync.sourceCollection = "armor-json";
+        const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+        const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
+
+        if (foundry.utils.isEmpty(diff) && !nameChanged) {
+          packSkipped += 1;
+          continue;
+        }
+
+        if (!dryRun) {
+          await existing.update({
+            name: itemData.name,
+            system: nextSystem
+          }, { diff: false, recursive: false });
+        }
+        packUpdated += 1;
+      }
+
+      if (!dryRun && createBatch.length) {
+        await Item.createDocuments(createBatch, { pack: pack.collection });
+      }
+    } finally {
+      if (wasLocked && unlockedForRefresh) {
+        try {
+          await pack.configure({ locked: true });
+        } catch (lockError) {
+          console.error(`[mythic-system] Failed to relock compendium ${pack.collection}.`, lockError);
+        }
+      }
+    }
+
+    byPack[collection] = {
+      created: packCreated,
+      updated: packUpdated,
+      skipped: packSkipped,
+      missing: false
+    };
+
+    created += packCreated;
+    updated += packUpdated;
+    skipped += packSkipped;
+  }
+
+  if (!dryRun && !silent) {
+    ui.notifications?.info(`Armor compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  }
+
+  return { created, updated, skipped, dryRun, byPack };
+}
+
+export async function rebuildArmorCompendiumsFromJson(options = {}) {
+  const silent = options?.silent === true;
+  if (!game.user?.isGM) {
+    if (!silent) ui.notifications?.warn("Only a GM can rebuild armor compendiums.");
+    return { deleted: 0, created: 0, skipped: 0, dryRun: true, byPack: {} };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const rows = await loadReferenceArmorItemsFromJson();
+  const rowsByCollection = new Map();
+
+  for (const row of rows) {
+    const descriptor = getArmorCompendiumDescriptor(row);
+    if (!descriptor) continue;
+    const existing = rowsByCollection.get(descriptor.collection) ?? [];
+    existing.push(row);
+    rowsByCollection.set(descriptor.collection, existing);
+  }
+
+  let deleted = 0;
+  let created = 0;
+  let skipped = 0;
+  const byPack = {};
+
+  for (const collection of Object.values(MYTHIC_ARMOR_COLLECTION_BY_FACTION)) {
+    const pack = game.packs.get(collection);
+    const packRows = rowsByCollection.get(collection) ?? [];
+    if (!pack) {
+      byPack[collection] = { deleted: 0, created: 0, skipped: packRows.length, missing: true };
+      skipped += packRows.length;
+      continue;
+    }
+
+    const wasLocked = Boolean(pack.locked);
+    let unlockedForRebuild = false;
+    let packDeleted = 0;
+    let packCreated = 0;
+
+    try {
+      if (wasLocked && !dryRun) {
+        await pack.configure({ locked: false });
+        unlockedForRebuild = true;
+      }
+
+      const index = await pack.getIndex();
+      const deleteIds = Array.from(index.values())
+        .map((entry) => String(entry?._id ?? "").trim())
+        .filter(Boolean);
+      packDeleted = deleteIds.length;
+      if (!dryRun && deleteIds.length) {
+        await Item.deleteDocuments(deleteIds, { pack: pack.collection });
+      }
+
+      const createBatch = packRows.map((entry) => ({
+        name: String(entry.name ?? "Armor"),
+        type: "gear",
+        img: String(entry.img ?? MYTHIC_ABILITY_DEFAULT_ICON),
+        system: foundry.utils.deepClone(entry.system ?? {})
+      }));
+      packCreated = createBatch.length;
+      if (!dryRun && createBatch.length) {
+        await Item.createDocuments(createBatch, { pack: pack.collection });
+      }
+    } finally {
+      if (wasLocked && unlockedForRebuild) {
+        try {
+          await pack.configure({ locked: true });
+        } catch (lockError) {
+          console.error(`[mythic-system] Failed to relock compendium ${pack.collection}.`, lockError);
+        }
+      }
+    }
+
+    byPack[collection] = {
+      deleted: packDeleted,
+      created: packCreated,
+      skipped: 0,
+      missing: false
+    };
+
+    deleted += packDeleted;
+    created += packCreated;
+  }
+
+  if (!dryRun && !silent) {
+    ui.notifications?.info(`Armor compendium rebuild complete. Deleted ${deleted}, created ${created}.`);
+  }
+
+  return { deleted, created, skipped, dryRun, byPack };
 }
 
 export async function removeEmbeddedArmorVariants(options = {}) {
@@ -1249,8 +1582,9 @@ export async function cleanupLegacyWeaponCompendiums(options = {}) {
 }
 
 export async function organizeEquipmentCompendiumFolders(options = {}) {
+  const silent = options?.silent === true;
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can organize compendium folders.");
+    if (!silent) ui.notifications?.warn("Only a GM can organize compendium folders.");
     return { assigned: 0, createdFolders: 0, skipped: 0 };
   }
 
@@ -1261,7 +1595,31 @@ export async function organizeEquipmentCompendiumFolders(options = {}) {
     covenant: "Covenant Equipment",
     banished: "Banished Equipment",
     forerunner: "Forerunner Equipment",
+    flood: "Flood Equipment",
     shared: "Shared Equipment"
+  };
+
+  const getCompendiumFactionKey = (name) => {
+    if (name === "mythic-ammo") return "shared";
+    if (name === "mythic-weapons-flood") return "flood";
+
+    const armorModsPrefix = "mythic-equipment-armor-mods-";
+    if (name.startsWith(armorModsPrefix)) {
+      return name.slice(armorModsPrefix.length).split("-")[0] ?? "";
+    }
+
+    const simplePrefixRules = [
+      "mythic-weapons-",
+      "mythic-armor-",
+      "mythic-equipment-"
+    ];
+
+    for (const prefix of simplePrefixRules) {
+      if (!name.startsWith(prefix)) continue;
+      return name.slice(prefix.length).split("-")[0] ?? "";
+    }
+
+    return "";
   };
 
   const getCompendiumFolder = async (name) => {
@@ -1298,11 +1656,9 @@ export async function organizeEquipmentCompendiumFolders(options = {}) {
   let skipped = 0;
   for (const pack of equipmentPacks) {
     const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
-    const isSharedAmmo = name === "mythic-ammo";
-    const match = /^mythic-(?:weapons|armor|equipment|armor-variants|armor-variant|armorvariant)-([a-z]+)(?:-|$)/.exec(name);
-    const faction = isSharedAmmo ? "shared" : (match?.[1] ?? "");
+    const faction = getCompendiumFactionKey(name);
 
-    // Flood (and any unknown factions) stay ungrouped by request.
+    // Unknown buckets stay ungrouped.
     if (!Object.hasOwn(targetFolderByFaction, faction)) {
       skipped += 1;
       continue;
@@ -1334,10 +1690,12 @@ export async function organizeEquipmentCompendiumFolders(options = {}) {
     await game.settings.set("core", "compendiumConfiguration", compendiumConfiguration);
   }
 
-  ui.notifications?.info(
-    `[Mythic] ${dryRun ? "Would assign" : "Assigned"} ${assigned} equipment compendium(s), `
-    + `${dryRun ? "would create" : "created"} ${createdFolders} folder(s), skipped ${skipped}.`
-  );
+  if (!silent) {
+    ui.notifications?.info(
+      `[Mythic] ${dryRun ? "Would assign" : "Assigned"} ${assigned} equipment compendium(s), `
+      + `${dryRun ? "would create" : "created"} ${createdFolders} folder(s), skipped ${skipped}.`
+    );
+  }
 
   return { assigned, createdFolders, skipped, dryRun };
 }
@@ -1350,6 +1708,7 @@ export function mythicCanonicalItemName(value) {
 }
 
 export async function patchCovenantPlasmaPistolChargeCompendiums(options = {}) {
+  const silent = options?.silent === true;
   if (!game.user?.isGM) {
     return { skipped: true, reason: "not-gm" };
   }
@@ -1385,7 +1744,7 @@ export async function patchCovenantPlasmaPistolChargeCompendiums(options = {}) {
     if (!hasTargetInIndex) continue;
 
     const wasLocked = Boolean(pack.locked);
-    if (wasLocked && !dryRun) {
+    if (!dryRun) {
       await pack.configure({ locked: false });
     }
 
@@ -1433,22 +1792,40 @@ export async function patchCovenantPlasmaPistolChargeCompendiums(options = {}) {
       }
 
       if (!dryRun && updates.length) {
-        await Item.updateDocuments(updates, {
-          pack: pack.collection,
-          diff: false,
-          render: false
-        });
+        try {
+          await Item.updateDocuments(updates, {
+            pack: pack.collection,
+            diff: false,
+            render: false
+          });
+        } catch (error) {
+          const message = String(error?.message ?? "");
+          if (!/locked compendium/i.test(message)) throw error;
+          await pack.configure({ locked: false });
+          await Item.updateDocuments(updates, {
+            pack: pack.collection,
+            diff: false,
+            render: false
+          });
+        }
       }
 
       if (!dryRun && deleteIds.length) {
-        await Item.deleteDocuments(deleteIds, { pack: pack.collection });
+        try {
+          await Item.deleteDocuments(deleteIds, { pack: pack.collection });
+        } catch (error) {
+          const message = String(error?.message ?? "");
+          if (!/locked compendium/i.test(message)) throw error;
+          await pack.configure({ locked: false });
+          await Item.deleteDocuments(deleteIds, { pack: pack.collection });
+        }
       }
 
       updated += updates.length;
       removed += deleteIds.length;
     } finally {
-      if (wasLocked && !dryRun) {
-        await pack.configure({ locked: true });
+      if (!dryRun) {
+        await pack.configure({ locked: wasLocked });
       }
     }
   }
@@ -1457,7 +1834,7 @@ export async function patchCovenantPlasmaPistolChargeCompendiums(options = {}) {
     await game.settings.set("Halo-Mythic-Foundry-Updated", MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY, 1);
   }
 
-  if (!dryRun && foundAnyTargets && (updated > 0 || removed > 0)) {
+  if (!dryRun && !silent && foundAnyTargets && (updated > 0 || removed > 0)) {
     ui.notifications?.info(`[Mythic] Covenant plasma pistol patch applied: updated ${updated}, removed ${removed} duplicate charged-shot entries.`);
   }
 

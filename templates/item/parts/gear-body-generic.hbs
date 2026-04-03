@@ -4,6 +4,12 @@
     <label for="gear-category">Category</label>
     <input id="gear-category" type="text" name="system.category" value="{{gear.category}}" {{#unless canEditFields}}disabled{{/unless}} />
   </div>
+  {{#if showUniversalToggle}}
+  <div class="ability-info-row ability-col">
+    <label for="gear-is-universal">Universal</label>
+    <input id="gear-is-universal" type="checkbox" name="system.isUniversal" {{#if gear.isUniversal}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+  {{/if}}
   {{#unless isDescriptionOnlyEquipmentItem}}
   <div class="ability-info-row ability-col">
     <label for="gear-weapon-type">Weapon Type</label>

@@ -314,6 +314,7 @@ export function getCanonicalBestiarySystemData() {
 
   base.bestiary = {
     rank: 1,
+    subtype: "standard",
     singleDifficulty: false,
     advanceMythicStats: false,
     baseCharacteristics: foundry.utils.deepClone(baseCharacteristics),
@@ -337,6 +338,13 @@ export function getCanonicalBestiarySystemData() {
       br4: 0,
       br5: 0
     },
+    luckByRank: {
+      br1: 0,
+      br2: 0,
+      br3: 1,
+      br4: 3,
+      br5: 6
+    },
     size: "Normal",
     heightRangeCm: {
       min: MYTHIC_DEFAULT_HEIGHT_RANGE_CM.min,
@@ -354,8 +362,12 @@ export function getCanonicalBestiarySystemData() {
       naturalArmor: 0
     },
     equipmentList: [],
-    armorProfiles: [],
-    activeArmorProfileId: ""
+    equippedArmorId: "",
+    weaponAmmo: {},
+    flood: {
+      formClass: "none",
+      keymindRole: "none"
+    }
   };
 
   return base;

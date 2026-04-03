@@ -1,6 +1,11 @@
 packs/**/LOCK
 packs/**/LOG
 packs/**/LOG.old
+packs/**/CURRENT
+packs/**/*.ldb
+packs/**/MANIFEST-*
+packs/**/LOG.bak
+packs/**/lost/
 
 # Raw rule-reference source documents for local research only.
 # Tracked spreadsheet exports should live under data/reference/ instead.

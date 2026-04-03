@@ -88,8 +88,10 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
   context.isArmorItem = normalizedEquipmentType === "armor"
     || (gear.itemClass === "armor" && normalizedEquipmentType !== "armor-modification");
   context.isGeneralEquipmentItem = gear.equipmentType === "general";
+  context.isContainerItem = gear.equipmentType === "container";
   context.isDescriptionOnlyEquipmentItem = ["general", "container", "weapon-modification", "armor-modification", "ammo-modification"]
     .includes(normalizedEquipmentType);
+  context.showUniversalToggle = context.isGeneralEquipmentItem || context.isContainerItem;
   context.isArmorModificationItem = gear.equipmentType === "armor-modification";
   context.isMeleeWeaponItem = gear.equipmentType === "melee-weapon";
   context.isRangedWeaponItem = gear.equipmentType === "ranged-weapon";
@@ -152,13 +154,15 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
   // Ammunition mode options
   const rawAmmoMode = String(gear.ammoMode ?? "magazine").trim().toLowerCase();
   const currentAmmoMode = rawAmmoMode === "standard" ? "magazine" : (rawAmmoMode || "magazine");
-  context.isBallisticAmmoMode = currentAmmoMode === "magazine" || currentAmmoMode === "belt" || currentAmmoMode === "tube";
+  context.isBallisticAmmoMode = ["magazine", "belt", "tube", "grenade", "explosive"].includes(currentAmmoMode);
   context.isEnergyCellAmmoMode = currentAmmoMode === "plasma-battery" || currentAmmoMode === "light-mass";
   context.singleLoading = Boolean(gear.singleLoading);
   context.ammoModeOptions = [
     { value: "magazine", label: "Magazine", selected: currentAmmoMode === "magazine" },
     { value: "belt", label: "Belt", selected: currentAmmoMode === "belt" },
     { value: "tube", label: "Tube", selected: currentAmmoMode === "tube" },
+    { value: "grenade", label: "Grenade", selected: currentAmmoMode === "grenade" },
+    { value: "explosive", label: "Explosive", selected: currentAmmoMode === "explosive" },
     { value: "plasma-battery", label: "Battery or Ionized Particles", selected: currentAmmoMode === "plasma-battery" },
     { value: "light-mass", label: "Forerunner Magazine / Light Mass", selected: currentAmmoMode === "light-mass" }
   ];
@@ -219,9 +223,21 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
   context.meleeSpecialRuleOptions = MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS.map((entry) => ({
     key: String(entry?.key ?? "").trim(),
     label: String(entry?.label ?? entry?.key ?? "").trim(),
-    selected: selectedWeaponRules.has(String(entry?.key ?? "").trim())
-  })).filter((entry) => entry.key && entry.label);
+    selected: selectedWeaponRules.has(String(entry?.key ?? "").trim()),
+    hasInlineValueField: Boolean(entry?.hasValue),
+    inlineValue: String(gear.weaponSpecialRuleValues?.[String(entry?.key ?? "").trim()] ?? "").trim()
+  }))
+    .filter((entry) => entry.key && entry.label)
+    .sort((left, right) => left.label.localeCompare(right.label));
   context.weaponSpecialRuleOptions = context.meleeSpecialRuleOptions;
+  context.concealmentBonus = String(gear.concealmentBonus ?? "").trim();
+  context.rangedAdvancedFields = {
+    firearm: String(gear.advanced?.firearm ?? "").trim(),
+    bulletDiameter: String(gear.advanced?.bulletDiameter ?? "").trim(),
+    caseLength: String(gear.advanced?.caseLength ?? "").trim(),
+    barrelSize: String(gear.advanced?.barrelSize ?? "").trim()
+  };
+  context.hasUnresolvedAmmoName = Boolean(String(gear.unresolvedAmmoName ?? "").trim());
 
   const selectedWeaponTags = new Set(Array.isArray(gear.weaponTagKeys) ? gear.weaponTagKeys : []);
   context.weaponTagOptions = MYTHIC_WEAPON_TAG_DEFINITIONS.map((entry) => ({

@@ -2918,6 +2918,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const strModifier = Number.isFinite(Number(derived?.modifiers?.str)) ? Number(derived.modifiers.str) : 0;
     const resolveStrengthContribution = (mode) => {
       const normalized = String(mode ?? "").trim().toLowerCase();
+      if (normalized === "double-str-mod") return strModifier * 2;
       if (normalized === "half-str-mod") return Math.floor(strModifier / 2);
       if (normalized === "full-str-mod") return strModifier;
       return 0;
@@ -2949,6 +2950,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
 
     const bracketTagPattern = /\[([A-Za-z0-9+\-]+)\]/gu;
+    const warfareMeleeModifier = Number(computeCharacteristicModifiers(systemData?.characteristics ?? {})?.wfm ?? 0);
 
     const buildWeaponBadges = (item) => {
       const badges = [];
@@ -3082,8 +3084,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const selectedFireModeLabel = fireModes.find((mode) => mode.isSelected)?.label ?? fireModes[0]?.label ?? "Single";
       const selectedProfile = parseFireModeProfile(selectedFireModeLabel);
       const isSustainedFireMode = selectedProfile.kind === "sustained";
-      const halfActionAttackCount = isInfusionRadius ? 1 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "half"));
-      const fullActionAttackCount = isInfusionRadius ? 0 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "full"));
+      const halfActionAttackCount = isInfusionRadius ? 1 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "half", {
+        isMelee,
+        warfareMeleeModifier
+      }));
+      const fullActionAttackCount = isInfusionRadius ? 0 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "full", {
+        isMelee,
+        warfareMeleeModifier
+      }));
       const hasChargeModeSelected = selectedProfile.kind === "charge" || selectedProfile.kind === "drawback";
       const chargeMaxLevel = hasChargeModeSelected
         ? Math.max(1, selectedProfile.count)
@@ -4801,8 +4809,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const lockFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks");
     const lockedWeaponKeys = new Set(Array.isArray(lockFlag?.weaponKeys) ? lockFlag.weaponKeys : []);
     const lockedFactionKeys = new Set(this._canonicalizeFactionTrainingKeys(Array.isArray(lockFlag?.factionKeys) ? lockFlag.factionKeys : []));
-    const hasWeaponTraining = weaponDefinition ? (lockedWeaponKeys.has(weaponDefinition.key) || Boolean(training.weapon?.[weaponDefinition.key])) : true;
-    const hasFactionTraining = factionDefinition ? (lockedFactionKeys.has(factionDefinition.key) || Boolean(training.faction?.[factionDefinition.key])) : true;
+
+    const isBestiary = this.actor?.type === "bestiary";
+    const hasWeaponTraining = isBestiary
+      ? true
+      : (weaponDefinition ? (lockedWeaponKeys.has(weaponDefinition.key) || Boolean(training.weapon?.[weaponDefinition.key])) : true);
+    const hasFactionTraining = isBestiary
+      ? true
+      : (factionDefinition ? (lockedFactionKeys.has(factionDefinition.key) || Boolean(training.faction?.[factionDefinition.key])) : true);
+
     const missingWeaponTraining = Boolean(weaponDefinition) && !hasWeaponTraining;
     const missingFactionTraining = Boolean(factionDefinition) && !hasFactionTraining;
 
@@ -14931,7 +14946,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const wieldedWeaponId = String(this.actor.system?.equipment?.equipped?.wieldedWeaponId ?? "").trim();
-    if (wieldedWeaponId !== itemId) {
+    const bypassWieldedCheck = Boolean(this._mythicBypassWieldedCheck);
+    if (!bypassWieldedCheck && wieldedWeaponId !== itemId) {
       if (!this.isEditable) {
         ui.notifications.warn(`${item.name} is not currently wielded.`);
         return;
@@ -15118,9 +15134,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? (autoTrackerWeapons[itemId] ?? { halfAutoActions: 0, shotsSpent: 0 })
       : null;
 
+    const characteristicRuntime = await this._getLiveCharacteristicRuntime();
+    const meleeAttackWarfareModifier = Number(characteristicRuntime?.modifiers?.wfm ?? 0);
+
     let rawRollIterations = (actionType === "execution" || actionType === "buttstroke" || actionType === "pump-reaction" || actionType === "chargeFire")
       ? 1
-      : getAttackIterationsForProfile(modeProfile, actionType);
+      : getAttackIterationsForProfile(modeProfile, actionType, {
+        isMelee,
+        warfareMeleeModifier: meleeAttackWarfareModifier
+      });
 
     if (isAutomaticFire && actionType === "half") {
       if (autoHalfFloor <= 0) {
@@ -15137,8 +15159,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         return;
       }
     }
-    const sustainedHalfMax = isSustainedFire ? Math.max(1, getAttackIterationsForProfile(modeProfile, "half")) : 0;
-    const sustainedFullMax = isSustainedFire ? Math.max(sustainedHalfMax, getAttackIterationsForProfile(modeProfile, "full")) : 0;
+    const sustainedHalfMax = isSustainedFire ? Math.max(1, getAttackIterationsForProfile(modeProfile, "half", {
+      isMelee,
+      warfareMeleeModifier: meleeAttackWarfareModifier
+    })) : 0;
+    const sustainedFullMax = isSustainedFire ? Math.max(sustainedHalfMax, getAttackIterationsForProfile(modeProfile, "full", {
+      isMelee,
+      warfareMeleeModifier: meleeAttackWarfareModifier
+    })) : 0;
     let sustainedSelectedAttacks = isSustainedFire ? sustainedHalfMax : 0;
     let sustainedActionBand = isSustainedFire ? "half" : "";
     const rollIterations = isSustainedFire ? (sustainedFullMax > 0 ? 1 : 0) : rawRollIterations;
@@ -15335,7 +15363,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     // Determine attack characteristic from the live, canonical score/mod snapshot.
-    const characteristicRuntime = await this._getLiveCharacteristicRuntime();
     const characteristics = characteristicRuntime.scores;
     const characteristicModifiers = characteristicRuntime.modifiers;
     const statKey = (isMelee || actionType === "buttstroke") ? "wfm" : "wfr";
@@ -15359,6 +15386,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const pierceModifierMode = String(gear.damage?.pierceModifierMode ?? "full-str-mod").trim().toLowerCase();
     const strModifier = Number.isFinite(Number(characteristicModifiers?.str)) ? Number(characteristicModifiers.str) : 0;
     const resolveStrengthContribution = (mode) => {
+      if (mode === "double-str-mod") return strModifier * 2;
       if (mode === "half-str-mod") return Math.floor(strModifier / 2);
       if (mode === "full-str-mod") return strModifier;
       return 0;
@@ -16046,6 +16074,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const currentReactions = Math.max(0, Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)));
       await this.actor.update({ "system.combat.reactions.count": currentReactions + 1 });
     }
+
+    return {
+      attackResolved: true,
+      ammoToConsume: Math.max(0, Number(ammoToConsume) || 0),
+      ammoPerIteration: Math.max(0, Number(ammoPerIteration) || 0),
+      executedIterations: Math.max(0, Number(executedIterations) || 0),
+      rollIterations: Math.max(0, Number(rollIterations) || 0),
+      isMelee,
+      isEnergyWeapon,
+      actionType
+    };
   }
 
   async _onPostHandToHandAttack(event) {
@@ -16158,21 +16197,29 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
 
     const activeScene = game.scenes?.active;
-    const actorTokens = activeScene
-      ? [...(activeScene.tokens ?? [])].filter((t) => t.actorId === this.actor.id)
-      : [];
+    let tokenDoc = this.token ?? null;
 
-    if (actorTokens.length !== 1) {
-      ui.notifications.warn(
-        actorTokens.length === 0
-          ? `No token for ${this.actor.name} found on the active scene. Initiative rolled in chat only.`
-          : `Multiple tokens for ${this.actor.name} are on the active scene. Initiative rolled in chat only.`
-      );
+    const controlledTokens = (canvas?.tokens?.controlled ?? [])
+      .filter((t) => t.actorId === this.actor.id);
+    if (!tokenDoc && controlledTokens.length > 0) {
+      tokenDoc = controlledTokens[0];
+    }
+
+    if (!tokenDoc && activeScene) {
+      const sceneTokens = [...(activeScene.tokens ?? [])].filter((t) => t.actorId === this.actor.id);
+      if (sceneTokens.length > 0) {
+        tokenDoc = sceneTokens[0];
+        if (sceneTokens.length > 1) {
+          ui.notifications.info(`Multiple tokens for ${this.actor.name} are on the active scene; using the first one for initiative.`);
+        }
+      }
+    }
+
+    if (!tokenDoc) {
+      ui.notifications.warn(`No token for ${this.actor.name} found on the active scene. Initiative rolled in chat only.`);
       await postChatOnly();
       return;
     }
-
-    const tokenDoc = actorTokens[0];
     const esc = foundry.utils.escapeHTML;
     const activeCombat = game.combat;
     const existingCombatant = activeCombat?.combatants?.find((c) => c.tokenId === tokenDoc.id);

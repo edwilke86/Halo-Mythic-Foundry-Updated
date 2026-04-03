@@ -491,11 +491,15 @@ async function promptBestiaryRankSelection(actorName = "Bestiary Actor") {
         action: "apply",
         label: "Apply",
         default: true,
-        callback: () => {
-          const selectEl = document.getElementById("mythic-bestiary-rank-select");
+        callback: (_event, _button, dialogApp) => {
+          const dialogElement = dialogApp?.element instanceof HTMLElement
+            ? dialogApp.element
+            : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+          const selectEl = dialogElement?.querySelector("#mythic-bestiary-rank-select")
+            ?? document.getElementById("mythic-bestiary-rank-select");
           return {
             cancelled: false,
-            rank: getBestiaryRankValue(selectEl?.value ?? 1)
+            rank: getBestiaryRankValue(selectEl instanceof HTMLSelectElement ? selectEl.value : 1)
           };
         }
       }
@@ -511,7 +515,9 @@ async function promptBestiaryRankSelection(actorName = "Bestiary Actor") {
 function buildBestiaryTokenSystemWithRank(actorSystem = {}, rank = 1) {
   const source = foundry.utils.deepClone(actorSystem ?? {});
   foundry.utils.setProperty(source, "bestiary.rank", getBestiaryRankValue(rank));
-  return normalizeBestiarySystemData(source);
+  const normalized = normalizeBestiarySystemData(source);
+  normalized.combat.wounds.current = toNonNegativeWhole(normalized.combat?.wounds?.max, 0);
+  return normalized;
 }
 
 export function registerMythicDocumentAndChatHooks({
@@ -1028,7 +1034,7 @@ export function registerMythicDocumentAndChatHooks({
     await actor.update(updateData);
   });
 
-  Hooks.on("preCreateToken", async (tokenDocument, createData) => {
+  Hooks.on("preCreateToken", (tokenDocument, createData) => {
     const actor = tokenDocument.actor ?? game.actors.get(String(createData.actorId ?? ""));
     if (!actor) return;
 
@@ -1046,20 +1052,74 @@ export function registerMythicDocumentAndChatHooks({
 
     if (actor.type !== "bestiary") return;
 
+    const skipPromptFlagPath = "flags.Halo-Mythic-Foundry-Updated.skipBestiaryRankPrompt";
+    const skipRankPrompt = Boolean(foundry.utils.getProperty(createData, skipPromptFlagPath));
     let targetRank = getBestiaryRankValue(foundry.utils.getProperty(actor, "system.bestiary.rank") ?? 1);
+    const isSingleDifficulty = Boolean(foundry.utils.getProperty(actor, "system.bestiary.singleDifficulty"));
     const controlMode = String(
       game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY)
       ?? MYTHIC_BESTIARY_DIFFICULTY_MODES.global
     ).trim().toLowerCase();
 
-    if (controlMode === MYTHIC_BESTIARY_DIFFICULTY_MODES.individual) {
+    if (!skipRankPrompt && !isSingleDifficulty && controlMode === MYTHIC_BESTIARY_DIFFICULTY_MODES.individual) {
       if (!game.user?.isGM) return false;
-      const selectedRank = await promptBestiaryRankSelection(actor.name ?? "Bestiary Actor");
-      if (!selectedRank) return false;
-      targetRank = selectedRank;
-    } else {
+
+      const scene = tokenDocument.parent;
+      const pendingCreateData = foundry.utils.deepClone(createData ?? {});
+
+      void (async () => {
+        const selectedRank = await promptBestiaryRankSelection(actor.name ?? "Bestiary Actor");
+        if (!selectedRank) return;
+
+        const recreatedData = foundry.utils.deepClone(pendingCreateData);
+        foundry.utils.setProperty(recreatedData, skipPromptFlagPath, true);
+
+        const promptedSystem = buildBestiaryTokenSystemWithRank(actor.system ?? {}, selectedRank);
+        const promptedHeight = getMiddleBandRoll(promptedSystem?.bestiary?.heightRangeCm?.min, promptedSystem?.bestiary?.heightRangeCm?.max);
+        const promptedWeight = getMiddleBandRoll(promptedSystem?.bestiary?.weightRangeKg?.min, promptedSystem?.bestiary?.weightRangeKg?.max);
+        if (promptedHeight !== null) {
+          foundry.utils.setProperty(promptedSystem, "biography.physical.heightCm", promptedHeight);
+          foundry.utils.setProperty(promptedSystem, "biography.physical.height", `${promptedHeight} cm`);
+        }
+        if (promptedWeight !== null) {
+          foundry.utils.setProperty(promptedSystem, "biography.physical.weightKg", promptedWeight);
+          foundry.utils.setProperty(promptedSystem, "biography.physical.weight", `${promptedWeight} kg`);
+        }
+
+        const normalizedPromptedSystem = normalizeBestiarySystemData(promptedSystem);
+        const promptedTokenDefaults = getMythicTokenDefaultsForCharacter(normalizedPromptedSystem);
+        foundry.utils.setProperty(recreatedData, "bar1.attribute", promptedTokenDefaults.bar1.attribute);
+        foundry.utils.setProperty(recreatedData, "bar2.attribute", promptedTokenDefaults.bar2.attribute);
+        foundry.utils.setProperty(recreatedData, "displayBars", promptedTokenDefaults.displayBars);
+        foundry.utils.setProperty(recreatedData, "flags.Halo-Mythic-Foundry-Updated.bestiaryRank", selectedRank);
+        foundry.utils.setProperty(recreatedData, "delta.system", normalizedPromptedSystem);
+        foundry.utils.setProperty(recreatedData, "delta.type", "bestiary");
+
+        const actorLink = Boolean(foundry.utils.getProperty(recreatedData, "actorLink") ?? actor.prototypeToken?.actorLink);
+        if (actorLink) {
+          await actor.update({ system: normalizedPromptedSystem });
+        }
+
+        if (scene?.createEmbeddedDocuments) {
+          await scene.createEmbeddedDocuments("Token", [recreatedData]);
+        }
+      })();
+
+      return false;
+    } else if (skipRankPrompt) {
+      const promptedRank = getBestiaryRankValue(
+        foundry.utils.getProperty(createData, "flags.Halo-Mythic-Foundry-Updated.bestiaryRank")
+        ?? foundry.utils.getProperty(createData, "delta.system.bestiary.rank")
+        ?? targetRank
+      );
+      targetRank = promptedRank;
+    } else if (!isSingleDifficulty) {
       const configuredRank = game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY);
       targetRank = getBestiaryRankValue(configuredRank ?? targetRank);
+    }
+
+    if (skipRankPrompt) {
+      foundry.utils.setProperty(createData, skipPromptFlagPath, false);
     }
 
     const tokenSystem = buildBestiaryTokenSystemWithRank(actor.system ?? {}, targetRank);
@@ -1076,16 +1136,24 @@ export function registerMythicDocumentAndChatHooks({
 
     const normalizedTokenSystem = normalizeBestiarySystemData(tokenSystem);
     const tokenDefaults = getMythicTokenDefaultsForCharacter(normalizedTokenSystem);
-    foundry.utils.setProperty(createData, "bar1.attribute", tokenDefaults.bar1.attribute);
-    foundry.utils.setProperty(createData, "bar2.attribute", tokenDefaults.bar2.attribute);
-    foundry.utils.setProperty(createData, "displayBars", tokenDefaults.displayBars);
-    foundry.utils.setProperty(createData, "flags.Halo-Mythic-Foundry-Updated.bestiaryRank", targetRank);
-    foundry.utils.setProperty(createData, "delta.system", normalizedTokenSystem);
-    foundry.utils.setProperty(createData, "delta.type", "bestiary");
+    const tokenUpdates = {};
+    foundry.utils.setProperty(tokenUpdates, "bar1.attribute", tokenDefaults.bar1.attribute);
+    foundry.utils.setProperty(tokenUpdates, "bar2.attribute", tokenDefaults.bar2.attribute);
+    foundry.utils.setProperty(tokenUpdates, "displayBars", tokenDefaults.displayBars);
+    foundry.utils.setProperty(tokenUpdates, "flags.Halo-Mythic-Foundry-Updated.bestiaryRank", targetRank);
+    foundry.utils.setProperty(tokenUpdates, "delta.system", normalizedTokenSystem);
+    foundry.utils.setProperty(tokenUpdates, "delta.type", "bestiary");
+
+    tokenDocument.updateSource(tokenUpdates);
+    foundry.utils.mergeObject(createData, tokenUpdates, {
+      inplace: true,
+      overwrite: true,
+      recursive: true
+    });
 
     const actorLink = Boolean(foundry.utils.getProperty(createData, "actorLink") ?? actor.prototypeToken?.actorLink);
     if (actorLink) {
-      await actor.update({ system: normalizedTokenSystem });
+      void actor.update({ system: normalizedTokenSystem });
     }
   });
 

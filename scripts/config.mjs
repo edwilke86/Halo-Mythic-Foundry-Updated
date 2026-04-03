@@ -134,6 +134,11 @@ export const MYTHIC_MEDICAL_EFFECT_DEFINITIONS_PATH = "systems/Halo-Mythic-Found
 export const MYTHIC_ENVIRONMENTAL_EFFECT_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/environmental-effects.json";
 export const MYTHIC_FEAR_EFFECT_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/fear-effects.json";
 export const MYTHIC_SPECIAL_DAMAGE_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/special-damage-effects.json";
+export const MYTHIC_GENERAL_EQUIPMENT_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/equipment-general.json";
+export const MYTHIC_CONTAINER_EQUIPMENT_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/equipment-containers.json";
+export const MYTHIC_ARMOR_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/armor.json";
+export const MYTHIC_RANGED_WEAPON_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapons-ranged.json";
+export const MYTHIC_MELEE_WEAPON_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapons-melee.json";
 
 // --- Weapon Training Definitions ---
 export const MYTHIC_WEAPON_TRAINING_DEFINITIONS = [
@@ -215,6 +220,7 @@ export const MYTHIC_WEAPON_TAG_DEFINITIONS = Object.freeze([
   { key: "[OH]", label: "OH" }, // One-Handed
   { key: "[TH]", label: "TH" }, // Two-Handed
   { key: "[HW]", label: "HW" }, // Heavy Weapon
+  { key: "[SU]", label: "SU" }, // Single Use
   // Damage Type Tags
   { key: "[BD]", label: "BD" }, // Blunt(or Bludgeoning) Damage
   { key: "[PD]", label: "PD" }, // Piercing Damage
@@ -268,6 +274,7 @@ export const MYTHIC_RANGED_WEAPON_TYPES_BY_TRAINING = Object.freeze({
 
 // --- Melee Damage Modifier Options ---
 export const MYTHIC_MELEE_DAMAGE_MODIFIER_OPTIONS = Object.freeze([
+  { value: "double-str-mod", label: "Double STR Modifier" },
   { value: "full-str-mod", label: "Full STR Modifier" },
   { value: "half-str-mod", label: "Half STR Modifier" },
   { value: "no-str-mod", label: "No STR Modifier" }
@@ -275,19 +282,19 @@ export const MYTHIC_MELEE_DAMAGE_MODIFIER_OPTIONS = Object.freeze([
 
 // --- Melee Special Rule Definitions ---
 export const MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS = Object.freeze([
-  { key: "acid", label: "Acid" },
+  { key: "acid", label: "Acid", hasValue: true },
   { key: "cauterize", label: "Cauterize" },
-  { key: "cryo", label: "Cryo" },
-  { key: "dice minimum", label: "Dice Minimum" },
-  { key: "electrified", label: "Electrified" },
-  { key: "emp", label: "EMP" }, 
-  { key: "flame", label: "Flame" },
+  { key: "cryo", label: "Cryo", hasValue: true },
+  { key: "dice minimum", label: "Dice Minimum", hasValue: true },
+  { key: "electrified", label: "Electrified", hasValue: true },
+  { key: "emp", label: "EMP", hasValue: true },
+  { key: "flame", label: "Flame", hasValue: true },
   { key: "hardlight", label: "Hardlight" },
   { key: "headshot", label: "Headshot" },
   { key: "homing", label: "Homing" },
   { key: "kinetic", label: "Kinetic" },
   { key: "long barrel", label: "Long Barrel" },
-  { key: "needle", label: "Needle" },
+  { key: "needle", label: "Needle", hasValue: true },
   { key: "nonlethal", label: "Nonlethal" },
   { key: "overheat", label: "Overheat" },
   { key: "penetrating", label: "Penetrating" },
@@ -296,19 +303,19 @@ export const MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS = Object.freeze([
   { key: "spike", label: "Spike" },
   { key: "spread", label: "Spread" },
   { key: "sticky", label: "Sticky" },
-  { key: "stun", label: "Stun" },
-  { key: "tranquilize", label: "Tranquilize" },
+  { key: "stun", label: "Stun", hasValue: true },
+  { key: "tranquilize", label: "Tranq", hasValue: true },
   { key: "vehicle lock", label: "Vehicle Lock" },
   { key: "night vision", label: "Night Vision" },
   { key: "thermal imaging", label: "Thermal Imaging" },
   { key: "infrared imaging", label: "Infrared Imaging" },  
-  { key: "airburst", label: "Airburst" },
-  { key: "blast radius", label: "Blast Radius" },
+  { key: "airburst", label: "Airburst", hasValue: true },
+  { key: "blast radius", label: "Blast", hasValue: true },
   { key: "concussive grenades", label: "Concussive Grenades" },
   { key: "explosive knockback", label: "Explosive Knockback" },
-  { key: "gravimetric pulse", label: "Gravimetric Pulse" },
-  { key: "gravity", label: "Gravity" },
-  { key: "kill radius", label: "Kill Radius" },
+  { key: "gravimetric pulse", label: "Gravimetric", hasValue: true },
+  { key: "gravity", label: "Gravity", hasValue: true },
+  { key: "kill radius", label: "Kill", hasValue: true },
   { key: "pepper spray", label: "Pepper Spray" },
   { key: "smoke", label: "Smoke" },
   { key: "tear gas", label: "Tear Gas" }
@@ -385,11 +392,15 @@ export const MYTHIC_LIFESTYLE_SCHEMA_VERSION = 1;
 export const MYTHIC_CONTENT_SYNC_VERSION = 1;
 export const MYTHIC_WORLD_MIGRATION_VERSION = 6;
 export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION = 2;
+export const MYTHIC_WEAPON_JSON_MIGRATION_VERSION = 1;
+export const MYTHIC_ARMOR_JSON_MIGRATION_VERSION = 1;
 
 // --- Setting Keys ---
 export const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
 export const MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY = "covenantPlasmaPistolChargePatchVersion";
 export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY = "compendiumCanonicalMigrationVersion";
+export const MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY = "weaponJsonMigrationVersion";
+export const MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY = "armorJsonMigrationVersion";
 export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY = "useAmmoWeightOptionalRule";
 export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY = "ammoWeightOptionalRuleMigrationVersion";
 export const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
@@ -406,6 +417,14 @@ export const MYTHIC_ENVIRONMENTAL_AUTOMATION_ENABLED_SETTING_KEY = "environmenta
 export const MYTHIC_FEAR_AUTOMATION_ENABLED_SETTING_KEY = "fearAutomationEnabled";
 export const MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY = "bestiaryDifficultyMode";
 export const MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY = "bestiaryGlobalRank";
+export const MYTHIC_FLOOD_CONTAMINATION_LEVEL_SETTING_KEY = "floodContaminationLevel";
+export const MYTHIC_FLOOD_CONTAMINATION_HUD_ENABLED_SETTING_KEY = "floodContaminationHudEnabled";
+export const MYTHIC_FLOOD_JUGGERNAUT_ACTIVE_SETTING_KEY = "floodJuggernautActive";
+export const MYTHIC_FLOOD_ABOMINATION_ACTIVE_SETTING_KEY = "floodAbominationActive";
+export const MYTHIC_FLOOD_PROTO_GRAVEMIND_ACTIVE_SETTING_KEY = "floodProtoGravemindActive";
+export const MYTHIC_FLOOD_GRAVEMIND_ACTIVE_SETTING_KEY = "floodGravemindActive";
+export const MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY = "startupAutoRefreshCompendiums";
+export const MYTHIC_STARTUP_SYNC_SILENT_SETTING_KEY = "startupCompendiumSyncSilent";
 
 export const MYTHIC_BESTIARY_DIFFICULTY_MODES = Object.freeze({
   global: "global",
@@ -593,6 +612,7 @@ export const MYTHIC_REFERENCE_RANGED_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-
 export const MYTHIC_REFERENCE_MELEE_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Melee Weps.csv";
 export const MYTHIC_REFERENCE_ARMOR_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Armor.csv";
 export const MYTHIC_REFERENCE_EQUIPMENT_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - CR costing items.csv";
+export const MYTHIC_REFERENCE_BESTIARY_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Bestiary.csv";
 export const MYTHIC_REFERENCE_SOLDIER_TYPES_JSON = "systems/Halo-Mythic-Foundry-Updated/data/soldier-types.json";
 export const MYTHIC_EQUIPMENT_PACK_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/equipment-packs-human.json";
 export const MYTHIC_AMMO_TYPE_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/ammos.json";

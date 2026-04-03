@@ -1,6 +1,7 @@
 <nav class="gear-item-tabs-nav tabs" data-group="ranged-tabs">
   <a class="item" data-tab="general">General</a>
   <a class="item" data-tab="special-rules">Special Rules</a>
+  <a class="item" data-tab="advanced">Advanced</a>
   <a class="item" data-tab="weapon-mods">Weapon Mods</a>
 </nav>
 
@@ -8,7 +9,7 @@
   <section class="tab" data-tab="general" data-group="ranged-tabs">
     <div class="ability-grid-3">
       <div class="ability-info-row ability-col">
-        <label for="gear-training">Training</label>
+        <label for="gear-training">Weapon Type</label>
         <select id="gear-training" name="system.training" {{#unless canEditFields}}disabled{{/unless}}>
           {{#each rangedTrainingOptions as |opt|}}
           <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
@@ -16,7 +17,7 @@
         </select>
       </div>
       <div class="ability-info-row ability-col">
-        <label for="gear-weapon-type">Weapon Type</label>
+        <label for="gear-weapon-type">Weapon Category</label>
         <select id="gear-weapon-type" name="system.weaponType" {{#unless canEditFields}}disabled{{/unless}}>
           {{#each rangedWeaponTypeOptions as |opt|}}
           <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
@@ -64,6 +65,9 @@
             {{/each}}
           </select>
         </div>
+        {{/if}}
+        {{#if hasUnresolvedAmmoName}}
+        <p class="gear-field-hint" style="margin-top: 0.4rem;">Ammo match missing: {{gear.unresolvedAmmoName}}</p>
         {{/if}}
       </div>
     </div>
@@ -276,14 +280,49 @@
           <input type="checkbox" name="system.weaponSpecialRuleKeys" value="{{opt.key}}"
             {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
           <span>{{opt.label}}</span>
+          {{#if opt.hasInlineValueField}}
+          {{#if opt.selected}}
+          <input type="text" class="photo-reactive-inline-value" name="system.weaponSpecialRuleValues.{{opt.key}}" value="{{opt.inlineValue}}" placeholder="X / Xd5 / Xd10" {{#unless ../canEditFields}}disabled{{/unless}} />
+          {{/if}}
+          {{/if}}
         </label>
         {{/each}}
       </div>
     </div>
 
+    <div class="ability-info-row ability-col" style="max-width: 260px;">
+      <label for="gear-concealment-bonus">Concealment Bonus</label>
+      <input id="gear-concealment-bonus" type="text" name="system.concealmentBonus" value="{{concealmentBonus}}" placeholder="0 / +10 / Xd5" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
     <div class="ability-info-row ability-notes-row">
       <label for="gear-special-rules">Special Rule Notes</label>
       <textarea id="gear-special-rules" name="system.specialRules" rows="8" {{#unless canEditFields}}disabled{{/unless}}>{{gear.specialRules}}</textarea>
+    </div>
+  </section>
+
+  <section class="tab" data-tab="advanced" data-group="ranged-tabs">
+    <div class="ccadv-wip-notice" role="note" aria-live="polite">
+      <p class="ccadv-note"><strong>WIP</strong> Advanced import fields are stored for CSV parity and future mechanics.</p>
+    </div>
+
+    <div class="ability-grid-2">
+      <div class="ability-info-row ability-col">
+        <label for="gear-advanced-firearm">Firearm / Cannon / Shotgun</label>
+        <input id="gear-advanced-firearm" type="text" name="system.advanced.firearm" value="{{rangedAdvancedFields.firearm}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-advanced-bullet-diameter">Bullet Diameter</label>
+        <input id="gear-advanced-bullet-diameter" type="text" name="system.advanced.bulletDiameter" value="{{rangedAdvancedFields.bulletDiameter}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-advanced-case-length">Case Length</label>
+        <input id="gear-advanced-case-length" type="text" name="system.advanced.caseLength" value="{{rangedAdvancedFields.caseLength}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-advanced-barrel-size">Barrel Size</label>
+        <input id="gear-advanced-barrel-size" type="text" name="system.advanced.barrelSize" value="{{rangedAdvancedFields.barrelSize}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
     </div>
   </section>
 

@@ -7,7 +7,10 @@ import {
   MYTHIC_MEDICAL_EFFECT_DEFINITIONS_PATH,
   MYTHIC_ENVIRONMENTAL_EFFECT_DEFINITIONS_PATH,
   MYTHIC_FEAR_EFFECT_DEFINITIONS_PATH,
-  MYTHIC_SPECIAL_DAMAGE_DEFINITIONS_PATH
+  MYTHIC_SPECIAL_DAMAGE_DEFINITIONS_PATH,
+  MYTHIC_GENERAL_EQUIPMENT_DEFINITIONS_PATH,
+  MYTHIC_CONTAINER_EQUIPMENT_DEFINITIONS_PATH,
+  MYTHIC_ARMOR_DEFINITIONS_PATH
 } from '../config.mjs';
 
 let mythicAbilityDefinitionsCache = null;
@@ -19,6 +22,9 @@ let mythicMedicalEffectDefinitionsCache = null;
 let mythicEnvironmentalEffectDefinitionsCache = null;
 let mythicFearEffectDefinitionsCache = null;
 let mythicSpecialDamageDefinitionsCache = null;
+let mythicGeneralEquipmentDefinitionsCache = null;
+let mythicContainerEquipmentDefinitionsCache = null;
+let mythicArmorDefinitionsCache = null;
 const MYTHIC_AMMO_TYPES_SYSTEM_COLLECTION = "Halo-Mythic-Foundry-Updated.ammo-types";
 
 async function loadDefinitionArray(path, errorLabel) {
@@ -108,6 +114,24 @@ export async function loadMythicSpecialDamageDefinitions() {
   if (Array.isArray(mythicSpecialDamageDefinitionsCache)) return mythicSpecialDamageDefinitionsCache;
   mythicSpecialDamageDefinitionsCache = await loadDefinitionArray(MYTHIC_SPECIAL_DAMAGE_DEFINITIONS_PATH, "special damage definitions JSON");
   return mythicSpecialDamageDefinitionsCache;
+}
+
+export async function loadMythicGeneralEquipmentDefinitions() {
+  if (Array.isArray(mythicGeneralEquipmentDefinitionsCache)) return mythicGeneralEquipmentDefinitionsCache;
+  mythicGeneralEquipmentDefinitionsCache = await loadDefinitionArray(MYTHIC_GENERAL_EQUIPMENT_DEFINITIONS_PATH, "general equipment definitions JSON");
+  return mythicGeneralEquipmentDefinitionsCache;
+}
+
+export async function loadMythicContainerEquipmentDefinitions() {
+  if (Array.isArray(mythicContainerEquipmentDefinitionsCache)) return mythicContainerEquipmentDefinitionsCache;
+  mythicContainerEquipmentDefinitionsCache = await loadDefinitionArray(MYTHIC_CONTAINER_EQUIPMENT_DEFINITIONS_PATH, "container equipment definitions JSON");
+  return mythicContainerEquipmentDefinitionsCache;
+}
+
+export async function loadMythicArmorDefinitions() {
+  if (Array.isArray(mythicArmorDefinitionsCache)) return mythicArmorDefinitionsCache;
+  mythicArmorDefinitionsCache = await loadDefinitionArray(MYTHIC_ARMOR_DEFINITIONS_PATH, "armor definitions JSON");
+  return mythicArmorDefinitionsCache;
 }
 
 async function loadMythicAmmoTypeDefinitionsFromCompendium() {

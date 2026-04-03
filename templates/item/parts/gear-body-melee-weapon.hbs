@@ -1,6 +1,7 @@
 <nav class="gear-item-tabs-nav tabs" data-group="melee-tabs">
   <a class="item" data-tab="general">General</a>
   <a class="item" data-tab="special-rules">Special Rules</a>
+  <a class="item" data-tab="advanced">Advanced</a>
   <a class="item" data-tab="weapon-mods">Weapon Mods</a>
 </nav>
 
@@ -24,7 +25,7 @@
         </select>
       </div>
       <div class="ability-info-row ability-col">
-        <label for="gear-reach">Range</label>
+        <label for="gear-reach">Reach</label>
         <input id="gear-reach" type="text" name="system.range.reach" value="{{gear.range.reach}}" {{#unless canEditFields}}disabled{{/unless}} />
       </div>
     </div>
@@ -172,14 +173,88 @@
           <input type="checkbox" name="system.weaponSpecialRuleKeys" value="{{opt.key}}"
             {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
           <span>{{opt.label}}</span>
+          {{#if opt.hasInlineValueField}}
+          {{#if opt.selected}}
+          <input type="text" class="photo-reactive-inline-value" name="system.weaponSpecialRuleValues.{{opt.key}}" value="{{opt.inlineValue}}" placeholder="X / Xd5 / Xd10" {{#unless ../canEditFields}}disabled{{/unless}} />
+          {{/if}}
+          {{/if}}
         </label>
         {{/each}}
       </div>
     </div>
 
+    <div class="ability-info-row ability-col" style="max-width: 260px;">
+      <label for="gear-concealment-bonus">Concealment Bonus</label>
+      <input id="gear-concealment-bonus" type="text" name="system.concealmentBonus" value="{{concealmentBonus}}" placeholder="0 / +10 / Xd5" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
     <div class="ability-info-row ability-notes-row">
       <label for="gear-special-rules">Special Rule Notes</label>
       <textarea id="gear-special-rules" name="system.specialRules" rows="8" {{#unless canEditFields}}disabled{{/unless}}>{{gear.specialRules}}</textarea>
+    </div>
+  </section>
+
+  <section class="tab" data-tab="advanced" data-group="melee-tabs">
+    <div class="ccadv-wip-notice" role="note" aria-live="polite">
+      <p class="ccadv-note"><strong>WIP</strong> Melee advanced fields are stored for CSV parity and upcoming sheet integration.</p>
+    </div>
+
+    <div class="ability-grid-2">
+      <div class="ability-info-row ability-col">
+        <label for="gear-point-value">Point Value</label>
+        <input id="gear-point-value" type="number" min="0" step="1" name="system.pointValue" value="{{gear.pointValue}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-weapon-modifier">Weapon Modifier</label>
+        <input id="gear-weapon-modifier" type="text" name="system.weaponModifier" value="{{gear.weaponModifier}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-weapon-ability-1">Weapon Ability 1</label>
+        <input id="gear-weapon-ability-1" type="text" name="system.weaponAbility1" value="{{gear.weaponAbility1}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-weapon-ability-2">Weapon Ability 2</label>
+        <input id="gear-weapon-ability-2" type="text" name="system.weaponAbility2" value="{{gear.weaponAbility2}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-weapon-ability-3">Weapon Ability 3</label>
+        <input id="gear-weapon-ability-3" type="text" name="system.weaponAbility3" value="{{gear.weaponAbility3}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-armor-value">Armor</label>
+        <input id="gear-armor-value" type="number" step="1" name="system.armor" value="{{gear.armor}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-break-points-min">Break Points Min</label>
+        <input id="gear-break-points-min" type="number" min="0" step="1" name="system.breakPointsMin" value="{{gear.breakPointsMin}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-break-points-max">Break Points Max</label>
+        <input id="gear-break-points-max" type="number" min="0" step="1" name="system.breakPointsMax" value="{{gear.breakPointsMax}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Handheld Energy Shield</p>
+      <label class="ability-checkbox-row">
+        <input type="checkbox" name="system.providesHandheldEnergyShield" value="true" {{#if gear.providesHandheldEnergyShield}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} />
+        <span>Provides Handheld Energy Shield</span>
+      </label>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-shield-integrity">Shield Integrity</label>
+        <input id="gear-shield-integrity" type="number" min="0" step="1" name="system.shieldIntegrity" value="{{gear.shieldIntegrity}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-shield-recharge">Shield Recharge</label>
+        <input id="gear-shield-recharge" type="number" min="0" step="1" name="system.shieldRecharge" value="{{gear.shieldRecharge}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-shield-delay">Shield Delay</label>
+        <input id="gear-shield-delay" type="number" min="0" step="1" name="system.shieldDelay" value="{{gear.shieldDelay}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
     </div>
   </section>
 

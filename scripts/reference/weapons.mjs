@@ -6,6 +6,8 @@ import {
   MYTHIC_ALLOWED_WEAPON_SOURCES,
   MYTHIC_MELEE_WEAPON_DEFAULT_ICON,
   MYTHIC_RANGED_WEAPON_DEFAULT_ICON,
+  MYTHIC_RANGED_WEAPON_DEFINITIONS_PATH,
+  MYTHIC_MELEE_WEAPON_DEFINITIONS_PATH,
   MYTHIC_REFERENCE_RANGED_WEAPONS_CSV,
   MYTHIC_REFERENCE_MELEE_WEAPONS_CSV,
   MYTHIC_CONTENT_SYNC_VERSION
@@ -16,6 +18,28 @@ import { buildCanonicalItemId, normalizeStringList } from '../utils/helpers.mjs'
 
 // TODO: organizeEquipmentCompendiumFolders is still in system.mjs — import once extracted.
 let organizeEquipmentCompendiumFolders = async () => {};
+
+const MYTHIC_RANGED_SYSTEM_COLLECTION_BY_GROUP = Object.freeze({
+  human: "Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged",
+  covenant: "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
+  banished: "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
+  forerunner: "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
+  shared: "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged"
+});
+
+const MYTHIC_WEAPON_SYSTEM_COLLECTION_BY_GROUP = Object.freeze({
+  "human-ranged": "Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged",
+  "covenant-ranged": "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
+  "banished-ranged": "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
+  "forerunner-ranged": "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
+  "shared-ranged": "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged",
+  "human-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee",
+  "covenant-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-melee",
+  "banished-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-melee",
+  "forerunner-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee",
+  "shared-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee",
+  flood: "Halo-Mythic-Foundry-Updated.mythic-weapons-flood"
+});
 
 /**
  * Assign the real organizeEquipmentCompendiumFolders implementation at init time
@@ -52,6 +76,14 @@ export function getCell(row, headerMap, key) {
   return index === undefined ? "" : String(row[index] ?? "").trim();
 }
 
+function getCellAny(row, headerMap, keys = []) {
+  for (const key of Array.isArray(keys) ? keys : []) {
+    const value = getCell(row, headerMap, key);
+    if (value) return value;
+  }
+  return "";
+}
+
 export function parseWholeOrZero(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
@@ -60,6 +92,205 @@ export function parseWholeOrZero(value) {
 export function parseNumericOrZero(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function parseBreakPointsRange(rawValue) {
+  const text = String(rawValue ?? "").trim();
+  if (!text) return { min: 0, max: 0 };
+  const matches = text.match(/\d+/gu) ?? [];
+  const numbers = matches
+    .map((entry) => Number(entry))
+    .filter((entry) => Number.isFinite(entry))
+    .map((entry) => Math.max(0, Math.floor(entry)));
+  if (!numbers.length) return { min: 0, max: 0 };
+  if (numbers.length === 1) return { min: numbers[0], max: numbers[0] };
+  return { min: numbers[0], max: numbers[1] };
+}
+
+function parseMeleeStrengthModifierMode(rawValue) {
+  const text = String(rawValue ?? "").trim().toLowerCase();
+  if (!text) return "";
+  if (["n/a", "none", "no", "no str", "no-str"].includes(text)) return "no-str-mod";
+  if (text.includes("double") || text.includes("x2") || text.includes("2x")) return "double-str-mod";
+  if (text.includes("half")) return "half-str-mod";
+  if (text.includes("full")) return "full-str-mod";
+  return "";
+}
+
+function parseTruthyFlag(value) {
+  const text = String(value ?? "").trim().toLowerCase();
+  if (!text) return false;
+  return ["1", "true", "yes", "y", "x", "checked"].includes(text);
+}
+
+function deriveAmmoModeFromCarryingType(rawValue = "") {
+  const text = String(rawValue ?? "").trim().toLowerCase();
+  if (!text) return "";
+  if (text.includes("belt")) return "belt";
+  if (text.includes("tube")) return "tube";
+  if (text.includes("grenade")) return "grenade";
+  if (text.includes("explosive") || text.includes("rocket") || text.includes("missile")) return "explosive";
+  if (text.includes("light mass") || text.includes("forerunner")) return "light-mass";
+  if (text.includes("battery") || text.includes("plasma") || text.includes("ionized") || text.includes("cell")) return "plasma-battery";
+  if (text.includes("magazine") || text.includes("mag")) return "magazine";
+  return "";
+}
+
+function deriveAmmoModeFallback(weaponCategory = "", weaponType = "") {
+  const hint = `${String(weaponCategory ?? "")} ${String(weaponType ?? "")}`.toLowerCase();
+  if (!hint) return { ammoMode: "magazine", singleLoading: false };
+  if (hint.includes("grenade")) return { ammoMode: "grenade", singleLoading: true };
+  const explosiveMarkers = ["rocket", "missile", "launcher", "explosive", "satchel", "mine", "demolition", "ordnance", "ordinance"];
+  if (explosiveMarkers.some((marker) => hint.includes(marker))) {
+    return { ammoMode: "explosive", singleLoading: true };
+  }
+  return { ammoMode: "magazine", singleLoading: false };
+}
+
+function parseSpecialRuleValueNumber(row, headerMap, keys = []) {
+  const raw = getCellAny(row, headerMap, keys);
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : 0;
+}
+
+function parseSpecialRuleValue(rawValue) {
+  const text = String(rawValue ?? "").trim();
+  if (!text) return "";
+  const numeric = Number(text);
+  if (Number.isFinite(numeric) && numeric > 0) return String(Math.floor(numeric));
+  if (parseTruthyFlag(text)) return "1";
+  return "";
+}
+
+function parseDiceOrNumberSpecialRuleValue(row, headerMap, plainKeys = [], d5Keys = [], d10Keys = []) {
+  const d10 = parseSpecialRuleValueNumber(row, headerMap, d10Keys);
+  if (d10 > 0) return `${d10}d10`;
+  const d5 = parseSpecialRuleValueNumber(row, headerMap, d5Keys);
+  if (d5 > 0) return `${d5}d5`;
+  const plain = parseSpecialRuleValueNumber(row, headerMap, plainKeys);
+  return plain > 0 ? String(plain) : "";
+}
+
+function parseWeaponTagKeys(row, headerMap) {
+  const tags = [];
+
+  if (parseSpecialRuleValueNumber(row, headerMap, ["Bludgeoning Damage [BD]"]) > 0) tags.push("[BD]");
+  if (parseSpecialRuleValueNumber(row, headerMap, ["Piercing Damage [PD]"]) > 0) tags.push("[PD]");
+  if (parseSpecialRuleValueNumber(row, headerMap, ["Slashing Damage [SD]"]) > 0) tags.push("[SD]");
+  if (parseSpecialRuleValueNumber(row, headerMap, ["Universal Damage [UD]"]) > 0) tags.push("[UD]");
+
+  if (parseTruthyFlag(getCell(row, headerMap, "Dual wield"))) tags.push("[DW]");
+  if (parseTruthyFlag(getCell(row, headerMap, "One handed"))) tags.push("[OH]");
+  if (parseTruthyFlag(getCell(row, headerMap, "Two handed"))) tags.push("[TH]");
+  if (parseTruthyFlag(getCell(row, headerMap, "Heavy weapon"))) tags.push("[HW]");
+  if (parseTruthyFlag(getCell(row, headerMap, "Single use"))) tags.push("[SU]");
+
+  const wieldingType = getCellAny(row, headerMap, ["Wielding Type", "Ammo Carrying Type"]).toLowerCase();
+  if (/(^|\W)dw($|\W)|dual\s*wield/u.test(wieldingType)) tags.push("[DW]");
+  if (/(^|\W)oh($|\W)|one\s*hand/u.test(wieldingType)) tags.push("[OH]");
+  if (/(^|\W)th($|\W)|two\s*hand/u.test(wieldingType)) tags.push("[TH]");
+
+  return normalizeStringList(tags);
+}
+
+function parseWeaponSpecialRuleData(row, headerMap) {
+  const keys = [];
+  const values = {};
+  const include = (ruleKey, value = "") => {
+    keys.push(ruleKey);
+    const text = String(value ?? "").trim();
+    if (text) values[ruleKey] = text;
+  };
+
+  const flagRules = [
+    ["sticky", ["Sticky"]],
+    ["spike", ["Spike / Arrow"]],
+    ["cauterize", ["Cauterize"]],
+    ["hardlight", ["Hardlight"]],
+    ["penetrating", ["Penetrating"]],
+    ["kinetic", ["Kinetic"]],
+    ["headshot", ["Headshot"]],
+    ["nonlethal", ["Nonlethal"]],
+    ["spread", ["Spread"]],
+    ["homing", ["Homing"]],
+    ["vehicle lock", ["Vehicle lock"]],
+    ["long barrel", ["Long Barrel special rule"]]
+  ];
+  for (const [ruleKey, columns] of flagRules) {
+    if (columns.some((column) => parseTruthyFlag(getCell(row, headerMap, column)))) {
+      include(ruleKey);
+    }
+  }
+
+  const valueRules = [
+    ["acid", () => parseSpecialRuleValue(getCell(row, headerMap, "Acid (X)"))],
+    ["cryo", () => parseDiceOrNumberSpecialRuleValue(row, headerMap, ["Cryo (X)"], ["Cryo (XD5)"], ["Cryo (XD10)"])],
+    ["electrified", () => parseSpecialRuleValue(getCell(row, headerMap, "Electrified"))],
+    ["flame", () => parseDiceOrNumberSpecialRuleValue(row, headerMap, ["Flame (X)"], ["Flame (XD5)"], ["Flame (XD10)"])],
+    ["tranquilize", () => parseSpecialRuleValue(getCell(row, headerMap, "Tranq (X)"))],
+    ["needle", () => parseSpecialRuleValue(getCell(row, headerMap, "Needle (X)"))],
+    ["stun", () => parseSpecialRuleValue(getCell(row, headerMap, "Stun (X)"))],
+    ["emp", () => parseSpecialRuleValue(getCell(row, headerMap, "EMP (X)"))],
+    ["gravity", () => parseSpecialRuleValue(getCell(row, headerMap, "Gravity (X)"))],
+    ["gravimetric pulse", () => parseSpecialRuleValue(getCell(row, headerMap, "Gravimetric (X)"))],
+    ["blast radius", () => parseSpecialRuleValue(getCell(row, headerMap, "Blast (X)"))],
+    ["kill radius", () => parseSpecialRuleValue(getCell(row, headerMap, "Kill (X)"))],
+    ["dice minimum", () => parseSpecialRuleValue(getCell(row, headerMap, "Dice minimum (X)"))],
+    ["airburst", () => parseSpecialRuleValue(getCell(row, headerMap, "Airburst (X)"))]
+  ];
+  for (const [ruleKey, readValue] of valueRules) {
+    const raw = readValue();
+    const text = String(raw ?? "").trim();
+    if (text && text !== "0") {
+      include(ruleKey, text);
+    }
+  }
+
+  return {
+    keys: normalizeStringList(keys),
+    values
+  };
+}
+
+async function buildAmmoNameLookupMap() {
+  const map = new Map();
+  const packs = Array.from(game.packs ?? []).filter((pack) => {
+    if (pack.documentName !== "Item") return false;
+    const lowerName = String(pack.metadata?.name ?? "").toLowerCase();
+    const lowerLabel = String(pack.metadata?.label ?? "").toLowerCase();
+    return lowerName.includes("ammo") || lowerLabel.includes("ammo");
+  });
+
+  for (const pack of packs) {
+    const index = await pack.getIndex({ fields: ["name", "type"] });
+    for (const entry of index) {
+      if (String(entry.type ?? "").toLowerCase() !== "gear") continue;
+      const key = String(entry.name ?? "").trim().toLowerCase();
+      if (!key || map.has(key)) continue;
+      map.set(key, entry.uuid);
+    }
+  }
+
+  return map;
+}
+
+function applyResolvedAmmoLink(itemData, ammoLookup) {
+  const next = foundry.utils.deepClone(itemData ?? {});
+  const system = (next.system && typeof next.system === "object") ? next.system : {};
+  const ammoName = String(system.ammoName ?? "").trim();
+
+  if (!ammoName || !ammoLookup || ammoLookup.size === 0) {
+    system.ammoId = null;
+    system.unresolvedAmmoName = ammoName;
+    next.system = system;
+    return next;
+  }
+
+  const match = ammoLookup.get(ammoName.toLowerCase()) ?? null;
+  system.ammoId = match;
+  system.unresolvedAmmoName = match ? "" : ammoName;
+  next.system = system;
+  return next;
 }
 
 export function parseWeaponFireModes(row, headerMap) {
@@ -95,19 +326,63 @@ export function parseReferenceWeaponRows(rows, weaponClass, tableName) {
 
   for (let i = headerIndex + 1; i < rows.length; i += 1) {
     const row = rows[i] ?? [];
+    const isMelee = weaponClass === "melee";
     const fullName = getCell(row, headerMap, "Full name");
     if (!fullName || /^default$/i.test(fullName) || /^no weapon$/i.test(fullName)) continue;
 
     const source = getCell(row, headerMap, "Source").toLowerCase() || "mythic";
     if (!MYTHIC_ALLOWED_WEAPON_SOURCES.has(source)) continue;
-    const category = getCell(row, headerMap, "Weapon Category");
-    const weaponType = getCell(row, headerMap, "Weapon type") || getCell(row, headerMap, "Weapon Type");
-    const wieldingType = getCell(row, headerMap, "Wielding Type");
-    const ammoName = getCell(row, headerMap, "Ammunition name");
+    const training = isMelee
+      ? getCellAny(row, headerMap, ["Training", "Weapon Type", "Weapon type"])
+      : getCellAny(row, headerMap, ["Weapon Type", "Weapon type"]);
+    const weaponType = getCell(row, headerMap, "Weapon Category");
+    const wieldingType = isMelee
+      ? getCellAny(row, headerMap, ["Wielding Type", "Ammo Carrying Type"])
+      : getCellAny(row, headerMap, ["Ammo Carrying Type", "Wielding Type"]);
+    const ammoName = isMelee ? "" : getCell(row, headerMap, "Ammunition name");
     const nicknames = normalizeStringList(getCell(row, headerMap, "Nicknames").split(","));
+    const nickname = nicknames[0] ?? "";
     const specialRules = getCell(row, headerMap, "Special rules");
     const attachments = getCell(row, headerMap, "Attachments");
     const description = getCell(row, headerMap, "Extra description\n\nDO NOT ADD \nSPECIAL RULES HERE\n");
+    const singleLoadingCell = parseTruthyFlag(getCell(row, headerMap, "Single Loading"));
+    const singleUseCell = parseTruthyFlag(getCell(row, headerMap, "Single use"));
+    const ammoModeFromCarry = isMelee ? "" : deriveAmmoModeFromCarryingType(wieldingType);
+    const ammoModeFallback = isMelee ? { ammoMode: "magazine", singleLoading: false } : deriveAmmoModeFallback(weaponType, training);
+    const ammoMode = ammoModeFromCarry || ammoModeFallback.ammoMode;
+    const singleLoading = isMelee
+      ? false
+      : (singleLoadingCell || singleUseCell || (!ammoModeFromCarry && ammoModeFallback.singleLoading));
+
+    const toHitPenalty = parseNumericOrZero(getCell(row, headerMap, "To hit penalty (-X)"));
+    const baseToHitModifier = toHitPenalty === 0 ? 0 : -Math.abs(Math.round(toHitPenalty));
+
+    const specialRuleData = parseWeaponSpecialRuleData(row, headerMap);
+    const weaponTagKeys = parseWeaponTagKeys(row, headerMap);
+
+    const advanced = {
+      firearm: getCell(row, headerMap, "Firearm, Cannon, Shotgun"),
+      bulletDiameter: getCell(row, headerMap, "Bullet Diam (mm/gauge)"),
+      caseLength: getCell(row, headerMap, "Case Length(mm)"),
+      barrelSize: getCell(row, headerMap, "Barrel Size")
+    };
+
+    const concealmentBonus = getCell(row, headerMap, "Concealment Bonus");
+
+    const pointValue = parseWholeOrZero(getCell(row, headerMap, "Point Value"));
+    const weaponModifier = getCell(row, headerMap, "Weapon Modifier");
+    const weaponAbility1 = getCell(row, headerMap, "Weapon ability 1");
+    const weaponAbility2 = getCell(row, headerMap, "Weapon ability 2");
+    const weaponAbility3 = getCell(row, headerMap, "Weapon ability 3");
+    const breakPoints = parseBreakPointsRange(getCell(row, headerMap, "Break points"));
+    const armor = parseNumericOrZero(getCell(row, headerMap, "Armor"));
+    const shieldIntegrity = parseWholeOrZero(getCell(row, headerMap, "Shield integrity"));
+    const shieldRecharge = parseWholeOrZero(getCellAny(row, headerMap, ["Recharge", "Recharge Rate"]));
+    const shieldDelay = parseWholeOrZero(getCell(row, headerMap, "Delay"));
+    const providesHandheldEnergyShield = shieldIntegrity > 0 || shieldRecharge > 0 || shieldDelay > 0;
+
+    const baseDamageModifierMode = parseMeleeStrengthModifierMode(getCellAny(row, headerMap, ["STR to Damage", "STR to damage"]));
+    const pierceModifierMode = parseMeleeStrengthModifierMode(getCellAny(row, headerMap, ["STR to pierce", "STR to Pierce"]));
 
     const baseRollD5 = parseWholeOrZero(getCell(row, headerMap, "Base Roll (Xd5)"));
     const baseRollD10 = parseWholeOrZero(getCell(row, headerMap, "Base Roll (Xd10)"));
@@ -118,6 +393,7 @@ export function parseReferenceWeaponRows(rows, weaponClass, tableName) {
     const maxRange = parseWholeOrZero(getCell(row, headerMap, "Max range"));
     const reload = parseWholeOrZero(getCell(row, headerMap, "Reload"));
     const magazine = parseWholeOrZero(getCell(row, headerMap, "Magazine"));
+    const reach = getCell(row, headerMap, "Reach");
 
     const priceAmount = parseWholeOrZero(getCell(row, headerMap, "weapon price"));
     const priceCurrency = (getCell(row, headerMap, " ") || "cR").toLowerCase();
@@ -125,33 +401,65 @@ export function parseReferenceWeaponRows(rows, weaponClass, tableName) {
 
     const fireModes = parseWeaponFireModes(row, headerMap);
 
+    const damagePayload = {
+      baseRollD5,
+      baseRollD10,
+      baseDamage,
+      pierce
+    };
+    if (isMelee && baseDamageModifierMode) {
+      damagePayload.baseDamageModifierMode = baseDamageModifierMode;
+    }
+    if (isMelee && pierceModifierMode) {
+      damagePayload.pierceModifierMode = pierceModifierMode;
+    }
+
     const defaultIcon = weaponClass === "melee" ? MYTHIC_MELEE_WEAPON_DEFAULT_ICON : MYTHIC_RANGED_WEAPON_DEFAULT_ICON;
     parsed.push({
       name: fullName,
       type: "gear",
       img: defaultIcon,
       system: normalizeGearSystemData({
+        equipmentType: isMelee ? "melee-weapon" : "ranged-weapon",
         itemClass: "weapon",
         weaponClass,
         faction: getCell(row, headerMap, "faction"),
         source,
-        category,
+        category: weaponType,
+        training,
         weaponType,
+        ammoMode,
+        singleLoading,
+        baseToHitModifier,
+        concealmentBonus,
+        pointValue,
+        weaponModifier,
+        weaponAbility1,
+        weaponAbility2,
+        weaponAbility3,
+        breakPointsMin: breakPoints.min,
+        breakPointsMax: breakPoints.max,
+        armor,
+        providesHandheldEnergyShield,
+        shieldIntegrity,
+        shieldRecharge,
+        shieldDelay,
         wieldingType,
         ammoName,
+        nickname,
         nicknames,
+        weaponTagKeys,
+        weaponSpecialRuleKeys: specialRuleData.keys,
+        weaponSpecialRuleValues: specialRuleData.values,
         fireModes,
-        damage: {
-          baseRollD5,
-          baseRollD10,
-          baseDamage,
-          pierce
-        },
+        advanced,
+        damage: damagePayload,
         range: {
           close: closeRange,
           max: maxRange,
           reload,
-          magazine
+          magazine,
+          reach
         },
         price: {
           amount: priceAmount,
@@ -178,7 +486,41 @@ export function parseReferenceWeaponRows(rows, weaponClass, tableName) {
   return parsed;
 }
 
-export async function loadReferenceWeaponItems() {
+async function loadReferenceWeaponItemsFromJson() {
+  const sources = [
+    { path: MYTHIC_RANGED_WEAPON_DEFINITIONS_PATH, weaponClass: "ranged" },
+    { path: MYTHIC_MELEE_WEAPON_DEFINITIONS_PATH, weaponClass: "melee" }
+  ];
+
+  const allItems = [];
+  for (const source of sources) {
+    try {
+      const response = await fetch(source.path);
+      if (!response.ok) {
+        console.warn(`[mythic-system] Could not fetch ${source.path}: HTTP ${response.status}`);
+        continue;
+      }
+
+      const json = await response.json();
+      const rows = Array.isArray(json) ? json : [];
+      for (const row of rows) {
+        if (!row || typeof row !== "object") continue;
+        const name = String(row.name ?? "").trim();
+        if (!name) continue;
+        const type = String(row.type ?? "gear").trim() || "gear";
+        const img = String(row.img ?? (source.weaponClass === "melee" ? MYTHIC_MELEE_WEAPON_DEFAULT_ICON : MYTHIC_RANGED_WEAPON_DEFAULT_ICON)).trim();
+        const system = foundry.utils.deepClone(row.system ?? {});
+        allItems.push({ name, type, img, system });
+      }
+    } catch (error) {
+      console.warn(`[mythic-system] Failed loading weapon definitions JSON ${source.path}`, error);
+    }
+  }
+
+  return allItems;
+}
+
+export async function loadReferenceWeaponItemsFromCsv() {
   const sources = [
     { path: MYTHIC_REFERENCE_RANGED_WEAPONS_CSV, weaponClass: "ranged", tableName: "ranged-weapons" },
     { path: MYTHIC_REFERENCE_MELEE_WEAPONS_CSV, weaponClass: "melee", tableName: "melee-weapons" }
@@ -202,6 +544,11 @@ export async function loadReferenceWeaponItems() {
   }
 
   return allItems;
+}
+
+export async function loadReferenceWeaponItems() {
+  const fromJson = await loadReferenceWeaponItemsFromJson();
+  return fromJson;
 }
 
 export function classifyWeaponFactionBucket(rawFaction) {
@@ -281,6 +628,383 @@ export async function buildCompendiumCanonicalMap(pack) {
   return map;
 }
 
+function getRangedSharedBucket(rawFaction) {
+  const text = String(rawFaction ?? "").trim().toLowerCase();
+  if (!text) return { key: "shared", label: "Shared" };
+
+  const sharedMarkers = [
+    "shared",
+    "universal",
+    "cross-faction",
+    "cross faction",
+    "multi-faction",
+    "multi faction",
+    "all factions",
+    "all"
+  ];
+
+  if (sharedMarkers.some((marker) => text.includes(marker))) {
+    return { key: "shared", label: "Shared" };
+  }
+
+  return null;
+}
+
+export function getRangedWeaponCompendiumDescriptor(itemData) {
+  const weaponClass = String(itemData?.system?.weaponClass ?? "").trim().toLowerCase();
+  if (weaponClass !== "ranged") return null;
+
+  const sourceScope = String(itemData?.system?.sync?.sourceScope ?? itemData?.system?.source ?? "").trim().toLowerCase();
+  if (sourceScope !== "mythic") return null;
+
+  const factionRaw = itemData?.system?.faction;
+  const faction = classifyWeaponFactionBucket(factionRaw);
+
+  if (["human", "covenant", "banished", "forerunner"].includes(faction.key)) {
+    return {
+      key: faction.key,
+      name: `mythic-weapons-${faction.key}-ranged`,
+      label: `${faction.label} Ranged Weapons`
+    };
+  }
+
+  const shared = getRangedSharedBucket(factionRaw);
+  if (!shared) return null;
+
+  return {
+    key: shared.key,
+    name: "mythic-weapons-shared-ranged",
+    label: "Shared Ranged Weapons"
+  };
+}
+
+function getRangedSystemPack(descriptor) {
+  if (!descriptor?.key) return null;
+  const collection = MYTHIC_RANGED_SYSTEM_COLLECTION_BY_GROUP[descriptor.key];
+  return collection ? game.packs.get(collection) ?? null : null;
+}
+
+function getWeaponSystemPack(descriptor) {
+  if (!descriptor?.key) return null;
+  const collection = MYTHIC_WEAPON_SYSTEM_COLLECTION_BY_GROUP[descriptor.key];
+  return collection ? game.packs.get(collection) ?? null : null;
+}
+
+function requireWeaponSystemPack(descriptor) {
+  const pack = getWeaponSystemPack(descriptor);
+  if (pack) return pack;
+  const collection = MYTHIC_WEAPON_SYSTEM_COLLECTION_BY_GROUP[descriptor?.key];
+  if (!collection) {
+    throw new Error(`No system collection mapping is configured for weapon descriptor key '${descriptor?.key ?? "unknown"}'.`);
+  }
+  throw new Error(`Missing required system compendium '${collection}' for ${descriptor?.label ?? "weapons"}.`);
+}
+
+async function resolveRangedSyncPack(descriptor) {
+  const systemPack = getRangedSystemPack(descriptor);
+  if (systemPack) return { pack: systemPack, source: "system" };
+
+  const expectedCollection = MYTHIC_RANGED_SYSTEM_COLLECTION_BY_GROUP[descriptor?.key];
+  if (!expectedCollection) {
+    throw new Error(`No ranged system collection mapping found for key '${descriptor?.key ?? "unknown"}'.`);
+  }
+  throw new Error(`Missing required ranged system compendium '${expectedCollection}' (${descriptor?.label ?? descriptor?.name ?? "unknown"}).`);
+}
+
+function getMeleeWeaponCompendiumDescriptor(itemData) {
+  const weaponClass = String(itemData?.system?.weaponClass ?? "").trim().toLowerCase();
+  if (weaponClass !== "melee") return null;
+
+  const sourceScope = String(itemData?.system?.sync?.sourceScope ?? itemData?.system?.source ?? "").trim().toLowerCase();
+  if (sourceScope !== "mythic") return null;
+
+  const factionRaw = itemData?.system?.faction;
+  const faction = classifyWeaponFactionBucket(factionRaw);
+
+  if (faction.key === "flood") {
+    return {
+      key: "flood",
+      name: "mythic-weapons-flood",
+      label: "Flood Weapons"
+    };
+  }
+
+  if (["human", "covenant", "banished", "forerunner"].includes(faction.key)) {
+    return {
+      key: `${faction.key}-melee`,
+      name: `mythic-weapons-${faction.key}-melee`,
+      label: `${faction.label} Melee Weapons`
+    };
+  }
+
+  const shared = getRangedSharedBucket(factionRaw);
+  if (!shared) return null;
+
+  return {
+    key: "shared-melee",
+    name: "mythic-weapons-shared-melee",
+    label: "Shared Melee Weapons"
+  };
+}
+
+async function withUnlockedPack(pack, dryRun, fn) {
+  const wasLocked = Boolean(pack?.locked);
+  let unlocked = false;
+  try {
+    if (wasLocked && !dryRun) {
+      await pack.configure({ locked: false });
+      unlocked = true;
+    }
+    return await fn();
+  } finally {
+    if (wasLocked && unlocked) {
+      try {
+        await pack.configure({ locked: true });
+      } catch (lockError) {
+        console.error(`[mythic-system] Failed to relock compendium ${pack.collection}.`, lockError);
+      }
+    }
+  }
+}
+
+export async function refreshRangedWeaponCompendiums(options = {}) {
+  const silent = options?.silent === true;
+  if (!game.user?.isGM) {
+    if (!silent) ui.notifications?.warn("Only a GM can refresh ranged weapon compendiums.");
+    return { created: 0, updated: 0, skipped: 0, dryRun: true, byPack: {} };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const rows = await loadReferenceWeaponItems();
+  const ammoLookup = await buildAmmoNameLookupMap();
+  if (!rows.length) {
+    if (!silent) ui.notifications?.warn("No reference weapon rows were loaded from weapon JSON definitions.");
+    return { created: 0, updated: 0, skipped: 0, dryRun, byPack: {} };
+  }
+
+  const grouped = new Map();
+  let skipped = 0;
+
+  for (const itemData of rows) {
+    const descriptor = getRangedWeaponCompendiumDescriptor(itemData);
+    if (!descriptor) {
+      skipped += 1;
+      continue;
+    }
+
+    if (!grouped.has(descriptor.key)) {
+      grouped.set(descriptor.key, { descriptor, items: [] });
+    }
+    grouped.get(descriptor.key).items.push(itemData);
+  }
+
+  let created = 0;
+  let updated = 0;
+  const byPack = {};
+  for (const { descriptor, items } of grouped.values()) {
+    let resolved = null;
+    try {
+      resolved = await resolveRangedSyncPack(descriptor);
+    } catch (error) {
+      console.error(`[mythic-system] Failed to resolve ranged compendium ${descriptor.name}.`, error);
+      skipped += items.length;
+      byPack[descriptor.name] = { created: 0, updated: 0, skipped: items.length, missingPack: true, failedToResolve: true };
+      continue;
+    }
+
+    const pack = resolved.pack;
+    if (!pack) {
+      skipped += items.length;
+      byPack[descriptor.name] = { created: 0, updated: 0, skipped: items.length, missingPack: true };
+      continue;
+    }
+
+    const result = await withUnlockedPack(pack, dryRun, async () => {
+      const byCanonicalId = await buildCompendiumCanonicalMap(pack);
+      const createBatch = [];
+      let packCreated = 0;
+      let packUpdated = 0;
+      let packSkipped = 0;
+
+      for (const itemData of items) {
+        const linkedItemData = applyResolvedAmmoLink(itemData, ammoLookup);
+        const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+        if (!canonicalId) {
+          packSkipped += 1;
+          continue;
+        }
+
+        const nextSystem = normalizeGearSystemData(linkedItemData.system ?? {}, linkedItemData.name);
+        nextSystem.sync.sourceCollection = descriptor.name;
+        nextSystem.sync.sourceScope = "mythic";
+
+        const existing = byCanonicalId.get(canonicalId);
+        if (!existing) {
+          if (!dryRun) {
+            createBatch.push({ ...linkedItemData, system: nextSystem });
+          }
+          packCreated += 1;
+          continue;
+        }
+
+        const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+        const nameChanged = String(existing.name ?? "") !== String(linkedItemData.name ?? "");
+        if (foundry.utils.isEmpty(diff) && !nameChanged) {
+          packSkipped += 1;
+          continue;
+        }
+
+        if (!dryRun) {
+          await existing.update({
+            name: linkedItemData.name,
+            system: nextSystem
+          }, { diff: false, recursive: false });
+        }
+        packUpdated += 1;
+      }
+
+      if (!dryRun && createBatch.length > 0) {
+        await Item.createDocuments(createBatch, { pack: pack.collection });
+      }
+
+      return { created: packCreated, updated: packUpdated, skipped: packSkipped };
+    });
+
+    created += result.created;
+    updated += result.updated;
+    skipped += result.skipped;
+    byPack[descriptor.name] = {
+      ...result,
+      packSource: resolved.source
+    };
+  }
+
+  if (!dryRun) {
+    await organizeEquipmentCompendiumFolders({ silent });
+  }
+  if (!dryRun && !silent) {
+    ui.notifications?.info(`Ranged weapon compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  }
+
+  return { created, updated, skipped, dryRun, byPack };
+}
+
+export async function refreshMeleeWeaponCompendiums(options = {}) {
+  const silent = options?.silent === true;
+  if (!game.user?.isGM) {
+    if (!silent) ui.notifications?.warn("Only a GM can refresh melee weapon compendiums.");
+    return { created: 0, updated: 0, skipped: 0, dryRun: true, byPack: {} };
+  }
+
+  const dryRun = options?.dryRun === true;
+  const rows = await loadReferenceWeaponItems();
+  const ammoLookup = await buildAmmoNameLookupMap();
+  if (!rows.length) {
+    if (!silent) ui.notifications?.warn("No reference weapon rows were loaded from weapon JSON definitions.");
+    return { created: 0, updated: 0, skipped: 0, dryRun, byPack: {} };
+  }
+
+  const grouped = new Map();
+  let skipped = 0;
+
+  for (const itemData of rows) {
+    const descriptor = getMeleeWeaponCompendiumDescriptor(itemData);
+    if (!descriptor) {
+      skipped += 1;
+      continue;
+    }
+
+    if (!grouped.has(descriptor.key)) {
+      grouped.set(descriptor.key, { descriptor, items: [] });
+    }
+    grouped.get(descriptor.key).items.push(itemData);
+  }
+
+  let created = 0;
+  let updated = 0;
+  const byPack = {};
+
+  for (const { descriptor, items } of grouped.values()) {
+    let pack = null;
+    try {
+      pack = requireWeaponSystemPack(descriptor);
+    } catch (error) {
+      console.error(`[mythic-system] Failed to resolve melee compendium ${descriptor.name}.`, error);
+      skipped += items.length;
+      byPack[descriptor.name] = { created: 0, updated: 0, skipped: items.length, missingPack: true, failedToResolve: true };
+      continue;
+    }
+
+    const result = await withUnlockedPack(pack, dryRun, async () => {
+      const byCanonicalId = await buildCompendiumCanonicalMap(pack);
+      const createBatch = [];
+      let packCreated = 0;
+      let packUpdated = 0;
+      let packSkipped = 0;
+
+      for (const itemData of items) {
+        const linkedItemData = applyResolvedAmmoLink(itemData, ammoLookup);
+        const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
+        if (!canonicalId) {
+          packSkipped += 1;
+          continue;
+        }
+
+        const nextSystem = normalizeGearSystemData(linkedItemData.system ?? {}, linkedItemData.name);
+        nextSystem.sync.sourceCollection = descriptor.name;
+        nextSystem.sync.sourceScope = "mythic";
+
+        const existing = byCanonicalId.get(canonicalId);
+        if (!existing) {
+          if (!dryRun) {
+            createBatch.push({ ...linkedItemData, system: nextSystem });
+          }
+          packCreated += 1;
+          continue;
+        }
+
+        const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
+        const nameChanged = String(existing.name ?? "") !== String(linkedItemData.name ?? "");
+        if (foundry.utils.isEmpty(diff) && !nameChanged) {
+          packSkipped += 1;
+          continue;
+        }
+
+        if (!dryRun) {
+          await existing.update({
+            name: linkedItemData.name,
+            system: nextSystem
+          }, { diff: false, recursive: false });
+        }
+        packUpdated += 1;
+      }
+
+      if (!dryRun && createBatch.length > 0) {
+        await Item.createDocuments(createBatch, { pack: pack.collection });
+      }
+
+      return { created: packCreated, updated: packUpdated, skipped: packSkipped };
+    });
+
+    created += result.created;
+    updated += result.updated;
+    skipped += result.skipped;
+    byPack[descriptor.name] = {
+      ...result,
+      packSource: "system"
+    };
+  }
+
+  if (!dryRun) {
+    await organizeEquipmentCompendiumFolders({ silent });
+  }
+  if (!dryRun && !silent) {
+    ui.notifications?.info(`Melee weapon compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  }
+
+  return { created, updated, skipped, dryRun, byPack };
+}
+
 export async function importReferenceWeapons(options = {}) {
   if (!game.user?.isGM) {
     ui.notifications?.warn("Only a GM can import reference weapon data.");
@@ -289,7 +1013,7 @@ export async function importReferenceWeapons(options = {}) {
 
   const rows = await loadReferenceWeaponItems();
   if (!rows.length) {
-    ui.notifications?.warn("No reference weapon rows were loaded from CSV files.");
+    ui.notifications?.warn("No reference weapon rows were loaded from weapon JSON definitions.");
     return { created: 0, updated: 0, skipped: 0 };
   }
 
@@ -297,145 +1021,61 @@ export async function importReferenceWeapons(options = {}) {
   const importToWorld = target === "world";
   const dryRun = options?.dryRun === true;
 
-  let byCanonicalId = new Map();
-  let compendiumPack = null;
-
   if (importToWorld) {
-    const existingGear = (game.items ?? []).filter((entry) => entry.type === "gear");
-    for (const item of existingGear) {
-      const canonical = String(item.system?.sync?.canonicalId ?? "").trim();
-      if (!canonical) continue;
-      byCanonicalId.set(canonical, item);
-    }
-  } else {
-    // Compendium mode uses split packs by faction/species and ranged/melee.
-    byCanonicalId = new Map();
+    const message = "World-target weapon imports are disabled. Use system compendium refresh for ranged/melee weapons.";
+    ui.notifications?.warn(message);
+    return { created: 0, updated: 0, skipped: rows.length, mode: "system-only", error: message };
   }
 
-  let created = 0;
-  let updated = 0;
-  let skipped = 0;
+  const ranged = await refreshRangedWeaponCompendiums({ dryRun });
+  const melee = await refreshMeleeWeaponCompendiums({ dryRun });
+  return {
+    created: (ranged.created ?? 0) + (melee.created ?? 0),
+    updated: (ranged.updated ?? 0) + (melee.updated ?? 0),
+    skipped: (ranged.skipped ?? 0) + (melee.skipped ?? 0),
+    mode: "split-compendiums",
+    ranged,
+    melee
+  };
+}
 
-  const pendingCreates = [];
-
-  if (!importToWorld) {
-    const grouped = new Map();
-    for (const itemData of rows) {
-      const descriptor = getWeaponCompendiumDescriptor(itemData);
-      if (!descriptor) { skipped += 1; continue; }  // null = skip (e.g. "other" faction)
-      const bucketKey = descriptor.key;
-      if (!grouped.has(bucketKey)) grouped.set(bucketKey, { descriptor, items: [] });
-      grouped.get(bucketKey).items.push(itemData);
-    }
-
-    const processedPacks = [];
-
-    for (const { descriptor, items } of grouped.values()) {
-      try {
-        compendiumPack = await ensureReferenceWeaponsCompendium(descriptor.name, descriptor.label);
-      } catch (error) {
-        console.error("[mythic-system] Failed to prepare reference weapons compendium.", error);
-        ui.notifications?.error(`Could not prepare compendium ${descriptor.label}. See console for details.`);
-        continue;
-      }
-
-      byCanonicalId = await buildCompendiumCanonicalMap(compendiumPack);
-      const createBatch = [];
-
-      for (const itemData of items) {
-        const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
-        if (!canonicalId) {
-          skipped += 1;
-          continue;
-        }
-
-        const existing = byCanonicalId.get(canonicalId);
-        if (!existing) {
-          if (!dryRun) createBatch.push(itemData);
-          created += 1;
-          continue;
-        }
-
-        const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name);
-        nextSystem.sync.sourceCollection = descriptor.name;
-        const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
-        const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
-        if (foundry.utils.isEmpty(diff) && !nameChanged) {
-          skipped += 1;
-          continue;
-        }
-
-        if (!dryRun) {
-          await existing.update({ name: itemData.name, system: nextSystem });
-        }
-        updated += 1;
-      }
-
-      if (!dryRun && createBatch.length) {
-        await Item.createDocuments(createBatch, { pack: compendiumPack.collection });
-      }
-
-      processedPacks.push({ label: descriptor.label, created: createBatch.length });
-    }
-
-    if (!dryRun) {
-      ui.notifications?.info(`Reference weapon import complete to split compendiums. Created ${created}, updated ${updated}, skipped ${skipped}.`);
-      if (processedPacks.length) {
-        console.log("[mythic-system] Imported compendium buckets:", processedPacks);
-      }
-      // Keep equipment packs organized as part of normal import flow.
-      await organizeEquipmentCompendiumFolders();
-    }
-
-    return { created, updated, skipped, mode: "split-compendiums", buckets: grouped.size };
+export async function rebuildWeaponCompendiumsFromJson(options = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can rebuild weapon compendiums.");
+    return { deleted: 0, created: 0, updated: 0, skipped: 0, dryRun: true };
   }
 
-  for (const itemData of rows) {
-    const canonicalId = String(itemData?.system?.sync?.canonicalId ?? "").trim();
-    if (!canonicalId) {
-      skipped += 1;
-      continue;
-    }
+  const dryRun = options?.dryRun === true;
+  const collections = Array.from(new Set(Object.values(MYTHIC_WEAPON_SYSTEM_COLLECTION_BY_GROUP)));
 
-    const existing = byCanonicalId.get(canonicalId);
-    if (!existing) {
+  let deleted = 0;
+  for (const collection of collections) {
+    const pack = game.packs.get(collection);
+    if (!pack) continue;
+
+    await withUnlockedPack(pack, dryRun, async () => {
+      const index = await pack.getIndex();
+      const ids = Array.from(index).map((entry) => String(entry._id ?? "").trim()).filter(Boolean);
+      if (!ids.length) return;
+      deleted += ids.length;
       if (!dryRun) {
-        if (importToWorld) {
-          pendingCreates.push(itemData);
-        } else {
-          pendingCreates.push(itemData);
-        }
+        await Item.deleteDocuments(ids, { pack: pack.collection });
       }
-      created += 1;
-      continue;
-    }
-
-    const nextSystem = normalizeGearSystemData(itemData.system ?? {}, itemData.name);
-    const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
-    const nameChanged = String(existing.name ?? "") !== String(itemData.name ?? "");
-    if (foundry.utils.isEmpty(diff) && !nameChanged) {
-      skipped += 1;
-      continue;
-    }
-
-    if (!dryRun) {
-      await existing.update({ name: itemData.name, system: nextSystem });
-    }
-    updated += 1;
+    });
   }
 
-  if (!dryRun && pendingCreates.length) {
-    if (importToWorld) {
-      await Item.createDocuments(pendingCreates);
-    }
-  }
+  const ranged = await refreshRangedWeaponCompendiums({ dryRun, silent: options?.silent === true });
+  const melee = await refreshMeleeWeaponCompendiums({ dryRun, silent: options?.silent === true });
 
-  if (!dryRun) {
-    const targetLabel = "world items";
-    ui.notifications?.info(`Reference weapon import complete to ${targetLabel}. Created ${created}, updated ${updated}, skipped ${skipped}.`);
-  }
-
-  return { created, updated, skipped };
+  return {
+    deleted,
+    created: (ranged.created ?? 0) + (melee.created ?? 0),
+    updated: (ranged.updated ?? 0) + (melee.updated ?? 0),
+    skipped: (ranged.skipped ?? 0) + (melee.skipped ?? 0),
+    dryRun,
+    ranged,
+    melee
+  };
 }
 
 export async function removeImportedWorldReferenceWeapons(options = {}) {

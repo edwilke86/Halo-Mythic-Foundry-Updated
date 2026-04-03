@@ -554,6 +554,7 @@ export function normalizeCharacterSystemData(systemData) {
     };
     normalizedWeaponState[itemId] = {
       magazineCurrent: toNonNegativeWhole(state.magazineCurrent, 0),
+      ammoTotal: toNonNegativeWhole(state.ammoTotal, 0),
       magazineTrackingMode: String(state.magazineTrackingMode ?? "abstract").trim().toLowerCase() || "abstract",
       activeMagazineId: String(state.activeMagazineId ?? "").trim(),
       activeEnergyCellId: String(state.activeEnergyCellId ?? "").trim(),
@@ -900,9 +901,46 @@ export function normalizeBestiarySystemData(systemData) {
   const merged = normalizeCharacterSystemData(mergedBase);
 
   merged.bestiary ??= foundry.utils.deepClone(defaults.bestiary);
+  merged.bestiary.notes = Array.isArray(merged.bestiary?.notes) ? merged.bestiary.notes : [];
+  merged.bestiary.notes = merged.bestiary.notes.map((note) => {
+    const normalized = (note && typeof note === 'object') ? note : {};
+    return {
+      id: String(normalized.id ?? "").trim() || foundry.utils.randomID(),
+      title: String(normalized.title ?? "").trim(),
+      description: String(normalized.description ?? "")
+    };
+  });
   merged.bestiary.rank = getBestiaryRankValue(merged.bestiary.rank);
+  const subtypeRaw = String(merged.bestiary?.subtype ?? "").trim().toLowerCase();
+  merged.bestiary.subtype = subtypeRaw === "flood" ? "flood" : "standard";
   merged.bestiary.singleDifficulty = Boolean(merged.bestiary.singleDifficulty);
   merged.bestiary.advanceMythicStats = Boolean(merged.bestiary.advanceMythicStats);
+  const floodData = (merged.bestiary?.flood && typeof merged.bestiary.flood === "object")
+    ? merged.bestiary.flood
+    : {};
+  const formClassRaw = String(floodData.formClass ?? "").trim().toLowerCase();
+  const keymindRoleRaw = String(floodData.keymindRole ?? "").trim().toLowerCase();
+  const allowedFormClasses = new Set([
+    "none",
+    "flood-infection",
+    "flood-carrier",
+    "flood-combat",
+    "flood-pure",
+    "flood-structure",
+    "flood-keymind",
+    "flood-other"
+  ]);
+  const allowedKeymindRoles = new Set([
+    "none",
+    "juggernaut",
+    "abomination",
+    "proto-gravemind",
+    "gravemind"
+  ]);
+  merged.bestiary.flood = {
+    formClass: allowedFormClasses.has(formClassRaw) ? formClassRaw : "none",
+    keymindRole: allowedKeymindRoles.has(keymindRoleRaw) ? keymindRoleRaw : "none"
+  };
 
   for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
     const baseValue = Number(merged.bestiary?.baseCharacteristics?.[key] ?? 0);
@@ -938,6 +976,27 @@ export function normalizeBestiarySystemData(systemData) {
     br5: toNonNegativeWhole(woundsByRank.br5, 0)
   };
 
+  const luckByRank = merged.bestiary?.luckByRank && typeof merged.bestiary.luckByRank === "object"
+    ? merged.bestiary.luckByRank
+    : {};
+  const standardLuckDefaults = {
+    br1: 0,
+    br2: 0,
+    br3: 1,
+    br4: 3,
+    br5: 6
+  };
+  const normalizedLuckByRank = {
+    br1: toNonNegativeWhole(luckByRank.br1, standardLuckDefaults.br1),
+    br2: toNonNegativeWhole(luckByRank.br2, standardLuckDefaults.br2),
+    br3: toNonNegativeWhole(luckByRank.br3, standardLuckDefaults.br3),
+    br4: toNonNegativeWhole(luckByRank.br4, standardLuckDefaults.br4),
+    br5: toNonNegativeWhole(luckByRank.br5, standardLuckDefaults.br5)
+  };
+  merged.bestiary.luckByRank = merged.bestiary.subtype === "flood"
+    ? { br1: 0, br2: 0, br3: 0, br4: 0, br5: 0 }
+    : normalizedLuckByRank;
+
   const sizeLabel = getCanonicalSizeCategoryLabel(merged.bestiary?.size);
   merged.bestiary.size = sizeLabel || "Normal";
   merged.bestiary.heightRangeCm = normalizeRangeObject(merged.bestiary?.heightRangeCm, MYTHIC_DEFAULT_HEIGHT_RANGE_CM);
@@ -966,16 +1025,19 @@ export function normalizeBestiarySystemData(systemData) {
     })
     .filter(Boolean);
 
-  const armorProfilesRaw = Array.isArray(merged.bestiary?.armorProfiles) ? merged.bestiary.armorProfiles : [];
-  merged.bestiary.armorProfiles = armorProfilesRaw
-    .map((entry, index) => normalizeBestiaryArmorProfile(entry, index))
-    .filter(Boolean);
+  merged.bestiary.equippedArmorId = String(merged.bestiary?.equippedArmorId ?? "").trim();
 
-  const requestedArmorId = String(merged.bestiary?.activeArmorProfileId ?? "").trim();
-  const activeArmorProfile = merged.bestiary.armorProfiles.find((entry) => entry.id === requestedArmorId)
-    ?? merged.bestiary.armorProfiles[0]
-    ?? null;
-  merged.bestiary.activeArmorProfileId = String(activeArmorProfile?.id ?? "");
+  const weaponAmmoRaw = (merged.bestiary?.weaponAmmo && typeof merged.bestiary.weaponAmmo === "object" && !Array.isArray(merged.bestiary.weaponAmmo))
+    ? merged.bestiary.weaponAmmo
+    : {};
+  const weaponAmmoNorm = {};
+  for (const [key, val] of Object.entries(weaponAmmoRaw)) {
+    if (!key || typeof val !== "object" || val === null) continue;
+    const current = Math.max(0, Math.floor(Number(val.current ?? 0)) || 0);
+    const max = Math.max(1, Math.floor(Number(val.max ?? 1)) || 1);
+    weaponAmmoNorm[String(key)] = { current: Math.min(current, max), max };
+  }
+  merged.bestiary.weaponAmmo = weaponAmmoNorm;
 
   const rank = merged.bestiary.rank;
   const rankModifier = merged.bestiary.singleDifficulty ? 0 : getBestiaryCharacteristicBonus(rank);
@@ -1008,26 +1070,28 @@ export function normalizeBestiarySystemData(systemData) {
 
   const woundsKey = `br${rank}`;
   const woundsMaxByRank = toNonNegativeWhole(merged.bestiary?.woundsByRank?.[woundsKey], 0);
-  const currentWounds = toNonNegativeWhole(merged.combat?.wounds?.current, woundsMaxByRank);
-  merged.combat.wounds.max = woundsMaxByRank;
-  merged.combat.wounds.current = Math.min(currentWounds, woundsMaxByRank);
+  const currentWounds = toNonNegativeWhole(source.combat?.wounds?.current ?? mergedBase.combat?.wounds?.current, woundsMaxByRank);
+  const finalWoundsMax = woundsMaxByRank;
+  const finalWoundsCurrent = Math.min(currentWounds, woundsMaxByRank);
+  merged.combat.wounds.max = finalWoundsMax;
+  merged.combat.wounds.current = finalWoundsCurrent;
 
-  if (activeArmorProfile) {
-    merged.combat.dr.armor.head = activeArmorProfile.head;
-    merged.combat.dr.armor.chest = activeArmorProfile.chest;
-    merged.combat.dr.armor.lArm = activeArmorProfile.arms;
-    merged.combat.dr.armor.rArm = activeArmorProfile.arms;
-    merged.combat.dr.armor.lLeg = activeArmorProfile.legs;
-    merged.combat.dr.armor.rLeg = activeArmorProfile.legs;
-    merged.combat.shields.integrity = activeArmorProfile.shieldIntegrity;
-    merged.combat.shields.rechargeDelay = activeArmorProfile.rechargeDelay;
-    merged.combat.shields.rechargeRate = activeArmorProfile.rechargeRate;
-    const currentShield = toNonNegativeWhole(merged.combat?.shields?.current, activeArmorProfile.shieldIntegrity);
-    merged.combat.shields.current = Math.min(currentShield, activeArmorProfile.shieldIntegrity);
-  }
+  const luckMaxByRank = toNonNegativeWhole(merged.bestiary?.luckByRank?.[woundsKey], 0);
+  const currentLuck = toNonNegativeWhole(source.combat?.luck?.current ?? mergedBase.combat?.luck?.current, luckMaxByRank);
+  const finalLuckMax = merged.bestiary.subtype === "flood" ? 0 : luckMaxByRank;
+  const finalLuckCurrent = merged.bestiary.subtype === "flood" ? 0 : Math.min(currentLuck, luckMaxByRank);
+  merged.combat.luck.max = finalLuckMax;
+  merged.combat.luck.current = finalLuckCurrent;
 
   const recalculated = normalizeCharacterSystemData(merged);
   recalculated.bestiary = merged.bestiary;
+  recalculated.combat.wounds.current = finalWoundsCurrent;
+  recalculated.combat.wounds.max = finalWoundsMax;
+  recalculated.combat.woundsBar ??= {};
+  recalculated.combat.woundsBar.value = finalWoundsCurrent;
+  recalculated.combat.woundsBar.max = finalWoundsMax;
+  recalculated.combat.luck.current = finalLuckCurrent;
+  recalculated.combat.luck.max = finalLuckMax;
   return recalculated;
 }
 
@@ -1474,6 +1538,7 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     armorySelection: "",
     source: "mythic",
     category: "",
+    isUniversal: false,
     training: "",
     baseToHitModifier: 0,
     weaponType: "",
@@ -1521,8 +1586,29 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     weightKg: 0,
     specialRules: "",
     weaponSpecialRuleKeys: [],
+    weaponSpecialRuleValues: {},
+    concealmentBonus: "",
     weaponTagKeys: [],
+    pointValue: 0,
+    weaponModifier: "",
+    weaponAbility1: "",
+    weaponAbility2: "",
+    weaponAbility3: "",
+    breakPointsMin: 0,
+    breakPointsMax: 0,
+    armor: 0,
+    providesHandheldEnergyShield: false,
+    shieldIntegrity: 0,
+    shieldRecharge: 0,
+    shieldDelay: 0,
     attachments: "",
+    unresolvedAmmoName: "",
+    advanced: {
+      firearm: "",
+      bulletDiameter: "",
+      caseLength: "",
+      barrelSize: ""
+    },
     description: "",
     // Quantity (primarily for ammo sold in units)
     quantity: 1,
@@ -1652,6 +1738,7 @@ export function normalizeGearSystemData(systemData, itemName = "") {
   }
   merged.source = String(merged.source ?? "mythic").trim().toLowerCase() || "mythic";
   merged.category = String(merged.category ?? "").trim();
+  merged.isUniversal = merged.isUniversal === true || String(merged.isUniversal ?? "").trim().toLowerCase() === "true";
   merged.training = String(merged.training ?? "").trim().toLowerCase();
   merged.baseToHitModifier = Number.isFinite(Number(merged.baseToHitModifier)) ? Math.round(Number(merged.baseToHitModifier)) : 0;
   merged.weaponType = String(merged.weaponType ?? "").trim();
@@ -1700,13 +1787,14 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     }
   }
   merged.damage.baseDamage = toNonNegativeWhole(merged.damage?.baseDamage, 0);
+  const acceptedStrModifierModes = ["double-str-mod", "full-str-mod", "half-str-mod", "none", "no-str-mod"];
   const requestedBaseDamageModifierMode = String(merged.damage?.baseDamageModifierMode ?? "full-str-mod").trim().toLowerCase();
-  merged.damage.baseDamageModifierMode = ["full-str-mod", "half-str-mod", "none"].includes(requestedBaseDamageModifierMode)
+  merged.damage.baseDamageModifierMode = acceptedStrModifierModes.includes(requestedBaseDamageModifierMode)
     ? requestedBaseDamageModifierMode
     : "full-str-mod";
   merged.damage.pierce = Number.isFinite(Number(merged.damage?.pierce)) ? Number(merged.damage.pierce) : 0;
   const requestedPierceModifierMode = String(merged.damage?.pierceModifierMode ?? "full-str-mod").trim().toLowerCase();
-  merged.damage.pierceModifierMode = ["full-str-mod", "half-str-mod", "none"].includes(requestedPierceModifierMode)
+  merged.damage.pierceModifierMode = acceptedStrModifierModes.includes(requestedPierceModifierMode)
     ? requestedPierceModifierMode
     : "full-str-mod";
 
@@ -1728,14 +1816,49 @@ export function normalizeGearSystemData(systemData, itemName = "") {
 
   merged.specialRules = String(merged.specialRules ?? "").trim();
   merged.weaponSpecialRuleKeys = normalizeStringList(parseFlexibleList(merged.weaponSpecialRuleKeys));
+  const rawWeaponSpecialRuleValues = (merged.weaponSpecialRuleValues && typeof merged.weaponSpecialRuleValues === "object" && !Array.isArray(merged.weaponSpecialRuleValues))
+    ? merged.weaponSpecialRuleValues
+    : {};
+  const nextWeaponSpecialRuleValues = {};
+  for (const [rawKey, rawValue] of Object.entries(rawWeaponSpecialRuleValues)) {
+    const key = String(rawKey ?? "").trim();
+    if (!key) continue;
+    const value = String(rawValue ?? "").trim();
+    if (!value) continue;
+    nextWeaponSpecialRuleValues[key] = value;
+  }
+  merged.weaponSpecialRuleValues = nextWeaponSpecialRuleValues;
+  merged.concealmentBonus = String(merged.concealmentBonus ?? "").trim();
   merged.weaponTagKeys = normalizeStringList(parseFlexibleList(merged.weaponTagKeys));
+  merged.pointValue = toNonNegativeWhole(merged.pointValue, 0);
+  merged.weaponModifier = String(merged.weaponModifier ?? "").trim();
+  merged.weaponAbility1 = String(merged.weaponAbility1 ?? "").trim();
+  merged.weaponAbility2 = String(merged.weaponAbility2 ?? "").trim();
+  merged.weaponAbility3 = String(merged.weaponAbility3 ?? "").trim();
+  merged.breakPointsMin = toNonNegativeWhole(merged.breakPointsMin, 0);
+  merged.breakPointsMax = toNonNegativeWhole(merged.breakPointsMax, 0);
+  merged.armor = Number.isFinite(Number(merged.armor)) ? Number(merged.armor) : 0;
+  merged.providesHandheldEnergyShield = Boolean(merged.providesHandheldEnergyShield);
+  merged.shieldIntegrity = toNonNegativeWhole(merged.shieldIntegrity, 0);
+  merged.shieldRecharge = toNonNegativeWhole(merged.shieldRecharge, 0);
+  merged.shieldDelay = toNonNegativeWhole(merged.shieldDelay, 0);
   merged.attachments = String(merged.attachments ?? "").trim();
+  merged.unresolvedAmmoName = String(merged.unresolvedAmmoName ?? "").trim();
+  const advancedSource = (merged.advanced && typeof merged.advanced === "object" && !Array.isArray(merged.advanced))
+    ? merged.advanced
+    : {};
+  merged.advanced = {
+    firearm: String(advancedSource.firearm ?? "").trim(),
+    bulletDiameter: String(advancedSource.bulletDiameter ?? "").trim(),
+    caseLength: String(advancedSource.caseLength ?? "").trim(),
+    barrelSize: String(advancedSource.barrelSize ?? "").trim()
+  };
   merged.description = String(merged.description ?? "").trim();
   merged.nickname = String(merged.nickname ?? "").trim();
   merged.attackName = String(merged.attackName ?? "").trim();
   merged.ammoId = String(merged.ammoId ?? "").trim() || null;
   const ammoModeRaw = String(merged.ammoMode ?? "magazine").trim().toLowerCase();
-  merged.ammoMode = ["magazine", "belt", "tube", "plasma-battery", "light-mass"].includes(ammoModeRaw)
+  merged.ammoMode = ["magazine", "belt", "tube", "plasma-battery", "light-mass", "grenade", "explosive"].includes(ammoModeRaw)
     ? ammoModeRaw
     : "magazine";
   merged.batteryType = normalizeBatterySubtype(merged.batteryType, merged.ammoMode);
@@ -1745,10 +1868,10 @@ export function normalizeGearSystemData(systemData, itemName = "") {
         if (!v || typeof v !== "object") return null;
         const vDiceCount = toNonNegativeWhole(v.diceCount, 0);
         const vDiceType = String(v.diceType ?? "d10").trim().toLowerCase() === "d5" ? "d5" : "d10";
-        const vBaseDmgMode = ["full-str-mod", "half-str-mod", "none"].includes(String(v.baseDamageModifierMode ?? "").trim().toLowerCase())
+        const vBaseDmgMode = acceptedStrModifierModes.includes(String(v.baseDamageModifierMode ?? "").trim().toLowerCase())
           ? String(v.baseDamageModifierMode).trim().toLowerCase()
           : "full-str-mod";
-        const vPierceMode = ["full-str-mod", "half-str-mod", "none"].includes(String(v.pierceModifierMode ?? "").trim().toLowerCase())
+        const vPierceMode = acceptedStrModifierModes.includes(String(v.pierceModifierMode ?? "").trim().toLowerCase())
           ? String(v.pierceModifierMode).trim().toLowerCase()
           : "full-str-mod";
         return {

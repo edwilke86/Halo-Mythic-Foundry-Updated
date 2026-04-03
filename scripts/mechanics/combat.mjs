@@ -55,8 +55,20 @@ export function parseFireModeProfile(modeValue) {
   return { raw, kind, count };
 }
 
-export function getAttackIterationsForProfile(profile, actionType) {
+export function getAttackIterationsForProfile(profile, actionType, options = {}) {
   const action = String(actionType ?? "single").toLowerCase();
+  const isMelee = Boolean(options?.isMelee);
+  const warfareMeleeModifier = Number(options?.warfareMeleeModifier ?? NaN);
+  const meleeHalfActionAttacks = Number.isFinite(warfareMeleeModifier)
+    ? Math.max(1, Math.floor(warfareMeleeModifier / 2))
+    : 1;
+
+  if (isMelee) {
+    if (action === "full") return meleeHalfActionAttacks * 2;
+    if (action === "half") return meleeHalfActionAttacks;
+    if (action === "single") return 1;
+  }
+
   if (profile.kind === "flintlock") return action === "full" ? 1 : 0;
   if (action === "single") return 1;
 

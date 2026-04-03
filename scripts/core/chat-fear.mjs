@@ -52,21 +52,21 @@ function getActorById(actorId = "") {
   const id = String(actorId ?? "").trim();
   if (!id) return null;
   const actor = game.actors?.get(id) ?? null;
-  return actor?.type === "character" ? actor : null;
+  return ["character", "npc", "bestiary"].includes(String(actor?.type ?? "").trim()) ? actor : null;
 }
 
 async function getActorByUuid(actorUuid = "") {
   const uuid = String(actorUuid ?? "").trim();
   if (!uuid || typeof globalThis.fromUuid !== "function") return null;
   const resolved = await globalThis.fromUuid(uuid);
-  return resolved?.type === "character" ? resolved : null;
+  return ["character", "npc", "bestiary"].includes(String(resolved?.type ?? "").trim()) ? resolved : null;
 }
 
 function getActorByUuidSync(actorUuid = "") {
   const uuid = String(actorUuid ?? "").trim();
   if (!uuid || typeof globalThis.fromUuidSync !== "function") return null;
   const resolved = globalThis.fromUuidSync(uuid);
-  return resolved?.type === "character" ? resolved : null;
+  return ["character", "npc", "bestiary"].includes(String(resolved?.type ?? "").trim()) ? resolved : null;
 }
 
 async function resolveActorFromFlow(flow = {}) {
@@ -82,8 +82,9 @@ function resolveActorFromFlowSync(flow = {}) {
 }
 
 function canUserRunFearFlow(actor = null) {
-  if (!actor) return false;
+  // GM should always be able to run fear flow even if actor lookup has failed.
   if (game.user?.isGM) return true;
+  if (!actor) return false;
   return Boolean(actor.isOwner);
 }
 
@@ -322,7 +323,8 @@ async function promptFearModifier(label = "Fear") {
 }
 
 export async function mythicStartFearTest({ actor, promptModifier } = {}) {
-  if (!actor || actor.type !== "character") return null;
+  if (!actor) return null;
+  if (!["character", "npc", "bestiary"].includes(String(actor.type ?? "").trim().toLowerCase())) return null;
   if (!canUserRunFearFlow(actor)) {
     ui.notifications?.warn("Only the actor owner or GM can run fear test actions.");
     return null;
@@ -618,6 +620,7 @@ export async function mythicFearShowReference(messageId, payload = {}) {
 }
 
 export function mythicCanInteractWithFearFlowMessage(message) {
+  if (game.user?.isGM) return true;
   const flow = message?.getFlag?.(MYTHIC_SYSTEM_SCOPE, MYTHIC_FEAR_FLOW_FLAG_KEY) ?? null;
   if (!flow) return false;
   const actor = resolveActorFromFlowSync(flow);

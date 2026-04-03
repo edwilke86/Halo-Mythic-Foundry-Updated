@@ -4,6 +4,10 @@ import {
   MYTHIC_WORLD_MIGRATION_SETTING_KEY,
   MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY,
   MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY,
+  MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY,
+  MYTHIC_WEAPON_JSON_MIGRATION_VERSION,
+  MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY,
+  MYTHIC_ARMOR_JSON_MIGRATION_VERSION,
   MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY,
   MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY,
   MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY,
@@ -19,6 +23,14 @@ import {
   MYTHIC_BESTIARY_DIFFICULTY_MODE_CHOICES,
   MYTHIC_BESTIARY_DIFFICULTY_MODES,
   MYTHIC_BESTIARY_RANK_CHOICES,
+  MYTHIC_FLOOD_CONTAMINATION_LEVEL_SETTING_KEY,
+  MYTHIC_FLOOD_CONTAMINATION_HUD_ENABLED_SETTING_KEY,
+  MYTHIC_FLOOD_JUGGERNAUT_ACTIVE_SETTING_KEY,
+  MYTHIC_FLOOD_ABOMINATION_ACTIVE_SETTING_KEY,
+  MYTHIC_FLOOD_PROTO_GRAVEMIND_ACTIVE_SETTING_KEY,
+  MYTHIC_FLOOD_GRAVEMIND_ACTIVE_SETTING_KEY,
+  MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY,
+  MYTHIC_STARTUP_SYNC_SILENT_SETTING_KEY,
   MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY,
   MYTHIC_ENVIRONMENTAL_AUTOMATION_ENABLED_SETTING_KEY,
   MYTHIC_FEAR_AUTOMATION_ENABLED_SETTING_KEY,
@@ -45,8 +57,13 @@ import {
   normalizeEnvironmentSystemData,
   normalizeLifestyleSystemData,
   normalizeEquipmentPackSystemData,
-  getCanonicalEquipmentPackSystemData
+  getCanonicalEquipmentPackSystemData,
+  normalizeCharacterSystemData,
+  normalizeBestiarySystemData
 } from "../data/normalization.mjs";
+import {
+  computeCharacteristicModifiers
+} from "../mechanics/derived.mjs";
 
 import {
   loadMythicAbilityDefinitions,
@@ -95,34 +112,33 @@ import {
 
 import {
   importReferenceWeapons,
+  refreshRangedWeaponCompendiums,
+  refreshMeleeWeaponCompendiums,
+  getWeaponCompendiumDescriptor,
+  rebuildWeaponCompendiumsFromJson,
   removeImportedWorldReferenceWeapons,
   updateWeaponCompendiumIcons,
   removeNonMythicCompendiumWeapons,
-  loadReferenceWeaponItems,
-  classifyWeaponFactionBucket
+  loadReferenceWeaponItems
 } from "../reference/weapons.mjs";
 
-import {
-  importReferenceArmor,
-  importReferenceArmorVariants,
-  loadReferenceArmorItems,
-  loadReferenceArmorVariantItems
-} from "../reference/armor.mjs";
+import { refreshBestiaryCompendiums } from "../reference/bestiary.mjs";
 
 import {
-  importReferenceEquipment,
   importSoldierTypesFromJson,
   refreshAbilitiesCompendium,
   refreshTraitsCompendium,
+  refreshGeneralEquipmentCompendiums,
+  refreshArmorCompendiums,
+  rebuildArmorCompendiumsFromJson,
+  getArmorCompendiumDescriptor,
   organizeEquipmentCompendiumFolders,
   patchCovenantPlasmaPistolChargeCompendiums,
   cleanupLegacyWeaponCompendiums,
-  removeEmbeddedArmorVariants,
-  removeArmorVariantRowsFromArmorCompendiums,
-  removeExcludedArmorRowsFromCompendiums,
-  loadReferenceEquipmentItems,
   loadReferenceSoldierTypeItems,
-  loadReferenceSoldierTypeItemsFromJson
+  loadReferenceSoldierTypeItemsFromJson,
+  loadReferenceGeneralEquipmentItemsFromJson,
+  loadReferenceArmorItemsFromJson
 } from "../reference/compendium-management.mjs";
 
 import { MythicActorSheet } from "../sheets/actor-sheet.mjs";
@@ -136,10 +152,16 @@ import { MythicTraitSheet } from "../sheets/trait-sheet.mjs";
 import { MythicUpbringingSheet } from "../sheets/upbringing-sheet.mjs";
 import { MythicEnvironmentSheet } from "../sheets/environment-sheet.mjs";
 import { MythicLifestyleSheet } from "../sheets/lifestyle-sheet.mjs";
+import {
+  getFloodContaminationState,
+  initializeFloodContaminationHud,
+  refreshFloodContaminationHud,
+  destroyFloodContaminationHud
+} from "../ui/flood-contamination-hud.mjs";
 
 const MYTHIC_ALPHA_PLAYTEST_NOTICE_FLAG = "dismissAlphaPlaytestNoticeV1";
 const MYTHIC_ALPHA_BUG_REPORT_TEMPLATE = [
-  "Build/version: 0.2.0-alpha.4",
+  "Build/version: 0.3.0-alpha.1",
   "Actor type and whether newly created or existing:",
   "Exact steps to reproduce:",
   "Expected result:",
@@ -320,6 +342,96 @@ export function registerAllHooks() {
 
     installMythicTokenRuler();
 
+    // With our custom initiative system we need to keep Combat tracker roll in sync.
+    const originalCombatantRollInitiative = Combatant.prototype.rollInitiative;
+    Combatant.prototype.rollInitiative = async function(options = {}) {
+      const effectiveOptions = (typeof options === "string" || options instanceof String)
+        ? { formula: String(options) }
+        : (options || {});
+
+      const debugContext = {
+        tokenId: this.token?.id ?? null,
+        combatantId: this.id,
+        actorId: this.actor?.id ?? null,
+        actorType: this.actor?.type ?? null,
+        sourceOptions: options,
+        effectiveOptions
+      };
+      console.log("[mythic-system] rollInitiative debug start", debugContext);
+
+      if (this.actor && ["character", "bestiary"].includes(this.actor.type)) {
+        const normalizedSystem = this.actor.type === "bestiary"
+          ? normalizeBestiarySystemData(this.actor.system ?? {})
+          : normalizeCharacterSystemData(this.actor.system ?? {});
+        const characteristics = normalizedSystem?.characteristics ?? {};
+        const modifiers = computeCharacteristicModifiers(characteristics);
+        const agiMod = Number(modifiers?.agi ?? 0);
+        const mythicAgi = Number(normalizedSystem?.mythic?.characteristics?.agi ?? 0);
+        const manualBonus = Number(normalizedSystem?.settings?.initiative?.manualBonus ?? 0);
+        const dicePart = this.actor.items?.some((item) => item.type === "ability" && String(item.name ?? "").toLowerCase().includes("fast foot"))
+          ? "2d10kh1"
+          : "1d10";
+        const initiativeValue = Math.floor(mythicAgi / 2);
+        const formula = `${dicePart} + ${agiMod} + ${initiativeValue} + ${manualBonus}`;
+
+        console.log("[mythic-system] rollInitiative formula", { formula, agiMod, mythicAgi, manualBonus, dicePart });
+
+        const result = await originalCombatantRollInitiative.call(this, { ...effectiveOptions, formula });
+        console.log("[mythic-system] rollInitiative result", result);
+        return result;
+      }
+
+      const result = await originalCombatantRollInitiative.call(this, effectiveOptions);
+      console.log("[mythic-system] rollInitiative fallback result", result);
+      return result;
+    };
+
+    const originalCombatantGetInitiativeRoll = Combatant.prototype.getInitiativeRoll;
+    Combatant.prototype.getInitiativeRoll = function(options = {}) {
+      const effectiveOptions = (typeof options === "string" || options instanceof String)
+        ? { formula: String(options) }
+        : (options || {});
+
+      const debugContext = {
+        tokenId: this.token?.id ?? null,
+        combatantId: this.id,
+        actorId: this.actor?.id ?? null,
+        actorType: this.actor?.type ?? null,
+        sourceOptions: options,
+        effectiveOptions
+      };
+      console.log("[mythic-system] getInitiativeRoll debug start", debugContext);
+
+      if (this.actor && ["character", "bestiary"].includes(this.actor.type)) {
+        const normalizedSystem = this.actor.type === "bestiary"
+          ? normalizeBestiarySystemData(this.actor.system ?? {})
+          : normalizeCharacterSystemData(this.actor.system ?? {});
+        const characteristics = normalizedSystem?.characteristics ?? {};
+        const modifiers = computeCharacteristicModifiers(characteristics);
+        const agiMod = Number(modifiers?.agi ?? 0);
+        const mythicAgi = Number(normalizedSystem?.mythic?.characteristics?.agi ?? 0);
+        const manualBonus = Number(normalizedSystem?.settings?.initiative?.manualBonus ?? 0);
+        const dicePart = this.actor.items?.some((item) => item.type === "ability" && String(item.name ?? "").toLowerCase().includes("fast foot"))
+          ? "2d10kh1"
+          : "1d10";
+        const initiativeValue = Math.floor(mythicAgi / 2);
+        const formula = `${dicePart} + ${agiMod} + ${initiativeValue} + ${manualBonus}`;
+
+        const safeFormula = String(formula);
+        console.log("[mythic-system] getInitiativeRoll override formula", { safeFormula, dirty: formula });
+
+        const rollData = this.actor?.getRollData?.() ?? {};
+        const roll = new Roll(safeFormula, rollData);
+        console.log("[mythic-system] getInitiativeRoll constructed roll", roll);
+        return roll;
+      }
+
+      // Fallback to original for non-mythic actors.
+      const result = originalCombatantGetInitiativeRoll.call(this, options);
+      console.log("[mythic-system] getInitiativeRoll fallback result", result);
+      return result;
+    };
+
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_WORLD_MIGRATION_SETTING_KEY, {
       name: "Halo Mythic World Migration Version",
       hint: "Internal world migration marker used by the Halo Mythic system.",
@@ -341,6 +453,24 @@ export function registerAllHooks() {
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY, {
       name: "Compendium Canonical Migration Version",
       hint: "Internal marker for one-time compendium canonical ID backfill.",
+      scope: "world",
+      config: false,
+      type: Number,
+      default: 0
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY, {
+      name: "Weapon JSON Migration Version",
+      hint: "Internal marker for one-time weapon compendium replacement using JSON definitions.",
+      scope: "world",
+      config: false,
+      type: Number,
+      default: 0
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY, {
+      name: "Armor JSON Migration Version",
+      hint: "Internal marker for one-time armor compendium replacement using JSON definitions.",
       scope: "world",
       config: false,
       type: Number,
@@ -473,6 +603,78 @@ export function registerAllHooks() {
       default: "1"
     });
 
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_FLOOD_CONTAMINATION_HUD_ENABLED_SETTING_KEY, {
+      name: "Flood Contamination HUD Enabled",
+      hint: "Show a GM-only contamination control panel in the bottom-left corner.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+      onChange: () => {
+        refreshFloodContaminationHud();
+      }
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_FLOOD_CONTAMINATION_LEVEL_SETTING_KEY, {
+      name: "Flood Contamination Level",
+      hint: "Global Flood contamination level used for campaign escalation.",
+      scope: "world",
+      config: true,
+      type: Number,
+      default: 0,
+      onChange: () => {
+        refreshFloodContaminationHud();
+      }
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_FLOOD_JUGGERNAUT_ACTIVE_SETTING_KEY, {
+      name: "Flood Keymind: Juggernaut Active",
+      hint: "Track whether a Juggernaut is currently active.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false,
+      onChange: () => {
+        refreshFloodContaminationHud();
+      }
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_FLOOD_ABOMINATION_ACTIVE_SETTING_KEY, {
+      name: "Flood Keymind: Abomination Active",
+      hint: "Track whether an Abomination is currently active.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false,
+      onChange: () => {
+        refreshFloodContaminationHud();
+      }
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_FLOOD_PROTO_GRAVEMIND_ACTIVE_SETTING_KEY, {
+      name: "Flood Keymind: Proto-Gravemind Active",
+      hint: "Track whether a Proto-Gravemind is currently active.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false,
+      onChange: () => {
+        refreshFloodContaminationHud();
+      }
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_FLOOD_GRAVEMIND_ACTIVE_SETTING_KEY, {
+      name: "Flood Keymind: Gravemind Active",
+      hint: "Track whether a Gravemind is currently active.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false,
+      onChange: () => {
+        refreshFloodContaminationHud();
+      }
+    });
+
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY, {
       name: "Automation: Medical Effects",
       hint: "If enabled, the system automatically records supported medical outcomes, including Special Damage, into tracked effects.",
@@ -494,6 +696,24 @@ export function registerAllHooks() {
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_FEAR_AUTOMATION_ENABLED_SETTING_KEY, {
       name: "Automation: Fear/PTSD Effects",
       hint: "If enabled, the system may automatically track supported fear, shock, and PTSD outcomes.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY, {
+      name: "Startup: Auto-Refresh Reference Compendiums",
+      hint: "If enabled, GM startup automatically refreshes reference compendiums. Disable for faster startup and manual refresh only.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_SYNC_SILENT_SETTING_KEY, {
+      name: "Startup: Suppress Sync Notifications",
+      hint: "If enabled, startup compendium sync suppresses sync toasts while keeping migration/info notices.",
       scope: "world",
       config: true,
       type: Boolean,
@@ -591,46 +811,81 @@ export function registerAllHooks() {
     await maybeShowAlphaPlaytestNotice();
 
     if (game.user?.isGM) {
+      const weaponJsonMigrationVersion = Number(
+        game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY) ?? 0
+      );
+      if (weaponJsonMigrationVersion < MYTHIC_WEAPON_JSON_MIGRATION_VERSION) {
+        await rebuildWeaponCompendiumsFromJson({ silent: true });
+        await game.settings.set(
+          "Halo-Mythic-Foundry-Updated",
+          MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY,
+          MYTHIC_WEAPON_JSON_MIGRATION_VERSION
+        );
+      }
+
+      const armorJsonMigrationVersion = Number(
+        game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY) ?? 0
+      );
+      if (armorJsonMigrationVersion < MYTHIC_ARMOR_JSON_MIGRATION_VERSION) {
+        await rebuildArmorCompendiumsFromJson({ silent: true });
+        await game.settings.set(
+          "Halo-Mythic-Foundry-Updated",
+          MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY,
+          MYTHIC_ARMOR_JSON_MIGRATION_VERSION
+        );
+      }
+
       await maybeRunCompendiumCanonicalMigration();
-      // Ensure reference compendiums are reconciled with canonical JSON on GM startup.
-      await importSoldierTypesFromJson();
-      await refreshAbilitiesCompendium();
-      await refreshTraitsCompendium();
+
+      const shouldAutoRefresh = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY));
+      const silentStartupSync = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_SYNC_SILENT_SETTING_KEY));
+
+      if (shouldAutoRefresh) {
+        // Reconcile reference compendiums with canonical JSON only when startup auto-refresh is enabled.
+        await importSoldierTypesFromJson({ silent: silentStartupSync });
+        await refreshAbilitiesCompendium({ silent: silentStartupSync });
+        await refreshTraitsCompendium({ silent: silentStartupSync });
+        await refreshBestiaryCompendiums({ silent: silentStartupSync });
+        await refreshGeneralEquipmentCompendiums({ silent: silentStartupSync });
+        await refreshArmorCompendiums({ silent: silentStartupSync });
+        await refreshRangedWeaponCompendiums({ silent: silentStartupSync });
+        await refreshMeleeWeaponCompendiums({ silent: silentStartupSync });
+        await organizeEquipmentCompendiumFolders({ silent: silentStartupSync });
+        await patchCovenantPlasmaPistolChargeCompendiums({ silent: silentStartupSync });
+      }
+
       await applyMythicTokenDefaultsToWorld();
+      initializeFloodContaminationHud();
+    } else {
+      destroyFloodContaminationHud();
     }
 
     game.mythic ??= {};
     game.mythic.importReferenceWeapons = importReferenceWeapons;
-    game.mythic.importReferenceWeaponsToWorld = (options = {}) => importReferenceWeapons({ ...options, target: "world" });
+    game.mythic.refreshRangedWeaponCompendiums = refreshRangedWeaponCompendiums;
+    game.mythic.refreshMeleeWeaponCompendiums = refreshMeleeWeaponCompendiums;
+    game.mythic.rebuildWeaponCompendiumsFromJson = rebuildWeaponCompendiumsFromJson;
     game.mythic.removeImportedWorldReferenceWeapons = removeImportedWorldReferenceWeapons;
     game.mythic.updateWeaponCompendiumIcons = updateWeaponCompendiumIcons;
     game.mythic.removeNonMythicCompendiumWeapons = removeNonMythicCompendiumWeapons;
-    game.mythic.removeEmbeddedArmorVariants = removeEmbeddedArmorVariants;
-    game.mythic.removeArmorVariantRowsFromArmorCompendiums = removeArmorVariantRowsFromArmorCompendiums;
-    game.mythic.removeExcludedArmorRowsFromCompendiums = removeExcludedArmorRowsFromCompendiums;
     game.mythic.cleanupLegacyWeaponCompendiums = cleanupLegacyWeaponCompendiums;
     game.mythic.organizeEquipmentCompendiumFolders = organizeEquipmentCompendiumFolders;
     game.mythic.patchCovenantPlasmaPistols = patchCovenantPlasmaPistolChargeCompendiums;
-    game.mythic.importReferenceArmor = importReferenceArmor;
-    game.mythic.importReferenceArmorVariants = importReferenceArmorVariants;
-    game.mythic.importReferenceEquipment = importReferenceEquipment;
     game.mythic.importSoldierTypesFromJson = importSoldierTypesFromJson;
     game.mythic.refreshAbilitiesCompendium = refreshAbilitiesCompendium;
     game.mythic.refreshTraitsCompendium = refreshTraitsCompendium;
+    game.mythic.refreshGeneralEquipmentCompendiums = refreshGeneralEquipmentCompendiums;
+    game.mythic.refreshArmorCompendiums = refreshArmorCompendiums;
+    game.mythic.rebuildArmorCompendiumsFromJson = rebuildArmorCompendiumsFromJson;
+    game.mythic.refreshBestiaryCompendiums = refreshBestiaryCompendiums;
+    game.mythic.getFloodContaminationState = getFloodContaminationState;
+    game.mythic.refreshFloodContaminationHud = refreshFloodContaminationHud;
     game.mythic.getCanonicalEquipmentPackSchemaData = getCanonicalEquipmentPackSystemData;
     game.mythic.normalizeEquipmentPackSchemaData = normalizeEquipmentPackSystemData;
     game.mythic.backfillCompendiumCanonicalIds = runCompendiumCanonicalMigration;
     game.mythic.auditCompendiumCanonicalDuplicates = auditCompendiumCanonicalDuplicates;
     game.mythic.dedupeCompendiumCanonicalDuplicates = dedupeCompendiumCanonicalDuplicates;
     game.mythic.syncCreationPathItemIcons = syncCreationPathItemIcons;
-    game.mythic.previewReferenceArmor = async () => {
-      const rows = await loadReferenceArmorItems();
-      return { total: rows.length };
-    };
-    game.mythic.previewReferenceArmorVariants = async () => {
-      const rows = await loadReferenceArmorVariantItems();
-      return { total: rows.length };
-    };
     game.mythic.previewReferenceWeapons = async () => {
       const rows = await loadReferenceWeaponItems();
       return {
@@ -638,22 +893,6 @@ export function registerAllHooks() {
         ranged: rows.filter((entry) => entry.system?.weaponClass === "ranged").length,
         melee: rows.filter((entry) => entry.system?.weaponClass === "melee").length
       };
-    };
-    game.mythic.previewReferenceEquipment = async () => {
-      const rows = await loadReferenceEquipmentItems();
-      const summary = rows.reduce((acc, entry) => {
-        const typeText = String(entry.system?.category ?? "").trim().toLowerCase();
-        const nameText = String(entry.name ?? "").trim().toLowerCase();
-        const isAmmo = typeText.includes("ammo") || /\bammo\b|\bmag(?:azine)?s?\b/.test(nameText);
-        if (isAmmo) {
-          acc.ammo += 1;
-        } else {
-          const bucket = classifyWeaponFactionBucket(entry.system?.faction).key;
-          acc.byFaction[bucket] = (acc.byFaction[bucket] ?? 0) + 1;
-        }
-        return acc;
-      }, { ammo: 0, byFaction: {} });
-      return { total: rows.length, ammo: summary.ammo, byFaction: summary.byFaction };
     };
     game.mythic.previewReferenceSoldierTypes = async () => {
       const rows = await loadReferenceSoldierTypeItems();
@@ -663,10 +902,61 @@ export function registerAllHooks() {
         withSpecPacks: rows.filter((entry) => Array.isArray(entry?.system?.specPacks) && entry.system.specPacks.length > 0).length
       };
     };
-
+    game.mythic.previewReferenceArmor = async () => {
+      const rows = await loadReferenceArmorItemsFromJson();
+      return {
+        total: rows.length,
+        byFaction: rows.reduce((acc, entry) => {
+          const faction = String(entry?.system?.armorySelection ?? "").trim().toUpperCase() || "UNKNOWN";
+          acc[faction] = (acc[faction] ?? 0) + 1;
+          return acc;
+        }, {})
+      };
+    };
     if (game.user?.isGM) {
-      void organizeEquipmentCompendiumFolders();
-      void patchCovenantPlasmaPistolChargeCompendiums();
+      const buildWeaponSeedItemsForCollection = async (collectionName) => {
+        const rows = await loadReferenceWeaponItems();
+        return rows
+          .filter((entry) => {
+            const descriptor = getWeaponCompendiumDescriptor(entry);
+            if (!descriptor) return false;
+            return `Halo-Mythic-Foundry-Updated.${descriptor.name}` === collectionName;
+          })
+          .map((entry) => ({
+            name: String(entry.name ?? "Weapon"),
+            type: "gear",
+            img: String(entry.img ?? MYTHIC_ABILITY_DEFAULT_ICON),
+            system: foundry.utils.deepClone(entry.system ?? {})
+          }));
+      };
+
+      const buildEquipmentSeedItemsForFaction = async (factionCode) => {
+        const rows = await loadReferenceGeneralEquipmentItemsFromJson();
+        return rows
+          .filter((entry) => String(entry?.system?.armorySelection ?? "").trim().toUpperCase() === factionCode)
+          .map((entry) => ({
+            name: String(entry.name ?? "Equipment"),
+            type: "gear",
+            img: String(entry.img ?? MYTHIC_ABILITY_DEFAULT_ICON),
+            system: foundry.utils.deepClone(entry.system ?? {})
+          }));
+      };
+
+      const buildArmorSeedItemsForFaction = async (collectionName) => {
+        const rows = await loadReferenceArmorItemsFromJson();
+        return rows
+          .filter((entry) => {
+            const descriptor = getArmorCompendiumDescriptor(entry);
+            if (!descriptor) return false;
+            return descriptor.collection === collectionName;
+          })
+          .map((entry) => ({
+            name: String(entry.name ?? "Armor"),
+            type: "gear",
+            img: String(entry.img ?? MYTHIC_ABILITY_DEFAULT_ICON),
+            system: foundry.utils.deepClone(entry.system ?? {})
+          }));
+      };
 
       const seedCompendiumIfEmpty = async ({ collection, label, buildItems }) => {
         const pack = game.packs.get(collection);
@@ -853,6 +1143,120 @@ export function registerAllHooks() {
             }
           }));
         }
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-equipment-human",
+        label: "human equipment",
+        buildItems: async () => buildEquipmentSeedItemsForFaction("UNSC")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-equipment-covenant",
+        label: "covenant equipment",
+        buildItems: async () => buildEquipmentSeedItemsForFaction("COVENANT")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-equipment-banished",
+        label: "banished equipment",
+        buildItems: async () => buildEquipmentSeedItemsForFaction("BANISHED")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-equipment-forerunner",
+        label: "forerunner equipment",
+        buildItems: async () => buildEquipmentSeedItemsForFaction("FORERUNNER")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-armor-human",
+        label: "human armor",
+        buildItems: async () => buildArmorSeedItemsForFaction("Halo-Mythic-Foundry-Updated.mythic-armor-human")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-armor-covenant",
+        label: "covenant armor",
+        buildItems: async () => buildArmorSeedItemsForFaction("Halo-Mythic-Foundry-Updated.mythic-armor-covenant")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-armor-banished",
+        label: "banished armor",
+        buildItems: async () => buildArmorSeedItemsForFaction("Halo-Mythic-Foundry-Updated.mythic-armor-banished")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-armor-forerunner",
+        label: "forerunner armor",
+        buildItems: async () => buildArmorSeedItemsForFaction("Halo-Mythic-Foundry-Updated.mythic-armor-forerunner")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged",
+        label: "human ranged weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
+        label: "covenant ranged weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
+        label: "banished ranged weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
+        label: "forerunner ranged weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged",
+        label: "shared ranged weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee",
+        label: "human melee weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-melee",
+        label: "covenant melee weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-melee")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-melee",
+        label: "banished melee weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-banished-melee")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee",
+        label: "forerunner melee weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee",
+        label: "shared melee weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee")
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-flood",
+        label: "flood weapons",
+        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-flood")
       });
 
       await syncCreationPathItemIcons();

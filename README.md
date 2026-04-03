@@ -12,7 +12,7 @@ This project is actively in development and currently targets Foundry v13.
 
 ## Alpha Readiness
 
-Current build target: `0.2.0-alpha.4` (playtest alpha)
+Current build target: `0.3.0-alpha.1` (playtest alpha)
 
 Known alpha limitations:
 
@@ -42,7 +42,7 @@ Where to report:
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.2.0-alpha.4`
+1. Build/version: `0.3.0-alpha.1`
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -61,7 +61,7 @@ Format:
 
 Current working version:
 
-- `0.2.0-alpha.4`
+- `0.3.0-alpha.1`
 
 Rules used:
 
@@ -73,13 +73,13 @@ Rules used:
 
 Use this section for short public-facing updates as development progresses.
 
-### 0.2.0-alpha.4
+### 0.3.0-alpha.1
 
 - Added fear flow chat workflow updates and readability improvements (Courage -> Shock -> PTSD continuation).
 - Added structured tracked-effect duration input (number + unit) in Add Medical Effect dialog.
 - Added Minutes duration support mapped to combat countdown via `1 minute = 10 rounds`.
 - Removed load-time alpha notice chat post; retained startup modal notice flow.
-- Updated roadmap/changelog/reporting docs for alpha.4 consistency.
+- Updated roadmap/changelog/reporting docs for 0.3.0-alpha.1 consistency.
 
 ## Planned Major Features
 

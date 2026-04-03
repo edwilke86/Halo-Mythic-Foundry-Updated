@@ -4,19 +4,38 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
-## [Unreleased] - 2026-03-30
+## [Unreleased]
+
+## [0.3.0-alpha.1] - 2026-04-03
 
 ### Added
 
 - Add Medical Effect dialog now uses structured duration input: numeric value + unit selector.
 - New duration units supported for manual tracked effects: Half Actions, Rounds, Minutes, Hours, Days, Indefinite.
+- Bestiary compendium and template. Still to come: bestiary spec kits and equipment packs.
+- Ranged weapon compendiums.
+- Melee weapon compendiums.
+- General equipment compendiums
+- Armor Compendiums
+  - Armor items need to be refined. Many armor do not have all stats fully plugged in.
 
 ### Changed
 
+- Number of Melee attacks calculation corrected
 - Minutes now map to combat countdown using `1 minute = 10 rounds` for tracked effects.
 - Manual tracked effect duration display now prefers user-facing labels (for example `5 min`) when present.
 - Add Medical Effect duration unit default changed to `Rounds`.
 - README/TODO/BUG_REPORTS docs and reporting template were synchronized to alpha.4 state.
+- Bestiary compendium flow is now system-pack-only and auto-refreshes from CSV on GM startup; manual rerun is available via `game.mythic.refreshBestiaryCompendiums()`.
+- Ranged weapons now sync into system compendiums on GM startup (Human, Covenant, Banished, Forerunner, Shared) using Halo Mythic source rows only, with manual rerun via `game.mythic.refreshRangedWeaponCompendiums()`.
+- Ranged and melee weapon Special Rules tabs now sort rules alphabetically and support compact inline value fields for numeric/dice-driven rules.
+- Ranged weapon sheet now includes an Advanced tab (WIP) that stores Firearm/Cannon/Shotgun, Bullet Diameter, Case Length, and Barrel Size import fields.
+- Ranged CSV mapping now imports training/category alignment, ammo-carrying mode, single-loading, to-hit penalty, structured rule/tag fields, concealment bonus, and strict case-insensitive ammo-name linking with unresolved-name visibility.
+- Melee weapon sheet now labels Reach in the General tab and adds an Advanced tab (WIP) for Point Value, Weapon Modifier, Weapon Ability 1-3, Break Points min/max, Armor, and handheld energy shield stats.
+- Melee STR-to-damage and STR-to-pierce now support Double STR Modifier in runtime actor and bestiary attack calculations.
+- Melee CSV mapping now imports melee-only fields (Point Value, Weapon Modifier, Weapon Abilities, Reach, Break Points, Armor, shield stats), maps STR mode columns, and auto-flags handheld shield support when shield stats are present.
+- Reference equipment, weapons (ranged + melee), armor, now enforce system-pack-only sync with explicit missing-pack errors (no world fallback), and GM startup auto-refresh now includes melee, armor, armor permutations, and equipment.
+- The legacy world-target weapon import path is now disabled to prevent divergence from system compendiums.
 
 ### Removed
 
@@ -24,7 +43,7 @@ The format is based on Keep a Changelog, and this project follows SemVer pre-rel
 
 ## [0.2.0-alpha.4] - 2026-03-28
 
-### Added2   (0.2.0-alpha.4)
+### Added (0.2.0-alpha.4)
 
 - New user-facing changelog for release-to-release updates.
 - Added custom outlier entries directly into the main outliers list in the Abilities tab.
@@ -68,8 +87,6 @@ The format is based on Keep a Changelog, and this project follows SemVer pre-rel
 - Removed Disable Builder button from Characteristics Builder.
 
 ## [0.2.0-alpha.2] - 2026-03-26
-
-### Added (0.2.0-alpha.2)
 
 ### Release Highlights
 

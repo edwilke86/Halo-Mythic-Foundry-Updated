@@ -3,6 +3,7 @@ import { normalizeCharacterSystemData, normalizeSkillsData } from "../data/norma
 import { loadMythicMedicalEffectDefinitions, loadMythicSpecialDamageDefinitions } from "../data/content-loading.mjs";
 import { computeCharacterDerivedValues } from "../mechanics/derived.mjs";
 import { computeAttackDOS } from "../mechanics/combat.mjs";
+import { isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
 import { getSkillTierBonus } from "../reference/ref-utils.mjs";
 import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
 import { MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY } from "../config.mjs";
@@ -339,7 +340,10 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
     const targetToken = targetEntry.token ?? null;
     const targetDisplayName = targetToken?.name ?? targetActor.name;
     const rows = [];
-    let reactionCount = Math.max(0, Math.floor(Number(targetActor.system?.combat?.reactions?.count ?? 0)));
+    const tracksReactions = isActorActivelyInCombat(targetActor);
+    let reactionCount = tracksReactions
+      ? Math.max(0, Math.floor(Number(targetActor.system?.combat?.reactions?.count ?? 0)))
+      : 0;
 
     for (let i = 0; i < evasionRows.length; i += 1) {
       const incoming = evasionRows[i];
@@ -445,10 +449,12 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
         isEvaded
       });
 
-      reactionCount += 1;
+      if (tracksReactions) reactionCount += 1;
     }
 
-    await targetActor.update({ "system.combat.reactions.count": reactionCount });
+    if (tracksReactions) {
+      await targetActor.update({ "system.combat.reactions.count": reactionCount });
+    }
     sections.push(`<div class="mythic-evasion-target"><strong>${esc(targetDisplayName)}</strong>${rows.join("")}</div><hr class="mythic-card-hr">`);
   }
 
@@ -689,4 +695,164 @@ export async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sc
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
     });
   }
+}
+
+function resolveTargetEntriesForGrenadeFlow(targetMode = "selected", attackData = {}) {
+  if (targetMode === "selected") {
+    return (canvas.tokens?.controlled ?? [])
+      .map((token) => ({ token, actor: token?.actor }))
+      .filter((entry) => entry.actor);
+  }
+
+  const scene = game.scenes.get(attackData.sceneId ?? "") ?? canvas.scene;
+  const tokenIds = Array.isArray(attackData.targetTokenIds) && attackData.targetTokenIds.length
+    ? attackData.targetTokenIds
+    : [attackData.targetTokenId].filter(Boolean);
+  if (tokenIds.length) {
+    const byIds = tokenIds
+      .map((tokenId) => {
+        const token = scene?.tokens?.get(String(tokenId ?? "")) ?? null;
+        return token?.actor ? { token, actor: token.actor } : null;
+      })
+      .filter(Boolean);
+    if (byIds.length) return byIds;
+  }
+
+  return [...(game.user.targets ?? [])]
+    .map((token) => ({ token, actor: token?.actor }))
+    .filter((entry) => entry.actor);
+}
+
+export async function mythicRollEvadeIntoCover(messageId, attackData, targetMode = "selected") {
+  const targetEntries = resolveTargetEntriesForGrenadeFlow(targetMode, attackData);
+  if (!targetEntries.length) {
+    ui.notifications?.warn("Select the tokens that will attempt to evade into cover.");
+    return;
+  }
+
+  const attackDOS = Number(attackData?.dosValue ?? 0);
+  const grenadePenalty = Number(attackData?.grenadeCookEvasionPenalty ?? 0);
+  const rows = [];
+  const rolls = [];
+
+  for (const { token, actor } of targetEntries) {
+    const skillsNorm = normalizeSkillsData(actor.system?.skills);
+    const evasionSkill = skillsNorm.base?.evasion ?? {};
+    const tierBonus = getSkillTierBonus(evasionSkill.tier ?? "untrained", evasionSkill.category ?? "basic");
+    const agiValue = toNonNegativeWhole(actor.system?.characteristics?.agi, 0);
+    const evasionMod = Number(evasionSkill.modifier ?? 0);
+    const tracksReactions = isActorActivelyInCombat(actor);
+    const currentReactions = tracksReactions
+      ? Math.max(0, Math.floor(Number(actor.system?.combat?.reactions?.count ?? 0)))
+      : 0;
+    const reactionPenalty = currentReactions * -10;
+    const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty + grenadePenalty);
+
+    const roll = await new Roll("1d100").evaluate();
+    rolls.push(roll);
+    const evasionResult = Number(roll.total ?? 0);
+    const evasionDOS = computeAttackDOS(evasionTarget, evasionResult);
+    const degreeLabel = `${Math.abs(evasionDOS).toFixed(1)} ${evasionDOS >= 0 ? "DOS" : "DOF"}`;
+    const rollTitle = buildRollTooltipHtml("Evade Into Cover", roll, evasionResult, "1d100");
+    const resultClass = evasionDOS >= attackDOS ? "success" : "failure";
+    rows.push({
+      tokenName: token?.name ?? actor.name,
+      degreeLabel,
+      rollTitle,
+      resultClass
+    });
+
+    if (tracksReactions) {
+      await actor.update({ "system.combat.reactions.count": currentReactions + 1 });
+    }
+  }
+
+  const lineHtml = rows.map((row) => `
+    <div class="mythic-evasion-line ${row.resultClass === "success" ? "success" : "failure"}">
+      <strong>${foundry.utils.escapeHTML(row.tokenName)}</strong> -
+      <span class="mythic-roll-inline" title="${row.rollTitle}">${foundry.utils.escapeHTML(row.degreeLabel)}</span>
+    </div>
+  `).join("");
+
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ alias: "Grenade" }),
+    content: `<div class="mythic-evasion-card"><div class="mythic-evasion-header">Evade Into Cover</div>${lineHtml}</div>`,
+    rolls,
+    type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+    flags: { "Halo-Mythic-Foundry-Updated": { grenadeEvadeIntoCover: true, sourceMessageId: messageId } }
+  });
+}
+
+async function applyCompactGrenadeDamage(messageId, attackData, targetMode = "selected", damageKind = "blast") {
+  const targetEntries = resolveTargetEntriesForGrenadeFlow(targetMode, attackData);
+  if (!targetEntries.length) {
+    ui.notifications?.warn(`Select the tokens that will take ${damageKind} damage.`);
+    return;
+  }
+
+  const baseDamage = damageKind === "kill"
+    ? Number(attackData?.grenadeKillDamage ?? attackData?.damageTotal ?? 0)
+    : Number(attackData?.grenadeBlastDamage ?? attackData?.damageTotal ?? 0);
+  const basePierce = damageKind === "kill"
+    ? Number(attackData?.grenadeKillPierce ?? attackData?.damagePierce ?? 0)
+    : Number(attackData?.grenadeBlastPierce ?? attackData?.damagePierce ?? 0);
+
+  const rows = [];
+  for (const { token, actor } of targetEntries) {
+    const currentShields = toNonNegativeWhole(actor.system?.combat?.shields?.current, 0);
+    const currentWounds = toNonNegativeWhole(actor.system?.combat?.wounds?.current, 0);
+    const resolved = resolveIncomingDamageAgainstDefenses(actor, {
+      damageTotal: baseDamage,
+      damagePierce: basePierce,
+      drKey: "chest",
+      ignoresShields: false,
+      appliesShieldPierce: Boolean(attackData?.appliesShieldPierce),
+      explosiveShieldPierce: true,
+      isPenetrating: Boolean(attackData?.isPenetrating),
+      isHeadshot: false,
+      hasBlastOrKill: true,
+      isKinetic: Boolean(attackData?.isKinetic)
+    });
+
+    const nextWounds = Math.max(0, currentWounds - resolved.woundDamage);
+    await actor.update({
+      "system.combat.shields.current": resolved.shieldsRemaining,
+      "system.combat.wounds.current": nextWounds
+    });
+
+    rows.push({
+      tokenName: token?.name ?? actor.name,
+      shieldDelta: Math.max(0, currentShields - resolved.shieldsRemaining),
+      woundDelta: Math.max(0, resolved.woundDamage),
+      details: `Raw ${baseDamage}, Pierce ${basePierce}${resolved.shieldPierceBonus > 0 ? ` x${Math.max(1, Number(resolved.shieldPierceMultiplier ?? 1))} vs Shields (+${resolved.shieldPierceBonus}${resolved.shieldPierceReason ? `, ${resolved.shieldPierceReason}` : ""})` : ""}, DR ${resolved.effectiveDR}, Shields ${currentShields}->${resolved.shieldsRemaining}, Wounds ${currentWounds}->${nextWounds}`
+    });
+  }
+
+  const body = rows.map((row) => `
+    <details class="mythic-evasion-detail-row">
+      <summary><strong>${foundry.utils.escapeHTML(row.tokenName)}</strong> - ${row.shieldDelta} Shield / ${row.woundDelta} Wounds</summary>
+      <div class="mythic-evasion-roll-detail">${foundry.utils.escapeHTML(row.details)}</div>
+    </details>
+  `).join("");
+
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ alias: "Grenade" }),
+    content: `<div class="mythic-evasion-card"><div class="mythic-evasion-header">${damageKind === "kill" ? "Kill Damage" : "Blast Damage"}</div>${body}</div>`,
+    type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+    flags: {
+      "Halo-Mythic-Foundry-Updated": {
+        grenadeCompactDamage: true,
+        damageKind,
+        sourceMessageId: messageId
+      }
+    }
+  });
+}
+
+export async function mythicApplyGrenadeBlastDamage(messageId, attackData, targetMode = "selected") {
+  return applyCompactGrenadeDamage(messageId, attackData, targetMode, "blast");
+}
+
+export async function mythicApplyGrenadeKillDamage(messageId, attackData, targetMode = "selected") {
+  return applyCompactGrenadeDamage(messageId, attackData, targetMode, "kill");
 }

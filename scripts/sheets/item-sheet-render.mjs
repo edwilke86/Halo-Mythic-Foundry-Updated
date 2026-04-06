@@ -432,6 +432,7 @@ export async function runMythicItemSheetRender(sheet, context) {
   bindTabGroup(sheet, root, "armor-tabs", "general");
   bindTabGroup(sheet, root, "melee-tabs", "general");
   bindTabGroup(sheet, root, "ranged-tabs", "general");
+  bindTabGroup(sheet, root, "explosives-tabs", "general");
 
   if (!sheet.isEditable) return;
 

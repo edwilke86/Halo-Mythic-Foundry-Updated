@@ -873,12 +873,12 @@
     },
     {
         "name":  "UNSC/ONI SPARTAN III AUGMENTED SOLDIER",
-        "description":  "The UNSC\u0027s cost-effective Spartan initiative. Spartan IIIs are numerous, mission-focused supersoldiers with near-equivalent augmentation performance.",
+        "description":  "Make the units better with new technology. Make more of them. And make them cheaper",
         "header":  {
                        "faction":  "United Nations Space Command",
                        "soldierType":  "Spartan III",
                        "race":  "Human",
-                       "rank":  "Petty Officer Third Class",
+                       "rank":  "Petty Officer Second Class",
                        "upbringing":  "Military",
                        "buildSize":  "Large"
                    },

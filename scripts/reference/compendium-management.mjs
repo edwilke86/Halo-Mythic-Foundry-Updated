@@ -1590,35 +1590,39 @@ export async function organizeEquipmentCompendiumFolders(options = {}) {
 
   const dryRun = options?.dryRun === true;
 
-  const targetFolderByFaction = {
-    human: "Human Equipment",
-    covenant: "Covenant Equipment",
-    banished: "Banished Equipment",
-    forerunner: "Forerunner Equipment",
-    flood: "Flood Equipment",
-    shared: "Shared Equipment"
+  const targetFolderByCategory = {
+    creation: "00 Creation",
+    equipment: "10 Equipment",
+    armor: "20 Armor",
+    weapons: "30 Weapons",
+    ammo: "40 Ammo",
+    mods: "50 Mods",
+    bestiary: "70 Bestiary"
   };
 
-  const getCompendiumFactionKey = (name) => {
-    if (name === "mythic-ammo") return "shared";
-    if (name === "mythic-weapons-flood") return "flood";
-
-    const armorModsPrefix = "mythic-equipment-armor-mods-";
-    if (name.startsWith(armorModsPrefix)) {
-      return name.slice(armorModsPrefix.length).split("-")[0] ?? "";
+  const getCompendiumCategory = (name) => {
+    if (!name) return "";
+    if (["educations", "abilities", "traits", "upbringings", "environments", "lifestyles", "soldier-types"].includes(name)) {
+      return "creation";
     }
-
-    const simplePrefixRules = [
-      "mythic-weapons-",
-      "mythic-armor-",
-      "mythic-equipment-"
-    ];
-
-    for (const prefix of simplePrefixRules) {
-      if (!name.startsWith(prefix)) continue;
-      return name.slice(prefix.length).split("-")[0] ?? "";
+    if (name === "ammo-types" || name.startsWith("mythic-ammo")) {
+      return "ammo";
     }
-
+    if (name.startsWith("mythic-equipment-") && !name.startsWith("mythic-equipment-armor-mods-") && !name.startsWith("mythic-equipment-weapon-mods-") && !name.startsWith("mythic-equipment-ammo-mods-")) {
+      return "equipment";
+    }
+    if (name.startsWith("mythic-armor-") || name.startsWith("mythic-armorvariant-") || name.startsWith("mythic-armor-variant-") || name.startsWith("mythic-armor-variants-")) {
+      return "armor";
+    }
+    if (name.startsWith("mythic-weapons-")) {
+      return "weapons";
+    }
+    if (name.startsWith("mythic-armor-mods-") || name.startsWith("mythic-weapon-mods-") || name.startsWith("mythic-ammo-mods-") || name.startsWith("mythic-armor-permutations-") || name.startsWith("mythic-armor-permutation-")) {
+      return "mods";
+    }
+    if (name.startsWith("mythic-bestiary-")) {
+      return "bestiary";
+    }
     return "";
   };
 
@@ -1630,50 +1634,41 @@ export async function organizeEquipmentCompendiumFolders(options = {}) {
     return { folder: created, created: true };
   };
 
-  const folderIdByFaction = {};
+  const folderIdByCategory = {};
   let createdFolders = 0;
-  for (const [faction, folderName] of Object.entries(targetFolderByFaction)) {
+  for (const [category, folderName] of Object.entries(targetFolderByCategory)) {
     const { folder, created } = await getCompendiumFolder(folderName);
     if (created) createdFolders += 1;
-    folderIdByFaction[faction] = folder?.id ?? null;
+    folderIdByCategory[category] = folder?.id ?? null;
   }
 
   const allPacks = Array.from(game.packs ?? []);
-  const equipmentPacks = allPacks.filter((pack) => {
+  const mythicPacks = allPacks.filter((pack) => {
     const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
-    return name.startsWith("mythic-weapons-")
-      || name.startsWith("mythic-armor-")
-      || name.startsWith("mythic-equipment-")
-      || name.startsWith("mythic-ammo")
-      || name.startsWith("mythic-armor-variants-")
-      || name.startsWith("mythic-armor-variant-")
-      || name.startsWith("mythic-armorvariant-");
+    const system = String(pack.metadata?.system ?? "").trim();
+    return system === "Halo-Mythic-Foundry-Updated" && Boolean(name);
   });
 
   const compendiumConfiguration = foundry.utils.deepClone(game.settings.get("core", "compendiumConfiguration") ?? {});
 
   let assigned = 0;
   let skipped = 0;
-  for (const pack of equipmentPacks) {
+  for (const pack of mythicPacks) {
     const name = String(pack.metadata?.name ?? "").trim().toLowerCase();
-    const faction = getCompendiumFactionKey(name);
-
-    // Unknown buckets stay ungrouped.
-    if (!Object.hasOwn(targetFolderByFaction, faction)) {
+    const category = getCompendiumCategory(name);
+    if (!category) {
       skipped += 1;
       continue;
     }
 
-    const folderId = folderIdByFaction[faction];
+    const folderId = folderIdByCategory[category];
     if (!folderId && !dryRun) {
       skipped += 1;
       continue;
     }
 
     const key = pack.collection;
-    const current = compendiumConfiguration[key] && typeof compendiumConfiguration[key] === "object"
-      ? compendiumConfiguration[key]
-      : {};
+    const current = compendiumConfiguration[key] && typeof compendiumConfiguration[key] === "object" ? compendiumConfiguration[key] : {};
     if (String(current.folder ?? "") === String(folderId ?? "")) {
       skipped += 1;
       continue;
@@ -1692,7 +1687,7 @@ export async function organizeEquipmentCompendiumFolders(options = {}) {
 
   if (!silent) {
     ui.notifications?.info(
-      `[Mythic] ${dryRun ? "Would assign" : "Assigned"} ${assigned} equipment compendium(s), `
+      `[Mythic] ${dryRun ? "Would assign" : "Assigned"} ${assigned} compendium(s), `
       + `${dryRun ? "would create" : "created"} ${createdFolders} folder(s), skipped ${skipped}.`
     );
   }

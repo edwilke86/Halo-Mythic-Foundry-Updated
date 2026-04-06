@@ -110,6 +110,7 @@
         <div>Name</div>
         <div>Difficulty</div>
         <div>Related Skills</div>
+        <div>Use Skill</div>
         <div>Tier</div>
         <div>Mod</div>
         <div>Roll</div>
@@ -123,6 +124,15 @@
           </div>
           <div class="edu-col-difficulty">{{edu.difficultyLabel}}</div>
           <div class="edu-col-skills" title="{{edu.skills}}">{{edu.skills}}</div>
+          <div class="edu-col-skill">
+            {{#if edu.skillOptions.length}}
+              <select class="edu-field-input" data-item-id="{{edu.id}}" data-field="selectedSkill">
+                {{selectOptions edu.skillOptions selected=edu.selectedSkill}}
+              </select>
+            {{else}}
+              <span class="edu-no-skill">—</span>
+            {{/if}}
+          </div>
           <div class="edu-col-tier">
             <select class="edu-field-input" data-item-id="{{edu.id}}" data-field="tier">
               {{selectOptions ../mythicEducationTierOptions selected=edu.tier}}
@@ -132,9 +142,9 @@
             <input type="number" class="edu-field-input" data-item-id="{{edu.id}}" data-field="modifier" value="{{edu.modifier}}" min="-200" max="200" />
           </div>
           <div class="edu-col-roll roll-education"
-               data-roll-label="{{edu.name}}"
+               data-roll-label="{{edu.rollLabel}}"
                data-roll-target="{{edu.rollTarget}}"
-               title="Click to roll {{edu.name}} test">
+               title="Click to roll {{edu.rollLabel}} test">
             {{edu.rollTarget}}
           </div>
           <div class="edu-col-delete">

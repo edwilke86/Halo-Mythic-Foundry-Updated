@@ -8,6 +8,16 @@ function getCombatContext(combat = game.combat) {
   };
 }
 
+export function isActorActivelyInCombat(actor, combat = game.combat) {
+  const actorId = String(actor?.id ?? "").trim();
+  if (!actorId || !combat?.combatants) return false;
+  for (const combatant of combat.combatants) {
+    const combatantActorId = String(combatant?.actor?.id ?? combatant?.actorId ?? "").trim();
+    if (combatantActorId && combatantActorId === actorId) return true;
+  }
+  return false;
+}
+
 function cloneActionEconomyState(state = {}) {
   const history = Array.isArray(state?.history) ? state.history : [];
   return {
@@ -96,6 +106,7 @@ async function postMedicalExpiryChat(actor, expiredEffects = [], { triggerLabel 
 
 export function buildCombatTurnStartUpdateData(actor, combat = game.combat) {
   if (!actor || actor.type !== "character") return null;
+  if (!isActorActivelyInCombat(actor, combat)) return null;
   const normalized = normalizeCharacterSystemData(actor.system ?? {});
   const context = getCombatContext(combat);
   const { nextEffects, expiredEffects } = advanceTrackedEffects(normalized?.medical?.activeEffects, { rounds: 1 });
@@ -131,6 +142,7 @@ export async function consumeActorHalfActions(actor, {
   if (!actor || actor.type !== "character") return;
   const cost = Math.max(0, Math.floor(Number(halfActions ?? 0)));
   if (cost <= 0) return;
+  if (!isActorActivelyInCombat(actor, combat)) return;
 
   const normalized = normalizeCharacterSystemData(actor.system ?? {});
   const context = getCombatContext(combat);

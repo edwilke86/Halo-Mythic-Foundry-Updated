@@ -128,8 +128,6 @@ function deriveAmmoModeFromCarryingType(rawValue = "") {
   if (!text) return "";
   if (text.includes("belt")) return "belt";
   if (text.includes("tube")) return "tube";
-  if (text.includes("grenade")) return "grenade";
-  if (text.includes("explosive") || text.includes("rocket") || text.includes("missile")) return "explosive";
   if (text.includes("light mass") || text.includes("forerunner")) return "light-mass";
   if (text.includes("battery") || text.includes("plasma") || text.includes("ionized") || text.includes("cell")) return "plasma-battery";
   if (text.includes("magazine") || text.includes("mag")) return "magazine";
@@ -139,10 +137,9 @@ function deriveAmmoModeFromCarryingType(rawValue = "") {
 function deriveAmmoModeFallback(weaponCategory = "", weaponType = "") {
   const hint = `${String(weaponCategory ?? "")} ${String(weaponType ?? "")}`.toLowerCase();
   if (!hint) return { ammoMode: "magazine", singleLoading: false };
-  if (hint.includes("grenade")) return { ammoMode: "grenade", singleLoading: true };
-  const explosiveMarkers = ["rocket", "missile", "launcher", "explosive", "satchel", "mine", "demolition", "ordnance", "ordinance"];
+  const explosiveMarkers = ["grenade", "rocket", "missile", "launcher", "explosive", "satchel", "mine", "demolition", "ordnance", "ordinance"];
   if (explosiveMarkers.some((marker) => hint.includes(marker))) {
-    return { ammoMode: "explosive", singleLoading: true };
+    return { ammoMode: "magazine", singleLoading: true };
   }
   return { ammoMode: "magazine", singleLoading: false };
 }
@@ -350,9 +347,10 @@ export function parseReferenceWeaponRows(rows, weaponClass, tableName) {
     const ammoModeFromCarry = isMelee ? "" : deriveAmmoModeFromCarryingType(wieldingType);
     const ammoModeFallback = isMelee ? { ammoMode: "magazine", singleLoading: false } : deriveAmmoModeFallback(weaponType, training);
     const ammoMode = ammoModeFromCarry || ammoModeFallback.ammoMode;
+    const isExplosiveCarryType = !isMelee && /\b(grenade|rocket|missile|launcher|explosive|satchel|mine|demolition|ordnance|ordinance)\b/.test(String(wieldingType ?? "").toLowerCase());
     const singleLoading = isMelee
       ? false
-      : (singleLoadingCell || singleUseCell || (!ammoModeFromCarry && ammoModeFallback.singleLoading));
+      : (singleLoadingCell || singleUseCell || isExplosiveCarryType || (!ammoModeFromCarry && ammoModeFallback.singleLoading));
 
     const toHitPenalty = parseNumericOrZero(getCell(row, headerMap, "To hit penalty (-X)"));
     const baseToHitModifier = toHitPenalty === 0 ? 0 : -Math.abs(Math.round(toHitPenalty));
@@ -548,7 +546,22 @@ export async function loadReferenceWeaponItemsFromCsv() {
 
 export async function loadReferenceWeaponItems() {
   const fromJson = await loadReferenceWeaponItemsFromJson();
-  return fromJson;
+  const fromCsv = await loadReferenceWeaponItemsFromCsv();
+  if (!fromJson.length) return fromCsv;
+  if (!fromCsv.length) return fromJson;
+
+  const merged = new Map();
+  for (const item of fromJson) {
+    const canonicalId = String(item?.system?.sync?.canonicalId ?? "").trim();
+    if (!canonicalId) continue;
+    merged.set(canonicalId, item);
+  }
+  for (const item of fromCsv) {
+    const canonicalId = String(item?.system?.sync?.canonicalId ?? "").trim();
+    if (!canonicalId || merged.has(canonicalId)) continue;
+    merged.set(canonicalId, item);
+  }
+  return Array.from(merged.values());
 }
 
 export function classifyWeaponFactionBucket(rawFaction) {

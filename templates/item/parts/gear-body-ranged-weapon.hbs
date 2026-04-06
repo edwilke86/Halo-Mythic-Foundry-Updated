@@ -40,6 +40,18 @@
             <span>Single Loading</span>
           </label>
         </div>
+        <div class="ability-info-row ability-col" style="margin-top: 0.5rem;">
+          <label class="checkbox-inline" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+            <input type="checkbox" name="system.timedDetonation" {{#if timedDetonation}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} />
+            <span>Timed Detonation</span>
+          </label>
+        </div>
+        {{#if timedDetonation}}
+        <div class="ability-info-row ability-col" style="margin-top: 0.5rem;">
+          <label for="gear-timer-delay">Delay Rounds</label>
+          <input id="gear-timer-delay" type="number" min="1" step="1" name="system.timerDelayRounds" value="{{timerDelayRounds}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        {{/if}}
         {{#if showBatterySubtype}}
         <div class="ability-info-row ability-col" style="margin-top: 0.5rem;">
           <label for="gear-battery-type">Battery Type</label>

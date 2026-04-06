@@ -98,7 +98,7 @@
   "packs": [
     {
       "name": "educations",
-      "label": "Educations",
+      "label": "00 Creation - Educations",
       "path": "packs/educations",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -110,7 +110,7 @@
     },
     {
       "name": "abilities",
-      "label": "Abilities",
+      "label": "00 Creation - Abilities",
       "path": "packs/abilities",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -122,7 +122,7 @@
     },
     {
       "name": "traits",
-      "label": "Traits",
+      "label": "00 Creation - Traits",
       "path": "packs/traits",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -134,7 +134,7 @@
     },
     {
       "name": "upbringings",
-      "label": "Upbringings",
+      "label": "00 Creation - Upbringings",
       "path": "packs/upbringings",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -146,7 +146,7 @@
     },
     {
       "name": "environments",
-      "label": "Environments",
+      "label": "00 Creation - Environments",
       "path": "packs/environments",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -158,7 +158,7 @@
     },
     {
       "name": "lifestyles",
-      "label": "Lifestyles",
+      "label": "00 Creation - Lifestyles",
       "path": "packs/lifestyles",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -170,7 +170,7 @@
     },
     {
       "name": "soldier-types",
-      "label": "Soldier Types",
+      "label": "00 Creation - Soldier Types",
       "path": "packs/soldier-types",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -182,7 +182,7 @@
     },
     {
       "name": "ammo-types",
-      "label": "Ammo Types",
+      "label": "40 Ammo - Types",
       "path": "packs/ammo-types",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -194,7 +194,7 @@
     },
     {
       "name": "mythic-equipment-human",
-      "label": "Human Equipment",
+      "label": "10 Equipment - Human",
       "path": "packs/equipment-human",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -206,7 +206,7 @@
     },
     {
       "name": "mythic-equipment-covenant",
-      "label": "Covenant Equipment",
+      "label": "10 Equipment - Covenant",
       "path": "packs/equipment-covenant",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -218,7 +218,7 @@
     },
     {
       "name": "mythic-equipment-banished",
-      "label": "Banished Equipment",
+      "label": "10 Equipment - Banished",
       "path": "packs/equipment-banished",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -230,7 +230,7 @@
     },
     {
       "name": "mythic-equipment-forerunner",
-      "label": "Forerunner Equipment",
+      "label": "10 Equipment - Forerunner",
       "path": "packs/equipment-forerunner",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -242,7 +242,7 @@
     },
     {
       "name": "mythic-armor-human",
-      "label": "Human Armor",
+      "label": "20 Armor - Human",
       "path": "packs/armor-human",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -254,7 +254,7 @@
     },
     {
       "name": "mythic-armor-covenant",
-      "label": "Covenant Armor",
+      "label": "20 Armor - Covenant",
       "path": "packs/armor-covenant",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -266,7 +266,7 @@
     },
     {
       "name": "mythic-armor-banished",
-      "label": "Banished Armor",
+      "label": "20 Armor - Banished",
       "path": "packs/armor-banished",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -278,7 +278,7 @@
     },
     {
       "name": "mythic-armor-forerunner",
-      "label": "Forerunner Armor",
+      "label": "20 Armor - Forerunner",
       "path": "packs/armor-forerunner",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -290,7 +290,7 @@
     },
     {
       "name": "mythic-weapons-human-ranged",
-      "label": "Human Ranged Weapons",
+      "label": "30 Weapons - Ranged - Human",
       "path": "packs/weapons-human-ranged",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -302,7 +302,7 @@
     },
     {
       "name": "mythic-weapons-covenant-ranged",
-      "label": "Covenant Ranged Weapons",
+      "label": "30 Weapons - Ranged - Covenant",
       "path": "packs/weapons-covenant-ranged",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -314,7 +314,7 @@
     },
     {
       "name": "mythic-weapons-banished-ranged",
-      "label": "Banished Ranged Weapons",
+      "label": "30 Weapons - Ranged - Banished",
       "path": "packs/weapons-banished-ranged",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -326,7 +326,7 @@
     },
     {
       "name": "mythic-weapons-forerunner-ranged",
-      "label": "Forerunner Ranged Weapons",
+      "label": "30 Weapons - Ranged - Forerunner",
       "path": "packs/weapons-forerunner-ranged",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -338,7 +338,7 @@
     },
     {
       "name": "mythic-weapons-shared-ranged",
-      "label": "Shared Ranged Weapons",
+      "label": "30 Weapons - Ranged - Shared",
       "path": "packs/weapons-shared-ranged",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -350,7 +350,7 @@
     },
     {
       "name": "mythic-weapons-human-melee",
-      "label": "Human Melee Weapons",
+      "label": "30 Weapons - Melee - Human",
       "path": "packs/weapons-human-melee",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -362,7 +362,7 @@
     },
     {
       "name": "mythic-weapons-covenant-melee",
-      "label": "Covenant Melee Weapons",
+      "label": "30 Weapons - Melee - Covenant",
       "path": "packs/weapons-covenant-melee",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -374,7 +374,7 @@
     },
     {
       "name": "mythic-weapons-banished-melee",
-      "label": "Banished Melee Weapons",
+      "label": "30 Weapons - Melee - Banished",
       "path": "packs/weapons-banished-melee",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -386,7 +386,7 @@
     },
     {
       "name": "mythic-weapons-forerunner-melee",
-      "label": "Forerunner Melee Weapons",
+      "label": "30 Weapons - Melee - Forerunner",
       "path": "packs/weapons-forerunner-melee",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -398,7 +398,7 @@
     },
     {
       "name": "mythic-weapons-shared-melee",
-      "label": "Shared Melee Weapons",
+      "label": "30 Weapons - Melee - Shared",
       "path": "packs/weapons-shared-melee",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -410,7 +410,7 @@
     },
     {
       "name": "mythic-weapons-flood",
-      "label": "Flood Weapons",
+      "label": "30 Weapons - Flood",
       "path": "packs/weapons-flood",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -422,7 +422,7 @@
     },
     {
       "name": "mythic-bestiary-unsc",
-      "label": "UNSC Bestiary",
+      "label": "70 Bestiary - UNSC",
       "path": "packs/bestiary-unsc",
       "type": "Actor",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -434,7 +434,7 @@
     },
     {
       "name": "mythic-bestiary-covenant",
-      "label": "Covenant Bestiary",
+      "label": "70 Bestiary - Covenant",
       "path": "packs/bestiary-covenant",
       "type": "Actor",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -446,7 +446,7 @@
     },
     {
       "name": "mythic-bestiary-forerunner",
-      "label": "Forerunner Bestiary",
+      "label": "70 Bestiary - Forerunner",
       "path": "packs/bestiary-forerunner",
       "type": "Actor",
       "system": "Halo-Mythic-Foundry-Updated",
@@ -458,7 +458,7 @@
     },
     {
       "name": "mythic-bestiary-flood",
-      "label": "Flood Bestiary",
+      "label": "70 Bestiary - Flood",
       "path": "packs/bestiary-flood",
       "type": "Actor",
       "system": "Halo-Mythic-Foundry-Updated",

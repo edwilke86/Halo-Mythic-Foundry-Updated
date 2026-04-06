@@ -16,14 +16,14 @@ Sun Goggles,UNSC,Equipment,Mythic,,,Pair of wearable goggles that halve any Pena
 Holographic Tactical Eyepiece,UNSC,Equipment,Mythic,,,"Allows use of HUD, maps, IFF tag tracking, Smartlink, B-Net (Internet), and Radar to be displayed over one eye.",,0.2,12,FALSE
 Long-Range Scanner System,UNSC,Equipment,Mythic,,,"A long-range scanning system is added on top of a helmet. This reduces Long Range Penalties by 20 to a minimum of 1. When used in combination with UNSC satellites that can be launched by UNSC ships using 1 Support Point, the Character no longer takes Long Range Penalties and halves all Extreme Range Penalties.",,2.8,100,FALSE
 ,,,,,,Carrying Devices,,,,
-Hard Case,UNSC,Equipment,Mythic,,,A briefcase-like armored carrying device. Capable of carrying up to 14 Units. The Hard Case has 50 Breakpoints and an Armor Rating of 12 that does not stack with the Armor on the Character if struck.,,4,9,TRUE
+Hard Case,UNSC,Equipment,Mythic,,,A briefcase-like armored carrying device. Capable of carrying up to 14 Units. The Hard Case has 50 Breakpoints and an Armor Rating of 12 that does not stack with the Armor on the Character if struck.,,4.2,9,TRUE
 Hard Case Pouch,UNSC,Equipment,Mythic,,,Armored ammunition pouch. Carries 3 Units. Has an Armor Rating of 12 that does not stack with the Armor on the Character if struck. Must be mounted to a Utility Webbing and Magnetic Webbing.,,1,13,TRUE
 M/LBE Hard Case,UNSC,Equipment,Mythic,,,Blast-Proof backpack. 16 Armor. Carries 12 Units.,,2,30,TRUE
 Medical Rucksack,UNSC,Equipment,Mythic,,,"A Medical extension to the M/LBE Hard Case. Can hold up to two Medical Kits, 10 Biofoam Canisters, and 10 sets of medication of the Player’s choice.",,1,10,TRUE
 Pouch,UNSC,Equipment,Mythic,,,Ammunition pouch. Carries 3 Units. Must be mounted to a Utility Webbing and Magnetic Webbing.,,1,2,TRUE
 Softcase,UNSC,Equipment,Mythic,,,Soft bagged Carrying Device similar to a duffel bag. Carries 13 Units.,,1,2,TRUE
 Tactical Hard Case,UNSC,Equipment,Mythic,,,A pouch-like armored carrying device. The Tactical Hard Case has an Armor Rating of 11. Capable of carrying up to 6 Units. Must be mounted to a Utility Webbing or Magnetic Webbing.,,1,10,TRUE
-Tactical Softcase,UNSC,Equipment,Mythic,,,Soft bagged carrying pouch. Carries 7 Units. Must be mounted to a Utility Webbing and Magnetic Webbing.,,0,3,TRUE
+Tactical Softcase,UNSC,Equipment,Mythic,,,Soft bagged carrying pouch. Carries 7 Units. Must be mounted to a Utility Webbing and Magnetic Webbing.,,0.3,3,TRUE
 Backpanel Pack,UNSC,Equipment,Mythic,,,A military backpack. Designed for others to quickly access behind the User. Carries 8 Units.,,0,3,TRUE
 Small/Assault Pack,UNSC,Equipment,Mythic,,,A small personal military backpack. Halves all weight of the items inside when the Pack is properly worn on the Character’s back. Carries 10 Units.,,0,3,TRUE
 Medium Patrol Pack,UNSC,Equipment,Mythic,,,A medium personal military backpack.  Halves all weight of the items inside when the Pack is properly worn on the Character’s back. Carries 14 Units.,,0,5,TRUE
@@ -478,9 +478,11 @@ Hush SOCOM Kit,UNSC,Weapon mod,Mythic,,1,"The Hush SOCOM Kit is an extended set 
 	The Hush Kit weighs 20% of the weapon it is being purchased for. Once purchased, it can’t be used with weapons that have different names.
 TYPE: Attachment - MOUNT: Barrel - RESTRICT: MA-series Rifles and Carbines",Attachment,,75,FALSE
 Sound Dampener,UNSC,Weapon mod,Mythic,,,"Post-War sound suppressing system. Gives a -30 Penalty to Hearing Perception Tests to anyone that could hear the weapon fire. This can only be taken after 2557.
-TYPE: Muzzle - MOUNT: Barrel - RESTRICT: None",Muzzle,0.5,20,FALSE
+TYPE: Muzzle - MOUNT: Barrel - RESTRICT: None
+",Muzzle,0.5,20,FALSE
 SS-M 49 Sound Suppressor,UNSC,Weapon mod,Mythic,,,"Post-War sound suppressing system. Gives a -30 Penalty to Hearing Perception Tests to anyone that could hear the weapon fire. This can only be taken after 2557.
-TYPE: Muzzle - MOUNT: Barrel - RESTRICT: None",Muzzle,,15,FALSE
+TYPE: Muzzle - MOUNT: Barrel - RESTRICT: None
+",Muzzle,,15,FALSE
 ,,,,,,,,,,
 Collapsible- Folding Stock,UNSC,Weapon mod,Mythic,,,"Replaces the rear of the weapon with a Collapsing or Foldable stock. The weapon can be folded into a smaller package. Allows [HW] weapons to be Concealed as [TH] Weapons, [TH] weapons to be Concealed as [OH] weapons, and [OH] weapons to be Concealed as [DW] weapons. Gives [DW] weapons an extra +10 to Camouflage and Concealing.
  TYPE: Stock - MOUNT: Stock - RESTRICT: Weapons with a Stock",Stock,0,15,TRUE

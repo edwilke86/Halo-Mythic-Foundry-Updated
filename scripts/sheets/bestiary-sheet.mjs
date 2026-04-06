@@ -18,6 +18,7 @@ import {
   normalizeGearSystemData,
   normalizeAbilitySystemData,
   normalizeTraitSystemData,
+  normalizeEducationSystemData,
   normalizeSkillsData
 } from "../data/normalization.mjs";
 import { substituteSoldierTypeInTraitText } from "../data/content-loading.mjs";
@@ -26,7 +27,7 @@ import {
   computeCharacteristicModifiers,
   getWorldGravity
 } from "../mechanics/derived.mjs";
-import { consumeActorHalfActions } from "../mechanics/action-economy.mjs";
+import { consumeActorHalfActions, isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
 import {
   parseFireModeProfile,
   getAttackIterationsForProfile,
@@ -707,6 +708,20 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
       });
     });
 
+    root.querySelectorAll(".edu-field-input[data-item-id]").forEach((input) => {
+      input.addEventListener("change", async (event) => {
+        event.stopPropagation();
+        const itemId = String(event.currentTarget.dataset.itemId ?? "");
+        const field = String(event.currentTarget.dataset.field ?? "");
+        if (!itemId || !field || !this.isEditable) return;
+        const item = this.actor.items.get(itemId);
+        if (!item) return;
+        const raw = event.currentTarget.value;
+        const value = event.currentTarget.tagName === "SELECT" ? raw : Number(raw);
+        await item.update({ [`system.${field}`]: value });
+      });
+    });
+
     // Knowledge tab — strip Foundry's Tabs management from the inner skills-tab.hbs wrapper
     // so it isn't hidden by the tab system (it has no matching primary nav entry).
     const innerSkillsDiv = root.querySelector(".tab.knowledge .tab.skills");
@@ -723,6 +738,22 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
         const roll = await new Roll("1d100").evaluate();
         const target = Number(el.dataset.rollTarget ?? 0);
         const label = String(el.dataset.rollLabel ?? "Skill");
+        const success = Number(roll.total) <= target;
+        const content = buildUniversalTestChatCard({ label, targetValue: target, rolled: Number(roll.total), success });
+        await ChatMessage.create({
+          speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+          content,
+          rolls: [roll],
+          type: CONST.CHAT_MESSAGE_STYLES.OTHER
+        });
+      });
+    });
+
+    root.querySelectorAll(".roll-education[data-roll-target]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        const roll = await new Roll("1d100").evaluate();
+        const target = Number(el.dataset.rollTarget ?? 0);
+        const label = String(el.dataset.rollLabel ?? "Education");
         const success = Number(roll.total) <= target;
         const content = buildUniversalTestChatCard({ label, targetValue: target, rolled: Number(roll.total), success });
         await ChatMessage.create({
@@ -1152,6 +1183,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
   _getCombatViewData(systemData, characteristicModifiers = {}, precomputed = null) {
     const derived = precomputed ?? computeCharacterDerivedValues(systemData ?? {});
     const combat = systemData?.combat ?? {};
+    const tracksTurnEconomy = isActorActivelyInCombat(this.actor);
     const shields = combat?.shields ?? {};
     const armor = combat?.dr?.armor ?? {};
     const touMod = Math.max(0, Number(characteristicModifiers?.tou ?? derived.modifiers?.tou ?? 0));
@@ -1167,7 +1199,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     const naturalArmorHead = Boolean(derived?.naturalArmor?.halvedOnHeadshot)
       ? asWhole(derived?.naturalArmor?.headShotValue)
       : naturalArmorBody;
-    const actionEconomy = combat?.actionEconomy ?? {};
+    const actionEconomy = tracksTurnEconomy ? (combat?.actionEconomy ?? {}) : {};
     const actionEconomySpent = asWhole(actionEconomy?.halfActionsSpent);
     const actionEconomyHistory = (Array.isArray(actionEconomy?.history) ? actionEconomy.history : [])
       .filter((entry) => entry && typeof entry === "object")
@@ -1227,7 +1259,9 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
         rLeg: withArmor("rLeg")
       },
       reactions: (() => {
-        const count = Math.max(0, Math.floor(Number(combat?.reactions?.count ?? 0)));
+        const count = tracksTurnEconomy
+          ? Math.max(0, Math.floor(Number(combat?.reactions?.count ?? 0)))
+          : 0;
         const penalty = count * -10;
         return {
           count,
@@ -1397,12 +1431,20 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
   async _onReactionAdd(event) {
     event.preventDefault();
+    if (!isActorActivelyInCombat(this.actor)) {
+      ui.notifications?.info("Turn economy is only tracked for active combatants.");
+      return;
+    }
     const current = Math.max(0, Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)));
     await this.actor.update({ "system.combat.reactions.count": current + 1 });
   }
 
   async _onAdvanceHalfAction(event) {
     event.preventDefault();
+    if (!isActorActivelyInCombat(this.actor)) {
+      ui.notifications?.info("Turn economy is only tracked for active combatants.");
+      return;
+    }
     await consumeActorHalfActions(this.actor, {
       halfActions: 1,
       label: "Manual Half Action",
@@ -1412,9 +1454,10 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
   async _onTurnEconomyReset(event) {
     event.preventDefault();
-    const combatId = String(game.combat?.id ?? "").trim();
-    const round = Math.max(0, Math.floor(Number(game.combat?.round ?? 0)));
-    const turn = Math.max(0, Math.floor(Number(game.combat?.turn ?? 0)));
+    const trackedCombat = isActorActivelyInCombat(this.actor) ? game.combat : null;
+    const combatId = String(trackedCombat?.id ?? "").trim();
+    const round = Math.max(0, Math.floor(Number(trackedCombat?.round ?? 0)));
+    const turn = Math.max(0, Math.floor(Number(trackedCombat?.turn ?? 0)));
     await this.actor.update({
       "system.combat.reactions.count": 0,
       "system.combat.actionEconomy": {
@@ -2553,22 +2596,61 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
   _getEducationsViewData(normalizedSystem) {
     const chars = normalizedSystem?.characteristics ?? {};
+    const skillsView = this._getSkillsViewData(normalizedSystem?.skills, normalizedSystem?.characteristics);
+    const normalizedSkillEntries = [];
+    for (const skill of skillsView.base) {
+      if (Array.isArray(skill.variantList) && skill.variantList.length) {
+        for (const variant of skill.variantList) {
+          normalizedSkillEntries.push({
+            label: `${skill.label} (${variant.label})`,
+            characteristic: variant.selectedCharacteristic,
+            rollTarget: variant.rollTarget
+          });
+        }
+      } else {
+        normalizedSkillEntries.push({
+          label: skill.label,
+          characteristic: skill.selectedCharacteristic,
+          rollTarget: skill.rollTarget
+        });
+      }
+    }
+    for (const skill of skillsView.custom) {
+      normalizedSkillEntries.push({
+        label: skill.label,
+        characteristic: skill.selectedCharacteristic,
+        rollTarget: skill.rollTarget
+      });
+    }
+
     return this.actor.items
       .filter((i) => i.type === "education")
       .map((item) => {
-        const sys = item.system ?? {};
-        const charKey = String(sys.characteristic ?? "int");
+        const sys = normalizeEducationSystemData(item.system ?? {});
+        const skillOptions = Array.isArray(sys.skills)
+          ? sys.skills.map((skill) => ({ value: skill, label: skill }))
+          : [];
+        const selectedSkill = String(sys.selectedSkill ?? "").trim() || (skillOptions[0]?.value ?? "");
+        const resolvedSkill = normalizedSkillEntries.find((entry) =>
+          String(entry.label ?? "").trim().toLowerCase() === String(selectedSkill ?? "").trim().toLowerCase()
+        );
+        const charKey = String(resolvedSkill?.characteristic ?? sys.characteristic ?? "int");
+        const skillTarget = Number(resolvedSkill?.rollTarget ?? 0);
         const charValue = Number(chars[charKey] ?? 0);
         const tier = String(sys.tier ?? "plus5");
         const tierBonus = tier === "plus10" ? 10 : 5;
         const modifier = Number(sys.modifier ?? 0);
-        const rollTarget = Math.max(0, charValue + tierBonus + modifier);
+        const baseTarget = skillTarget > 0 ? skillTarget : charValue;
+        const rollTarget = Math.max(0, baseTarget + tierBonus + modifier);
         return {
           id: item.id,
           name: item.name,
           difficulty: String(sys.difficulty ?? "basic"),
           difficultyLabel: sys.difficulty === "advanced" ? "Advanced" : "Basic",
           skills: Array.isArray(sys.skills) ? sys.skills.join(", ") : String(sys.skills ?? ""),
+          skillOptions,
+          selectedSkill,
+          rollLabel: selectedSkill ? `${item.name} (${selectedSkill})` : item.name,
           characteristic: charKey,
           tier,
           modifier,

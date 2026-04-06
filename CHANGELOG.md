@@ -4,11 +4,29 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
-## [Unreleased]
+## [0.3.0-alpha.2] - UNRELEASED
+
+### Added (0.3.0-alpha.2)
+
+- Added a "split" function for piles of ammo, and allowed "uncarrying" of ammo and magazines
+- Added fully functioning grenade throw and cook actions, with proper range calculations and chat message details
+
+### Changed (0.3.0-alpha.2)
+
+- Fixed ammo being imported as ranged weapons instead of ammo items.
+- Corrected weights on some items that the devsheet had incorrectly listed
+- When users check a training option it handles XP costs and refunds correctly, and updates the character sheet to reflect the new training and any associated benefits.
+- Education training now properly works
+- Fixed a bug where you could not modify wounds or shields from the token HUD
+- Cooked grenade resolution is now staged by chat: throw test first, then scatter and cook as separate steps, then a final damage-roll prompt before the explosion controls appear.
+
+### Removed (0.3.0-alpha.2)
+
+- Removed "Queued XP" display from Character Creation panel, as the unified Character Creation + Advancement flow now provides more comprehensive XP tracking and logging.
 
 ## [0.3.0-alpha.1] - 2026-04-03
 
-### Added
+### Added (0.3.0-alpha.1)
 
 - Add Medical Effect dialog now uses structured duration input: numeric value + unit selector.
 - New duration units supported for manual tracked effects: Half Actions, Rounds, Minutes, Hours, Days, Indefinite.
@@ -19,7 +37,7 @@ The format is based on Keep a Changelog, and this project follows SemVer pre-rel
 - Armor Compendiums
   - Armor items need to be refined. Many armor do not have all stats fully plugged in.
 
-### Changed
+### Changed (0.3.0-alpha.1)
 
 - Number of Melee attacks calculation corrected
 - Minutes now map to combat countdown using `1 minute = 10 rounds` for tracked effects.
@@ -37,7 +55,7 @@ The format is based on Keep a Changelog, and this project follows SemVer pre-rel
 - Reference equipment, weapons (ranged + melee), armor, now enforce system-pack-only sync with explicit missing-pack errors (no world fallback), and GM startup auto-refresh now includes melee, armor, armor permutations, and equipment.
 - The legacy world-target weapon import path is now disabled to prevent divergence from system compendiums.
 
-### Removed
+### Removed (0.3.0-alpha.1)
 
 - Removed automatic startup alpha notice chat post; startup modal notice remains.
 

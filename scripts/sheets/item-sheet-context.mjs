@@ -1,5 +1,6 @@
 import { normalizeGearSystemData } from "../data/normalization.mjs";
 import { loadMythicSpecialAmmoCategoryOptions } from "../data/content-loading.mjs";
+import { toNonNegativeWhole } from "../utils/helpers.mjs";
 import {
   MYTHIC_ARMOR_ABILITY_DEFINITIONS,
   MYTHIC_ARMOR_SPECIAL_RULE_DEFINITIONS,
@@ -70,6 +71,7 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
     armor: "Armor",
     ammunition: "Ammunition",
     container: "Container",
+    "explosives-and-grenades": "Explosives and Grenades",
     "weapon-modification": "Weapon Modification",
     "armor-modification": "Armor Permutations",
     "ammo-modification": "Ammo Modification",
@@ -85,6 +87,7 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
 
   context.gear = gear;
   const normalizedEquipmentType = String(gear.equipmentType ?? "").trim().toLowerCase();
+  context.isExplosivesAndGrenadesItem = normalizedEquipmentType === "explosives-and-grenades";
   context.isArmorItem = normalizedEquipmentType === "armor"
     || (gear.itemClass === "armor" && normalizedEquipmentType !== "armor-modification");
   context.isGeneralEquipmentItem = gear.equipmentType === "general";
@@ -134,6 +137,21 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
     selected: entry === currentWeaponType
   }));
 
+  const explosiveWeaponCategories = ["Grenade", "Satchel Charge", "Demolitions", "Landmine"];
+  context.explosiveWeaponCategoryOptions = explosiveWeaponCategories
+    .map((entry) => ({
+      value: entry,
+      label: entry,
+      selected: entry === currentWeaponType
+    }));
+  if (currentWeaponType && !context.explosiveWeaponCategoryOptions.some((entry) => entry.value === currentWeaponType)) {
+    context.explosiveWeaponCategoryOptions.push({
+      value: currentWeaponType,
+      label: currentWeaponType,
+      selected: true
+    });
+  }
+
   context.rangedFireModes = buildFireModeValues(gear.fireModes);
   if (context.rangedFireModes.charge > 0) {
     context.gear.charge = context.gear.charge || {};
@@ -154,15 +172,15 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
   // Ammunition mode options
   const rawAmmoMode = String(gear.ammoMode ?? "magazine").trim().toLowerCase();
   const currentAmmoMode = rawAmmoMode === "standard" ? "magazine" : (rawAmmoMode || "magazine");
-  context.isBallisticAmmoMode = ["magazine", "belt", "tube", "grenade", "explosive"].includes(currentAmmoMode);
+  context.isBallisticAmmoMode = ["magazine", "belt", "tube"].includes(currentAmmoMode);
   context.isEnergyCellAmmoMode = currentAmmoMode === "plasma-battery" || currentAmmoMode === "light-mass";
   context.singleLoading = Boolean(gear.singleLoading);
+  context.timedDetonation = Boolean(gear.timedDetonation);
+  context.timerDelayRounds = toNonNegativeWhole(gear.timerDelayRounds, 1);
   context.ammoModeOptions = [
     { value: "magazine", label: "Magazine", selected: currentAmmoMode === "magazine" },
     { value: "belt", label: "Belt", selected: currentAmmoMode === "belt" },
     { value: "tube", label: "Tube", selected: currentAmmoMode === "tube" },
-    { value: "grenade", label: "Grenade", selected: currentAmmoMode === "grenade" },
-    { value: "explosive", label: "Explosive", selected: currentAmmoMode === "explosive" },
     { value: "plasma-battery", label: "Battery or Ionized Particles", selected: currentAmmoMode === "plasma-battery" },
     { value: "light-mass", label: "Forerunner Magazine / Light Mass", selected: currentAmmoMode === "light-mass" }
   ];

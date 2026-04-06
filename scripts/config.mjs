@@ -121,6 +121,7 @@ export const MYTHIC_ITEM_PARTIAL_TEMPLATES = [
   "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-ammo-mod.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-melee-weapon.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-ranged-weapon.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-explosives-and-grenades.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-generic.hbs"
 ];
 

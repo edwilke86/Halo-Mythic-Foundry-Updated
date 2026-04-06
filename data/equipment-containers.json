@@ -181,7 +181,7 @@
         "source":  "mythic",
         "category":  "Carrying Devices",
         "description":  "A briefcase-like armored carrying device. Capable of carrying up to 14 Units. The Hard Case has 50 Breakpoints and an Armor Rating of 12 that does not stack with the Armor on the Character if struck.",
-        "weightKg":  4,
+        "weightKg":  4.2,
         "costCr":  9,
         "universal":  true,
         "subtype":  "container"
@@ -258,7 +258,7 @@
         "source":  "mythic",
         "category":  "Carrying Devices",
         "description":  "Soft bagged carrying pouch. Carries 7 Units. Must be mounted to a Utility Webbing and Magnetic Webbing.",
-        "weightKg":  0,
+        "weightKg":  0.3,
         "costCr":  3,
         "universal":  true,
         "subtype":  "container"

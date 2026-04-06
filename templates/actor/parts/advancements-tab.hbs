@@ -15,8 +15,6 @@
       <div class="mythic-mini-field"><span>XP Earned</span><input type="number" min="0" name="system.advancements.xpEarned" value="{{mythicAdvancements.earned}}" {{#unless mythicCcAdv.canEditStartingXp}}readonly{{/unless}} /></div>
       <div class="mythic-mini-field"><span>XP Spent</span><input type="number" min="0" name="system.advancements.xpSpent" value="{{mythicAdvancements.spent}}" {{#unless mythicCcAdv.canEditStartingXp}}readonly{{/unless}} /></div>
       <div class="mythic-mini-field"><span>XP Available</span><input type="text" value="{{mythicAdvancements.available}}" readonly /></div>
-      <div class="mythic-mini-field"><span>Queued XP</span><input type="text" value="{{mythicAdvancements.xpSummary.queued}}" readonly /></div>
-      <div class="mythic-mini-field"><span>After Queue</span><input type="text" value="{{mythicAdvancements.xpSummary.remainingAfterQueue}}" readonly /></div>
       {{#if mythicCcAdv.canEditStartingXp}}
         <button type="button" class="action-btn adv-add-xp-btn">Add XP</button>
       {{/if}}

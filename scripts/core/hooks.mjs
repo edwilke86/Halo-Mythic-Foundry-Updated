@@ -79,7 +79,10 @@ import {
 import {
   mythicRollEvasion as mythicRollEvasionImpl,
   mythicApplyDirectAttackDamage as mythicApplyDirectAttackDamageImpl,
-  mythicApplyWoundDamage as mythicApplyWoundDamageImpl
+  mythicApplyWoundDamage as mythicApplyWoundDamageImpl,
+  mythicRollEvadeIntoCover as mythicRollEvadeIntoCoverImpl,
+  mythicApplyGrenadeBlastDamage as mythicApplyGrenadeBlastDamageImpl,
+  mythicApplyGrenadeKillDamage as mythicApplyGrenadeKillDamageImpl
 } from "../core/chat-combat.mjs";
 
 import {
@@ -169,6 +172,98 @@ const MYTHIC_ALPHA_BUG_REPORT_TEMPLATE = [
   "Whether issue is consistent or intermittent:",
   "Screenshot/video if available:"
 ].join("\n");
+const MYTHIC_TOKEN_BAR_ALIAS_PATCH_FLAG = "_mythicTokenBarAliasPatchInstalled";
+const MYTHIC_EDITABLE_TOKEN_BAR_ACTOR_TYPES = Object.freeze(new Set(["character", "bestiary"]));
+const MYTHIC_TOKEN_BAR_ALIASES = Object.freeze({
+  "combat.woundsBar": Object.freeze({ valuePath: "combat.wounds.current", maxPath: "combat.wounds.max" }),
+  "combat.shieldsBar": Object.freeze({ valuePath: "combat.shields.current", maxPath: "combat.shields.integrity" })
+});
+
+function getMythicTokenBarAlias(attribute = "") {
+  return MYTHIC_TOKEN_BAR_ALIASES[String(attribute ?? "").trim()] ?? null;
+}
+
+function supportsMythicEditableTokenBars(actor) {
+  return Boolean(actor && MYTHIC_EDITABLE_TOKEN_BAR_ACTOR_TYPES.has(String(actor.type ?? "").trim()));
+}
+
+function getMythicEditableBarState(actor, attribute = "") {
+  const normalizedAttribute = String(attribute ?? "").trim();
+  const alias = getMythicTokenBarAlias(normalizedAttribute);
+  if (!alias || !supportsMythicEditableTokenBars(actor)) return null;
+
+  const valueRaw = Number(foundry.utils.getProperty(actor.system ?? {}, alias.valuePath) ?? NaN);
+  const maxRaw = Number(foundry.utils.getProperty(actor.system ?? {}, alias.maxPath) ?? NaN);
+  if (!Number.isFinite(valueRaw) || !Number.isFinite(maxRaw)) return null;
+
+  return {
+    attribute: normalizedAttribute,
+    value: Math.max(0, Math.floor(valueRaw)),
+    max: Math.max(0, Math.floor(maxRaw))
+  };
+}
+
+function installMythicEditableTokenBarAliases() {
+  const TokenDocumentClass = typeof getDocumentClass === "function" ? getDocumentClass("Token") : null;
+  const ActorDocumentClass = typeof getDocumentClass === "function" ? getDocumentClass("Actor") : null;
+  if (!TokenDocumentClass?.prototype || !ActorDocumentClass?.prototype) return;
+
+  if (!TokenDocumentClass.prototype[MYTHIC_TOKEN_BAR_ALIAS_PATCH_FLAG]) {
+    const originalGetBarAttribute = TokenDocumentClass.prototype.getBarAttribute;
+    TokenDocumentClass.prototype.getBarAttribute = function(barName, { alternative } = {}) {
+      const attribute = alternative || this[barName]?.attribute;
+      const aliasState = getMythicEditableBarState(this.actor, attribute);
+      if (aliasState) {
+        return {
+          type: "bar",
+          attribute: aliasState.attribute,
+          value: aliasState.value,
+          max: aliasState.max,
+          editable: true
+        };
+      }
+      return originalGetBarAttribute.call(this, barName, { alternative });
+    };
+    Object.defineProperty(TokenDocumentClass.prototype, MYTHIC_TOKEN_BAR_ALIAS_PATCH_FLAG, {
+      value: true,
+      configurable: false,
+      enumerable: false,
+      writable: false
+    });
+  }
+
+  if (!ActorDocumentClass.prototype[MYTHIC_TOKEN_BAR_ALIAS_PATCH_FLAG]) {
+    const originalModifyTokenAttribute = ActorDocumentClass.prototype.modifyTokenAttribute;
+    ActorDocumentClass.prototype.modifyTokenAttribute = async function(attribute, value, isDelta = false, isBar = true) {
+      const normalizedAttribute = String(attribute ?? "").trim();
+      const alias = getMythicTokenBarAlias(normalizedAttribute);
+      if (!isBar || !alias || !supportsMythicEditableTokenBars(this)) {
+        return originalModifyTokenAttribute.call(this, attribute, value, isDelta, isBar);
+      }
+
+      const currentRaw = Number(foundry.utils.getProperty(this.system ?? {}, alias.valuePath) ?? 0);
+      const maxRaw = Number(foundry.utils.getProperty(this.system ?? {}, alias.maxPath) ?? 0);
+      const current = Number.isFinite(currentRaw) ? Math.max(0, Math.floor(currentRaw)) : 0;
+      const max = Number.isFinite(maxRaw) ? Math.max(0, Math.floor(maxRaw)) : 0;
+      const incoming = Number(value ?? 0);
+      const nextValue = isDelta ? current + (Number.isFinite(incoming) ? incoming : 0) : (Number.isFinite(incoming) ? incoming : current);
+      const clampedValue = Math.max(0, Math.min(max, Math.floor(nextValue)));
+      if (clampedValue === current) return this;
+
+      const updates = {
+        [`system.${alias.valuePath}`]: clampedValue
+      };
+      const allowed = Hooks.call("modifyTokenAttribute", { attribute: normalizedAttribute, value, isDelta, isBar }, updates, this);
+      return allowed !== false ? this.update(updates) : this;
+    };
+    Object.defineProperty(ActorDocumentClass.prototype, MYTHIC_TOKEN_BAR_ALIAS_PATCH_FLAG, {
+      value: true,
+      configurable: false,
+      enumerable: false,
+      writable: false
+    });
+  }
+}
 
 async function copyAlphaBugTemplateToClipboard() {
   if (!navigator?.clipboard?.writeText) {
@@ -277,6 +372,18 @@ export async function mythicApplyDirectAttackDamage(...args) {
 
 export async function mythicApplyWoundDamage(...args) {
   return mythicApplyWoundDamageImpl(...args);
+}
+
+export async function mythicRollEvadeIntoCover(...args) {
+  return mythicRollEvadeIntoCoverImpl(...args);
+}
+
+export async function mythicApplyGrenadeBlastDamage(...args) {
+  return mythicApplyGrenadeBlastDamageImpl(...args);
+}
+
+export async function mythicApplyGrenadeKillDamage(...args) {
+  return mythicApplyGrenadeKillDamageImpl(...args);
 }
 
 export async function mythicFearRollShockTest(...args) {
@@ -704,11 +811,11 @@ export function registerAllHooks() {
 
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY, {
       name: "Startup: Auto-Refresh Reference Compendiums",
-      hint: "If enabled, GM startup automatically refreshes reference compendiums. Disable for faster startup and manual refresh only.",
+      hint: "If enabled, GM startup automatically refreshes reference compendiums. Disable for faster startup, but compendium updates may not be reflected until you refresh manually.",
       scope: "world",
       config: true,
       type: Boolean,
-      default: false
+      default: true
     });
 
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_SYNC_SILENT_SETTING_KEY, {
@@ -801,6 +908,8 @@ export function registerAllHooks() {
         ]
       }
     };
+
+    installMythicEditableTokenBarAliases();
   });
 
   Hooks.once("ready", async () => {
@@ -850,10 +959,10 @@ export function registerAllHooks() {
         await refreshArmorCompendiums({ silent: silentStartupSync });
         await refreshRangedWeaponCompendiums({ silent: silentStartupSync });
         await refreshMeleeWeaponCompendiums({ silent: silentStartupSync });
-        await organizeEquipmentCompendiumFolders({ silent: silentStartupSync });
         await patchCovenantPlasmaPistolChargeCompendiums({ silent: silentStartupSync });
       }
 
+      await organizeEquipmentCompendiumFolders({ silent: silentStartupSync });
       await applyMythicTokenDefaultsToWorld();
       initializeFloodContaminationHud();
     } else {
@@ -1267,6 +1376,9 @@ export function registerAllHooks() {
     mythicRollEvasion,
     mythicApplyDirectAttackDamage,
     mythicApplyWoundDamage,
+    mythicRollEvadeIntoCover,
+    mythicApplyGrenadeBlastDamage,
+    mythicApplyGrenadeKillDamage,
     mythicFearRollShockTest,
     mythicFearRollPtsdTest,
     mythicFearRollFollowup,

@@ -322,6 +322,7 @@
             <span class="mythic-equipment-name">{{ammo.name}}{{#if ammo.equipmentPackCount}} <span class="mythic-equipment-ep-tag" title="{{ammo.weightTooltip}}" aria-label="{{ammo.weightTooltip}}">EP {{ammo.equipmentPackCount}}</span>{{/if}}</span>
             <span class="mythic-equipment-meta">{{ammo.itemClass}}</span>
             <span class="mythic-equipment-actions-inline">
+              <button type="button" class="action-btn ammo-split-btn" data-ammo-source="{{ammo.sourceKind}}" {{#if (eq ammo.sourceKind "pool")}}data-ammo-key="{{ammo.storageKey}}"{{else}}data-ammo-uuid="{{ammo.key}}"{{/if}} data-ammo-name="{{ammo.name}}" title="Split ammo pile" aria-label="Split ammo pile"><i class="fas fa-code-branch"></i></button>
               <button type="button" class="action-btn ammo-open-btn" data-ammo-reference="{{ammo.openReference}}" data-ammo-name="{{ammo.name}}" {{#unless ammo.canOpen}}disabled{{/unless}} title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
               <button type="button" class="action-btn ammo-remove-btn mythic-row-remove" data-ammo-source="{{ammo.sourceKind}}" data-ammo-key="{{#if (eq ammo.sourceKind "pool")}}{{ammo.storageKey}}{{else}}{{ammo.key}}{{/if}}" data-ammo-name="{{ammo.name}}" {{#unless ammo.canRemove}}disabled{{/unless}} title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
             </span>
@@ -385,7 +386,7 @@
               <button type="button" class="action-btn ballistic-container-remove-btn mythic-row-remove" data-group-key="{{../groupKey}}" data-container-id="{{cell.id}}" title="Remove container" aria-label="Remove container"><i class="fas fa-trash"></i></button>
             </span>
           </span>
-          <span><input type="checkbox" {{#if cell.isCarried}}checked{{/if}} disabled /></span>
+          <span><input type="checkbox" class="ballistic-container-carried-toggle" data-group-key="{{../groupKey}}" data-container-id="{{cell.id}}" {{#if cell.isCarried}}checked{{/if}} /></span>
           <span>-</span>
           <span>x1</span>
           <span><input type="number" min="0" step="1" value="1" disabled /></span>

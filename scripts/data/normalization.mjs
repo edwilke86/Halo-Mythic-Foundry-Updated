@@ -1476,6 +1476,7 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     "armor",
     "ammunition",
     "container",
+    "explosives-and-grenades",
     "weapon-modification",
     "armor-modification",
     "ammo-modification",
@@ -1492,10 +1493,12 @@ export function normalizeGearSystemData(systemData, itemName = "") {
 
     if (itemClass === "armor" || weaponClass === "armor") return "armor";
     if (itemClass === "weapon") {
+      if (/(?:\bammo\b|\bammunition\b|\bmag(?:azine)?s?\b)/u.test(hint)) return "ammunition";
       return weaponClass === "melee" ? "melee-weapon" : "ranged-weapon";
     }
     if (itemClass === "ammo" || itemClass === "ammunition") return "ammunition";
     if (itemClass === "container") return "container";
+    if (itemClass === "explosive" || itemClass === "explosives" || itemClass === "grenade" || itemClass === "grenades") return "explosives-and-grenades";
     if (itemClass === "weapon-modification" || itemClass === "weapon_modification" || itemClass === "weaponmod") return "weapon-modification";
     if (itemClass === "armor-modification" || itemClass === "armor_modification" || itemClass === "armormod") return "armor-modification";
     if (itemClass === "armor-permutation" || itemClass === "armor_permutation" || itemClass === "armorpermutation") return "armor-modification";
@@ -1503,6 +1506,7 @@ export function normalizeGearSystemData(systemData, itemName = "") {
 
     if (/\bammo\b|\bammunition\b/u.test(hint)) return "ammunition";
     if (/\bcontainer\b|\bcrate\b|\bcase\b|\bpack\b/u.test(hint)) return "container";
+    if (/\bgrenade\b|\bexplosive\b|\bmine\b|\bsatchel\b|\bdemolition\b|\bordinance\b|\bordnance\b/u.test(hint)) return "explosives-and-grenades";
     if (/\bweapon\s*mod\b|\bweapon\s*modification\b/u.test(hint)) return "weapon-modification";
     if (/\barmor\s*mod\b|\barmou?r\s*modification\b|\barmou?r\s*permutation(s)?\b/u.test(hint)) return "armor-modification";
     if (/\bammo\s*mod\b|\bammunition\s*modification\b/u.test(hint)) return "ammo-modification";
@@ -1523,6 +1527,11 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     if (equipmentType === "armor") {
       value.itemClass = "armor";
       value.weaponClass = "other";
+      return;
+    }
+    if (equipmentType === "explosives-and-grenades") {
+      value.itemClass = "weapon";
+      value.weaponClass = "ranged";
       return;
     }
 
@@ -1623,6 +1632,8 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     builtInItemIds: [],
     powerArmorTraitIds: [],
     photoReactivePanelsBonus: 0,
+    timedDetonation: false,
+    timerDelayRounds: 1,
     characteristicMods: {
       base: {
         str: 0,
@@ -1719,6 +1730,13 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     ? canonicalEquipmentType
     : resolveEquipmentTypeFromLegacy(merged);
   applyLegacyClassFromEquipmentType(merged, merged.equipmentType);
+
+  if (merged.equipmentType === "explosives-and-grenades") {
+    const rawAmmoMode = String(source.ammoMode ?? merged.ammoMode ?? "").trim().toLowerCase();
+    if (!rawAmmoMode || rawAmmoMode === "magazine" || rawAmmoMode === "standard") {
+      merged.ammoMode = "grenade";
+    }
+  }
 
   merged.faction = String(merged.faction ?? "").trim();
   const requestedArmorySelection = String(merged.armorySelection ?? "").trim().toUpperCase();
@@ -1858,7 +1876,7 @@ export function normalizeGearSystemData(systemData, itemName = "") {
   merged.attackName = String(merged.attackName ?? "").trim();
   merged.ammoId = String(merged.ammoId ?? "").trim() || null;
   const ammoModeRaw = String(merged.ammoMode ?? "magazine").trim().toLowerCase();
-  merged.ammoMode = ["magazine", "belt", "tube", "plasma-battery", "light-mass", "grenade", "explosive"].includes(ammoModeRaw)
+  merged.ammoMode = ["magazine", "belt", "tube", "plasma-battery", "light-mass", "grenade"].includes(ammoModeRaw)
     ? ammoModeRaw
     : "magazine";
   merged.batteryType = normalizeBatterySubtype(merged.batteryType, merged.ammoMode);

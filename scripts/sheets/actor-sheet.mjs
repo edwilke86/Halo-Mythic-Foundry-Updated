@@ -101,7 +101,7 @@ import {
   computeAttackDOS,
   resolveHitLocation
 } from "../mechanics/combat.mjs";
-import { consumeActorHalfActions } from "../mechanics/action-economy.mjs";
+import { consumeActorHalfActions, isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
 
 import { generateSmartAiCognitivePattern } from "../mechanics/cognitive.mjs";
 
@@ -202,12 +202,24 @@ function normalizeBallisticAmmoMode(ammoMode = "") {
   if (!normalized || normalized === "standard") return "magazine";
   if (normalized === "belt") return "belt";
   if (normalized === "tube") return "tube";
+  if (normalized === "grenade") return "grenade";
   return "magazine";
 }
 
 function isBallisticAmmoMode(ammoMode = "") {
   const normalized = String(ammoMode ?? "").trim().toLowerCase();
-  return !normalized || normalized === "standard" || normalized === "magazine" || normalized === "belt" || normalized === "tube";
+  return !normalized || normalized === "standard" || normalized === "magazine" || normalized === "belt" || normalized === "tube" || normalized === "grenade";
+}
+
+function isGrenadeAmmoMode(ammoMode = "") {
+  return String(ammoMode ?? "").trim().toLowerCase() === "grenade";
+}
+
+function computeThrowWeightSteps(weightKg = 0, stepKg = 1) {
+  const weight = Number(weightKg ?? 0);
+  const step = Number(stepKg ?? 0);
+  if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(step) || step <= 0) return 0;
+  return Math.max(0, Math.floor((weight / step) + 1e-9));
 }
 
 function isDetachableBallisticAmmoMode(ammoMode = "") {
@@ -902,7 +914,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       { value: "plus10", label: "+10" },
       { value: "plus20", label: "+20" }
     ];
-    context.mythicEducations = this._getEducationsViewData(normalizedSystem);
+    context.mythicEducations = this._getEducationsViewData(effectiveSystem);
     context.mythicEducationTierOptions = [
       { value: "plus5",  label: "+5"  },
       { value: "plus10", label: "+10" }
@@ -1687,40 +1699,44 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const skillQueuedXp = skillRows.reduce((sum, row) => sum + toNonNegativeWhole(row.queuedCost, 0), 0);
 
     const lockData = await this._getAutoTrainingLockData(normalizedSystem);
-    const purchasedTrainingLocks = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
-    const purchasedWeaponLocks = normalizeStringList(Array.isArray(purchasedTrainingLocks?.weaponKeys) ? purchasedTrainingLocks.weaponKeys : []);
-    const purchasedFactionLocks = this._canonicalizeFactionTrainingKeys(
-      normalizeStringList(Array.isArray(purchasedTrainingLocks?.factionKeys) ? purchasedTrainingLocks.factionKeys : [])
-    );
-    const lockedWeaponKeys = new Set([...lockData.weaponKeys, ...purchasedWeaponLocks]);
-    const lockedFactionKeys = new Set([
-      ...this._canonicalizeFactionTrainingKeys(lockData.factionKeys),
-      ...purchasedFactionLocks
-    ]);
+    const lockedWeaponKeys = new Set(lockData.weaponKeys);
+    const lockedFactionKeys = new Set(this._canonicalizeFactionTrainingKeys(lockData.factionKeys));
 
     const normalizedTraining = normalizeTrainingData(normalizedSystem?.training ?? {});
     const weaponTrainingRows = MYTHIC_WEAPON_TRAINING_DEFINITIONS.map((definition) => {
-      const baseline = lockedWeaponKeys.has(definition.key) || Boolean(normalizedTraining?.weapon?.[definition.key]);
-      const queued = baseline ? true : Boolean(queue?.weaponTraining?.[definition.key]);
+      const owned = Boolean(normalizedTraining?.weapon?.[definition.key]);
+      const queueValue = (queue?.weaponTraining && Object.prototype.hasOwnProperty.call(queue.weaponTraining, definition.key))
+        ? Boolean(queue.weaponTraining[definition.key])
+        : null;
+      const baseline = lockedWeaponKeys.has(definition.key);
+      const queued = baseline
+        ? true
+        : (queueValue !== null ? queueValue : owned);
       return {
         key: definition.key,
         label: definition.label,
         baseline,
         queued,
-        changed: queued !== baseline,
-        queuedCost: (!baseline && queued) ? toNonNegativeWhole(MYTHIC_ADVANCEMENT_WEAPON_TRAINING_COSTS[definition.key] ?? definition.xpCost ?? 0, 0) : 0
+        changed: queued !== owned,
+        queuedCost: (!baseline && queued && !owned) ? toNonNegativeWhole(MYTHIC_ADVANCEMENT_WEAPON_TRAINING_COSTS[definition.key] ?? definition.xpCost ?? 0, 0) : 0
       };
     });
     const factionTrainingRows = MYTHIC_FACTION_TRAINING_DEFINITIONS.map((definition) => {
-      const baseline = lockedFactionKeys.has(definition.key) || Boolean(normalizedTraining?.faction?.[definition.key]);
-      const queued = baseline ? true : Boolean(queue?.factionTraining?.[definition.key]);
+      const owned = Boolean(normalizedTraining?.faction?.[definition.key]);
+      const queueValue = (queue?.factionTraining && Object.prototype.hasOwnProperty.call(queue.factionTraining, definition.key))
+        ? Boolean(queue.factionTraining[definition.key])
+        : null;
+      const baseline = lockedFactionKeys.has(definition.key);
+      const queued = baseline
+        ? true
+        : (queueValue !== null ? queueValue : owned);
       return {
         key: definition.key,
         label: definition.label,
         baseline,
         queued,
-        changed: queued !== baseline,
-        queuedCost: (!baseline && queued) ? toNonNegativeWhole(definition.xpCost ?? 300, 0) : 0
+        changed: queued !== owned,
+        queuedCost: (!baseline && queued && !owned) ? toNonNegativeWhole(definition.xpCost ?? 300, 0) : 0
       };
     });
     const trainingQueuedXp = [...weaponTrainingRows, ...factionTrainingRows]
@@ -2887,6 +2903,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const ammoKey = normalizeAmmoCounterKey(rawPool?.name ?? rawAmmoKey);
       if (!ammoKey) continue;
       const pool = (rawPool && typeof rawPool === "object") ? rawPool : {};
+      if (pool.isCarried === false) continue;
       const countFromSplit = toNonNegativeWhole(pool?.epCount, 0) + toNonNegativeWhole(pool?.purchasedCount, 0);
       const hasSplit = Number.isFinite(Number(pool?.epCount)) || Number.isFinite(Number(pool?.purchasedCount));
       const count = hasSplit ? countFromSplit : toNonNegativeWhole(pool?.count, 0);
@@ -2895,6 +2912,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     for (const ammoEntry of Object.values(rawIndependentAmmo)) {
       const ammoKey = normalizeAmmoCounterKey(ammoEntry?.ammoName);
       if (!ammoKey) continue;
+      if (ammoEntry?.isCarried === false) continue;
       const count = toNonNegativeWhole(ammoEntry?.quantity, 0);
       looseAmmoTotals.set(ammoKey, (looseAmmoTotals.get(ammoKey) ?? 0) + count);
     }
@@ -2916,6 +2934,91 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
 
     const strModifier = Number.isFinite(Number(derived?.modifiers?.str)) ? Number(derived.modifiers.str) : 0;
+    const strScoreForThrow = toNonNegativeWhole(systemData?.characteristics?.str, 0);
+    const mythicStrengthForThrow = Math.max(0, toNonNegativeWhole(systemData?.mythic?.characteristics?.str, 0));
+    const carryCapacityForThrow = Math.max(0, Number(derived?.carryingCapacity?.carry ?? 0));
+    const hasServoAssistedThrowBonus = this.actor.items.some((entry) => {
+      const nameText = String(entry?.name ?? "").trim().toLowerCase();
+      const descText = String(entry?.system?.description ?? entry?.system?.modifiers ?? "").trim().toLowerCase();
+      return nameText.includes("servo-assisted") || descText.includes("finding throwing distance");
+    });
+    const computeGrenadeThrowRangePreview = (item) => {
+      const throwStrengthBonus = hasServoAssistedThrowBonus ? 25 : 0;
+      const effectiveStrengthScore = Math.max(0, strScoreForThrow + throwStrengthBonus);
+      const effectiveStrengthModifier = Math.floor(effectiveStrengthScore / 10);
+      const strengthPower = Math.max(0, effectiveStrengthModifier + mythicStrengthForThrow);
+      const throwWeightKgRaw = Number(item?.weightKg ?? item?.weightPerRoundKg ?? 0);
+      const throwWeightKg = Number.isFinite(throwWeightKgRaw) && throwWeightKgRaw > 0 ? throwWeightKgRaw : 1;
+      const strengthBand = strengthPower <= 2
+        ? { stepKg: 0.1, reductionPerStep: 2 }
+        : strengthPower <= 4
+          ? { stepKg: 0.1, reductionPerStep: 1 }
+          : strengthPower <= 6
+            ? { stepKg: 0.2, reductionPerStep: 1 }
+            : strengthPower <= 9
+              ? { stepKg: 0.5, reductionPerStep: 1 }
+              : strengthPower <= 12
+                ? { stepKg: 1, reductionPerStep: 1 }
+                : strengthPower <= 18
+                  ? { stepKg: 5, reductionPerStep: 1 }
+                  : { stepKg: 10, reductionPerStep: 1 };
+      const weightSteps = computeThrowWeightSteps(throwWeightKg, strengthBand.stepKg);
+      const weightPenalty = Math.max(0, weightSteps * strengthBand.reductionPerStep);
+      const baseMultiplier = 15;
+      const multiplierAfterWeight = baseMultiplier - weightPenalty;
+      const exceedsCarryWeight = carryCapacityForThrow > 0 ? throwWeightKg > carryCapacityForThrow : false;
+      const isGrenadeThrowItem = isGrenadeAmmoMode(item?.ammoMode)
+        || String(item?.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades";
+      const wieldingTypeTag = String(item?.wieldingType ?? "").trim().toUpperCase();
+      const rulesText = String(item?.specialRules ?? "").toUpperCase();
+      const weaponTagKeys = Array.isArray(item?.weaponTagKeys)
+        ? item.weaponTagKeys.map((entry) => String(entry ?? "").trim().toUpperCase())
+        : [];
+      const hasOneHandThrowTag = isGrenadeThrowItem
+        || ["DW", "OH"].includes(wieldingTypeTag)
+        || /\[(DW|OH)\]/u.test(rulesText)
+        || weaponTagKeys.includes("[DW]")
+        || weaponTagKeys.includes("[OH]")
+        || weaponTagKeys.includes("DW")
+        || weaponTagKeys.includes("OH");
+      const isOneHandThrow = !hasOneHandThrowTag;
+      const resolveDistanceFromMultiplier = (multiplierValue = 0) => {
+        if (multiplierValue <= -10) return 0;
+        const negativeBaseMeters = Math.max(0, strengthPower / 2);
+        const baseMeters = multiplierValue < 0
+          ? (negativeBaseMeters >= 0.5 ? Math.max(1, Math.floor(negativeBaseMeters)) : 0)
+          : Math.max(0, Math.floor(strengthPower * multiplierValue));
+        const handedMeters = isOneHandThrow ? Math.floor(baseMeters / 2) : baseMeters;
+        return Math.max(0, handedMeters);
+      };
+      const resolveRawDistanceFromMultiplier = (multiplierValue = 0) => {
+        if (multiplierValue <= -10) return 0;
+        const baseMeters = multiplierValue < 0
+          ? Math.max(0, strengthPower / 2)
+          : Math.max(0, strengthPower * multiplierValue);
+        const handedMeters = isOneHandThrow ? (baseMeters / 2) : baseMeters;
+        return Math.max(0, handedMeters);
+      };
+      const computedMax = resolveDistanceFromMultiplier(multiplierAfterWeight);
+      const rawComputedMax = resolveRawDistanceFromMultiplier(multiplierAfterWeight);
+      const belowMinimumThrowRange = rawComputedMax < 0.5;
+      const canThrow = !exceedsCarryWeight && (multiplierAfterWeight <= -10 || (!belowMinimumThrowRange && computedMax >= 1));
+      const reason = exceedsCarryWeight
+        ? `Too heavy (${Math.round(throwWeightKg * 10) / 10}kg > ${Math.round(carryCapacityForThrow * 10) / 10}kg carry)`
+        : belowMinimumThrowRange
+          ? "Under 0.5m throw range"
+          : "";
+      return {
+        canThrow,
+        reason,
+        computedMax,
+        multiplierAfterWeight,
+        throwWeightKg,
+        strengthPower,
+        isOneHandThrow,
+        hasServoAssistedThrowBonus
+      };
+    };
     const resolveStrengthContribution = (mode) => {
       const normalized = String(mode ?? "").trim().toLowerCase();
       if (normalized === "double-str-mod") return strModifier * 2;
@@ -3020,9 +3123,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         : {};
       const isMelee = item.weaponClass === "melee";
       const isInfusionRadius = this._isInfusionRadiusWeapon(item);
+      const isGrenadeWeapon = isGrenadeAmmoMode(item.ammoMode)
+        || String(item.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades";
       const ammoMode = isEnergyCellAmmoMode(item.ammoMode)
         ? String(item.ammoMode ?? "").trim().toLowerCase()
-        : normalizeBallisticAmmoMode(item.ammoMode);
+        : (isGrenadeWeapon ? "grenade" : normalizeBallisticAmmoMode(item.ammoMode));
       const isEnergyWeapon = !isMelee && !isInfusionRadius && isEnergyCellAmmoMode(ammoMode);
       const weaponEnergyCells = Array.isArray(rawEnergyCells[item.id]) ? rawEnergyCells[item.id] : [];
       const activeEnergyCellId = String(state.activeEnergyCellId ?? "").trim();
@@ -3037,16 +3142,21 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const energyCellPercentDisplay = energyCellCurrent > 0
         ? Math.max(1, energyCellPercent)
         : 0;
-      const ammoDisplayLabel = ammoMode === "plasma-battery"
-        ? "Battery"
-        : (ammoMode === "light-mass"
-            ? "Forerunner Magazine"
-            : (ammoMode === "belt"
-                ? "Belt"
-                : (ammoMode === "tube"
-                    ? "Tube"
-                    : (ammoMode === "magazine" ? "Magazine" : (String(item.ammoName ?? "").trim() || "Ammo")))));
-      const isSingleLoadWeapon = Boolean(item.singleLoading) || ammoMode === "tube";
+      let ammoDisplayLabel = String(item.ammoName ?? "").trim() || "Ammo";
+      if (ammoMode === "plasma-battery") {
+        ammoDisplayLabel = "Battery";
+      } else if (ammoMode === "light-mass") {
+        ammoDisplayLabel = "Forerunner Magazine";
+      } else if (ammoMode === "belt") {
+        ammoDisplayLabel = "Belt";
+      } else if (ammoMode === "tube") {
+        ammoDisplayLabel = "Tube";
+      } else if (ammoMode === "grenade") {
+        ammoDisplayLabel = "Grenade";
+      } else if (ammoMode === "magazine") {
+        ammoDisplayLabel = "Magazine";
+      }
+      const isSingleLoadWeapon = Boolean(item.singleLoading) || ammoMode === "tube" || ammoMode === "grenade";
       const magazineMax = isMelee ? 0 : toNonNegativeWhole(item.rangeMagazine, 0);
       const fallbackMag = 0;
       const magazineCurrent = isMelee
@@ -3165,13 +3275,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             ? primaryAttackName
             : (String(variantAttacksRaw[selectedVariantIdx - 1]?.name ?? "").trim() || `Variant ${selectedVariantIdx}`))
         : null;
+      const grenadeThrowProfile = isGrenadeWeapon ? computeGrenadeThrowRangePreview(item) : null;
 
       return {
         ...item,
         isMelee,
         isInfusionRadius,
         displayWeaponClass: isInfusionRadius ? "Special" : item.weaponClass,
-        showStandardFireModes: !isInfusionRadius && !isMelee && fireModes.length > 0,
+        showStandardFireModes: !isInfusionRadius && !isMelee && !isGrenadeWeapon && fireModes.length > 0,
         showVariantSelector: isMelee && hasVariants,
         hasVariants,
         variantOptions,
@@ -3236,6 +3347,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ammoLabel: ammoDisplayLabel,
         singleLoading: Boolean(item.singleLoading),
         isSingleLoadWeapon,
+        isGrenadeWeapon,
+        grenadeTotal: Math.max(0, toNonNegativeWhole(item.quantity, 1)),
+        grenadeThrowCanThrow: Boolean(grenadeThrowProfile?.canThrow),
+        grenadeThrowRangeMax: Math.max(0, toNonNegativeWhole(grenadeThrowProfile?.computedMax, 0)),
+        grenadeThrowReason: String(grenadeThrowProfile?.reason ?? "").trim(),
+        grenadeThrowMultiplier: Number(grenadeThrowProfile?.multiplierAfterWeight ?? 0),
+        grenadeThrowWeightKg: Number(grenadeThrowProfile?.throwWeightKg ?? 0),
+        grenadeThrowStrengthPower: Number(grenadeThrowProfile?.strengthPower ?? 0),
+        grenadeThrowOneHandPenalty: Boolean(grenadeThrowProfile?.isOneHandThrow),
+        grenadeThrowServoAssisted: Boolean(grenadeThrowProfile?.hasServoAssistedThrowBonus),
         singleLoadPerHalfAction,
         ammoLoadLabel,
         ammoCapacityLabel
@@ -3983,6 +4104,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const derivedSource = this._buildDerivedSystemData(systemData);
     const derived = precomputed ?? computeCharacterDerivedValues(derivedSource);
     const combat = systemData?.combat ?? {};
+    const tracksTurnEconomy = isActorActivelyInCombat(this.actor);
     const shields = combat?.shields ?? {};
     const armor = combat?.dr?.armor ?? {};
     const touMod = Math.max(0, Number(characteristicModifiers?.tou ?? derived.modifiers?.tou ?? 0));
@@ -3998,7 +4120,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const naturalArmorHead = Boolean(derived?.naturalArmor?.halvedOnHeadshot)
       ? asWhole(derived?.naturalArmor?.headShotValue)
       : naturalArmorBody;
-    const actionEconomy = combat?.actionEconomy ?? {};
+    const actionEconomy = tracksTurnEconomy ? (combat?.actionEconomy ?? {}) : {};
     const actionEconomySpent = asWhole(actionEconomy?.halfActionsSpent);
     const actionEconomyHistory = (Array.isArray(actionEconomy?.history) ? actionEconomy.history : [])
       .filter((entry) => entry && typeof entry === "object")
@@ -4059,7 +4181,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         rLeg: withArmor("rLeg")
       },
       reactions: (() => {
-        const count = Math.max(0, Math.floor(Number(combat?.reactions?.count ?? 0)));
+        const count = tracksTurnEconomy
+          ? Math.max(0, Math.floor(Number(combat?.reactions?.count ?? 0)))
+          : 0;
         const penalty = count * -10;
         return {
           count,
@@ -4463,22 +4587,61 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _getEducationsViewData(normalizedSystem) {
     const chars = normalizedSystem?.characteristics ?? {};
+    const skillsView = this._getSkillsViewData(normalizedSystem?.skills, normalizedSystem?.characteristics);
+    const normalizedSkillEntries = [];
+    for (const skill of skillsView.base) {
+      if (Array.isArray(skill.variantList) && skill.variantList.length) {
+        for (const variant of skill.variantList) {
+          normalizedSkillEntries.push({
+            label: `${skill.label} (${variant.label})`,
+            characteristic: variant.selectedCharacteristic,
+            rollTarget: variant.rollTarget
+          });
+        }
+      } else {
+        normalizedSkillEntries.push({
+          label: skill.label,
+          characteristic: skill.selectedCharacteristic,
+          rollTarget: skill.rollTarget
+        });
+      }
+    }
+    for (const skill of skillsView.custom) {
+      normalizedSkillEntries.push({
+        label: skill.label,
+        characteristic: skill.selectedCharacteristic,
+        rollTarget: skill.rollTarget
+      });
+    }
+
     return this.actor.items
       .filter(i => i.type === "education")
       .map(item => {
-        const sys = item.system ?? {};
-        const charKey = String(sys.characteristic ?? "int");
+        const sys = normalizeEducationSystemData(item.system ?? {});
+        const skillOptions = Array.isArray(sys.skills)
+          ? sys.skills.map((skill) => ({ value: skill, label: skill }))
+          : [];
+        const selectedSkill = String(sys.selectedSkill ?? "").trim() || (skillOptions[0]?.value ?? "");
+        const resolvedSkill = normalizedSkillEntries.find((entry) =>
+          String(entry.label ?? "").trim().toLowerCase() === String(selectedSkill ?? "").trim().toLowerCase()
+        );
+        const charKey = String(resolvedSkill?.characteristic ?? sys.characteristic ?? "int");
+        const skillTarget = Number(resolvedSkill?.rollTarget ?? 0);
         const charValue = Number(chars[charKey] ?? 0);
         const tier = String(sys.tier ?? "plus5");
         const tierBonus = tier === "plus10" ? 10 : 5;
         const modifier = Number(sys.modifier ?? 0);
-        const rollTarget = Math.max(0, charValue + tierBonus + modifier);
+        const baseTarget = skillTarget > 0 ? skillTarget : charValue;
+        const rollTarget = Math.max(0, baseTarget + tierBonus + modifier);
         return {
           id: item.id,
           name: item.name,
           difficulty: String(sys.difficulty ?? "basic"),
           difficultyLabel: sys.difficulty === "advanced" ? "Advanced" : "Basic",
           skills: Array.isArray(sys.skills) ? sys.skills.join(", ") : String(sys.skills ?? ""),
+          skillOptions,
+          selectedSkill,
+          rollLabel: selectedSkill ? `${item.name} (${selectedSkill})` : item.name,
           characteristic: charKey,
           tier,
           modifier,
@@ -6191,6 +6354,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".ballistic-container-carried-toggle[data-group-key][data-container-id]").forEach((checkbox) => {
+      checkbox.addEventListener("change", (event) => {
+        void this._onBallisticContainerCarriedToggle(event);
+      });
+    });
+
+    root.querySelectorAll(".ammo-split-btn[data-ammo-source]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onAmmoSplit(event);
+      });
+    });
+
     root.querySelectorAll(".ammo-drop-zone[data-kind]").forEach((zone) => {
       zone.addEventListener("dragover", (event) => {
         event.preventDefault();
@@ -7085,27 +7260,149 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const key = String(event.currentTarget?.dataset?.trainingKey ?? "").trim();
     const checked = Boolean(event.currentTarget?.checked);
     if (!key || !["weapon", "faction"].includes(kind)) return;
-    await this._updateAdvancementQueue((queue, normalized) => {
-      const training = normalizeTrainingData(normalized?.training ?? {});
-      const lockFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks") ?? {};
-      const purchasedLockFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
-      const lockedKeys = new Set([
-        ...(Array.isArray(lockFlag?.[`${kind}Keys`]) ? lockFlag[`${kind}Keys`] : []),
-        ...(Array.isArray(purchasedLockFlag?.[`${kind}Keys`]) ? purchasedLockFlag[`${kind}Keys`] : [])
-      ]);
-      const normalizedLockedKeys = kind === "faction"
-        ? new Set(this._canonicalizeFactionTrainingKeys(Array.from(lockedKeys)))
-        : lockedKeys;
-      const normalizedKey = kind === "faction"
-        ? (this._canonicalizeFactionTrainingKey(key) || key)
-        : key;
-      const baseline = normalizedLockedKeys.has(normalizedKey) || Boolean(training?.[kind]?.[normalizedKey]);
-      if (baseline) {
-        queue[`${kind}Training`][normalizedKey] = true;
+
+    const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
+    const training = normalizeTrainingData(normalized?.training ?? {});
+    const lockFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks") ?? {};
+    const lockedKeys = new Set([...(Array.isArray(lockFlag?.[`${kind}Keys`]) ? lockFlag[`${kind}Keys`] : [])]);
+    const normalizedLockedKeys = kind === "faction"
+      ? new Set(this._canonicalizeFactionTrainingKeys(Array.from(lockedKeys)))
+      : lockedKeys;
+    const normalizedKey = kind === "faction"
+      ? (this._canonicalizeFactionTrainingKey(key) || key)
+      : key;
+    const baseline = normalizedLockedKeys.has(normalizedKey);
+    const owned = Boolean(training?.[kind]?.[normalizedKey]);
+    if (baseline) return;
+
+    if (!checked) {
+      if (owned) {
+        const definition = (kind === "weapon"
+          ? MYTHIC_WEAPON_TRAINING_DEFINITIONS.find((entry) => entry.key === normalizedKey)
+          : MYTHIC_FACTION_TRAINING_DEFINITIONS.find((entry) => entry.key === normalizedKey)
+        );
+        const cost = definition
+          ? (kind === "weapon"
+            ? toNonNegativeWhole(MYTHIC_ADVANCEMENT_WEAPON_TRAINING_COSTS[definition.key] ?? definition.xpCost ?? 0, 0)
+            : toNonNegativeWhole(definition.xpCost ?? 300, 0))
+          : 0;
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+          window: { title: `Refund ${kind === "weapon" ? "Weapon" : "Faction"} Training` },
+          content: `<p>Refund <strong>${kind === "weapon" ? "Weapon" : "Faction"} Training</strong>: <strong>${foundry.utils.escapeHTML(definition?.label ?? "")}</strong> for <strong>${cost.toLocaleString()} XP</strong>?</p>`,
+          yes: { label: "Refund" },
+          no: { label: "Cancel" },
+          rejectClose: false,
+          modal: true
+        });
+        if (!confirmed) {
+          if (event.currentTarget instanceof HTMLInputElement) {
+            event.currentTarget.checked = true;
+          }
+          return;
+        }
+
+        const currentSpent = toNonNegativeWhole(normalized?.advancements?.xpSpent, 0);
+        const nextSpent = Math.max(0, currentSpent - cost);
+        const updateData = {
+          [`system.training.${kind}.${normalizedKey}`]: false,
+          "system.advancements.xpSpent": nextSpent
+        };
+        if (definition && cost > 0) {
+          const spendLog = String(normalized?.advancements?.spendLog ?? "").trim();
+          const refundLine = `Refunded ${kind === "weapon" ? "Weapon" : "Faction"} Training: ${definition.label} (-${cost.toLocaleString()} XP)`;
+          updateData["system.advancements.spendLog"] = spendLog
+            ? `${spendLog}\n${refundLine}`
+            : refundLine;
+        }
+        const transactions = this._normalizeAdvancementTransactions(this.actor.system?.advancements?.transactions ?? []);
+        let removed = false;
+        const nextTransactions = transactions.filter((entry) => {
+          if (removed) return true;
+          if (String(entry?.source ?? "").trim() !== "training") return true;
+          if (String(entry?.label ?? "").trim() !== `${kind === "weapon" ? "Weapon Training" : "Faction Training"}: ${definition?.label}`) return true;
+          if (toNonNegativeWhole(entry?.amount, 0) !== cost) return true;
+          removed = true;
+          return false;
+        });
+        if (nextTransactions.length !== transactions.length) {
+          updateData["system.advancements.transactions"] = nextTransactions;
+        }
+        await this.actor.update(updateData);
+        await this._updateAdvancementQueue((queue) => {
+          if (queue?.[`${kind}Training`] && Object.prototype.hasOwnProperty.call(queue[`${kind}Training`], normalizedKey)) {
+            delete queue[`${kind}Training`][normalizedKey];
+          }
+        });
       } else {
-        queue[`${kind}Training`][normalizedKey] = checked;
+        await this._updateAdvancementQueue((queue) => {
+          queue[`${kind}Training`][normalizedKey] = false;
+        });
+      }
+      return;
+    }
+
+    if (owned) {
+      await this._updateAdvancementQueue((queue) => {
+        if (queue?.[`${kind}Training`] && Object.prototype.hasOwnProperty.call(queue[`${kind}Training`], normalizedKey)) {
+          delete queue[`${kind}Training`][normalizedKey];
+        }
+      });
+      return;
+    }
+
+    const definition = (kind === "weapon"
+      ? MYTHIC_WEAPON_TRAINING_DEFINITIONS.find((entry) => entry.key === normalizedKey)
+      : MYTHIC_FACTION_TRAINING_DEFINITIONS.find((entry) => entry.key === normalizedKey)
+    );
+    if (!definition) return;
+
+    const cost = kind === "weapon"
+      ? toNonNegativeWhole(MYTHIC_ADVANCEMENT_WEAPON_TRAINING_COSTS[definition.key] ?? definition.xpCost ?? 0, 0)
+      : toNonNegativeWhole(definition.xpCost ?? 300, 0);
+
+    const totalXp = toNonNegativeWhole(normalized?.advancements?.xpEarned, 0);
+    const spentXp = toNonNegativeWhole(normalized?.advancements?.xpSpent, 0);
+    const freeXp = Math.max(0, totalXp - spentXp);
+    const warningHtml = cost > freeXp
+      ? `<p><strong>Warning:</strong> this purchase exceeds your available free XP.</p>`
+      : "";
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: `Purchase ${kind === "weapon" ? "Weapon" : "Faction"} Training` },
+      content: `<p>Spend <strong>${cost.toLocaleString()} XP</strong> to purchase ${kind === "weapon" ? "Weapon" : "Faction"} Training: <strong>${foundry.utils.escapeHTML(definition.label)}</strong>?</p>
+        <p>Free XP: <strong>${freeXp.toLocaleString()}</strong>.</p>
+        ${warningHtml}`,
+      yes: { label: "Purchase" },
+      no: { label: "Cancel" },
+      rejectClose: false,
+      modal: true
+    });
+
+    if (!confirmed) {
+      if (event.currentTarget instanceof HTMLInputElement) {
+        event.currentTarget.checked = false;
+      }
+      return;
+    }
+
+    if (cost > 0) {
+      await this._appendAdvancementTransaction({
+        label: `${kind === "weapon" ? "Weapon Training" : "Faction Training"}: ${definition.label}`,
+        amount: cost,
+        source: "training",
+        applyXp: true
+      });
+    }
+
+    await this.actor.update({
+      [`system.training.${kind}.${normalizedKey}`]: true
+    });
+    await this._updateAdvancementQueue((queue) => {
+      if (queue?.[`${kind}Training`] && Object.prototype.hasOwnProperty.call(queue[`${kind}Training`], normalizedKey)) {
+        delete queue[`${kind}Training`][normalizedKey];
       }
     });
+    ui.notifications?.info(`Purchased ${kind === "weapon" ? "Weapon" : "Faction"} Training: ${definition.label} for ${cost.toLocaleString()} XP.`);
   }
 
   async _onAdvCharacteristicQueueChange(event) {
@@ -7399,26 +7696,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     await this.actor.update(updateData);
-
-    const purchasedWeaponKeys = queueView.training.weaponRows.filter((row) => !row.baseline && row.queued).map((row) => row.key);
-    const purchasedFactionKeys = this._canonicalizeFactionTrainingKeys(
-      queueView.training.factionRows.filter((row) => !row.baseline && row.queued).map((row) => row.key)
-    );
-    if (purchasedWeaponKeys.length || purchasedFactionKeys.length) {
-      const existing = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks") ?? {};
-      const nextWeaponKeys = Array.from(new Set([
-        ...(Array.isArray(existing?.weaponKeys) ? existing.weaponKeys : []),
-        ...purchasedWeaponKeys
-      ]));
-      const nextFactionKeys = Array.from(new Set([
-        ...this._canonicalizeFactionTrainingKeys(Array.isArray(existing?.factionKeys) ? existing.factionKeys : []),
-        ...purchasedFactionKeys
-      ]));
-      await this.actor.setFlag("Halo-Mythic-Foundry-Updated", "advancementTrainingLocks", {
-        weaponKeys: nextWeaponKeys,
-        factionKeys: nextFactionKeys
-      });
-    }
 
     if (markCharacterCreationComplete) {
       ui.notifications?.info(`Character Creation finalized. ${queuedXp.toLocaleString()} XP recorded as spent.`);
@@ -14543,6 +14820,152 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  async _onBallisticContainerCarriedToggle(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const checkbox = event.currentTarget;
+    const groupKey = String(checkbox?.dataset?.groupKey ?? "").trim();
+    const containerId = String(checkbox?.dataset?.containerId ?? "").trim();
+    if (!groupKey || !containerId) return;
+
+    const ballisticContainers = (this.actor.system?.equipment?.ballisticContainers && typeof this.actor.system.equipment.ballisticContainers === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.ballisticContainers)
+      : {};
+    const group = Array.isArray(ballisticContainers[groupKey]) ? ballisticContainers[groupKey] : null;
+    if (!group) return;
+
+    const container = group.find((entry) => String(entry?.id ?? "").trim() === containerId);
+    if (!container) return;
+
+    container.isCarried = checkbox?.checked !== false;
+    await this.actor.update({
+      "system.equipment.ballisticContainers": ballisticContainers
+    });
+  }
+
+  async _onAmmoSplit(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const button = event.currentTarget;
+    const source = String(button?.dataset?.ammoSource ?? "").trim().toLowerCase();
+    const ammoName = String(button?.dataset?.ammoName ?? "ammo").trim() || "ammo";
+    const ammoPools = (this.actor.system?.equipment?.ammoPools && typeof this.actor.system.equipment.ammoPools === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.ammoPools)
+      : {};
+    const independentAmmo = (this.actor.system?.equipment?.independentAmmo && typeof this.actor.system.equipment.independentAmmo === "object")
+      ? foundry.utils.deepClone(this.actor.system.equipment.independentAmmo)
+      : {};
+
+    let currentCount = 0;
+    let poolKey = "";
+    let ammoUuid = "";
+    if (source === "pool") {
+      const keyLike = String(button?.dataset?.ammoKey ?? "").trim();
+      poolKey = this._resolveAmmoPoolStorageKey(keyLike, ammoPools);
+      if (!poolKey || !Object.prototype.hasOwnProperty.call(ammoPools, poolKey)) return;
+      const pool = (ammoPools[poolKey] && typeof ammoPools[poolKey] === "object") ? ammoPools[poolKey] : {};
+      const epCount = toNonNegativeWhole(pool?.epCount, 0);
+      const purchasedCount = toNonNegativeWhole(pool?.purchasedCount, 0);
+      const hasSplit = Number.isFinite(Number(pool?.epCount)) || Number.isFinite(Number(pool?.purchasedCount));
+      currentCount = hasSplit ? epCount + purchasedCount : toNonNegativeWhole(pool?.count, 0);
+    } else if (source === "independent") {
+      ammoUuid = String(button?.dataset?.ammoUuid ?? "").trim();
+      if (!ammoUuid || !Object.prototype.hasOwnProperty.call(independentAmmo, ammoUuid)) return;
+      const entry = independentAmmo[ammoUuid];
+      currentCount = Math.max(0, Number(entry?.quantity ?? 0));
+    } else {
+      return;
+    }
+
+    const maxSplit = Math.max(0, currentCount - 1);
+    if (maxSplit <= 0) {
+      ui.notifications?.warn(`Not enough ${ammoName} to split.`);
+      return;
+    }
+
+    const splitResult = await foundry.applications.api.DialogV2.prompt({
+      window: { title: `Split ${ammoName}` },
+      content: `
+        <div class="mythic-modal-body">
+          <p>How many rounds should be split into a new pile?</p>
+          <div class="form-group">
+            <label for="mythic-ammo-split-count">Split quantity</label>
+            <input id="mythic-ammo-split-count" type="number" min="1" max="${maxSplit}" value="1" />
+          </div>
+        </div>
+      `,
+      ok: {
+        label: "Split",
+        callback: (_event, _button, dialogApp) => {
+          const dialogElement = dialogApp?.element instanceof HTMLElement
+            ? dialogApp.element
+            : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+          const input = dialogElement?.querySelector('#mythic-ammo-split-count');
+          return input instanceof HTMLInputElement ? Number(input.value ?? 0) : 0;
+        }
+      }
+    }).catch(() => 0);
+
+    const splitCount = toNonNegativeWhole(splitResult, 0);
+    if (splitCount <= 0 || splitCount > maxSplit) {
+      ui.notifications?.warn("Invalid split quantity.");
+      return;
+    }
+
+    let newAmmoUuid = buildSafeIndependentAmmoKey(`split-${ammoName}`, ammoName);
+    while (Object.prototype.hasOwnProperty.call(independentAmmo, newAmmoUuid)) {
+      newAmmoUuid = buildSafeIndependentAmmoKey(`split-${ammoName}-${foundry.utils.randomID(4)}`, ammoName);
+    }
+    const sourceIsCarried = (source === "pool")
+      ? ((ammoPools[poolKey] && typeof ammoPools[poolKey] === "object" ? ammoPools[poolKey].isCarried : true) !== false)
+      : ((independentAmmo[ammoUuid] && typeof independentAmmo[ammoUuid] === "object" ? independentAmmo[ammoUuid].isCarried : true) !== false);
+    independentAmmo[newAmmoUuid] = {
+      ammoUuid: newAmmoUuid,
+      ammoName,
+      ammoImg: "icons/svg/item-bag.svg",
+      quantity: splitCount,
+      isCarried: sourceIsCarried
+    };
+
+    if (source === "pool") {
+      const pool = (ammoPools[poolKey] && typeof ammoPools[poolKey] === "object") ? ammoPools[poolKey] : {};
+      const epCount = toNonNegativeWhole(pool?.epCount, 0);
+      const purchasedCount = toNonNegativeWhole(pool?.purchasedCount, 0);
+      const hasSplit = Number.isFinite(Number(pool?.epCount)) || Number.isFinite(Number(pool?.purchasedCount));
+      let remainingCount = Math.max(0, currentCount - splitCount);
+      if (hasSplit) {
+        const splitFromPurchased = Math.min(purchasedCount, splitCount);
+        const splitFromEp = splitCount - splitFromPurchased;
+        pool.purchasedCount = Math.max(0, purchasedCount - splitFromPurchased);
+        pool.epCount = Math.max(0, epCount - splitFromEp);
+        pool.count = pool.purchasedCount + pool.epCount;
+      } else {
+        pool.count = remainingCount;
+      }
+      if (pool.count <= 0) {
+        delete ammoPools[poolKey];
+      } else {
+        ammoPools[poolKey] = pool;
+      }
+    } else {
+      const entry = independentAmmo[ammoUuid];
+      if (!entry) return;
+      entry.quantity = Math.max(0, Number(entry.quantity) - splitCount);
+      if (entry.quantity <= 0) {
+        delete independentAmmo[ammoUuid];
+      }
+    }
+
+    await this.actor.update({
+      "system.equipment.ammoPools": ammoPools,
+      "system.equipment.independentAmmo": independentAmmo
+    });
+
+    ui.notifications?.info(`Split ${splitCount} rounds of ${ammoName} into a new pile.`);
+  }
+
   async _onReloadWeapon(event) {
     event.preventDefault();
     if (!this.isEditable) return;
@@ -14917,6 +15340,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
     const actionType = String(event.currentTarget?.dataset?.action ?? "single").trim().toLowerCase();
+    const grenadeArmAction = String(event.currentTarget?.dataset?.grenadeAction ?? "").trim().toLowerCase();
     let executionVariant = null;
     if (!itemId) return;
 
@@ -14983,6 +15407,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const state = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
+    const isCookGrenadeWeapon = String(gear.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades"
+      || String(gear.ammoMode ?? "").trim().toLowerCase() === "grenade";
+    if (isCookGrenadeWeapon && grenadeArmAction === "cook") {
+      await this._startDeferredGrenadeCook({ item, itemId, gear, state });
+      return;
+    }
     const toHitMod = Number.isFinite(Number(state?.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
     const baseToHitMod = Number.isFinite(Number(gear.baseToHitModifier)) ? Math.round(Number(gear.baseToHitModifier)) : 0;
     const damageModifier = Number.isFinite(Number(state?.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0;
@@ -14993,12 +15423,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ?? "Single";
     const modeProfile = parseFireModeProfile(modeLabel);
     const isMelee = gear.weaponClass === "melee";
+    const isGrenadeWeapon = String(gear.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades"
+      || String(gear.ammoMode ?? "").trim().toLowerCase() === "grenade";
+    const isGrenadeThrowAction = isGrenadeWeapon && grenadeArmAction === "throw";
     const ammoMode = isEnergyCellAmmoMode(gear.ammoMode)
       ? String(gear.ammoMode ?? "").trim().toLowerCase()
-      : normalizeBallisticAmmoMode(gear.ammoMode);
+      : (String(gear.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades"
+          ? "grenade"
+          : normalizeBallisticAmmoMode(gear.ammoMode));
     const isEnergyWeapon = !isMelee && !isInfusionRadiusWeapon && isEnergyCellAmmoMode(ammoMode);
     const ammoConfig = getAmmoConfig();
-    const tracksBasicAmmo = !isMelee && !isInfusionRadiusWeapon && !ammoConfig.ignoreBasicAmmoCounts;
+    const tracksBasicAmmo = !isMelee && !isInfusionRadiusWeapon && !isGrenadeWeapon && !ammoConfig.ignoreBasicAmmoCounts;
     const ammoName = String(gear.ammoName ?? "").trim();
     const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
     const weaponEnergyCells = isEnergyWeapon && this.actor.system?.equipment?.energyCells && typeof this.actor.system.equipment.energyCells === "object"
@@ -15055,11 +15490,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const distanceMeters = (attackerToken && targetToken && canvas?.grid?.measureDistance)
       ? Number(canvas.grid.measureDistance(attackerToken.center, targetToken.center))
       : NaN;
+    const trackedCombat = isActorActivelyInCombat(this.actor) ? game.combat : null;
 
     let targetSwitchPenalty = 0;
-    if (game.combat) {
-      const combatId = String(game.combat.id ?? "");
-      const round = Math.max(0, Number(game.combat.round ?? 0));
+    if (trackedCombat && !isGrenadeThrowAction) {
+      const combatId = String(trackedCombat.id ?? "");
+      const round = Math.max(0, Number(trackedCombat.round ?? 0));
       const currentTargetId = String(targetToken?.id ?? "");
       const tracker = this.actor.system?.combat?.targetSwitch ?? {};
       const isSameRound = String(tracker?.combatId ?? "") === combatId && Number(tracker?.round ?? -1) === round;
@@ -15121,10 +15557,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const autoShotsPerTurn = isAutomaticFire ? Math.max(1, modeProfile.count) : 0;
     const autoHalfFloor = isAutomaticFire ? Math.floor(autoShotsPerTurn / 2) : 0;
     const autoHalfCeil = isAutomaticFire ? (autoShotsPerTurn - autoHalfFloor) : 0;
-    const combatIdForAuto = String(game.combat?.id ?? "");
-    const combatRoundForAuto = Math.max(0, Number(game.combat?.round ?? 0));
+    const combatIdForAuto = String(trackedCombat?.id ?? "");
+    const combatRoundForAuto = Math.max(0, Number(trackedCombat?.round ?? 0));
     const autoTrackerRoot = this.actor.system?.combat?.autoFireTracker ?? {};
-    const isAutoTrackerCurrentRound = isAutomaticFire
+    const isAutoTrackerCurrentRound = Boolean(trackedCombat)
+      && isAutomaticFire
       && String(autoTrackerRoot?.combatId ?? "") === combatIdForAuto
       && Number(autoTrackerRoot?.round ?? -1) === combatRoundForAuto;
     const autoTrackerWeapons = isAutoTrackerCurrentRound && autoTrackerRoot?.weapons && typeof autoTrackerRoot.weapons === "object"
@@ -15178,7 +15615,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const attackMods = await this._promptAttackModifiers(weaponDisplayName, gear);
     if (attackMods === null) return;
 
-    const promptRangeMeters = Number(attackMods.rangeMeters);
+    const promptRangeMeters = attackMods.rangeMeters === null || attackMods.rangeMeters === undefined
+      ? NaN
+      : Number(attackMods.rangeMeters);
     const calledShotPenalty = Number(attackMods.calledShotPenalty ?? 0);
     const calledShotData = attackMods.calledShot && typeof attackMods.calledShot === "object"
       ? attackMods.calledShot
@@ -15187,14 +15626,144 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const resolvedRangeMeters = hasPromptedRange ? promptRangeMeters : distanceMeters;
     const rangeCloseMeters = toNonNegativeWhole(gear.range?.close, 0);
     const rangeMaxMeters = toNonNegativeWhole(gear.range?.max, 0);
-    let rangeResult = computeRangeModifier(
-      resolvedRangeMeters,
-      rangeCloseMeters,
-      rangeMaxMeters,
-      isMelee || actionType === "buttstroke"
-    );
+    const grenadeThrowProfile = isGrenadeWeapon
+      ? (() => {
+        const strScore = toNonNegativeWhole(characteristicRuntime?.scores?.str, 0);
+        const hasServoAssisted = this.actor.items.some((entry) => {
+          const nameText = String(entry?.name ?? "").trim().toLowerCase();
+          const descText = String(entry?.system?.description ?? entry?.system?.modifiers ?? "").trim().toLowerCase();
+          return nameText.includes("servo-assisted") || descText.includes("finding throwing distance");
+        });
+        const throwStrengthBonus = hasServoAssisted ? 25 : 0;
+        const effectiveStrengthScore = Math.max(0, strScore + throwStrengthBonus);
+        const effectiveStrengthModifier = Math.floor(effectiveStrengthScore / 10);
+        const mythicStrength = Math.max(0, toNonNegativeWhole(this.actor.system?.mythic?.characteristics?.str, 0));
+        const strengthPower = Math.max(0, effectiveStrengthModifier + mythicStrength);
+        const throwWeightKgRaw = Number(gear.weightKg ?? gear.weightPerRoundKg ?? 0);
+        const throwWeightKg = Number.isFinite(throwWeightKgRaw) && throwWeightKgRaw > 0 ? throwWeightKgRaw : 1;
+        const strengthBand = strengthPower <= 2
+          ? { stepKg: 0.1, reductionPerStep: 2 }
+          : strengthPower <= 4
+            ? { stepKg: 0.1, reductionPerStep: 1 }
+            : strengthPower <= 6
+              ? { stepKg: 0.2, reductionPerStep: 1 }
+              : strengthPower <= 9
+                ? { stepKg: 0.5, reductionPerStep: 1 }
+                : strengthPower <= 12
+                  ? { stepKg: 1, reductionPerStep: 1 }
+                  : strengthPower <= 18
+                    ? { stepKg: 5, reductionPerStep: 1 }
+                    : { stepKg: 10, reductionPerStep: 1 };
+        const weightSteps = computeThrowWeightSteps(throwWeightKg, strengthBand.stepKg);
+        const weightPenalty = Math.max(0, weightSteps * strengthBand.reductionPerStep);
+        const baseMultiplier = 15;
+        const multiplierAfterWeight = baseMultiplier - weightPenalty;
+        const carryCapacityKg = Number(computeCharacterDerivedValues(this.actor.system ?? {})?.carryingCapacity?.carry ?? 0);
+        const exceedsCarryWeight = Number.isFinite(carryCapacityKg) && carryCapacityKg > 0
+          ? throwWeightKg > carryCapacityKg
+          : false;
+        const isGrenadeThrowItem = isGrenadeAmmoMode(gear.ammoMode)
+          || String(gear.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades";
+        const wieldingTypeTag = String(gear.wieldingType ?? "").trim().toUpperCase();
+        const rulesText = String(gear.specialRules ?? "").toUpperCase();
+        const weaponTagKeys = Array.isArray(gear.weaponTagKeys)
+          ? gear.weaponTagKeys.map((entry) => String(entry ?? "").trim().toUpperCase())
+          : [];
+        const hasOneHandThrowTag = isGrenadeThrowItem
+          || ["DW", "OH"].includes(wieldingTypeTag)
+          || /\[(DW|OH)\]/u.test(rulesText)
+          || weaponTagKeys.includes("[DW]")
+          || weaponTagKeys.includes("[OH]")
+          || weaponTagKeys.includes("DW")
+          || weaponTagKeys.includes("OH");
+        const isOneHandThrow = !hasOneHandThrowTag;
+        const resolveDistanceFromMultiplier = (multiplierValue = 0) => {
+          if (multiplierValue <= -10) return 0;
+          const negativeBaseMeters = Math.max(0, strengthPower / 2);
+          const baseMeters = multiplierValue < 0
+            ? (negativeBaseMeters >= 0.5 ? Math.max(1, Math.floor(negativeBaseMeters)) : 0)
+            : Math.max(0, Math.floor(strengthPower * multiplierValue));
+          const handedMeters = isOneHandThrow ? Math.floor(baseMeters / 2) : baseMeters;
+          return Math.max(0, handedMeters);
+        };
+        const resolveRawDistanceFromMultiplier = (multiplierValue = 0) => {
+          if (multiplierValue <= -10) return 0;
+          const baseMeters = multiplierValue < 0
+            ? Math.max(0, strengthPower / 2)
+            : Math.max(0, strengthPower * multiplierValue);
+          const handedMeters = isOneHandThrow ? (baseMeters / 2) : baseMeters;
+          return Math.max(0, handedMeters);
+        };
+        const computedMax = resolveDistanceFromMultiplier(multiplierAfterWeight);
+        const computedClose = Math.max(0, Math.floor(computedMax / 2));
+        const rawComputedMax = resolveRawDistanceFromMultiplier(multiplierAfterWeight);
+        const belowMinimumThrowRange = rawComputedMax < 0.5;
+        const canThrow = !exceedsCarryWeight && (multiplierAfterWeight <= -10 || (!belowMinimumThrowRange && computedMax >= 1));
+        return {
+          strScore,
+          throwStrengthBonus,
+          effectiveStrengthModifier,
+          mythicStrength,
+          strengthPower,
+          throwWeightKg,
+          strengthBand,
+          weightPenalty,
+          baseMultiplier,
+          multiplierAfterWeight,
+          carryCapacityKg,
+          exceedsCarryWeight,
+          isOneHandThrow,
+          resolveDistanceFromMultiplier,
+          resolveRawDistanceFromMultiplier,
+          hasServoAssisted,
+          belowMinimumThrowRange,
+          canThrow,
+          computedMax,
+          computedClose
+        };
+      })()
+      : null;
+    const effectiveRangeCloseMeters = grenadeThrowProfile?.computedClose ?? rangeCloseMeters;
+    const effectiveRangeMaxMeters = grenadeThrowProfile?.computedMax ?? rangeMaxMeters;
+    let rangeResult = isGrenadeThrowAction
+      ? {
+        band: "Throw Test",
+        toHitMod: 0,
+        pierceFactor: 1,
+        canDealDamage: true
+      }
+      : computeRangeModifier(
+        resolvedRangeMeters,
+        effectiveRangeCloseMeters,
+        effectiveRangeMaxMeters,
+        isMelee || actionType === "buttstroke"
+      );
 
-    if (!isMelee && hasPromptedRange && promptRangeMeters <= 3) {
+    const grenadeScatterMultiplier = 1;
+
+    if (isGrenadeWeapon && grenadeThrowProfile && !grenadeThrowProfile.canThrow) {
+      const reason = grenadeThrowProfile.exceedsCarryWeight
+        ? `Object is heavier (${Math.round(grenadeThrowProfile.throwWeightKg * 10) / 10}kg) than carry capacity (${Math.round(Math.max(0, grenadeThrowProfile.carryCapacityKg) * 10) / 10}kg).`
+        : grenadeThrowProfile.belowMinimumThrowRange
+          ? "Computed throw range is below 0.5 meters."
+        : "Throw multiplier is too low to throw this object.";
+      ui.notifications.warn(`Cannot throw object: ${reason}`);
+      return;
+    }
+
+    if (isGrenadeWeapon && hasPromptedRange && grenadeThrowProfile && resolvedRangeMeters > grenadeThrowProfile.computedMax) {
+      ui.notifications.warn(`Target range ${Math.floor(resolvedRangeMeters)}m exceeds max throw range ${Math.floor(grenadeThrowProfile.computedMax)}m.`);
+      return;
+    }
+
+    if (isGrenadeWeapon && rangeResult.band === "Out of Range") {
+      rangeResult = {
+        ...rangeResult,
+        canDealDamage: true
+      };
+    }
+
+    if (!isMelee && !isGrenadeWeapon && hasPromptedRange && promptRangeMeters <= 3) {
       const movedSinceLastTurn = await foundry.applications.api.DialogV2.wait({
         window: { title: "Point-Blank Check" },
         content: "<p>Has the target moved a minimum of a half action move since your previous turn?</p>",
@@ -15216,7 +15785,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
-    if (!isMelee && hasPromptedRange && !rangeResult.canDealDamage) {
+    if (!isMelee && hasPromptedRange && !rangeResult.canDealDamage && !isGrenadeWeapon) {
       ui.notifications.warn("Target is beyond extreme range. The shot cannot deal damage.");
       return;
     }
@@ -15267,7 +15836,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     })();
 
     let ammoPerIteration = 0;
-    if (!isMelee && !isInfusionRadiusWeapon && actionType !== "execution" && actionType !== "buttstroke") {
+    if (!isMelee && !isInfusionRadiusWeapon && !isGrenadeWeapon && actionType !== "execution" && actionType !== "buttstroke") {
       if (isChargeMode) {
         ammoPerIteration = activeChargeLevel > 0 ? activeChargeLevel * chargeAmmoPerLevel : 1;
       } else if (modeProfile.kind === "burst") {
@@ -15278,7 +15847,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ammoPerIteration = 1;
       }
     }
-    if (!isMelee && !isInfusionRadiusWeapon && actionType === "execution") ammoPerIteration = 1;
+    if (!isMelee && !isInfusionRadiusWeapon && !isGrenadeWeapon && actionType === "execution") ammoPerIteration = 1;
 
     let executedIterations = rollIterations;
     if (ammoPerIteration > 0) {
@@ -15295,7 +15864,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     let newAmmoCurrent = ammoCurrent;
     let totalTrackedAmmoAfter = totalTrackedAmmoBefore;
 
-    if (isAutomaticFire && actionType === "half") {
+    if (trackedCombat && isAutomaticFire && actionType === "half") {
       const priorHalfActions = Math.max(0, Number(autoTrackerEntry?.halfAutoActions ?? 0));
       const priorShotsSpent = Math.max(0, Number(autoTrackerEntry?.shotsSpent ?? 0));
       autoTrackerWeapons[itemId] = {
@@ -15365,7 +15934,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Determine attack characteristic from the live, canonical score/mod snapshot.
     const characteristics = characteristicRuntime.scores;
     const characteristicModifiers = characteristicRuntime.modifiers;
-    const statKey = (isMelee || actionType === "buttstroke") ? "wfm" : "wfr";
+    const statKey = (isMelee || isGrenadeWeapon || actionType === "buttstroke") ? "wfm" : "wfr";
     const baseStat = toNonNegativeWhole(characteristics[statKey], 0);
     const fireModeBonus = actionType === "buttstroke" ? 0 : getFireModeToHitBonus(modeLabel);
     const effectiveTarget = baseStat
@@ -15610,6 +16179,22 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const dosValue = actionType === "execution" ? 99 : computeAttackDOS(effectiveTarget, rawRoll);
       let resolvedDosValue = dosValue;
       let isSuccess = actionType === "execution" ? true : (!isCritFail && dosValue >= 0);
+      const grenadeDof = isGrenadeWeapon ? Math.max(0, Math.floor(Math.abs(Math.min(0, Number(dosValue ?? 0))))) : 0;
+      const grenadeThrowMultiplier = isGrenadeWeapon && grenadeThrowProfile
+        ? (Number(grenadeThrowProfile.multiplierAfterWeight ?? 0) - grenadeDof)
+        : 0;
+      const grenadeThrowDistanceMeters = isGrenadeWeapon && grenadeThrowProfile
+        ? Math.max(0, Math.floor(Number(grenadeThrowProfile.resolveDistanceFromMultiplier?.(grenadeThrowMultiplier) ?? 0)))
+        : 0;
+      const grenadeThrowRawDistanceMeters = isGrenadeWeapon && grenadeThrowProfile
+        ? Math.max(0, Number(grenadeThrowProfile.resolveRawDistanceFromMultiplier?.(grenadeThrowMultiplier) ?? 0))
+        : 0;
+      if (isGrenadeWeapon && !isCritFail && grenadeThrowRawDistanceMeters < 0.5) {
+        isSuccess = false;
+      }
+      if (isGrenadeWeapon && !isGrenadeThrowAction && hasPromptedRange && !isCritFail && grenadeThrowDistanceMeters < Math.floor(resolvedRangeMeters)) {
+        isSuccess = false;
+      }
       const standardEffectiveTarget = actionType === "execution"
         ? effectiveTarget
         : (effectiveTarget - calledShotPenalty);
@@ -15724,6 +16309,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           fallbackToNormal: calledShotFallbackToNormal,
           weaponOnly: calledShotWeaponOnly
         } : null,
+        grenadeThrowMultiplier,
+        grenadeThrowDistanceMeters,
         hitLoc,
         damageInstances,
         wouldDamage
@@ -15861,23 +16448,29 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? `<div class="mythic-attack-badge-row">${badgeEntries.map((badge) => `<span class="mythic-attack-badge ${badge.kind === "rule" ? "is-rule" : "is-tag"}" title="${esc(badge.fullLabel)}">${esc(badge.shortLabel)}</span>`).join("")}</div>`
       : "";
     const statLabel = statKey.toUpperCase();
-    const displayActionLabel = actionType === "execution"
-      ? (executionVariant === "assassination"
-        ? (!isMelee ? "assassination (full, buttstroke damage, ignores shields)" : "assassination (full, x4, ignores shields)")
-        : "execution (half, x2)")
-      : actionType === "buttstroke"
-        ? "buttstroke"
-        : actionType === "pump-reaction"
-          ? `${modeLabel} (reaction shot)`
-          : isSustainedFire
-            ? `${modeLabel} (${sustainedSelectedAttacks} attacks, ${sustainedActionBand} action)`
-          : `${modeLabel} (${actionType})`;
+    const displayActionLabel = isGrenadeThrowAction
+      ? "throw (WFM test)"
+      : actionType === "execution"
+        ? (executionVariant === "assassination"
+          ? (!isMelee ? "assassination (full, buttstroke damage, ignores shields)" : "assassination (full, x4, ignores shields)")
+          : "execution (half, x2)")
+        : actionType === "buttstroke"
+          ? "buttstroke"
+          : actionType === "pump-reaction"
+            ? `${modeLabel} (reaction shot)`
+            : isSustainedFire
+              ? `${modeLabel} (${sustainedSelectedAttacks} attacks, ${sustainedActionBand} action)`
+            : `${modeLabel} (${actionType})`;
 
     const modParts = [];
     if (fireModeBonus !== 0) modParts.push(`${esc(modeLabel)} ${signMod(fireModeBonus)}`);
     if (baseToHitMod !== 0) modParts.push(`Base ${signMod(baseToHitMod)}`);
     if (toHitMod !== 0) modParts.push(`Wpn ${signMod(toHitMod)}`);
     if (rangeResult.toHitMod !== 0) modParts.push(`Range ${rangeResult.band} ${signMod(rangeResult.toHitMod)}`);
+    if (isGrenadeWeapon && grenadeThrowProfile) {
+      modParts.push(`Default Throw ${Math.round(grenadeThrowProfile.computedMax)}m`);
+      if (grenadeThrowProfile.throwStrengthBonus > 0) modParts.push(`Servo-Assisted +${grenadeThrowProfile.throwStrengthBonus} STR`);
+    }
     if (targetSwitchPenalty !== 0) modParts.push(`Target Switch ${signMod(targetSwitchPenalty)}`);
     if (factionTrainingPenalty !== 0) modParts.push(`Faction Training ${signMod(factionTrainingPenalty)}`);
     if (weaponTrainingPenalty !== 0) modParts.push(`Weapon Training ${signMod(weaponTrainingPenalty)}`);
@@ -15910,6 +16503,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const successDetail = row.isSuccess && row.damageInstances.length
         ? (() => {
           const hitLines = row.damageInstances.map((entry, idx) => {
+            const grenadeBlast = Number(entry.damageTotal ?? 0);
+            const grenadeKill = grenadeBlast * 2;
             const locHtml = row.hitLoc
               ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
               : `<em>-</em>`;
@@ -15917,9 +16512,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             const specialBadge = entry.hasSpecialDamage ? ' <span class="mythic-special-dmg" title="Special Damage Applies">&#9888;</span>' : "";
             const shieldBadge = entry.ignoresShields ? ' <span class="mythic-special-dmg" title="Ignores Shields">&#9762;</span>' : "";
             const hardlightBadge = entry.isHardlight && entry.damageFormula && entry.damageFormula.includes("Hardlight") ? ' <span class="mythic-special-dmg" title="Hardlight Explosion">&#9889;</span>' : "";
+            if (isGrenadeWeapon) {
+              // For grenade throw actions we don't display the damage numbers here;
+              // damage should only be revealed when the grenade actually explodes.
+              if (isGrenadeThrowAction) return "";
+              return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Detonation: Blast <span class="mythic-roll-inline" title="${damageTitle}">${grenadeBlast}</span> | Kill <span class="mythic-roll-inline" title="Kill radius damage is double blast damage">${grenadeKill}</span>${specialBadge}${shieldBadge}${hardlightBadge}</div>`;
+            }
             return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Hit ${idx + 1}: <span class="mythic-roll-inline" title="${damageTitle}">${entry.damageTotal}</span> @ ${locHtml}${specialBadge}${shieldBadge}${hardlightBadge}</div>`;
           }).join("");
           return hitLines;
+        })()
+        : "";
+      const grenadeThrowDetail = isGrenadeWeapon && Number.isFinite(Number(row?.grenadeThrowDistanceMeters))
+        ? (() => {
+          const resolvedThrow = Math.max(0, Math.floor(Number(row.grenadeThrowDistanceMeters ?? 0)));
+          const defaultThrow = Math.max(0, Math.floor(Number(grenadeThrowProfile?.computedMax ?? 0)));
+          const lostMeters = Math.max(0, defaultThrow - resolvedThrow);
+          const lostText = lostMeters > 0 ? ` (${lostMeters}m lost to DOF)` : "";
+          const defaultText = defaultThrow > 0 ? ` / default ${defaultThrow}m` : "";
+          return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Throw range: <strong>${resolvedThrow}m</strong>${defaultText}${lostText}</div>`;
+        })()
+        : "";
+      const grenadeMissDetail = isGrenadeWeapon && !row.isSuccess && !row.isCritFail && row.wouldDamage?.length && !isGrenadeThrowAction
+        ? (() => {
+          const would = row.wouldDamage[0];
+          const blast = Number(would?.damageTotal ?? 0);
+          const kill = blast * 2;
+          const wouldTitle = would?.rollTooltip || esc(`Would deal: ${blast} [${would?.damageFormula ?? ""}]`);
+          return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Blast <span class="mythic-roll-inline" title="${wouldTitle}">${blast}</span> | Kill <span class="mythic-roll-inline" title="Kill radius damage is double blast damage">${kill}</span>, Pierce ${Number(would?.damagePierce ?? 0)}</div>`;
         })()
         : "";
       const calledShotDetail = row.calledShotInfo
@@ -15943,13 +16563,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       return `<div class="mythic-attack-line">
         <div class="mythic-attack-mainline">A${row.index}: ${actionType === "execution" ? "AUTO" : `<span class="mythic-roll-inline" title="${attackRollTitle}">${row.rawRoll}</span> vs <span class="mythic-roll-target" title="Effective target">${row.effectiveTarget}</span>`} <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span></div>
+        ${grenadeThrowDetail}
         ${calledShotDetail}
+        ${grenadeMissDetail}
         ${successDetail}
       </div>`;
     }).join("");
 
     const failedRows = attackRows.filter((row) => !row.isClick && (!row.isSuccess || row.isCritFail));
-    const failureDetails = failedRows.length
+    const failureDetails = !isGrenadeWeapon && failedRows.length
       ? `<details class="mythic-miss-details"><summary>Reveal damage details for failures</summary>${failedRows.map((row) => {
         const locHtml = row.hitLoc
           ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
@@ -15961,7 +16583,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : "";
 
     const anySuccess = attackRows.some((row) => row.isSuccess && row.damageInstances.length);
-    const cardFormulaFooter = anySuccess
+    const primaryDamageEntry = attackRows
+      .flatMap((row) => (row.damageInstances?.length ? row.damageInstances : (row.wouldDamage?.length ? row.wouldDamage : [])))
+      .find(Boolean) ?? null;
+    const cardFormulaFooter = (anySuccess || (isGrenadeWeapon && primaryDamageEntry && !isGrenadeThrowAction))
       ? `<div class="mythic-attack-formula-note">${esc(damageFormula)}, Pierce ${effectivePierce}</div>`
       : "";
 
@@ -15976,11 +16601,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? ` <span class="mythic-attack-type-note">[${esc(attackLabel)}]</span>`
       : "";
 
+    const attackHeaderHtml = isGrenadeThrowAction
+      ? `<strong>${esc(this.actor.name)}</strong> throws <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
+      : (targets.length === 1 && targetName
+        ? `<strong>${esc(this.actor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
+        : `<strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`);
+
     const content = `<div class="mythic-attack-card">
   <div class="mythic-attack-header">
-      ${targets.length === 1 && targetName
-        ? `<strong>${esc(this.actor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
-        : `<strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`}
+      ${attackHeaderHtml}
   </div>
   <div class="mythic-stat-label">${statLabel} ${baseStat}${modNote} &mdash; ${esc(displayActionLabel)}</div>
   ${badgeHtml}
@@ -16003,8 +16632,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       baseStat,
       fireModeBonus,
       toHitMod,
-      rangeBand: rangeResult.band,
-      rangeMod: rangeResult.toHitMod,
+      rangeBand: isGrenadeThrowAction ? "Throw Test" : rangeResult.band,
+      rangeMod: isGrenadeThrowAction ? 0 : rangeResult.toHitMod,
       targetSwitchPenalty,
       factionTrainingPenalty,
       weaponTrainingPenalty,
@@ -16016,10 +16645,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isCritFail: attackRows.some((row) => row.isCritFail),
       isSuccess: anySuccess,
       dosValue: attackRows.length ? Math.max(...attackRows.map((row) => Number(row.dosValue ?? 0))) : 0,
-      hitLoc: attackRows.find((row) => row.isSuccess)?.hitLoc ?? null,
+      hitLoc: isGrenadeWeapon ? null : (attackRows.find((row) => row.isSuccess)?.hitLoc ?? null),
       damageFormula,
-      damageTotal: attackRows.find((row) => row.isSuccess)?.damageInstances?.[0]?.damageTotal ?? 0,
-      damagePierce: attackRows.find((row) => row.isSuccess)?.damageInstances?.[0]?.damagePierce ?? 0,
+      damageTotal: Number(primaryDamageEntry?.damageTotal ?? 0),
+      damagePierce: Number(primaryDamageEntry?.damagePierce ?? 0),
+      grenadeBlastDamage: Number(primaryDamageEntry?.damageTotal ?? 0),
+      grenadeKillDamage: Number(primaryDamageEntry?.damageTotal ?? 0) * 2,
+      grenadeBlastPierce: Number(primaryDamageEntry?.damagePierce ?? 0),
+      grenadeKillPierce: Number(primaryDamageEntry?.damagePierce ?? 0),
       hasSpecialDamage: attackRows.some((row) => row.damageInstances?.some((entry) => entry.hasSpecialDamage)),
       isHardlight: hasHardlightRule,
       isKinetic: hasKineticRule,
@@ -16035,8 +16668,41 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       targetActorId: targetToken?.actor?.id ?? null,
       targetTokenIds,
       targetActorIds,
+      ammoMode,
+      grenadeArmAction: grenadeArmAction === "cook" ? "cook" : (grenadeArmAction === "throw" ? "throw" : ""),
+      specialRules: String(gear.specialRules ?? ""),
+      weaponSpecialRuleValues: foundry.utils.deepClone(gear.weaponSpecialRuleValues ?? {}),
+      isGrenade: ammoMode === "grenade",
+      isTimedDetonation: ammoMode === "grenade" || Boolean(gear.timedDetonation),
+      grenadeScatterMultiplier,
+      throwRangeMeters: Number(isGrenadeThrowAction
+        ? (attackRows[0]?.grenadeThrowDistanceMeters ?? grenadeThrowProfile?.computedMax ?? 0)
+        : resolvedRangeMeters),
+      throwScatterCapMeters: Number(isGrenadeThrowAction
+        ? ((Number(attackRows[0]?.grenadeThrowMultiplier ?? 0) <= -10)
+          ? Math.max(0, Math.floor(Number(grenadeThrowProfile?.resolveDistanceFromMultiplier?.(-1) ?? 0)))
+          : (attackRows[0]?.grenadeThrowDistanceMeters ?? grenadeThrowProfile?.computedMax ?? 0))
+        : resolvedRangeMeters),
+      throwRangeCloseMeters: Number(effectiveRangeCloseMeters),
+      throwRangeMaxMeters: Number(effectiveRangeMaxMeters),
+      throwMultiplierAfterWeight: Number(grenadeThrowProfile?.multiplierAfterWeight ?? 0),
+      throwResolvedMultiplier: Number(attackRows[0]?.grenadeThrowMultiplier ?? grenadeThrowProfile?.multiplierAfterWeight ?? 0),
+      throwDropsAtThrower: Boolean(isGrenadeThrowAction && Number(attackRows[0]?.grenadeThrowMultiplier ?? 0) <= -10),
+      throwWeightPenalty: Number(grenadeThrowProfile?.weightPenalty ?? 0),
+      throwStrengthPower: Number(grenadeThrowProfile?.strengthPower ?? 0),
+      throwWeightKg: Number(grenadeThrowProfile?.throwWeightKg ?? 0),
+      timerDelayRounds: toNonNegativeWhole(gear.timerDelayRounds, 1),
       sceneId: canvas?.scene?.id ?? null
     };
+
+    // If this is a grenade throw action, consume one grenade now
+    if (isGrenadeThrowAction) {
+      try {
+        await this._consumeGrenadeItem(item);
+      } catch (err) {
+        console.error("[mythic-system] Failed to consume thrown grenade:", err);
+      }
+    }
 
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
@@ -16071,8 +16737,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (actionType === "pump-reaction") {
-      const currentReactions = Math.max(0, Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)));
-      await this.actor.update({ "system.combat.reactions.count": currentReactions + 1 });
+      if (trackedCombat) {
+        const currentReactions = Math.max(0, Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)));
+        await this.actor.update({ "system.combat.reactions.count": currentReactions + 1 });
+      }
     }
 
     return {
@@ -16085,6 +16753,216 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isEnergyWeapon,
       actionType
     };
+  }
+
+  async _buildDeferredGrenadeCookAttackData({ itemId, item, gear, state, weaponDisplayName }) {
+    const weaponRuleKeys = normalizeStringList(Array.isArray(gear?.weaponSpecialRuleKeys) ? gear.weaponSpecialRuleKeys : []);
+    const weaponRuleText = `${weaponRuleKeys.join(" ")} ${String(gear?.specialRules ?? "")}`;
+    const baseToHitMod = Number.isFinite(Number(gear?.baseToHitModifier)) ? Math.round(Number(gear.baseToHitModifier)) : 0;
+    const stateToHitMod = Number.isFinite(Number(state?.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
+    const stateDamageMod = Number.isFinite(Number(state?.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0;
+    const d10Count = toNonNegativeWhole(gear?.damage?.baseRollD10, 0);
+    const d5Count = toNonNegativeWhole(gear?.damage?.baseRollD5, 0);
+    const baseFlat = Number(gear?.damage?.baseDamage ?? 0) + stateDamageMod;
+    const damageParts = [];
+    if (d10Count > 0) damageParts.push(`${d10Count}d10`);
+    if (d5Count > 0) damageParts.push(`${d5Count}d5`);
+    if (baseFlat !== 0 || damageParts.length === 0) damageParts.push(String(baseFlat));
+    const damageFormula = damageParts.join(" + ");
+    const basePierce = Math.max(0, Number(gear?.damage?.pierce ?? 0));
+    const trainingStatus = this._evaluateWeaponTrainingStatus(gear, item?.name ?? "");
+    const factionTrainingPenalty = trainingStatus.missingFactionTraining ? -20 : 0;
+    const weaponTrainingPenalty = trainingStatus.missingWeaponTraining ? -20 : 0;
+    const characteristicRuntime = await this._getLiveCharacteristicRuntime();
+    const strScore = toNonNegativeWhole(characteristicRuntime?.scores?.str, 0);
+    const mythicStrength = Math.max(0, toNonNegativeWhole(this.actor.system?.mythic?.characteristics?.str, 0));
+    const carryCapacityKg = Number(computeCharacterDerivedValues(this.actor.system ?? {})?.carryingCapacity?.carry ?? 0);
+    const hasServoAssisted = this.actor.items.some((entry) => {
+      const nameText = String(entry?.name ?? "").trim().toLowerCase();
+      const descText = String(entry?.system?.description ?? entry?.system?.modifiers ?? "").trim().toLowerCase();
+      return nameText.includes("servo-assisted") || descText.includes("finding throwing distance");
+    });
+    const throwStrengthBonus = hasServoAssisted ? 25 : 0;
+    const effectiveStrengthScore = Math.max(0, strScore + throwStrengthBonus);
+    const effectiveStrengthModifier = Math.floor(effectiveStrengthScore / 10);
+    const strengthPower = Math.max(0, effectiveStrengthModifier + mythicStrength);
+    const throwWeightKgRaw = Number(gear?.weightKg ?? gear?.weightPerRoundKg ?? 0);
+    const throwWeightKg = Number.isFinite(throwWeightKgRaw) && throwWeightKgRaw > 0 ? throwWeightKgRaw : 1;
+    const strengthBand = strengthPower <= 2
+      ? { stepKg: 0.1, reductionPerStep: 2 }
+      : strengthPower <= 4
+        ? { stepKg: 0.1, reductionPerStep: 1 }
+        : strengthPower <= 6
+          ? { stepKg: 0.2, reductionPerStep: 1 }
+          : strengthPower <= 9
+            ? { stepKg: 0.5, reductionPerStep: 1 }
+            : strengthPower <= 12
+              ? { stepKg: 1, reductionPerStep: 1 }
+              : strengthPower <= 18
+                ? { stepKg: 5, reductionPerStep: 1 }
+                : { stepKg: 10, reductionPerStep: 1 };
+    const weightSteps = computeThrowWeightSteps(throwWeightKg, strengthBand.stepKg);
+    const weightPenalty = Math.max(0, weightSteps * strengthBand.reductionPerStep);
+    const multiplierAfterWeight = 15 - weightPenalty;
+    const isGrenadeThrowItem = isGrenadeAmmoMode(gear?.ammoMode)
+      || String(gear?.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades";
+    const wieldingTypeTag = String(gear?.wieldingType ?? "").trim().toUpperCase();
+    const rulesText = String(gear?.specialRules ?? "").toUpperCase();
+    const weaponTagKeys = Array.isArray(gear?.weaponTagKeys)
+      ? gear.weaponTagKeys.map((entry) => String(entry ?? "").trim().toUpperCase())
+      : [];
+    const hasOneHandThrowTag = isGrenadeThrowItem
+      || ["DW", "OH"].includes(wieldingTypeTag)
+      || /\[(DW|OH)\]/u.test(rulesText)
+      || weaponTagKeys.includes("[DW]")
+      || weaponTagKeys.includes("[OH]")
+      || weaponTagKeys.includes("DW")
+      || weaponTagKeys.includes("OH");
+    const isOneHandThrow = !hasOneHandThrowTag;
+    const resolveDistanceFromMultiplier = (multiplierValue = 0) => {
+      if (multiplierValue <= -10) return 0;
+      const negativeBaseMeters = Math.max(0, strengthPower / 2);
+      const baseMeters = multiplierValue < 0
+        ? (negativeBaseMeters >= 0.5 ? Math.max(1, Math.floor(negativeBaseMeters)) : 0)
+        : Math.max(0, Math.floor(strengthPower * multiplierValue));
+      const handedMeters = isOneHandThrow ? Math.floor(baseMeters / 2) : baseMeters;
+      return Math.max(0, handedMeters);
+    };
+    const throwRangeMaxMeters = Math.max(0, Math.floor(Number(resolveDistanceFromMultiplier(multiplierAfterWeight) ?? 0)));
+    const throwCanThrow = !Number.isFinite(carryCapacityKg) || carryCapacityKg <= 0 || throwWeightKg <= carryCapacityKg;
+
+    return {
+      attackerId: this.actor.id,
+      attackerName: this.actor.name,
+      weaponId: itemId,
+      weaponName: weaponDisplayName,
+      actionType: "half",
+      mode: "Cook",
+      ammoMode: "grenade",
+      grenadeArmAction: "cook",
+      isGrenade: true,
+      isTimedDetonation: true,
+      isDeferredCookStart: true,
+      isSuccess: false,
+      isCritFail: false,
+      dosValue: 0,
+      damageFormula,
+      damageTotal: 0,
+      damagePierce: basePierce,
+      grenadeBlastDamage: 0,
+      grenadeKillDamage: 0,
+      grenadeBlastPierce: basePierce,
+      grenadeKillPierce: basePierce,
+      specialRules: String(gear?.specialRules ?? ""),
+      weaponSpecialRuleValues: foundry.utils.deepClone(gear?.weaponSpecialRuleValues ?? {}),
+      weaponTagKeys: foundry.utils.deepClone(Array.isArray(gear?.weaponTagKeys) ? gear.weaponTagKeys : []),
+      isKinetic: /\bkinetic\b/iu.test(weaponRuleText),
+      hasBlastOrKill: /\bblast\b|\bkill\s*radius\b|\bkill\b/iu.test(weaponRuleText),
+      appliesShieldPierce: /(penetration|spread|cauterize|kinetic|electrified|blast|kill\s*radius|carpet)/iu.test(weaponRuleText),
+      explosiveShieldPierce: /(explosive|blast|kill\s*radius|carpet)/iu.test(weaponRuleText),
+      timerDelayRounds: toNonNegativeWhole(gear?.timerDelayRounds, 1),
+      sceneId: canvas?.scene?.id ?? null,
+      throwBaseToHitMod: baseToHitMod,
+      throwStateToHitMod: stateToHitMod,
+      throwRangeMaxMeters,
+      throwMultiplierAfterWeight: Number(multiplierAfterWeight ?? 0),
+      throwStrengthPower: Number(strengthPower ?? 0),
+      throwStrengthScore: Number(strScore ?? 0),
+      throwMythicStrength: Number(mythicStrength ?? 0),
+      throwUsesOneHandPenalty: Boolean(isOneHandThrow),
+      throwWeightKg: Number(throwWeightKg ?? 0),
+      throwWeightPenalty: Number(weightPenalty ?? 0),
+      throwStrengthBonus: Number(throwStrengthBonus ?? 0),
+      throwCanThrow: Boolean(throwCanThrow),
+      factionTrainingPenalty,
+      weaponTrainingPenalty,
+      deferredGrenadeWeaponData: foundry.utils.deepClone({
+        ...gear,
+        ammoMode: "grenade"
+      }),
+      deferredGrenadeWeaponState: {
+        toHitModifier: stateToHitMod,
+        damageModifier: stateDamageMod
+      }
+    };
+  }
+
+  async _consumeGrenadeItem(item) {
+    if (!item) return;
+
+    const currentQuantity = Math.max(0, toNonNegativeWhole(item.system?.quantity, 1));
+    if (currentQuantity <= 1) {
+      const wieldedWeaponId = String(this.actor.system?.equipment?.equipped?.wieldedWeaponId ?? "").trim();
+      if (wieldedWeaponId === String(item.id ?? "").trim()) {
+        await this.actor.update({
+          "system.equipment.equipped.wieldedWeaponId": ""
+        });
+      }
+      await this.actor.deleteEmbeddedDocuments("Item", [String(item.id ?? "")]);
+      return;
+    }
+
+    await item.update({ "system.quantity": currentQuantity - 1 });
+  }
+
+  async _startDeferredGrenadeCook({ item, itemId, gear, state }) {
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const weaponDisplayName = (Array.isArray(gear?.nicknames) && gear.nicknames.length)
+      ? (String(gear.nicknames[0] ?? "").trim() || String(item?.name ?? "Grenade"))
+      : String(item?.name ?? "Grenade");
+    const tracksCombat = Boolean(isActorActivelyInCombat(this.actor));
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "Confirm Cook" },
+      content: tracksCombat
+        ? `<p>Start cooking <strong>${esc(weaponDisplayName)}</strong>?</p><p>This spends <strong>1 Half Action</strong> immediately, removes one grenade now, and does <strong>not</strong> roll anything yet.</p>`
+        : `<p>Start cooking <strong>${esc(weaponDisplayName)}</strong>?</p><p>This removes one grenade now and does <strong>not</strong> roll anything yet.</p><p>No active combat is being tracked, so later resolution must be handled manually.</p>`,
+      yes: { label: "Confirm Cook" },
+      no: { label: "Cancel" },
+      rejectClose: false,
+      modal: true
+    });
+    if (!confirmed) return;
+
+    if (tracksCombat) {
+      await consumeActorHalfActions(this.actor, {
+        halfActions: 1,
+        label: `${weaponDisplayName} cook`,
+        source: "weapon-attack"
+      });
+    }
+
+    const attackData = await this._buildDeferredGrenadeCookAttackData({
+      itemId,
+      item,
+      gear,
+      state,
+      weaponDisplayName
+    });
+
+    await this._consumeGrenadeItem(item);
+
+    const content = `
+      <div class="mythic-evasion-card">
+        <div class="mythic-evasion-header">Grenade Cooking</div>
+        <div class="mythic-evasion-line">
+          <p><strong>${esc(this.actor.name)}</strong> starts cooking <strong>${esc(weaponDisplayName)}</strong>.</p>
+          <p>${tracksCombat
+            ? "No roll yet. Resolve the cook throw at the start of the next turn."
+            : "No roll yet. There is no active combat, so resolve the cooked grenade manually."}</p>
+        </div>
+      </div>
+    `;
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+      flags: {
+        "Halo-Mythic-Foundry-Updated": {
+          attackData
+        }
+      }
+    });
   }
 
   async _onPostHandToHandAttack(event) {
@@ -16101,6 +16979,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onReactionAdd(event) {
     event.preventDefault();
+    if (!isActorActivelyInCombat(this.actor)) {
+      ui.notifications?.info("Turn economy is only tracked for active combatants.");
+      return;
+    }
     const current = Math.max(0, Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)));
     await this.actor.update({ "system.combat.reactions.count": current + 1 });
   }
@@ -16112,6 +16994,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onAdvanceHalfAction(event) {
     event.preventDefault();
+    if (!isActorActivelyInCombat(this.actor)) {
+      ui.notifications?.info("Turn economy is only tracked for active combatants.");
+      return;
+    }
     await consumeActorHalfActions(this.actor, {
       halfActions: 1,
       label: "Manual Half Action",
@@ -16121,9 +17007,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onActionEconomyReset(event) {
     event.preventDefault();
-    const combatId = String(game.combat?.id ?? "").trim();
-    const round = Math.max(0, Math.floor(Number(game.combat?.round ?? 0)));
-    const turn = Math.max(0, Math.floor(Number(game.combat?.turn ?? 0)));
+    const trackedCombat = isActorActivelyInCombat(this.actor) ? game.combat : null;
+    const combatId = String(trackedCombat?.id ?? "").trim();
+    const round = Math.max(0, Math.floor(Number(trackedCombat?.round ?? 0)));
+    const turn = Math.max(0, Math.floor(Number(trackedCombat?.turn ?? 0)));
     await this.actor.update({
       "system.combat.actionEconomy": {
         combatId,
@@ -16137,9 +17024,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onTurnEconomyReset(event) {
     event.preventDefault();
-    const combatId = String(game.combat?.id ?? "").trim();
-    const round = Math.max(0, Math.floor(Number(game.combat?.round ?? 0)));
-    const turn = Math.max(0, Math.floor(Number(game.combat?.turn ?? 0)));
+    const trackedCombat = isActorActivelyInCombat(this.actor) ? game.combat : null;
+    const combatId = String(trackedCombat?.id ?? "").trim();
+    const round = Math.max(0, Math.floor(Number(trackedCombat?.round ?? 0)));
+    const turn = Math.max(0, Math.floor(Number(trackedCombat?.turn ?? 0)));
     await this.actor.update({
       "system.combat.reactions.count": 0,
       "system.combat.actionEconomy": {
@@ -16347,9 +17235,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _promptAttackModifiers(weaponName, gear = null) {
     const esc = foundry.utils.escapeHTML;
     const isMelee = gear?.weaponClass === "melee";
+    const isGrenadeWeapon = String(gear?.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades"
+      || String(gear?.ammoMode ?? "").trim().toLowerCase() === "grenade";
     const closeRange = toNonNegativeWhole(gear?.range?.close, 0);
     const maxRange = toNonNegativeWhole(gear?.range?.max, 0);
-    const showRangeField = !isMelee && maxRange > 0;
+    const showRangeField = !isMelee && !isGrenadeWeapon && maxRange > 0;
+    const showCalledShot = !isGrenadeWeapon;
     const abilityNames = new Set(this.actor.items
       .filter((item) => item.type === "ability")
       .map((item) => this._normalizeNameForMatch(item.name))
@@ -16427,6 +17318,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             <input id="mythic-atk-pierce" type="number" step="1" value="0" />
             <p class="hint">Bonus/penalty to pierce.</p>
           </div>
+          ${showCalledShot ? `
           <div class="form-group">
             <label for="mythic-atk-called-zone">Called Shot</label>
             <select id="mythic-atk-called-zone" onchange="
@@ -16453,6 +17345,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             </select>
             <p class="hint">Pick a matching sublocation for the selected location. Clear Target halves ranged penalties, Precision Strike halves melee penalties.</p>
           </div>
+          ` : ""}
           ${showRangeField ? `
           <div class="form-group">
             <label for="mythic-atk-range">Range (m)</label>
@@ -16741,6 +17634,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     for (const [poolKey, rawPool] of Object.entries(ammoPools)) {
       const pool = (rawPool && typeof rawPool === "object") ? rawPool : {};
+      if (pool.isCarried === false) continue;
       const epCount = toNonNegativeWhole(pool?.epCount, 0);
       const purchasedCount = toNonNegativeWhole(pool?.purchasedCount, 0);
       const hasSplit = Number.isFinite(Number(pool?.epCount)) || Number.isFinite(Number(pool?.purchasedCount));
@@ -16753,6 +17647,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     for (const [ammoUuid, rawEntry] of Object.entries(independentAmmo)) {
       const entry = (rawEntry && typeof rawEntry === "object") ? rawEntry : {};
+      if (entry.isCarried === false) continue;
       const entryName = String(entry?.ammoName ?? "").trim();
       if (!matchesAmmo(entryName, "")) continue;
       const quantity = toNonNegativeWhole(entry?.quantity, 0);

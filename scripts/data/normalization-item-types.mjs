@@ -295,6 +295,8 @@ export function normalizeEducationSystemData(systemData, itemName = "") {
       .map((entry) => String(entry ?? "").trim())
       .filter(Boolean);
   merged.skills = skills;
+  const selectedSkill = String(merged.selectedSkill ?? "").trim();
+  merged.selectedSkill = selectedSkill || (skills[0] ?? "");
   merged.sync = normalizeItemSyncData(merged.sync, "education", itemName);
 
   return merged;

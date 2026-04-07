@@ -54,6 +54,15 @@
         "htmlFields": [
           "description"
         ]
+      },
+      "vehicle": {
+        "label": "Vehicle",
+        "htmlFields": [
+          "notes",
+          "crew.notes",
+          "cargo.notes",
+          "modifications.notes"
+        ]
       }
     },
     "Item": {
@@ -460,6 +469,54 @@
       "name": "mythic-bestiary-flood",
       "label": "70 Bestiary - Flood",
       "path": "packs/bestiary-flood",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-vehicles-unsc",
+      "label": "80 Vehicles - UNSC",
+      "path": "packs/vehicles-unsc",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-vehicles-covenant",
+      "label": "80 Vehicles - Covenant",
+      "path": "packs/vehicles-covenant",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-vehicles-banished",
+      "label": "80 Vehicles - Banished",
+      "path": "packs/vehicles-banished",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-vehicles-forerunner",
+      "label": "80 Vehicles - Forerunner",
+      "path": "packs/vehicles-forerunner",
       "type": "Actor",
       "system": "Halo-Mythic-Foundry-Updated",
       "ownership": {

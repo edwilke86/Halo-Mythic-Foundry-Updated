@@ -1,6 +1,7 @@
 import {
   MYTHIC_DEFAULT_CHARACTER_ICON,
   MYTHIC_DEFAULT_GROUP_ICON,
+  MYTHIC_DEFAULT_VEHICLE_ICON,
   MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY,
   MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY,
   MYTHIC_BESTIARY_DIFFICULTY_MODES,
@@ -16,6 +17,7 @@ import { toNonNegativeWhole } from "../utils/helpers.mjs";
 import {
   normalizeCharacterSystemData,
   normalizeBestiarySystemData,
+  normalizeVehicleSystemData,
   normalizeGearSystemData,
   normalizeAbilitySystemData,
   normalizeTraitSystemData,
@@ -3845,6 +3847,18 @@ export function registerMythicDocumentAndChatHooks({
       }
     } else if (actor.type === "Group") {
       applyGroupCreationDefaults(createData);
+    } else if (["vehicle", "Vehicle"].includes(actor.type)) {
+      const normalized = normalizeVehicleSystemData(createData.system ?? {});
+      foundry.utils.setProperty(createData, "system", normalized);
+
+      const currentImg = String(createData.img ?? "").trim();
+      if (!currentImg || currentImg.startsWith("icons/svg/")) {
+        foundry.utils.setProperty(createData, "img", MYTHIC_DEFAULT_VEHICLE_ICON);
+      }
+      const currentTokenImg = String(foundry.utils.getProperty(createData, "prototypeToken.texture.src") ?? "").trim();
+      if (!currentTokenImg || currentTokenImg.startsWith("icons/svg/")) {
+        foundry.utils.setProperty(createData, "prototypeToken.texture.src", MYTHIC_DEFAULT_VEHICLE_ICON);
+      }
     }
 
     if (createData.name !== undefined) {
@@ -3932,6 +3946,24 @@ export function registerMythicDocumentAndChatHooks({
           foundry.utils.setProperty(updates, "prototypeToken.texture.src", MYTHIC_DEFAULT_GROUP_ICON);
         }
         if (Object.keys(updates).length) await actor.update(updates, { diff: false, recursive: false });
+        return;
+      }
+
+      if (["vehicle", "Vehicle"].includes(actor.type)) {
+        const updates = {};
+        const currentImg = String(actor.img ?? "").trim();
+        if (!currentImg || currentImg.startsWith("icons/svg/")) {
+          foundry.utils.setProperty(updates, "img", MYTHIC_DEFAULT_VEHICLE_ICON);
+        }
+        const currentTokenImg = String(foundry.utils.getProperty(actor, "prototypeToken.texture.src") ?? "").trim();
+        if (!currentTokenImg || currentTokenImg.startsWith("icons/svg/")) {
+          foundry.utils.setProperty(updates, "prototypeToken.texture.src", MYTHIC_DEFAULT_VEHICLE_ICON);
+        }
+
+        const normalized = normalizeVehicleSystemData(actor.system ?? {});
+        foundry.utils.setProperty(updates, "system", normalized);
+
+        if (Object.keys(updates).length) await actor.update(updates, { diff: false, recursive: false });
       }
     } catch (err) {
       console.error("Halo-Mythic: Error in createActor defaults hook", err);
@@ -4007,6 +4039,17 @@ export function registerMythicDocumentAndChatHooks({
       foundry.utils.setProperty(changes, "prototypeToken.bar1.attribute", tokenDefaults.bar1.attribute);
       foundry.utils.setProperty(changes, "prototypeToken.bar2.attribute", tokenDefaults.bar2.attribute);
       foundry.utils.setProperty(changes, "prototypeToken.displayBars", tokenDefaults.displayBars);
+    }
+
+    if (["vehicle", "Vehicle"].includes(actor.type) && changes.system !== undefined) {
+      const nextSystem = foundry.utils.mergeObject(foundry.utils.deepClone(actor.system ?? {}), changes.system ?? {}, {
+        inplace: false,
+        insertKeys: true,
+        insertValues: true,
+        overwrite: true,
+        recursive: true
+      });
+      changes.system = normalizeVehicleSystemData(nextSystem);
     }
 
     if (changes.name !== undefined) {

@@ -5,7 +5,8 @@
   "TYPES": {
     "Actor": {
       "character": "Character",
-      "group": "Group"
+      "group": "Group",
+      "vehicle": "Vehicle"
     },
     "Item": {
       "gear": "Equipment",

@@ -1,0 +1,77 @@
+/* Vehicle-specific UI styles (Mobility panel, summary layout) */
+.vehicle-summary-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+}
+
+.vehicle-mobility {
+  padding: 10px;
+}
+
+.vehicle-summary-main {
+  padding: 10px;
+}
+
+.vehicle-mobility .mobility-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.vehicle-mobility .mobility-row label {
+  width: 110px;
+  font-weight: bold;
+}
+
+.vehicle-mobility .mobility-value {
+  flex: 1;
+  text-align: center;
+  background: rgba(0,0,0,0.12);
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.vehicle-mobility .mobility-controls button {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+}
+
+.vehicle-mobility .mobility-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .vehicle-summary-grid { grid-template-columns: 1fr; }
+}
+
+/* Setup compact panels */
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.setup-grid .panel { padding: 8px; }
+
+.compact-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.compact-field { display:flex; flex-direction:column; align-items:center; min-width:48px; }
+.compact-field .field-label { font-size:11px; margin-bottom:4px; text-align:center; }
+.small-input { width:64px; height:28px; text-align:center; font-size:13px; }
+
+/* Slightly larger select inside compact-field */
+.compact-field select, .panel select { height:28px; }
+
+@media (max-width: 900px) {
+  .setup-grid { grid-template-columns: 1fr; }
+}

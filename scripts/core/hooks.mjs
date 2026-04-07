@@ -173,7 +173,7 @@ const MYTHIC_ALPHA_BUG_REPORT_TEMPLATE = [
   "Screenshot/video if available:"
 ].join("\n");
 const MYTHIC_TOKEN_BAR_ALIAS_PATCH_FLAG = "_mythicTokenBarAliasPatchInstalled";
-const MYTHIC_EDITABLE_TOKEN_BAR_ACTOR_TYPES = Object.freeze(new Set(["character", "bestiary"]));
+const MYTHIC_EDITABLE_TOKEN_BAR_ACTOR_TYPES = Object.freeze(new Set(["character", "bestiary", "vehicle"]));
 const MYTHIC_TOKEN_BAR_ALIASES = Object.freeze({
   "combat.woundsBar": Object.freeze({ valuePath: "combat.wounds.current", maxPath: "combat.wounds.max" }),
   "combat.shieldsBar": Object.freeze({ valuePath: "combat.shields.current", maxPath: "combat.shields.integrity" })
@@ -185,6 +185,25 @@ function getMythicTokenBarAlias(attribute = "") {
 
 function supportsMythicEditableTokenBars(actor) {
   return Boolean(actor && MYTHIC_EDITABLE_TOKEN_BAR_ACTOR_TYPES.has(String(actor.type ?? "").trim()));
+}
+
+function isVehicleActorTypeValue(actorType = "") {
+  const normalized = String(actorType ?? "").trim();
+  return normalized === "vehicle" || normalized === "Vehicle";
+}
+
+async function clearLegacyVehicleSheetOverrides() {
+  const actors = Array.from(game.actors ?? []).filter((actor) => isVehicleActorTypeValue(actor?.type));
+  for (const actor of actors) {
+    const sheetClass = String(actor?.getFlag("core", "sheetClass") ?? "").trim();
+    if (!sheetClass || !sheetClass.includes("MythicVehicleSheet")) continue;
+    try {
+      await actor.unsetFlag("core", "sheetClass");
+      console.log(`[mythic-system] Cleared legacy vehicle sheet override for actor "${actor.name}" (${actor.id})`);
+    } catch (error) {
+      console.warn(`[mythic-system] Failed to clear legacy vehicle sheet override for actor "${actor?.name ?? "Unknown"}"`, error);
+    }
+  }
 }
 
 function getMythicEditableBarState(actor, attribute = "") {
@@ -835,7 +854,7 @@ export function registerAllHooks() {
 
     ActorCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicActorSheet, {
       makeDefault: true,
-      types: ["character"]
+      types: ["character", "vehicle", "Vehicle"]
     });
 
     ActorCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicBestiarySheet, {
@@ -906,6 +925,15 @@ export function registerAllHooks() {
           "combat.shields.current",
           "combat.shields.integrity"
         ]
+      },
+      vehicle: {
+        bar: ["breakpoints.hull", "shields"],
+        value: [
+          "breakpoints.hull.value",
+          "breakpoints.hull.max",
+          "shields.value",
+          "shields.max"
+        ]
       }
     };
 
@@ -920,6 +948,8 @@ export function registerAllHooks() {
     await maybeShowAlphaPlaytestNotice();
 
     if (game.user?.isGM) {
+      await clearLegacyVehicleSheetOverrides();
+
       const weaponJsonMigrationVersion = Number(
         game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY) ?? 0
       );

@@ -41,6 +41,7 @@ import {
 
 import {
   normalizeCharacterSystemData,
+  normalizeVehicleSystemData,
   normalizeGearSystemData,
   normalizeAbilitySystemData,
   normalizeTraitSystemData,
@@ -104,6 +105,7 @@ import {
 import { consumeActorHalfActions, isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
 
 import { generateSmartAiCognitivePattern } from "../mechanics/cognitive.mjs";
+import { browseImage } from "../utils/file-picker.mjs";
 
 import {
   normalizeTrainingData,
@@ -839,6 +841,66 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _prepareContext(options) {
     await this._backfillEnergyCellsForExistingWeapons();
     const context = await super._prepareContext(options);
+    const isVehicleActor = this._isVehicleActor();
+    if (isVehicleActor) {
+      const normalizedVehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+      const displayVehicleSystem = foundry.utils.deepClone(normalizedVehicleSystem);
+
+      // Resolve crew display rows to include slotNumber and PC flag for rendering
+      const crewKinds = ["operators", "gunners", "complement"];
+      for (const kind of crewKinds) {
+        const capacityKey = (kind === "complement") ? "passengers" : kind;
+        const capacity = toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.[capacityKey], 0);
+        const sourceRows = Array.isArray(normalizedVehicleSystem?.crew?.[kind]) ? normalizedVehicleSystem.crew[kind] : [];
+        const rows = [];
+        for (let i = 0; i < capacity; i++) {
+          const entry = sourceRows[i] ?? { idx: i, id: "", display: "" };
+          const idStr = String(entry?.id ?? "").trim();
+          let displayName = String(entry?.display ?? "").trim();
+          let isPC = false;
+          if (idStr) {
+            let actorDoc = game.actors?.get(idStr) ?? null;
+            if (!actorDoc && idStr.includes(".")) {
+              actorDoc = await fromUuid(idStr).catch(() => null);
+            }
+            if (actorDoc) {
+              displayName = displayName || String(actorDoc.name ?? "").trim();
+              isPC = Boolean(actorDoc.hasPlayerOwner || (actorDoc.ownership && Object.values(actorDoc.ownership).some((v) => Number(v) > 0)));
+            }
+          }
+          rows.push({ idx: i, id: idStr, display: displayName, isPC, slotNumber: i + 1 });
+        }
+        displayVehicleSystem.crew[kind] = rows;
+      }
+
+      context.cssClass = this.options.classes.join(" ");
+      context.actor = this.actor;
+      context.editable = this.isEditable || Boolean(game.user?.isGM);
+      context.mythicIsVehicleActor = true;
+      context.mythicVehicleSystem = displayVehicleSystem;
+      // Vehicle tab contents intentionally cleared; no item lists or crew counts provided.
+      const faction = String(normalizedVehicleSystem?.faction ?? "").trim();
+      const themedFaction = faction || "Other (Setting Agnostic)";
+      const customLogo = String(normalizedVehicleSystem?.header?.logoPath ?? "").trim();
+      context.mythicLogo = customLogo || this._getFactionLogoPath(themedFaction);
+      context.mythicFactionIndex = this._getFactionIndex(themedFaction);
+
+      context.mythicFactionOptions = [
+        "United Nations Space Command",
+        "Office of Naval Intelligence",
+        "Insurrection / United Rebel Front",
+        "Covenant",
+        "Banished",
+        "Swords of Sangheilios",
+        "Forerunner",
+        "Other",
+        "Other (Setting Agnostic)"
+      ];
+      context.mythicFactionSelectOptions = context.mythicFactionOptions.map((option) => ({ value: option, label: option }));
+      return context;
+    }
+
+    context.mythicIsVehicleActor = false;
     const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
     const creationPathOutcome = await this._resolveCreationPathOutcome(normalizedSystem);
     const charBuilderView = this._getCharBuilderViewData(normalizedSystem, creationPathOutcome);
@@ -936,6 +998,26 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicEffectiveCharacteristics = effectiveSystem.characteristics;
     context.mythicHeader = await this._getHeaderViewData(normalizedSystem);
     context.mythicSpecialization = this._getSpecializationViewData(normalizedSystem);
+
+    const linkedVehicleActorId = String(normalizedSystem?.vehicles?.currentVehicleActorId ?? "").trim();
+    const vehicleActors = Array.from(game.actors?.filter((entry) => entry.type === "vehicle") ?? [])
+      .sort((left, right) => String(left.name ?? "").localeCompare(String(right.name ?? "")));
+
+    context.mythicVehicleActorOptions = [
+      { value: "", label: "-- None --", selected: !linkedVehicleActorId },
+      ...vehicleActors.map((entry) => ({
+        value: String(entry.id ?? ""),
+        label: String(entry.name ?? "(Unnamed Vehicle)"),
+        selected: String(entry.id ?? "") === linkedVehicleActorId
+      }))
+    ];
+
+    const linkedVehicleActor = linkedVehicleActorId ? (game.actors?.get(linkedVehicleActorId) ?? null) : null;
+    context.mythicCurrentVehicleActor = linkedVehicleActor;
+    if (linkedVehicleActor) {
+      context.mythicSystem.vehicles.currentVehicle = String(linkedVehicleActor.name ?? context.mythicSystem.vehicles.currentVehicle ?? "");
+    }
+
     return context;
   }
 
@@ -970,6 +1052,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _isSanShyuumActor(systemData = null) {
     return isSanShyuumActor(systemData ?? this.actor?.system ?? {});
+  }
+
+  _isVehicleActor() {
+    const actorType = String(this.actor?.type ?? "").trim();
+    return actorType === "vehicle" || actorType === "Vehicle";
   }
 
   _isHuragokActor(systemData = null) {
@@ -4879,16 +4966,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _openActorImagePicker(targetPath) {
     const current = String(foundry.utils.getProperty(this.actor, targetPath) ?? "");
-    const picker = new FilePicker({
-      type: "image",
-      current,
-      callback: async (path) => {
-        await this.actor.update({ [targetPath]: path });
-        const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
-        this._refreshPortraitTokenControls(root);
-      }
+    browseImage(current, async (path) => {
+      await this.actor.update({ [targetPath]: path });
+      const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+      this._refreshPortraitTokenControls(root);
     });
-    picker.browse();
   }
 
   _dedupeHeaderControls(windowHeader) {
@@ -5588,6 +5670,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       foundry.utils.setProperty(submitData, "system.training.custom", parseLineList(trainingCustomText));
     }
 
+    const currentVehicleActorId = String(foundry.utils.getProperty(submitData, "system.vehicles.currentVehicleActorId") ?? "").trim();
+    if (!currentVehicleActorId) {
+      foundry.utils.setProperty(submitData, "system.vehicles.currentVehicle", "");
+    } else {
+      const linkedVehicle = game.actors?.get(currentVehicleActorId);
+      if (linkedVehicle) {
+        foundry.utils.setProperty(submitData, "system.vehicles.currentVehicle", String(linkedVehicle.name ?? "").trim());
+      }
+    }
+
     if (foundry.utils.getProperty(submitData, "mythic") !== undefined) {
       delete submitData.mythic;
     }
@@ -5875,6 +5967,23 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
+    // Mutual exclusivity: Open-Top vs Enclosed-Top. When one is selected, unset and visually disable the other.
+    if (input instanceof HTMLInputElement) {
+      if (input.name === "system.special.openTop.has" || input.name === "system.special.enclosedTop.has") {
+        const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+        const otherName = input.name === "system.special.openTop.has" ? "system.special.enclosedTop.has" : "system.special.openTop.has";
+        const otherCheckbox = root?.querySelector(`input[type=\"checkbox\"][name=\"${otherName}\"]`);
+        if (otherCheckbox instanceof HTMLInputElement) {
+          if (input.checked) {
+            otherCheckbox.checked = false;
+            otherCheckbox.disabled = true;
+          } else {
+            otherCheckbox.disabled = false;
+          }
+        }
+      }
+    }
+
     return super._onChangeForm(formConfig, event);
   }
 
@@ -5885,6 +5994,72 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onRender(context, options) {
     await super._onRender(context, options);
+
+    if (this._isVehicleActor()) {
+      const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+      if (!root) return;
+
+      const tabs = new foundry.applications.ux.Tabs({
+        group: "primary",
+        navSelector: ".sheet-tabs",
+        contentSelector: ".sheet-content",
+        initial: this.tabGroups.primary ?? "vehicle-summary",
+        callback: (_event, _tabs, activeTab) => {
+          this.tabGroups.primary = activeTab;
+        }
+      });
+      tabs.bind(root);
+      if (this.isEditable) {
+        const portrait = root.querySelector('.profile-img[data-edit="img"]');
+        if (portrait) {
+          portrait.addEventListener("click", (event) => {
+            event.preventDefault();
+            this._openActorImagePicker("img");
+          });
+        }
+      }
+
+      // Faction background on the outer window so it fills the rounded frame.
+      // Use root.dataset.faction — the correct computed value already rendered.
+      const factionIndex = Number(root.dataset?.faction ?? 1);
+      const factionVar = factionIndex > 1 ? `var(--mythic-faction-${factionIndex})` : `var(--mythic-faction-1)`;
+      if (this.element) this.element.style.background = factionVar;
+
+      // Belt-and-suspenders: force header chrome invisible via inline styles so
+      // Foundry's stylesheet cannot win the cascade regardless of specificity.
+      const windowHeader = this.element?.querySelector(".window-header");
+      if (windowHeader) {
+        windowHeader.style.background = "transparent";
+        windowHeader.style.border = "none";
+        windowHeader.style.boxShadow = "none";
+        windowHeader.style.justifyContent = "flex-end";
+
+        const controls = windowHeader.querySelector(".window-controls, .window-actions, .header-actions, .header-buttons");
+        if (controls) {
+          controls.style.position = "absolute";
+          controls.style.right = "6px";
+          controls.style.left = "auto";
+          controls.style.marginLeft = "0";
+          controls.style.display = "flex";
+          controls.style.alignItems = "center";
+          controls.style.gap = "6px";
+        }
+
+        this._dedupeHeaderControls(windowHeader);
+      }
+      // Restore and track scroll position for vehicle sheets to avoid jumping
+      const scrollable = root.querySelector(".sheet-tab-scrollable");
+      if (scrollable) {
+        const scrollTop = Math.max(0, Number(this._sheetScrollTop ?? 0));
+        requestAnimationFrame(() => {
+          scrollable.scrollTop = scrollTop;
+        });
+        scrollable.addEventListener("scroll", () => {
+          this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop ?? 0));
+        }, { passive: true });
+      }
+      return;
+    }
 
     if (this._isHuragokActor(this.actor.system) && !Boolean(this.actor.system?.mythic?.flyCombatActive)) {
       await this.actor.update({ "system.mythic.flyCombatActive": true });
@@ -6110,6 +6285,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         void this._onRollCharacteristic(event);
       });
     });
+
+    // Vehicle-linking UI cleared: linked-vehicle open/create/drop handlers removed.
 
     root.querySelectorAll(".roll-skill").forEach((cell) => {
       cell.addEventListener("click", (event) => {
@@ -6743,6 +6920,29 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".creation-lifestyle-choice-btn[data-slot-index]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onCreationLifestyleChoicePrompt(event);
+      });
+    });
+
+    // Crew slot dropzones: drag actors into named slots
+    root.querySelectorAll(".mythic-crew-dropzone[data-kind]").forEach((zone) => {
+      zone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        zone.classList.add("is-dragover");
+      });
+      zone.addEventListener("dragleave", (event) => {
+        zone.classList.remove("is-dragover");
+      });
+      zone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        zone.classList.remove("is-dragover");
+        void this._onDropCrewSlot(event);
+      });
+    });
+
+    root.querySelectorAll(".crew-clear-btn[data-kind][data-idx]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onClearCrewSlot(event);
       });
     });
 
@@ -12560,22 +12760,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const cost = getEnergyCellPurchaseCost(weaponPrice, ammoMode, batterySubtype);
     const currentCredits = toNonNegativeWhole(this.actor.system?.equipment?.credits, 0);
 
-    // Dialog: offer "Buy with cR" (deducts credits) or "Add" (free – equipment pack / found item).
+    // Dialog: offer 'Buy with cR' (deducts credits) or 'Add' (free - equipment pack / found item).
     const canAfford = currentCredits >= cost;
+    const dialogTitle = "Add " + String(cellLabel ?? "");
+    const dialogContent = "<p>Add one <strong>" + foundry.utils.escapeHTML(cellLabel) + "</strong> (" + capacity + " cap) for <em>" + foundry.utils.escapeHTML(weaponName) + "</em>?</p>";
     const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: `Add ${cellLabel}` },
-      content: `<p>Add one <strong>${foundry.utils.escapeHTML(cellLabel)}</strong> (${capacity} cap) for <em>${foundry.utils.escapeHTML(weaponName)}</em>?</p>`,
+      window: { title: dialogTitle },
+      content: dialogContent,
       buttons: [
-        {
-          action: "buy",
-          label: `Buy (${cost} cR)`,
-          default: Boolean(weapon) && canAfford
-        },
-        {
-          action: "free",
-          label: "Add Free",
-          default: !weapon || !canAfford
-        },
+        { action: "buy", label: "Buy (" + cost + " cR)", default: Boolean(weapon) && canAfford },
+        { action: "free", label: "Add Free", default: !weapon || !canAfford },
         { action: "cancel", label: "Cancel" }
       ],
       rejectClose: false,
@@ -17817,6 +18011,80 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     ui.notifications?.warn("No editable ammo source item found for this row.");
+  }
+
+  /**
+   * Handle dropping an Actor onto a crew slot
+   */
+  async _onDropCrewSlot(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.isEditable) return false;
+
+    const zone = event.currentTarget instanceof HTMLElement ? event.currentTarget : (event.target instanceof HTMLElement ? event.target.closest('.mythic-crew-dropzone[data-kind]') : null);
+    if (!(zone instanceof HTMLElement)) return false;
+
+    const kind = String(zone.dataset.kind ?? '').trim();
+    const slotIndex = Number(zone.dataset.idx ?? 0) || 0;
+
+    const dropData = this._extractDropData(event);
+    const dropped = dropData.uuid ? await fromUuid(dropData.uuid).catch(() => null) : (game.actors?.get(String(dropData.id ?? '')) ?? null);
+    if (!dropped || (dropped?.documentName && String(dropped.documentName) !== 'Actor' && String(dropped.type) !== 'actor' && !dropped?.actor)) {
+      ui.notifications?.warn('Please drop an Actor into this slot.');
+      return false;
+    }
+
+    // Prefer actor document directly
+    const actorDoc = dropped.documentName === 'Actor' || dropped.type === 'actor' || dropped?.actor ? dropped : null;
+    if (!actorDoc) {
+      ui.notifications?.warn('Could not resolve dropped Actor.');
+      return false;
+    }
+
+    const actorId = String(actorDoc.id ?? actorDoc._id ?? '').trim();
+    const path = `system.crew.${kind}`;
+
+    const existing = Array.isArray(this.actor.system?.crew?.[kind]) ? foundry.utils.deepClone(this.actor.system.crew[kind]) : [];
+    const capacityKey = (kind === 'complement') ? 'passengers' : kind;
+    const capacity = toNonNegativeWhole(this.actor.system?.crew?.capacity?.[capacityKey], existing.length);
+    while (existing.length < capacity) existing.push({ idx: existing.length, id: '', display: '' });
+
+    existing[slotIndex] = { idx: slotIndex, id: actorId, display: String(actorDoc.name ?? '') };
+
+    try {
+      await this.actor.update({ [path]: existing });
+      ui.notifications?.info(`Assigned ${actorDoc.name} to slot ${slotIndex + 1}.`);
+      return true;
+    } catch (error) {
+      console.error('[CREW-DROP] Update failed:', error);
+      ui.notifications?.warn('Failed to assign crew slot.');
+      return false;
+    }
+  }
+
+  async _onClearCrewSlot(event) {
+    event.preventDefault();
+    if (!this.isEditable) return false;
+    const button = event.currentTarget instanceof HTMLElement ? event.currentTarget : (event.target instanceof HTMLElement ? event.target.closest('.crew-clear-btn[data-kind][data-idx]') : null);
+    if (!(button instanceof HTMLElement)) return false;
+
+    const kind = String(button.dataset.kind ?? '').trim();
+    const slotIndex = Number(button.dataset.idx ?? 0) || 0;
+    const path = `system.crew.${kind}`;
+
+    const existing = Array.isArray(this.actor.system?.crew?.[kind]) ? foundry.utils.deepClone(this.actor.system.crew[kind]) : [];
+    if (slotIndex < 0 || slotIndex >= existing.length) return false;
+    existing[slotIndex] = { idx: slotIndex, id: '', display: '' };
+
+    try {
+      await this.actor.update({ [path]: existing });
+      ui.notifications?.info('Cleared crew slot.');
+      return true;
+    } catch (err) {
+      console.error('[CREW-CLEAR] Update failed:', err);
+      ui.notifications?.warn('Failed to clear crew slot.');
+      return false;
+    }
   }
 
   async _deleteEquipmentMapKey(path, key, currentMap = null) {

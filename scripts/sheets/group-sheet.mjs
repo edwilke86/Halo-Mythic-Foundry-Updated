@@ -2,6 +2,7 @@
 // Extracted from system.mjs — the group actor sheet for the Halo Mythic system.
 
 import { toNonNegativeWhole } from "../utils/helpers.mjs";
+import { browseImage } from "../utils/file-picker.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -146,14 +147,9 @@ export class MythicGroupSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _openActorImagePicker(targetPath) {
     const current = String(foundry.utils.getProperty(this.actor, targetPath) ?? "");
-    const picker = new FilePicker({
-      type: "image",
-      current,
-      callback: async (path) => {
-        await this.actor.update({ [targetPath]: path });
-      }
+    browseImage(current, async (path) => {
+      await this.actor.update({ [targetPath]: path });
     });
-    picker.browse();
   }
 
   async _prepareContext(options) {

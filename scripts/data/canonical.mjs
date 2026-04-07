@@ -229,6 +229,7 @@ export function getCanonicalCharacterSystemData() {
       gmNotes: ""
     },
     vehicles: {
+      currentVehicleActorId: "",
       currentVehicle: "",
       role: "",
       callsign: "",
@@ -371,4 +372,122 @@ export function getCanonicalBestiarySystemData() {
   };
 
   return base;
+}
+
+export function getCanonicalVehicleSystemData() {
+  return {
+    schemaVersion: MYTHIC_ACTOR_SCHEMA_VERSION,
+    designation: "",
+    faction: "",
+    factionTraining: "unsc",
+    variant: "",
+    price: 0,
+    experience: 0,
+    size: "mini",
+    dimensions: {
+      length: 0,
+      width: 0,
+      height: 0,
+      weight: 0
+    },
+    characteristics: {
+      str: 0,
+      mythicStr: 0,
+      agi: 0,
+      mythicAgi: 0,
+      wfr: 0,
+      int: 0,
+      per: 0
+    },
+    movement: {
+      accelerate: { value: 0, max: 0 },
+      brake: { value: 0, max: 0 },
+      speed: { base: 0, value: 0, max: 0 },
+      maneuver: { base: 0, total: 0, owner: "" },
+      walker: {
+        half: 0,
+        full: 0,
+        charge: 0,
+        run: 0,
+        jump: 0,
+        leap: 0,
+        owner: "",
+        evasion: 0,
+        parry: 0
+      }
+    },
+    breakpoints: {
+      wep: { value: 0, max: 0 },
+      mob: { value: 0, max: 0 },
+      eng: { value: 0, max: 0 },
+      op: { value: 0, max: 0 },
+      hull: {
+        value: 0,
+        max: 0,
+        doom: { level: "tier_0", armor: 0, blast: 0, kill: 0, move: true }
+      }
+    },
+    armor: {
+      front: { value: 0, max: 0 },
+      back: { value: 0, max: 0 },
+      side: { value: 0, max: 0 },
+      top: { value: 0, max: 0 },
+      bottom: { value: 0, max: 0 }
+    },
+    shields: {
+      value: 0,
+      max: 0,
+      recharge: 0,
+      delay: 0
+    },
+    sizePoints: 0,
+    weaponPoints: 0,
+    crew: {
+      capacity: {
+        operators: 0,
+        gunners: 0,
+        passengers: 0
+      },
+      operators: [],
+      gunners: [],
+      complement: [],
+      notes: ""
+    },
+    special: {
+      allTerrain: { has: false },
+      antiGrav: { has: false },
+      autoloader: { has: false },
+      boost: { has: false, value: 0 },
+      continuousTrack: { has: false },
+      enclosedTop: { has: false },
+      flight: { has: false },
+      heavyPlating: { has: false },
+      neuralInterface: { has: false },
+      openTop: { has: false },
+      slipspace: { has: false },
+      walkerStomp: { has: false }
+    },
+    automated: false,
+    propulsion: {
+      type: "wheels",
+      value: 3,
+      max: "3",
+      state: {
+        multiplier: 1,
+        toHit: 0
+      }
+    },
+    modifications: {
+      mods: [],
+      notes: ""
+    },
+    cargo: {
+      total: 0,
+      notes: ""
+    },
+    perceptiveRange: {
+      total: 0
+    },
+    notes: ""
+  };
 }

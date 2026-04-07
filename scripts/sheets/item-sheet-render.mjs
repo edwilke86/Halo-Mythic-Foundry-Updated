@@ -1,3 +1,5 @@
+import { browseImage } from "../utils/file-picker.mjs";
+
 function bindTabGroup(sheet, root, group, initialTab) {
   const tabNav = root?.querySelector(`.gear-item-tabs-nav[data-group='${group}']`);
   if (!tabNav) return;
@@ -202,12 +204,7 @@ function bindImagePicker(sheet, root) {
 
   imgEl.style.cursor = "pointer";
   imgEl.addEventListener("click", () => {
-    const fp = new FilePicker({
-      type: "image",
-      current: sheet.item.img,
-      callback: (path) => sheet.item.update({ img: path })
-    });
-    fp.browse();
+    browseImage(sheet.item.img, (path) => sheet.item.update({ img: path }));
   });
 }
 

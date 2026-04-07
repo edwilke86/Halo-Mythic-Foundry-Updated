@@ -53,6 +53,7 @@ import {
 import { MythicActorSheet } from "./actor-sheet.mjs";
 import { toNonNegativeWhole } from "../utils/helpers.mjs";
 import { getSkillTierBonus } from "../reference/ref-utils.mjs";
+import { browseImage } from "../utils/file-picker.mjs";
 
 // ── Module-level helpers (not exported from actor-sheet.mjs) ──────────────────
 const _BESTIARY_ENERGY_MODES = Object.freeze(new Set(["plasma-battery", "light-mass"]));
@@ -807,14 +808,9 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
   _openActorImagePicker(targetPath) {
     const current = String(foundry.utils.getProperty(this.actor, targetPath) ?? "");
-    const picker = new FilePicker({
-      type: "image",
-      current,
-      callback: async (path) => {
-        await this.actor.update({ [targetPath]: path });
-      }
+    browseImage(current, async (path) => {
+      await this.actor.update({ [targetPath]: path });
     });
-    picker.browse();
   }
 
   _getSanShyuumGravityPenaltyValue(systemData = null) {

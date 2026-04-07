@@ -3,6 +3,7 @@
 // and the upbringing item sheet.
 
 import { normalizeUpbringingSystemData, normalizeChoiceGroup, normalizeModifierGroup } from "../data/normalization.mjs";
+import { browseImage } from "../utils/file-picker.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -587,7 +588,7 @@ export class MythicUpbringingSheet extends HandlebarsApplicationMixin(ItemSheetV
     if (!imgEl) return;
     imgEl.style.cursor = "pointer";
     imgEl.addEventListener("click", () => {
-      new FilePicker({ type: "image", current: this.item.img, callback: (path) => this.item.update({ img: path }) }).browse();
+      browseImage(this.item.img, (path) => this.item.update({ img: path }));
     });
   }
 

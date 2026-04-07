@@ -25,7 +25,7 @@ import {
 import { getCanonicalTrainingData, normalizeTrainingData } from '../mechanics/training.mjs';
 import { buildSkillRankDefaults } from '../mechanics/skills.mjs';
 import { computeCharacterDerivedValues } from '../mechanics/derived.mjs';
-import { getCanonicalCharacterSystemData, getCanonicalBestiarySystemData } from './canonical.mjs';
+import { getCanonicalCharacterSystemData, getCanonicalBestiarySystemData, getCanonicalVehicleSystemData } from './canonical.mjs';
 import { normalizeSkillEntry, normalizeSkillsData } from './normalization-skills.mjs';
 import {
   getCanonicalAbilitySystemData,
@@ -171,6 +171,20 @@ function getEnergyCellLabel(ammoMode = "", batterySubtype = "plasma") {
   return "Plasma Battery";
 }
 
+function getVehicleDoomState(hullValue = 0) {
+  const bp = Math.max(0, Number(hullValue ?? 0)) * -1;
+  if (bp >= 100) return { level: "tier_9", armor: 5, blast: 4, kill: 3, move: false };
+  if (bp >= 81) return { level: "tier_8", armor: 5, blast: 3, kill: 2, move: false };
+  if (bp >= 66) return { level: "tier_7", armor: 5, blast: 2, kill: 1, move: false };
+  if (bp >= 51) return { level: "tier_6", armor: 5, blast: 0, kill: 0, move: false };
+  if (bp >= 41) return { level: "tier_5", armor: 4, blast: 0, kill: 0, move: false };
+  if (bp >= 31) return { level: "tier_4", armor: 3, blast: 0, kill: 0, move: true };
+  if (bp >= 21) return { level: "tier_3", armor: 2, blast: 0, kill: 0, move: true };
+  if (bp >= 11) return { level: "tier_2", armor: 1, blast: 0, kill: 0, move: true };
+  if (bp >= 0) return { level: "tier_1", armor: 0, blast: 0, kill: 0, move: true };
+  return { level: "tier_0", armor: 0, blast: 0, kill: 0, move: true };
+}
+
 // ─── Skill Normalization ─────────────────────────────────────────────────────
 export { normalizeSkillEntry, normalizeSkillsData };
 export {
@@ -210,6 +224,7 @@ export function normalizeCharacterSystemData(systemData) {
   const source = foundry.utils.deepClone(systemData ?? {});
   const defaults = getCanonicalCharacterSystemData();
   const hadWoundsCurrent = foundry.utils.hasProperty(source, "combat.wounds.current");
+  const asRecord = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value : {});
 
   const merged = foundry.utils.mergeObject(defaults, source, {
     inplace: false,
@@ -732,25 +747,25 @@ export function normalizeCharacterSystemData(systemData) {
     lifestyles
   };
 
-  merged.notes ??= {};
+  merged.notes = asRecord(merged.notes);
   for (const key of ["missionLog", "personalNotes", "gmNotes"]) {
     merged.notes[key] = String(merged.notes?.[key] ?? "");
   }
 
-  merged.vehicles ??= {};
-  for (const key of ["currentVehicle", "role", "callsign", "notes"]) {
+  merged.vehicles = asRecord(merged.vehicles);
+  for (const key of ["currentVehicleActorId", "currentVehicle", "role", "callsign", "notes"]) {
     merged.vehicles[key] = String(merged.vehicles?.[key] ?? "");
   }
 
-  merged.settings ??= {};
-  merged.settings.automation ??= {};
+  merged.settings = asRecord(merged.settings);
+  merged.settings.automation = asRecord(merged.settings.automation);
   for (const key of ["enforceAbilityPrereqs", "showRollHints", "showWorkflowGuidance", "keepSidebarCollapsed", "preferTokenPreview"]) {
     merged.settings.automation[key] = Boolean(merged.settings.automation?.[key]);
   }
 
-  merged.biography ??= {};
+  merged.biography = asRecord(merged.biography);
   merged.biography.languages = normalizeStringList(Array.isArray(merged.biography?.languages) ? merged.biography.languages : []);
-  merged.biography.physical ??= {};
+  merged.biography.physical = asRecord(merged.biography.physical);
 
   const rawHeightCm = Number(merged.biography.physical.heightCm);
   let normalizedHeightCm = Number.isFinite(rawHeightCm) ? Math.max(0, Math.round(rawHeightCm)) : 0;
@@ -1093,6 +1108,161 @@ export function normalizeBestiarySystemData(systemData) {
   recalculated.combat.luck.current = finalLuckCurrent;
   recalculated.combat.luck.max = finalLuckMax;
   return recalculated;
+}
+
+export function normalizeVehicleSystemData(systemData) {
+  const source = foundry.utils.deepClone(systemData ?? {});
+  const defaults = getCanonicalVehicleSystemData();
+  const merged = foundry.utils.mergeObject(defaults, source, {
+    inplace: false,
+    insertKeys: true,
+    insertValues: true,
+    overwrite: true,
+    recursive: true
+  });
+
+  merged.schemaVersion = coerceSchemaVersion(merged.schemaVersion, MYTHIC_ACTOR_SCHEMA_VERSION);
+  merged.designation = String(merged.designation ?? "").trim();
+  merged.faction = String(merged.faction ?? "").trim();
+  merged.factionTraining = String(merged.factionTraining ?? "unsc").trim() || "unsc";
+  merged.variant = String(merged.variant ?? "").trim();
+  merged.size = String(merged.size ?? "mini").trim() || "mini";
+  merged.price = toNonNegativeWhole(merged.price, 0);
+  merged.experience = toNonNegativeWhole(merged.experience, 0);
+  merged.notes = String(merged.notes ?? "");
+
+  merged.dimensions ??= {};
+  for (const key of ["length", "width", "height", "weight"]) {
+    merged.dimensions[key] = toNonNegativeNumber(merged.dimensions?.[key], 0);
+  }
+
+  merged.characteristics ??= {};
+  for (const key of ["str", "mythicStr", "agi", "mythicAgi", "wfr", "int", "per"]) {
+    merged.characteristics[key] = toNonNegativeWhole(merged.characteristics?.[key], 0);
+  }
+
+  merged.movement ??= {};
+  for (const key of ["accelerate", "brake"]) {
+    merged.movement[key] ??= {};
+    merged.movement[key].value = toNonNegativeWhole(merged.movement[key]?.value, 0);
+    merged.movement[key].max = toNonNegativeWhole(merged.movement[key]?.max, 0);
+  }
+  merged.movement.speed ??= {};
+  merged.movement.speed.base = toNonNegativeWhole(merged.movement.speed?.base, 0);
+  merged.movement.speed.value = toNonNegativeWhole(merged.movement.speed?.value, 0);
+  merged.movement.speed.max = toNonNegativeWhole(merged.movement.speed?.max, 0);
+
+  merged.movement.maneuver ??= {};
+  merged.movement.maneuver.base = toNonNegativeWhole(merged.movement.maneuver?.base, 0);
+  merged.movement.maneuver.total = toNonNegativeWhole(merged.movement.maneuver?.total, 0);
+  merged.movement.maneuver.owner = String(merged.movement.maneuver?.owner ?? "");
+
+  merged.movement.walker ??= {};
+  for (const key of ["half", "full", "charge", "run", "jump", "leap", "evasion", "parry"]) {
+    merged.movement.walker[key] = toNonNegativeWhole(merged.movement.walker?.[key], 0);
+  }
+  merged.movement.walker.owner = String(merged.movement.walker?.owner ?? "");
+
+  merged.breakpoints ??= {};
+  for (const key of ["wep", "mob", "eng", "op", "hull"]) {
+    merged.breakpoints[key] ??= {};
+    merged.breakpoints[key].value = toNonNegativeWhole(merged.breakpoints[key]?.value, 0);
+    merged.breakpoints[key].max = toNonNegativeWhole(merged.breakpoints[key]?.max, 0);
+  }
+
+  merged.breakpoints.hull.doom = foundry.utils.mergeObject(
+    getCanonicalVehicleSystemData().breakpoints.hull.doom,
+    merged.breakpoints.hull?.doom ?? {},
+    { inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true }
+  );
+  const normalizedDoom = getVehicleDoomState(merged.breakpoints.hull.value);
+  merged.breakpoints.hull.doom.level = String(normalizedDoom.level);
+  merged.breakpoints.hull.doom.armor = toNonNegativeWhole(normalizedDoom.armor, 0);
+  merged.breakpoints.hull.doom.blast = toNonNegativeWhole(normalizedDoom.blast, 0);
+  merged.breakpoints.hull.doom.kill = toNonNegativeWhole(normalizedDoom.kill, 0);
+  merged.breakpoints.hull.doom.move = Boolean(normalizedDoom.move);
+
+  merged.armor ??= {};
+  for (const key of ["front", "back", "side", "top", "bottom"]) {
+    merged.armor[key] ??= {};
+    merged.armor[key].value = toNonNegativeWhole(merged.armor[key]?.value, 0);
+    merged.armor[key].max = toNonNegativeWhole(merged.armor[key]?.max, 0);
+  }
+
+  merged.shields ??= {};
+  merged.shields.value = toNonNegativeWhole(merged.shields?.value, 0);
+  merged.shields.max = toNonNegativeWhole(merged.shields?.max, 0);
+  merged.shields.recharge = toNonNegativeWhole(merged.shields?.recharge, 0);
+  merged.shields.delay = toNonNegativeWhole(merged.shields?.delay, 0);
+
+  merged.sizePoints = toNonNegativeWhole(merged.sizePoints, 0);
+  merged.weaponPoints = toNonNegativeWhole(merged.weaponPoints, 0);
+  const normalizeCrewRows = (rows = []) => {
+    const sourceRows = Array.isArray(rows) ? rows : [];
+    return sourceRows.map((entry, index) => ({
+      idx: toNonNegativeWhole(entry?.idx, index),
+      id: String(entry?.id ?? "").trim(),
+      display: String(entry?.display ?? "").trim()
+    }));
+  };
+
+  merged.crew ??= {};
+  merged.crew.capacity ??= {};
+  merged.crew.capacity.operators = toNonNegativeWhole(merged.crew.capacity?.operators, 0);
+  merged.crew.capacity.gunners = toNonNegativeWhole(merged.crew.capacity?.gunners, 0);
+  merged.crew.capacity.passengers = toNonNegativeWhole(merged.crew.capacity?.passengers, 0);
+
+  const ensureCrewArrayLength = (rows = [], capacity = 0) => {
+    const normalized = normalizeCrewRows(rows);
+    const result = Array.isArray(normalized) ? normalized.slice(0, capacity) : [];
+    for (let i = result.length; i < capacity; i++) {
+      result.push({ idx: i, id: "", display: "" });
+    }
+    return result.map((entry, i) => ({ idx: i, id: String(entry?.id ?? "").trim(), display: String(entry?.display ?? "").trim() }));
+  };
+
+  merged.crew.operators = ensureCrewArrayLength(merged.crew?.operators, merged.crew.capacity.operators);
+  merged.crew.gunners = ensureCrewArrayLength(merged.crew?.gunners, merged.crew.capacity.gunners);
+  merged.crew.complement = ensureCrewArrayLength(merged.crew?.complement, merged.crew.capacity.passengers);
+  merged.crew.notes = String(merged.crew?.notes ?? "");
+
+  merged.special ??= {};
+  const specialDefaults = getCanonicalVehicleSystemData().special;
+  for (const [key, fallback] of Object.entries(specialDefaults)) {
+    merged.special[key] ??= foundry.utils.deepClone(fallback);
+    merged.special[key].has = Boolean(merged.special[key]?.has);
+    if (Object.prototype.hasOwnProperty.call(fallback, "value")) {
+      const fallbackValue = typeof fallback.value === "string" ? String(fallback.value) : toNonNegativeWhole(fallback.value, 0);
+      if (typeof merged.special[key]?.value === "string" || typeof fallbackValue === "string") {
+        merged.special[key].value = String(merged.special[key]?.value ?? fallbackValue);
+      } else {
+        merged.special[key].value = toNonNegativeWhole(merged.special[key]?.value, Number(fallbackValue) || 0);
+      }
+    }
+  }
+
+  merged.automated = Boolean(merged.automated);
+
+  merged.propulsion ??= {};
+  merged.propulsion.type = String(merged.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
+  merged.propulsion.value = toNonNegativeWhole(merged.propulsion?.value, 0);
+  merged.propulsion.max = String(merged.propulsion?.max ?? "3").trim() || "3";
+  merged.propulsion.state ??= {};
+  merged.propulsion.state.multiplier = toNonNegativeNumber(merged.propulsion.state?.multiplier, 1);
+  merged.propulsion.state.toHit = Number(merged.propulsion.state?.toHit ?? 0) || 0;
+
+  merged.modifications ??= {};
+  merged.modifications.mods = normalizeStringList(Array.isArray(merged.modifications?.mods) ? merged.modifications.mods : []);
+  merged.modifications.notes = String(merged.modifications?.notes ?? "");
+
+  merged.cargo ??= {};
+  merged.cargo.total = toNonNegativeNumber(merged.cargo?.total, 0);
+  merged.cargo.notes = String(merged.cargo?.notes ?? "");
+
+  merged.perceptiveRange ??= {};
+  merged.perceptiveRange.total = toNonNegativeWhole(merged.perceptiveRange?.total, 0);
+
+  return merged;
 }
 
 // ─── Dispatch ────────────────────────────────────────────────────────────────

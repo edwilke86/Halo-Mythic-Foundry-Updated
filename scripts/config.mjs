@@ -15,6 +15,7 @@ export const MYTHIC_XP_TO_CR_TABLE = [
 
 export const MYTHIC_DEFAULT_CHARACTER_ICON = "icons/svg/mystery-man.svg";
 export const MYTHIC_DEFAULT_GROUP_ICON = "icons/svg/mystery-man.svg";
+export const MYTHIC_DEFAULT_VEHICLE_ICON = "icons/svg/mystery-man.svg";
 
 // --- Skill Tiers ---
 export const MYTHIC_SKILL_BONUS_BY_TIER = {

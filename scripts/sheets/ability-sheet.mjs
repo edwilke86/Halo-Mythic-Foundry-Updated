@@ -1,4 +1,5 @@
 // ─── MythicAbilitySheet ───────────────────────────────────────────────────────
+import { browseImage } from "../utils/file-picker.mjs";
 // Extracted from system.mjs — the ability item sheet.
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -61,12 +62,7 @@ export class MythicAbilitySheet extends HandlebarsApplicationMixin(ItemSheetV2) 
     if (!imgEl) return;
     imgEl.style.cursor = "pointer";
     imgEl.addEventListener("click", () => {
-      const fp = new FilePicker({
-        type: "image",
-        current: this.item.img,
-        callback: (path) => this.item.update({ img: path })
-      });
-      fp.browse();
+      browseImage(this.item.img, (path) => this.item.update({ img: path }));
     });
   }
 }

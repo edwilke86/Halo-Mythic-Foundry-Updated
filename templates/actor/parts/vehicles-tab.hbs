@@ -5,7 +5,20 @@
     <div class="mythic-phase4-grid two-column">
       <div class="mythic-phase4-card">
         <h3>Assignment</h3>
-        <div class="bio-row"><label>Current Vehicle</label><input type="text" name="system.vehicles.currentVehicle" value="{{mythicSystem.vehicles.currentVehicle}}" /></div>
+        <div class="bio-row">
+          <label>Linked Vehicle Actor</label>
+          <select name="system.vehicles.currentVehicleActorId" class="mythic-character-vehicle-select">
+            {{#each mythicVehicleActorOptions as |opt|}}
+              <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+        <div class="mythic-character-vehicle-actions">
+          <button type="button" class="mythic-vehicle-link-open">Open Linked Vehicle</button>
+          <button type="button" class="mythic-vehicle-link-create">Create New Vehicle</button>
+        </div>
+        <div class="mythic-character-vehicle-dropzone" title="Drag a vehicle actor here to link it.">Drop Vehicle Actor Here To Link</div>
+        <div class="bio-row"><label>Current Vehicle</label><input type="text" name="system.vehicles.currentVehicle" value="{{mythicSystem.vehicles.currentVehicle}}" readonly /></div>
         <div class="bio-row"><label>Role</label><input type="text" name="system.vehicles.role" value="{{mythicSystem.vehicles.role}}" /></div>
         <div class="bio-row"><label>Callsign</label><input type="text" name="system.vehicles.callsign" value="{{mythicSystem.vehicles.callsign}}" /></div>
       </div>

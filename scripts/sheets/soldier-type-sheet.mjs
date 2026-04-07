@@ -433,12 +433,13 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
     if (imgEl) {
       imgEl.style.cursor = "pointer";
       imgEl.addEventListener("click", () => {
-        const fp = new FilePicker({
-          type: "image",
-          current: this.item.img,
-          callback: (path) => this.item.update({ img: path })
+        import("../utils/file-picker.mjs").then(({ browseImage }) => {
+          browseImage(this.item.img, (path) => this.item.update({ img: path }));
+        }).catch(() => {
+          // Fallback to legacy FilePicker if dynamic import fails in unusual environments
+          const fp = new FilePicker({ type: "image", current: this.item.img, callback: (path) => this.item.update({ img: path }) });
+          fp.browse();
         });
-        fp.browse();
       });
     }
 

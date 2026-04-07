@@ -2,6 +2,7 @@
 // Extracted from system.mjs — the education item sheet.
 
 import { normalizeEducationSystemData } from "../data/normalization.mjs";
+import { browseImage } from "../utils/file-picker.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -96,12 +97,7 @@ export class MythicEducationSheet extends HandlebarsApplicationMixin(ItemSheetV2
     if (!imgEl) return;
     imgEl.style.cursor = "pointer";
     imgEl.addEventListener("click", () => {
-      const fp = new FilePicker({
-        type: "image",
-        current: this.item.img,
-        callback: (path) => this.item.update({ img: path })
-      });
-      fp.browse();
+      browseImage(this.item.img, (path) => this.item.update({ img: path }));
     });
   }
 }

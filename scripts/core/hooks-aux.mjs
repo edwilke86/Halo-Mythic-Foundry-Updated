@@ -4,6 +4,7 @@ import {
   MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY,
   MYTHIC_DEFAULT_CHARACTER_ICON,
   MYTHIC_DEFAULT_GROUP_ICON,
+  MYTHIC_DEFAULT_VEHICLE_ICON,
   MYTHIC_EDUCATION_DEFAULT_ICON,
   MYTHIC_ABILITY_DEFAULT_ICON,
   MYTHIC_CREATION_PATHS_DEFAULT_ICON,
@@ -21,7 +22,9 @@ function isLegacyAiIconPath(path) {
 }
 
 function getDefaultIconForActorType(actorType) {
-  if (String(actorType ?? "").trim().toLowerCase() === "group") return MYTHIC_DEFAULT_GROUP_ICON;
+  const normalizedType = String(actorType ?? "").trim().toLowerCase();
+  if (normalizedType === "group") return MYTHIC_DEFAULT_GROUP_ICON;
+  if (normalizedType === "vehicle") return MYTHIC_DEFAULT_VEHICLE_ICON;
   return MYTHIC_DEFAULT_CHARACTER_ICON;
 }
 

@@ -8,8 +8,21 @@
               <div class="compact-field"><div class="field-label">WEP</div><input class="small-input" type="number" name="system.breakpoints.wep.value" value="{{mythicVehicleSystem.breakpoints.wep.value}}" /></div>
               <div class="compact-field"><div class="field-label">MOB</div><input class="small-input" type="number" name="system.breakpoints.mob.value" value="{{mythicVehicleSystem.breakpoints.mob.value}}" /></div>
               <div class="compact-field"><div class="field-label">ENG</div><input class="small-input" type="number" name="system.breakpoints.eng.value" value="{{mythicVehicleSystem.breakpoints.eng.value}}" /></div>
-              <div class="compact-field"><div class="field-label">OP</div><input class="small-input" type="number" name="system.breakpoints.op.value" value="{{mythicVehicleSystem.breakpoints.op.value}}" /></div>
+              <div class="compact-field">
+                <div class="field-label">OP</div>
+                {{#if mythicVehicleSystem.breakpoints.op.noOptics}}
+                <input class="small-input" type="text" value="-" disabled />
+                <input type="hidden" name="system.breakpoints.op.value" value="0" />
+                {{else}}
+                <input class="small-input" type="number" name="system.breakpoints.op.value" value="{{mythicVehicleSystem.breakpoints.op.value}}" />
+                {{/if}}
+              </div>
               <div class="compact-field"><div class="field-label">HULL</div><input class="small-input" type="number" name="system.breakpoints.hull.value" value="{{mythicVehicleSystem.breakpoints.hull.value}}" /></div>
+              <div class="compact-field compact-field-checkbox">
+                <div class="field-label">No Optics</div>
+                <input type="hidden" name="system.breakpoints.op.noOptics" value="false" />
+                <input id="vehicle-{{actor.id}}-no-optics" type="checkbox" name="system.breakpoints.op.noOptics" value="true" {{#if mythicVehicleSystem.breakpoints.op.noOptics}}checked{{/if}} />
+              </div>
             </div>
           </div>
 
@@ -49,16 +62,20 @@
               <div style="min-width:160px;">
                 <label>Type
                   <select name="system.propulsion.type">
-                    <option value="none" {{#if (eq mythicVehicleSystem.propulsion.type "none")}}selected{{/if}}>Stationary</option>
-                    <option value="legs" {{#if (eq mythicVehicleSystem.propulsion.type "legs")}}selected{{/if}}>Legs</option>
-                    <option value="thrusters" {{#if (eq mythicVehicleSystem.propulsion.type "thrusters")}}selected{{/if}}>Thrusters</option>
-                    <option value="treads" {{#if (eq mythicVehicleSystem.propulsion.type "treads")}}selected{{/if}}>Treads</option>
-                    <option value="wheels" {{#if (eq mythicVehicleSystem.propulsion.type "wheels")}}selected{{/if}}>Wheels</option>
+                    {{selectOptions mythicPropulsionTypeOptions selected=mythicVehicleSystem.propulsion.type}}
                   </select>
                 </label>
               </div>
-              <div class="compact-field"><div class="field-label">Intact</div><input class="small-input" type="number" name="system.propulsion.value" value="{{mythicVehicleSystem.propulsion.value}}" /></div>
-              <div class="compact-field"><div class="field-label">Total</div><input class="small-input" type="number" name="system.propulsion.max" value="{{mythicVehicleSystem.propulsion.max}}" /></div>
+              {{#if mythicShowPropulsionMaxField}}
+              <div class="compact-field">
+                <div class="field-label">Total</div>
+                <select class="small-input" name="system.propulsion.max">
+                  {{selectOptions mythicPropulsionMaxOptions selected=mythicVehicleSystem.propulsion.max}}
+                </select>
+              </div>
+              {{else}}
+              <input type="hidden" name="system.propulsion.max" value="" />
+              {{/if}}
             </div>
           </div>
 
@@ -69,6 +86,15 @@
                 <input class="small-input" type="number" name="system.sizePoints" value="{{mythicVehicleSystem.sizePoints}}" min="0" max="99" step="1" style="width:56px;" />
               </div>
               <div class="compact-field"><div class="field-label">Weapon</div><input class="small-input" type="number" name="system.weaponPoints" value="{{mythicVehicleSystem.weaponPoints}}" /></div>
+            </div>
+          </div>
+
+          <div class="panel crew-panel">
+            <h3>Crew & Complement</h3>
+            <div class="compact-row">
+              <div class="compact-field"><div class="field-label">Operators</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.operators" value="{{mythicVehicleSystem.crew.capacity.operators}}" /></div>
+              <div class="compact-field"><div class="field-label">Gunners</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.gunners" value="{{mythicVehicleSystem.crew.capacity.gunners}}" /></div>
+              <div class="compact-field"><div class="field-label">Passengers</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.passengers" value="{{mythicVehicleSystem.crew.capacity.passengers}}" /></div>
             </div>
           </div>
         </div>

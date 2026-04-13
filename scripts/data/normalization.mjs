@@ -22,6 +22,7 @@ import {
   normalizeItemSyncData, normalizeLookupText, normalizeStringList,
   coerceSchemaVersion
 } from '../utils/helpers.mjs';
+import { normalizeSheetAppearanceData } from '../utils/sheet-appearance.mjs';
 import { getCanonicalTrainingData, normalizeTrainingData } from '../mechanics/training.mjs';
 import { buildSkillRankDefaults } from '../mechanics/skills.mjs';
 import { computeCharacterDerivedValues } from '../mechanics/derived.mjs';
@@ -185,6 +186,221 @@ function getVehicleDoomState(hullValue = 0) {
   return { level: "tier_0", armor: 0, blast: 0, kill: 0, move: true };
 }
 
+function coerceVehicleCheckboxBoolean(value, fallback = false) {
+  if (Array.isArray(value)) {
+    if (!value.length) return fallback;
+    return coerceVehicleCheckboxBoolean(value[value.length - 1], fallback);
+  }
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return fallback;
+    if (["true", "1", "on", "yes"].includes(normalized)) return true;
+    if (["false", "0", "off", "no"].includes(normalized)) return false;
+  }
+  return fallback;
+}
+
+function normalizeVehiclePropulsionType(value = "wheels") {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized === "propeller" || normalized === "propellers") return "thrusters";
+  if (["none", "legs", "thrusters", "treads", "wheels"].includes(normalized)) return normalized;
+  return "wheels";
+}
+
+function getVehiclePropulsionMaxOptions(propulsionType = "wheels") {
+  const type = normalizeVehiclePropulsionType(propulsionType);
+  if (type === "none") return [];
+  if (type === "wheels") return ["3", "4", "6", "8"];
+  if (type === "treads") return ["2", "4", "6", "8"];
+  if (type === "legs") return ["2", "3", "4", "5", "6"];
+  if (type === "thrusters") return Array.from({ length: 20 }, (_, index) => String(index + 1));
+  return ["3", "4", "6", "8"];
+}
+
+function clampWholeInRange(value, fallback = 0, { min = 0, max = Number.POSITIVE_INFINITY } = {}) {
+  let resolved = Number(value);
+  if (!Number.isFinite(resolved)) resolved = Number(fallback);
+  if (!Number.isFinite(resolved)) resolved = min;
+  resolved = Math.round(resolved);
+  if (resolved < min) resolved = min;
+  if (Number.isFinite(max) && resolved > max) resolved = max;
+  return resolved;
+}
+
+function getVehicleConfiguredBaseValue(field = {}) {
+  const configuredValue = clampWholeInRange(field?.value, 0, { min: 0 });
+  const configuredMax = clampWholeInRange(field?.max, 0, { min: 0 });
+  if (configuredValue > 0 || configuredMax <= 0) return configuredValue;
+  return configuredMax;
+}
+
+function getVehicleOverviewWeaponTrackerIds(vehicleSystem = {}) {
+  const emplacements = Array.isArray(vehicleSystem?.weaponEmplacements) ? vehicleSystem.weaponEmplacements : [];
+  return emplacements
+    .map((entry, index) => String(entry?.id ?? `weapon-${index + 1}`).trim())
+    .filter(Boolean);
+}
+
+function getVehicleOverviewOpticsTrackerIds(vehicleSystem = {}) {
+  if (Boolean(vehicleSystem?.breakpoints?.op?.noOptics)) return [];
+
+  const ids = [];
+  const operatorCount = toNonNegativeWhole(vehicleSystem?.crew?.capacity?.operators, 0);
+  for (let index = 0; index < operatorCount; index += 1) {
+    ids.push(`operator-${index + 1}`);
+  }
+
+  const emplacements = Array.isArray(vehicleSystem?.weaponEmplacements) ? vehicleSystem.weaponEmplacements : [];
+  for (let index = 0; index < emplacements.length; index += 1) {
+    const emplacement = emplacements[index] ?? {};
+    const controllerRole = String(emplacement?.controllerRole ?? "").trim().toLowerCase();
+    if (controllerRole === "operator") continue;
+    const weaponId = String(emplacement?.id ?? `weapon-${index + 1}`).trim();
+    if (!weaponId) continue;
+    ids.push(`weapon-${weaponId}`);
+  }
+
+  return ids;
+}
+
+function getVehicleOverviewMobilityTrackerIds(vehicleSystem = {}) {
+  const propulsionType = normalizeVehiclePropulsionType(vehicleSystem?.propulsion?.type);
+  if (propulsionType === "none") return [];
+
+  const configuredCount = Math.max(
+    0,
+    Number.parseInt(String(vehicleSystem?.propulsion?.max ?? ""), 10) || toNonNegativeWhole(vehicleSystem?.propulsion?.value, 0)
+  );
+
+  return Array.from({ length: configuredCount }, (_entry, index) => `mobility-${index + 1}`);
+}
+
+function normalizeVehicleOverviewCustomBreakpoints(entries = []) {
+  return (Array.isArray(entries) ? entries : [])
+    .map((entry, index) => {
+      const currentMax = clampWholeInRange(entry?.max, 0, { min: 0 });
+      const currentValue = clampWholeInRange(entry?.current, currentMax, { min: 0 });
+      return {
+        id: String(entry?.id ?? `custom-breakpoint-${index + 1}`).trim() || `custom-breakpoint-${index + 1}`,
+        label: String(entry?.label ?? entry?.name ?? "").trim(),
+        current: currentValue,
+        max: currentMax
+      };
+    })
+    .filter((entry) => entry.id);
+}
+
+function normalizeVehicleOverviewState(overview = {}, vehicleSystem = {}) {
+  const defaults = getCanonicalVehicleSystemData().overview;
+  const source = (overview && typeof overview === "object") ? overview : {};
+  const sourceBreakpoints = (source.breakpoints && typeof source.breakpoints === "object") ? source.breakpoints : {};
+  const sourceArmor = (source.armor && typeof source.armor === "object") ? source.armor : {};
+  const sourceShields = (source.shields && typeof source.shields === "object") ? source.shields : {};
+  const mergedOverview = foundry.utils.mergeObject(foundry.utils.deepClone(defaults), source, {
+    inplace: false,
+    insertKeys: true,
+    insertValues: true,
+    overwrite: true,
+    recursive: true
+  });
+
+  mergedOverview.ui ??= {};
+  mergedOverview.ui.sections ??= {};
+  mergedOverview.ui.statusExpanded = Boolean(mergedOverview.ui?.statusExpanded);
+  mergedOverview.ui.breakpointsExpanded = mergedOverview.ui?.breakpointsExpanded !== false;
+  for (const key of ["engineHull", "weapons", "optics", "mobility", "custom"]) {
+    const fallback = key === "engineHull" || key === "custom";
+    mergedOverview.ui.sections[key] = mergedOverview.ui?.sections?.[key] !== undefined
+      ? Boolean(mergedOverview.ui.sections[key])
+      : fallback;
+  }
+
+  const engineMax = getVehicleConfiguredBaseValue(vehicleSystem?.breakpoints?.eng ?? {});
+  const hullMax = getVehicleConfiguredBaseValue(vehicleSystem?.breakpoints?.hull ?? {});
+  const weaponsMax = getVehicleConfiguredBaseValue(vehicleSystem?.breakpoints?.wep ?? {});
+  const opticsMax = getVehicleConfiguredBaseValue(vehicleSystem?.breakpoints?.op ?? {});
+  const mobilityMax = getVehicleConfiguredBaseValue(vehicleSystem?.breakpoints?.mob ?? {});
+
+  mergedOverview.breakpoints ??= {};
+  mergedOverview.breakpoints.engine ??= {};
+  mergedOverview.breakpoints.hull ??= {};
+  const hasEngineCurrent = sourceBreakpoints?.engine?.current !== undefined && sourceBreakpoints?.engine?.current !== null && sourceBreakpoints?.engine?.current !== "";
+  const hasHullCurrent = sourceBreakpoints?.hull?.current !== undefined && sourceBreakpoints?.hull?.current !== null && sourceBreakpoints?.hull?.current !== "";
+  mergedOverview.breakpoints.engine.current = clampWholeInRange(hasEngineCurrent ? sourceBreakpoints.engine.current : engineMax, engineMax, {
+    min: 0,
+    max: engineMax
+  });
+  mergedOverview.breakpoints.hull.current = clampWholeInRange(hasHullCurrent ? sourceBreakpoints.hull.current : hullMax, hullMax, {
+    min: -100,
+    max: hullMax
+  });
+
+  const normalizeTrackerMap = (sourceMap = {}, ids = [], maxValue = 0) => {
+    const mapSource = (sourceMap && typeof sourceMap === "object") ? sourceMap : {};
+    return Object.fromEntries(ids.map((id) => {
+      const tracker = (mapSource[id] && typeof mapSource[id] === "object") ? mapSource[id] : {};
+      const hasCurrent = tracker?.current !== undefined && tracker?.current !== null && tracker?.current !== "";
+      return [id, {
+        current: clampWholeInRange(hasCurrent ? tracker.current : maxValue, maxValue, { min: 0, max: maxValue })
+      }];
+    }));
+  };
+
+  mergedOverview.breakpoints.weapons ??= {};
+  mergedOverview.breakpoints.optics ??= {};
+  mergedOverview.breakpoints.mobility ??= {};
+  mergedOverview.breakpoints.weapons.byId = normalizeTrackerMap(
+    mergedOverview.breakpoints.weapons?.byId,
+    getVehicleOverviewWeaponTrackerIds(vehicleSystem),
+    weaponsMax
+  );
+  mergedOverview.breakpoints.optics.byId = normalizeTrackerMap(
+    mergedOverview.breakpoints.optics?.byId,
+    getVehicleOverviewOpticsTrackerIds(vehicleSystem),
+    opticsMax
+  );
+  mergedOverview.breakpoints.mobility.byId = normalizeTrackerMap(
+    mergedOverview.breakpoints.mobility?.byId,
+    getVehicleOverviewMobilityTrackerIds(vehicleSystem),
+    mobilityMax
+  );
+  mergedOverview.breakpoints.custom = normalizeVehicleOverviewCustomBreakpoints(mergedOverview.breakpoints?.custom);
+
+  mergedOverview.armor ??= {};
+  for (const key of ["front", "back", "side", "top", "bottom"]) {
+    const baseArmor = getVehicleConfiguredBaseValue(vehicleSystem?.armor?.[key] ?? {});
+    mergedOverview.armor[key] ??= {};
+    const rawCurrent = sourceArmor?.[key]?.current;
+    const hasCurrent = rawCurrent !== undefined && rawCurrent !== null && rawCurrent !== "";
+    mergedOverview.armor[key].current = clampWholeInRange(hasCurrent ? rawCurrent : baseArmor, baseArmor, {
+      min: 0,
+      max: baseArmor
+    });
+  }
+
+  const shieldMax = getVehicleConfiguredBaseValue(vehicleSystem?.shields ?? {});
+  const shieldDelay = clampWholeInRange(vehicleSystem?.shields?.delay, 0, { min: 0 });
+  const shieldRecharge = clampWholeInRange(vehicleSystem?.shields?.recharge, 0, { min: 0 });
+  mergedOverview.shields ??= {};
+  const hasInitializedShieldState = (
+    Number(sourceShields?.max ?? 0) > 0
+    || Number(sourceShields?.current ?? 0) > 0
+    || Number(sourceShields?.delay ?? 0) > 0
+    || Number(sourceShields?.recharge ?? 0) > 0
+  );
+  mergedOverview.shields.max = shieldMax;
+  mergedOverview.shields.current = clampWholeInRange(hasInitializedShieldState ? sourceShields?.current : shieldMax, shieldMax, {
+    min: 0,
+    max: shieldMax
+  });
+  mergedOverview.shields.delay = shieldDelay;
+  mergedOverview.shields.recharge = shieldRecharge;
+
+  return mergedOverview;
+}
+
 // ─── Skill Normalization ─────────────────────────────────────────────────────
 export { normalizeSkillEntry, normalizeSkillsData };
 export {
@@ -238,6 +454,8 @@ export function normalizeCharacterSystemData(systemData) {
     const value = Number(merged.characteristics?.[key] ?? 0);
     merged.characteristics[key] = Number.isFinite(value) ? Math.max(0, value) : 0;
   }
+
+  merged.sheetAppearance = normalizeSheetAppearanceData(merged.sheetAppearance);
 
   merged.mythic ??= {};
   merged.mythic.characteristics ??= {};
@@ -1126,6 +1344,7 @@ export function normalizeVehicleSystemData(systemData) {
   merged.faction = String(merged.faction ?? "").trim();
   merged.factionTraining = String(merged.factionTraining ?? "unsc").trim() || "unsc";
   merged.variant = String(merged.variant ?? "").trim();
+  merged.sheetAppearance = normalizeSheetAppearanceData(merged.sheetAppearance);
   merged.size = String(merged.size ?? "mini").trim() || "mini";
   merged.price = toNonNegativeWhole(merged.price, 0);
   merged.experience = toNonNegativeWhole(merged.experience, 0);
@@ -1169,6 +1388,7 @@ export function normalizeVehicleSystemData(systemData) {
     merged.breakpoints[key].value = toNonNegativeWhole(merged.breakpoints[key]?.value, 0);
     merged.breakpoints[key].max = toNonNegativeWhole(merged.breakpoints[key]?.max, 0);
   }
+  merged.breakpoints.op.noOptics = coerceVehicleCheckboxBoolean(merged.breakpoints.op?.noOptics, false);
 
   merged.breakpoints.hull.doom = foundry.utils.mergeObject(
     getCanonicalVehicleSystemData().breakpoints.hull.doom,
@@ -1202,7 +1422,8 @@ export function normalizeVehicleSystemData(systemData) {
     return sourceRows.map((entry, index) => ({
       idx: toNonNegativeWhole(entry?.idx, index),
       id: String(entry?.id ?? "").trim(),
-      display: String(entry?.display ?? "").trim()
+      display: String(entry?.display ?? "").trim(),
+      position: String(entry?.position ?? "").replace(/\s+/gu, " ").trim()
     }));
   };
 
@@ -1216,9 +1437,14 @@ export function normalizeVehicleSystemData(systemData) {
     const normalized = normalizeCrewRows(rows);
     const result = Array.isArray(normalized) ? normalized.slice(0, capacity) : [];
     for (let i = result.length; i < capacity; i++) {
-      result.push({ idx: i, id: "", display: "" });
+      result.push({ idx: i, id: "", display: "", position: "" });
     }
-    return result.map((entry, i) => ({ idx: i, id: String(entry?.id ?? "").trim(), display: String(entry?.display ?? "").trim() }));
+    return result.map((entry, i) => ({
+      idx: i,
+      id: String(entry?.id ?? "").trim(),
+      display: String(entry?.display ?? "").trim(),
+      position: String(entry?.position ?? "").replace(/\s+/gu, " ").trim()
+    }));
   };
 
   merged.crew.operators = ensureCrewArrayLength(merged.crew?.operators, merged.crew.capacity.operators);
@@ -1230,7 +1456,7 @@ export function normalizeVehicleSystemData(systemData) {
   const specialDefaults = getCanonicalVehicleSystemData().special;
   for (const [key, fallback] of Object.entries(specialDefaults)) {
     merged.special[key] ??= foundry.utils.deepClone(fallback);
-    merged.special[key].has = Boolean(merged.special[key]?.has);
+    merged.special[key].has = coerceVehicleCheckboxBoolean(merged.special[key]?.has, false);
     if (Object.prototype.hasOwnProperty.call(fallback, "value")) {
       const fallbackValue = typeof fallback.value === "string" ? String(fallback.value) : toNonNegativeWhole(fallback.value, 0);
       if (typeof merged.special[key]?.value === "string" || typeof fallbackValue === "string") {
@@ -1241,12 +1467,34 @@ export function normalizeVehicleSystemData(systemData) {
     }
   }
 
-  merged.automated = Boolean(merged.automated);
+  const hasOpenTop = Boolean(merged.special?.openTop?.has);
+  const hasEnclosedTop = Boolean(merged.special?.enclosedTop?.has);
+  if (hasOpenTop && hasEnclosedTop) {
+    merged.special.openTop.has = false;
+    merged.special.enclosedTop.has = true;
+  } else if (!hasOpenTop && !hasEnclosedTop) {
+    merged.special.openTop.has = false;
+    merged.special.enclosedTop.has = true;
+  }
+
+  if (merged.breakpoints.op.noOptics) {
+    merged.breakpoints.op.value = 0;
+  }
+
+  merged.automated = coerceVehicleCheckboxBoolean(merged.automated, false);
 
   merged.propulsion ??= {};
-  merged.propulsion.type = String(merged.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
+  merged.propulsion.type = normalizeVehiclePropulsionType(merged.propulsion?.type);
   merged.propulsion.value = toNonNegativeWhole(merged.propulsion?.value, 0);
-  merged.propulsion.max = String(merged.propulsion?.max ?? "3").trim() || "3";
+  const rawPropulsionMax = String(merged.propulsion?.max ?? "").trim();
+  const allowedPropulsionMax = getVehiclePropulsionMaxOptions(merged.propulsion.type);
+  if (!allowedPropulsionMax.length) {
+    merged.propulsion.max = "";
+  } else if (allowedPropulsionMax.includes(rawPropulsionMax)) {
+    merged.propulsion.max = rawPropulsionMax;
+  } else {
+    merged.propulsion.max = allowedPropulsionMax[0];
+  }
   merged.propulsion.state ??= {};
   merged.propulsion.state.multiplier = toNonNegativeNumber(merged.propulsion.state?.multiplier, 1);
   merged.propulsion.state.toHit = Number(merged.propulsion.state?.toHit ?? 0) || 0;
@@ -1258,6 +1506,25 @@ export function normalizeVehicleSystemData(systemData) {
   merged.cargo ??= {};
   merged.cargo.total = toNonNegativeNumber(merged.cargo?.total, 0);
   merged.cargo.notes = String(merged.cargo?.notes ?? "");
+
+  merged.weaponEmplacements = (Array.isArray(merged.weaponEmplacements) ? merged.weaponEmplacements : [])
+    .map((entry, index) => {
+      const requestedRole = String(entry?.controllerRole ?? "").trim().toLowerCase();
+      const controllerRole = ["operator", "gunner", "passenger"].includes(requestedRole)
+        ? requestedRole
+        : "";
+      const linked = Boolean(entry?.linked);
+      return {
+        id: String(entry?.id ?? `legacy-emplacement-${index + 1}`).trim() || `legacy-emplacement-${index + 1}`,
+        weaponItemId: String(entry?.weaponItemId ?? "").trim(),
+        controllerRole,
+        controllerIndex: controllerRole ? toNonNegativeWhole(entry?.controllerIndex ?? entry?.controllerPosition, 0) : 0,
+        linked,
+        linkedCount: linked ? Math.max(2, toNonNegativeWhole(entry?.linkedCount, 2)) : 1
+      };
+    });
+
+  merged.overview = normalizeVehicleOverviewState(merged.overview, merged);
 
   merged.perceptiveRange ??= {};
   merged.perceptiveRange.total = toNonNegativeWhole(merged.perceptiveRange?.total, 0);
@@ -1854,6 +2121,15 @@ export function normalizeGearSystemData(systemData, itemName = "") {
       table: "",
       rowNumber: 0
     },
+    vehicleMount: {
+      isMounted: false,
+      emplacementId: "",
+      groupId: "",
+      controllerRole: "",
+      controllerPosition: 0,
+      linked: false,
+      linkedCount: 1
+    },
     sync: {}
   }, source, {
     inplace: false,
@@ -2259,6 +2535,28 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     ? merged.costMode
     : "per100";
   merged.sourceCategory = String(merged.sourceCategory ?? "").trim();
+
+  const rawVehicleMount = (merged.vehicleMount && typeof merged.vehicleMount === "object")
+    ? merged.vehicleMount
+    : {};
+  const requestedControllerRole = String(rawVehicleMount.controllerRole ?? "").trim().toLowerCase();
+  const controllerRole = ["operator", "gunner", "passenger"].includes(requestedControllerRole)
+    ? requestedControllerRole
+    : "";
+  const controllerPosition = toNonNegativeWhole(rawVehicleMount.controllerPosition, 0);
+  const isMounted = Boolean(rawVehicleMount.isMounted);
+  const emplacementId = String(rawVehicleMount.emplacementId ?? rawVehicleMount.groupId ?? "").trim();
+  const groupId = String(rawVehicleMount.groupId ?? "").trim();
+  const linked = isMounted && Boolean(rawVehicleMount.linked);
+  merged.vehicleMount = {
+    isMounted,
+    emplacementId: isMounted ? emplacementId : "",
+    groupId: isMounted ? groupId : "",
+    controllerRole: isMounted ? controllerRole : "",
+    controllerPosition: (isMounted && controllerRole) ? controllerPosition : 0,
+    linked,
+    linkedCount: linked ? Math.max(1, toNonNegativeWhole(rawVehicleMount.linkedCount, 1)) : 1
+  };
 
   merged.sync = normalizeItemSyncData(merged.sync, "gear", itemName);
   return merged;

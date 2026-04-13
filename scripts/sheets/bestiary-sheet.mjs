@@ -21,6 +21,11 @@ import {
   normalizeEducationSystemData,
   normalizeSkillsData
 } from "../data/normalization.mjs";
+import {
+  buildSheetAppearanceViewData,
+  extractSubmittedSheetAppearance,
+  normalizeSheetAppearanceData
+} from "../utils/sheet-appearance.mjs";
 import { substituteSoldierTypeInTraitText } from "../data/content-loading.mjs";
 import {
   computeCharacterDerivedValues,
@@ -170,6 +175,10 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     const characteristicRuntime = this._buildCharacteristicRuntime(effectiveSystem?.characteristics ?? {});
     const derived = computeCharacterDerivedValues(effectiveSystem);
     const worldGravity = getWorldGravity();
+    const themedFaction = String(system?.header?.faction ?? "").trim() || "Other (Setting Agnostic)";
+    const factionIndex = MythicActorSheet.prototype._getFactionIndex.call(this, themedFaction);
+    const bestiarySheetAppearance = normalizeSheetAppearanceData(system?.sheetAppearance ?? {});
+    const bestiarySheetAppearanceView = buildSheetAppearanceViewData(bestiarySheetAppearance, { factionIndex });
 
     context.cssClass = this.options.classes.join(" ");
     context.actor = this.actor;
@@ -186,6 +195,9 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     context.mythicCombat = this._getCombatViewData(effectiveSystem, characteristicRuntime.modifiers, derived);
     context.mythicGravityValue = String(worldGravity !== null ? worldGravity : (system?.gravity ?? 1.0));
     context.mythicIsGM = Boolean(game?.user?.isGM);
+    context.mythicFactionIndex = factionIndex;
+    context.mythicSheetAppearance = bestiarySheetAppearanceView;
+    context.mythicSheetBackgroundImage = bestiarySheetAppearanceView.backgroundImage;
     context.mythicBestiarySubtype = String(system?.bestiary?.subtype ?? "standard").trim().toLowerCase() || "standard";
     context.mythicIsFloodBestiary = context.mythicBestiarySubtype === "flood";
     context.bestiarySubtypeOptions = [
@@ -326,6 +338,11 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
     const root = this.element?.querySelector(".mythic-bestiary-shell") ?? this.element;
     if (!root) return;
+
+    this._lastSheetAppearanceForHeader = context?.mythicSheetAppearance ?? null;
+    MythicActorSheet.prototype._applyWindowTheme.call(this, root, context);
+    MythicActorSheet.prototype._configureWindowHeaderChrome.call(this);
+    MythicActorSheet.prototype._bindSheetAppearanceControls.call(this, root);
 
     const enrichBestiaryNotes = async () => {
       for (const node of root.querySelectorAll(".bestiary-note-preview")) {
@@ -799,6 +816,21 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
         }
       }
     }
+
+    const currentSheetAppearance = normalizeSheetAppearanceData(this.actor.system?.sheetAppearance ?? {});
+    const submittedSheetAppearance = foundry.utils.mergeObject(
+      foundry.utils.deepClone(currentSheetAppearance),
+      extractSubmittedSheetAppearance(submitData),
+      {
+        inplace: false,
+        insertKeys: true,
+        insertValues: true,
+        overwrite: true,
+        recursive: true
+      }
+    );
+    foundry.utils.setProperty(submitData, "system.sheetAppearance", normalizeSheetAppearanceData(submittedSheetAppearance));
+
     return submitData;
   }
 

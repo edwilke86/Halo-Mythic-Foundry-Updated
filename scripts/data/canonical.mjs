@@ -3,6 +3,7 @@
 import { MYTHIC_ACTOR_SCHEMA_VERSION, MYTHIC_DEFAULT_HEIGHT_RANGE_CM, MYTHIC_DEFAULT_WEIGHT_RANGE_KG } from '../config.mjs';
 import { getCanonicalTrainingData } from '../mechanics/training.mjs';
 import { buildCanonicalSkillsSchema } from '../mechanics/skills.mjs';
+import { MYTHIC_SHEET_APPEARANCE_DEFAULTS } from '../utils/sheet-appearance.mjs';
 
 export function getCanonicalCharacterSystemData() {
   return {
@@ -21,6 +22,7 @@ export function getCanonicalCharacterSystemData() {
       lifestyle: "",
       gender: ""
     },
+    sheetAppearance: foundry.utils.deepClone(MYTHIC_SHEET_APPEARANCE_DEFAULTS),
     characteristics: {
       str: 0,
       tou: 0,
@@ -381,6 +383,7 @@ export function getCanonicalVehicleSystemData() {
     faction: "",
     factionTraining: "unsc",
     variant: "",
+    sheetAppearance: foundry.utils.deepClone(MYTHIC_SHEET_APPEARANCE_DEFAULTS),
     price: 0,
     experience: 0,
     size: "mini",
@@ -420,7 +423,7 @@ export function getCanonicalVehicleSystemData() {
       wep: { value: 0, max: 0 },
       mob: { value: 0, max: 0 },
       eng: { value: 0, max: 0 },
-      op: { value: 0, max: 0 },
+      op: { value: 0, max: 0, noOptics: false },
       hull: {
         value: 0,
         max: 0,
@@ -439,6 +442,40 @@ export function getCanonicalVehicleSystemData() {
       max: 0,
       recharge: 0,
       delay: 0
+    },
+    overview: {
+      ui: {
+        statusExpanded: false,
+        breakpointsExpanded: true,
+        sections: {
+          engineHull: true,
+          weapons: false,
+          optics: false,
+          mobility: false,
+          custom: true
+        }
+      },
+      breakpoints: {
+        engine: { current: 0 },
+        hull: { current: 0 },
+        weapons: { byId: {} },
+        optics: { byId: {} },
+        mobility: { byId: {} },
+        custom: []
+      },
+      armor: {
+        front: { current: 0 },
+        back: { current: 0 },
+        side: { current: 0 },
+        top: { current: 0 },
+        bottom: { current: 0 }
+      },
+      shields: {
+        current: 0,
+        max: 0,
+        delay: 0,
+        recharge: 0
+      }
     },
     sizePoints: 0,
     weaponPoints: 0,
@@ -459,7 +496,7 @@ export function getCanonicalVehicleSystemData() {
       autoloader: { has: false },
       boost: { has: false, value: 0 },
       continuousTrack: { has: false },
-      enclosedTop: { has: false },
+      enclosedTop: { has: true },
       flight: { has: false },
       heavyPlating: { has: false },
       neuralInterface: { has: false },
@@ -485,6 +522,7 @@ export function getCanonicalVehicleSystemData() {
       total: 0,
       notes: ""
     },
+    weaponEmplacements: [],
     perceptiveRange: {
       total: 0
     },

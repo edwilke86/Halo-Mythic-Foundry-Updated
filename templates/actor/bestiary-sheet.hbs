@@ -1,4 +1,13 @@
-<div class="{{cssClass}} mythic-character-sheet mythic-bestiary-shell" data-faction="1" data-subtype="{{mythicBestiarySubtype}}" data-flood-form="{{mythicFloodFormClass}}">
+<div
+  class="mythic-character-sheet mythic-bestiary-shell mythic-sheet-theme-root"
+  data-faction="{{mythicFactionIndex}}"
+  data-subtype="{{mythicBestiarySubtype}}"
+  data-flood-form="{{mythicFloodFormClass}}"
+  data-theme-preset="{{mythicSheetAppearance.preset}}"
+  data-panel-style="{{mythicSheetAppearance.panelStyle}}"
+  data-portrait-frame="{{mythicSheetAppearance.portraitFrame}}"
+  data-banner-style="{{mythicSheetAppearance.banner.style}}"
+  data-has-banner="{{#if mythicSheetAppearance.displayBanner}}true{{else}}false{{/if}}">
   <aside class="sheet-nav">
     <nav class="sheet-tabs tabs" data-group="primary">
       <a class="item" data-tab="main" title="Main">
@@ -23,9 +32,12 @@
   </aside>
 
   <section class="sheet-content">
-    <header class="mythic-bestiary-header mythic-bestiary-sticky-header">
-      <div class="mythic-bestiary-portrait-wrap">
-        <img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" alt="{{actor.name}}" />
+    <header class="mythic-bestiary-header mythic-bestiary-sticky-header mythic-sheet-header-surface">
+      <div class="mythic-bestiary-portrait-column">
+        <div class="mythic-bestiary-portrait-wrap mythic-sheet-portrait-surface">
+          <img class="profile-img mythic-sheet-portrait-image" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" alt="{{actor.name}}" />
+        </div>
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-banner.hbs"}}
       </div>
       <div class="mythic-bestiary-header-fields">
         <div class="mythic-bestiary-header-title-row">
@@ -851,6 +863,11 @@
             {{else}}
               <p class="mythic-empty-state">No armor equipped. Drop an armor item to equip it.</p>
             {{/if}}
+          </section>
+
+          <section class="mythic-bestiary-panel mythic-sheet-appearance-panel">
+            <h2>Sheet Appearance</h2>
+            {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-fields.hbs"}}
           </section>
         </section>
       </div>

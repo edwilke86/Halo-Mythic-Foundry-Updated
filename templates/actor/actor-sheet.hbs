@@ -1,5 +1,12 @@
 {{#if mythicIsVehicleActor}}
-<div class="{{cssClass}} mythic-character-sheet mythic-bestiary-shell mythic-vehicle-fallback-sheet" data-faction="{{mythicFactionIndex}}">
+<div
+  class="mythic-character-sheet mythic-bestiary-shell mythic-vehicle-fallback-sheet mythic-sheet-theme-root"
+  data-faction="{{mythicFactionIndex}}"
+  data-theme-preset="{{mythicSheetAppearance.preset}}"
+  data-panel-style="{{mythicSheetAppearance.panelStyle}}"
+  data-portrait-frame="{{mythicSheetAppearance.portraitFrame}}"
+  data-banner-style="{{mythicSheetAppearance.banner.style}}"
+  data-has-banner="{{#if mythicSheetAppearance.displayBanner}}true{{else}}false{{/if}}">
   <aside class="sheet-nav">
     <nav class="sheet-tabs tabs" data-group="primary">
       <a class="item" data-tab="vehicle-summary" title="Vehicle Summary">
@@ -8,7 +15,7 @@
       <a class="item" data-tab="vehicle-crew" title="Crew & Complement">
         <i class="fas fa-users"></i>
       </a>
-      <a class="item" data-tab="vehicle-cargo" title="Cargo">
+      <a class="item" data-tab="vehicle-cargo" title="Loadout">
         <i class="fas fa-boxes-stacked"></i>
       </a>
       <a class="item" data-tab="vehicle-notes" title="Notes">
@@ -21,9 +28,12 @@
   </aside>
 
   <section class="sheet-content">
-    <header class="mythic-bestiary-header mythic-bestiary-sticky-header mythic-sticky-header panel">
-      <div class="mythic-bestiary-portrait-wrap">
-        <img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" alt="{{actor.name}}" />
+    <header class="mythic-bestiary-header mythic-bestiary-sticky-header mythic-sticky-header panel mythic-sheet-header-surface">
+      <div class="mythic-bestiary-portrait-column">
+        <div class="mythic-bestiary-portrait-wrap mythic-sheet-portrait-surface">
+          <img class="profile-img mythic-sheet-portrait-image" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" alt="{{actor.name}}" />
+        </div>
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-banner.hbs"}}
       </div>
       <div class="mythic-bestiary-header-fields">
         <div class="mythic-bestiary-header-title-row">
@@ -67,9 +77,14 @@
             Height (m)
             <input type="number" name="system.dimensions.height" value="{{mythicVehicleSystem.dimensions.height}}" />
           </label>
-          <label>
-            Weight (t)
-            <input type="number" name="system.dimensions.weight" value="{{mythicVehicleSystem.dimensions.weight}}" />
+          <label class="mythic-vehicle-weight-field">
+            Weight
+            <div class="mythic-vehicle-weight-input-row">
+              <input type="number" min="0" step="{{mythicVehicleDisplayWeightStep}}" name="system.dimensions.weight" value="{{mythicVehicleDisplayWeight}}" />
+              <select name="system.dimensions.weightUnit" data-prev-unit="{{mythicVehicleSystem.dimensions.weightUnit}}">
+                {{selectOptions mythicVehicleWeightUnitOptions selected=mythicVehicleSystem.dimensions.weightUnit}}
+              </select>
+            </div>
           </label>
         </div>
       </div>
@@ -79,6 +94,7 @@
       <div class="vehicle-summary-grid">
         <aside class="panel vehicle-mobility">
           <h2>Mobility</h2>
+          {{!--
           <div class="mobility-row">
             <label>Current Speed</label>
             <div class="mobility-value" data-field="system.mythicVehicleSystem.movement.speed.value">{{mythicVehicleSystem.movement.speed.value}}</div>
@@ -103,77 +119,204 @@
             <button class="action-btn" type="button" data-action="splatter">Splatter</button>
             <button class="action-btn" type="button" data-action="wreck">Wreck</button>
           </div>
+          --}}
+          {{#if mythicVehicleIsWalker}}
+          <div class="vehicle-mobility-walker-note">
+            Walker mode is not active yet. Mobility controls here are currently for non-walker vehicles.
+          </div>
+          {{else}}
+          <div class="vehicle-mobility-current-label">Current Speed</div>
+          <div class="vehicle-mobility-speed-row">
+            <button class="vehicle-mobility-speed-btn" type="button" data-direction="down" aria-label="Decrease Speed">-</button>
+            <input class="vehicle-mobility-speed-input" type="number" min="0" step="1" name="system.movement.speed.value" value="{{mythicVehicleMobility.currentSpeed}}" />
+            <button class="vehicle-mobility-speed-btn" type="button" data-direction="up" aria-label="Increase Speed">+</button>
+          </div>
+          <div class="vehicle-speedometer" style="--mythic-needle-angle: {{mythicVehicleMobility.needleAngle}}deg;">
+            <div class="vehicle-speedometer-arc"></div>
+            <div class="vehicle-speedometer-ticks"></div>
+            <div class="vehicle-speedometer-needle"></div>
+            <div class="vehicle-speedometer-center"></div>
+          </div>
+          <div class="vehicle-speedometer-readout">
+            <div>{{mythicVehicleMobility.currentSpeed}} / {{mythicVehicleMobility.topSpeed}} MpT</div>
+            <div>{{mythicVehicleMobility.currentKmh}} / {{mythicVehicleMobility.topKmh}} Km/H</div>
+          </div>
+          <div class="vehicle-mobility-stat-row">
+            <label>Brake</label>
+            <div class="vehicle-mobility-stat-value">{{mythicVehicleMobility.brake}}</div>
+          </div>
+          <div class="vehicle-mobility-stat-row">
+            <label>Accelerate</label>
+            <div class="vehicle-mobility-stat-value">{{mythicVehicleMobility.accelerate}}</div>
+          </div>
+          <div class="vehicle-mobility-stat-row">
+            <label>Maneuver</label>
+            <div class="vehicle-mobility-stat-value">{{mythicVehicleMobility.maneuver}}</div>
+          </div>
+          <div class="mobility-actions">
+            <button class="action-btn" type="button" data-action="splatter">Splatter</button>
+            <button class="action-btn" type="button" data-action="wreck">Wreck</button>
+          </div>
+          {{/if}}
         </aside>
 
         <div class="panel vehicle-summary-main">
-          <h2>Overview</h2>
-          <p><!-- Placeholder for summary visuals (breakpoints, armor, shields, weapons preview) --></p>
+          {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-overview-tab.hbs"}}
         </div>
       </div>
     </div>
 
     <div class="tab sheet-tab-scrollable" data-group="primary" data-tab="vehicle-crew" style="padding:14px 16px;">
-      <div class="panel">
-        <h2>Crew & Complement</h2>
-        <div class="crew-section">
-          <h3>Operators</h3>
-          <div class="crew-list">
-            {{#each mythicVehicleSystem.crew.operators}}
-              <div class="crew-slot mythic-crew-dropzone" data-kind="operators" data-idx="{{idx}}">
-                <div class="crew-label">Operator {{slotNumber}}:</div>
-                {{#if id}}
-                  <div class="crew-name">{{display}} <span class="crew-type">({{#if isPC}}PC{{else}}NPC{{/if}})</span></div>
-                  <button type="button" class="crew-clear-btn" data-kind="operators" data-idx="{{idx}}">Clear</button>
-                {{else}}
-                  <div class="crew-empty">Empty — drop actor</div>
-                {{/if}}
-              </div>
-            {{/each}}
-          </div>
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-crew-roster.hbs"}}
+    </div>
+
+    <div class="tab sheet-tab-scrollable vehicle-loadout-tab" data-group="primary" data-tab="vehicle-cargo" style="padding:14px 16px;">
+      <div class="vehicle-loadout-stack">
+        <div class="vehicle-loadout-help">
+          Use Add Vehicle Weapon to create an emplacement card. Drop weapons onto a specific card to mount them, and drop any equipment into Cargo to keep it as cargo.
         </div>
 
-        <div class="crew-section" style="margin-top:12px;">
-          <h3>Gunners</h3>
-          <div class="crew-list">
-            {{#each mythicVehicleSystem.crew.gunners}}
-              <div class="crew-slot mythic-crew-dropzone" data-kind="gunners" data-idx="{{idx}}">
-                <div class="crew-label">Gunner {{slotNumber}}:</div>
-                {{#if id}}
-                  <div class="crew-name">{{display}} <span class="crew-type">({{#if isPC}}PC{{else}}NPC{{/if}})</span></div>
-                  <button type="button" class="crew-clear-btn" data-kind="gunners" data-idx="{{idx}}">Clear</button>
+        <div class="panel vehicle-loadout-panel">
+          <div class="vehicle-loadout-header">
+            <div>
+              <h2>Vehicle Weapons</h2>
+              <p class="vehicle-loadout-note">Each card is a single emplacement. Controller and linked settings stay with the emplacement even when no weapon is assigned.</p>
+            </div>
+            <button type="button" class="action-btn vehicle-emplacement-add-btn">Add Vehicle Weapon</button>
+          </div>
+
+          {{#unless mythicVehicleLoadout.hasControllerSlots}}
+          <p class="vehicle-loadout-note vehicle-loadout-warning">No operator, gunner, or passenger slots are configured yet. Define crew capacity in Setup before assigning controllers.</p>
+          {{/unless}}
+          {{#if mythicVehicleLoadout.emplacements.length}}
+          <div class="vehicle-emplacement-list">
+            {{#each mythicVehicleLoadout.emplacements as |emplacement|}}
+            <div class="vehicle-emplacement-card vehicle-loadout-drop-zone {{#unless emplacement.hasWeapon}}is-empty{{/unless}}" data-vehicle-loadout-drop="emplacement" data-emplacement-id="{{emplacement.id}}">
+              <div class="vehicle-emplacement-card-header">
+                <div class="vehicle-emplacement-title-block">
+                  <span class="vehicle-emplacement-label">{{emplacement.label}}</span>
+                  {{#if emplacement.hasWeapon}}
+                  <div class="mythic-equipment-name-cell vehicle-emplacement-name-cell">
+                    <img class="mythic-equipment-icon" src="{{emplacement.weaponImg}}" alt="{{emplacement.weaponName}}" />
+                    <span class="mythic-equipment-name">{{emplacement.weaponName}}</span>
+                    <span class="mythic-equipment-meta">{{emplacement.weaponTypeLabel}}</span>
+                  </div>
+                  {{else}}
+                  <div class="vehicle-emplacement-empty-state">
+                    <strong>No weapon assigned</strong>
+                    <span>Drop a weapon here to fill this emplacement.</span>
+                  </div>
+                  {{/if}}
+                </div>
+                <span class="mythic-equipment-actions-inline vehicle-emplacement-actions">
+                  {{#if emplacement.hasWeapon}}
+                  <button type="button" class="action-btn gear-open-btn" data-item-id="{{emplacement.weaponId}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+                  {{/if}}
+                  <button type="button" class="action-btn vehicle-emplacement-remove-btn mythic-row-remove" data-emplacement-id="{{emplacement.id}}" title="Delete emplacement" aria-label="Delete emplacement"><i class="fas fa-trash"></i></button>
+                </span>
+              </div>
+
+              <div class="vehicle-emplacement-drop-hint">
+                {{#if emplacement.hasWeapon}}
+                Drop another weapon here to replace the mounted weapon. Delete removes the emplacement and its current weapon.
                 {{else}}
-                  <div class="crew-empty">Empty — drop actor</div>
+                Drop a weapon here to assign it to this emplacement.
                 {{/if}}
               </div>
+
+              <div class="vehicle-emplacement-config-grid">
+                <label class="vehicle-emplacement-field-block">
+                  <span class="vehicle-mounted-weapon-field-label">Controller Role</span>
+                  <select class="vehicle-loadout-select vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="controllerRole">
+                    {{selectOptions emplacement.controllerRoleOptions selected=emplacement.controllerRole}}
+                  </select>
+                </label>
+
+                {{#if emplacement.showControllerPositionField}}
+                <label class="vehicle-emplacement-field-block">
+                  <span class="vehicle-mounted-weapon-field-label">Controller Position</span>
+                  <select class="vehicle-loadout-select vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="controllerIndex">
+                    {{selectOptions emplacement.controllerPositionOptions selected=emplacement.controllerIndex}}
+                  </select>
+                </label>
+                {{/if}}
+
+                <label class="vehicle-emplacement-field-block vehicle-emplacement-linked-toggle">
+                  <span class="vehicle-mounted-weapon-field-label">Linked</span>
+                  <span class="vehicle-emplacement-linked-check">
+                    <input type="checkbox" class="vehicle-loadout-checkbox vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="linked" {{#if emplacement.linked}}checked{{/if}} />
+                    <span>Enabled</span>
+                  </span>
+                </label>
+
+                {{#if emplacement.showLinkedCount}}
+                <label class="vehicle-emplacement-field-block">
+                  <span class="vehicle-mounted-weapon-field-label">Linked Count</span>
+                  <input type="number" min="2" step="1" class="gear-quantity-input vehicle-loadout-number-input vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="linkedCount" value="{{emplacement.linkedCount}}" />
+                </label>
+                {{/if}}
+              </div>
+            </div>
             {{/each}}
           </div>
+          {{else}}
+          <p class="vehicle-loadout-empty">No vehicle weapon emplacements yet. Use Add Vehicle Weapon to create a card, then drop a weapon onto it.</p>
+          {{/if}}
         </div>
 
-        <div class="crew-section" style="margin-top:12px;">
-          <h3>Passengers</h3>
-          <div class="crew-list">
-            {{#each mythicVehicleSystem.crew.complement}}
-              <div class="crew-slot mythic-crew-dropzone" data-kind="complement" data-idx="{{idx}}">
-                <div class="crew-label">Passenger {{slotNumber}}:</div>
-                {{#if id}}
-                  <div class="crew-name">{{display}} <span class="crew-type">({{#if isPC}}PC{{else}}NPC{{/if}})</span></div>
-                  <button type="button" class="crew-clear-btn" data-kind="complement" data-idx="{{idx}}">Clear</button>
-                {{else}}
-                  <div class="crew-empty">Empty — drop actor</div>
-                {{/if}}
-              </div>
+        <div class="panel vehicle-loadout-panel">
+          <div class="vehicle-loadout-header">
+            <div>
+              <h2>Cargo</h2>
+              <p class="vehicle-loadout-note">All equipment dropped here stays cargo, including loose weapons, ammunition, armor, and spare gear. Cargo weight only counts this section.</p>
+            </div>
+            <div class="vehicle-loadout-summary-card">
+              <span class="vehicle-loadout-summary-label">Cargo Weight</span>
+              <strong>{{mythicVehicleLoadout.cargoWeightLabel}}</strong>
+              <span class="vehicle-loadout-summary-meta">{{mythicVehicleLoadout.cargoItemCount}} total</span>
+            </div>
+          </div>
+
+          <div class="vehicle-cargo-drop-zone vehicle-loadout-drop-zone" data-vehicle-loadout-drop="cargo">
+            <strong>Drop Cargo Here</strong>
+            <span>Weapons dropped here remain cargo and count toward cargo weight.</span>
+          </div>
+
+          {{#if mythicVehicleLoadout.cargoItems.length}}
+          <div class="mythic-equipment-list mythic-equipment-table vehicle-loadout-table vehicle-cargo-table">
+            <div class="mythic-equipment-row mythic-equipment-header-row">
+              <span class="mythic-equipment-header-name">Name</span>
+              <span>QTY</span>
+              <span>WEIGHT</span>
+            </div>
+            {{#each mythicVehicleLoadout.cargoItems as |item|}}
+            <div class="mythic-equipment-row mythic-equipment-data-row">
+              <span class="mythic-equipment-name-cell">
+                <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
+                <span class="mythic-equipment-name">{{item.name}}</span>
+                <span class="mythic-equipment-meta">{{item.typeLabel}}</span>
+                <span class="mythic-equipment-actions-inline">
+                  <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+                  <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
+                </span>
+              </span>
+              <span><input type="number" min="0" step="1" class="gear-quantity-input vehicle-loadout-number-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="vehicle-cargo" value="{{item.quantity}}" /></span>
+              <span>{{item.totalWeightLabel}}</span>
+            </div>
             {{/each}}
           </div>
+          {{else}}
+          <p class="vehicle-loadout-empty">No cargo stored on this vehicle yet. Drop equipment into Cargo to start building the loadout.</p>
+          {{/if}}
         </div>
       </div>
     </div>
 
-    <div class="tab sheet-tab-scrollable" data-group="primary" data-tab="vehicle-cargo" style="padding:14px 16px;">
-      <!-- Vehicle Cargo tab cleared. Add cargo controls here when ready. -->
-    </div>
-
     <div class="tab sheet-tab-scrollable" data-group="primary" data-tab="vehicle-notes" style="padding:14px 16px;">
-      <!-- Vehicle Notes tab cleared. -->
+      <div class="panel vehicle-notes-panel">
+        <h2>Notes</h2>
+        <div class="vehicle-notes-editor" data-editor-target="system.notes"></div>
+      </div>
     </div>
 
     <div class="tab sheet-tab-scrollable" data-group="primary" data-tab="vehicle-settings" style="padding:14px 16px;">
@@ -186,8 +329,21 @@
               <div class="compact-field"><div class="field-label">WEP</div><input class="small-input" type="number" name="system.breakpoints.wep.value" value="{{mythicVehicleSystem.breakpoints.wep.value}}" /></div>
               <div class="compact-field"><div class="field-label">MOB</div><input class="small-input" type="number" name="system.breakpoints.mob.value" value="{{mythicVehicleSystem.breakpoints.mob.value}}" /></div>
               <div class="compact-field"><div class="field-label">ENG</div><input class="small-input" type="number" name="system.breakpoints.eng.value" value="{{mythicVehicleSystem.breakpoints.eng.value}}" /></div>
-              <div class="compact-field"><div class="field-label">OP</div><input class="small-input" type="number" name="system.breakpoints.op.value" value="{{mythicVehicleSystem.breakpoints.op.value}}" /></div>
+              <div class="compact-field">
+                <div class="field-label">OP</div>
+                {{#if mythicVehicleSystem.breakpoints.op.noOptics}}
+                <input class="small-input" type="text" value="-" disabled />
+                <input type="hidden" name="system.breakpoints.op.value" value="0" />
+                {{else}}
+                <input class="small-input" type="number" name="system.breakpoints.op.value" value="{{mythicVehicleSystem.breakpoints.op.value}}" />
+                {{/if}}
+              </div>
               <div class="compact-field"><div class="field-label">HULL</div><input class="small-input" type="number" name="system.breakpoints.hull.value" value="{{mythicVehicleSystem.breakpoints.hull.value}}" /></div>
+              <div class="compact-field compact-field-checkbox">
+                <div class="field-label">No Optics</div>
+                <input type="hidden" name="system.breakpoints.op.noOptics" value="false" />
+                <input id="vehicle-{{actor.id}}-no-optics" type="checkbox" name="system.breakpoints.op.noOptics" value="true" {{#if mythicVehicleSystem.breakpoints.op.noOptics}}checked{{/if}} />
+              </div>
             </div>
           </div>
 
@@ -216,7 +372,7 @@
             <div class="compact-row">
               <div class="compact-field"><div class="field-label">Accelerate</div><input class="small-input" type="number" name="system.movement.accelerate.value" value="{{mythicVehicleSystem.movement.accelerate.value}}" /></div>
               <div class="compact-field"><div class="field-label">Brake</div><input class="small-input" type="number" name="system.movement.brake.value" value="{{mythicVehicleSystem.movement.brake.value}}" /></div>
-              <div class="compact-field"><div class="field-label">Top Speed</div><input class="small-input" type="number" name="system.movement.speed.value" value="{{mythicVehicleSystem.movement.speed.value}}" /></div>
+              <div class="compact-field"><div class="field-label">Top Speed</div><input class="small-input" type="number" name="system.movement.speed.max" value="{{mythicVehicleSystem.movement.speed.max}}" /></div>
               <div class="compact-field"><div class="field-label">Maneuver</div><input class="small-input" type="number" name="system.movement.maneuver.total" value="{{mythicVehicleSystem.movement.maneuver.total}}" /></div>
             </div>
           </div>
@@ -227,16 +383,20 @@
               <div style="min-width:160px;">
                 <label>Type
                   <select name="system.propulsion.type">
-                    <option value="none" {{#if (eq mythicVehicleSystem.propulsion.type "none")}}selected{{/if}}>Stationary</option>
-                    <option value="legs" {{#if (eq mythicVehicleSystem.propulsion.type "legs")}}selected{{/if}}>Legs</option>
-                    <option value="thrusters" {{#if (eq mythicVehicleSystem.propulsion.type "thrusters")}}selected{{/if}}>Thrusters</option>
-                    <option value="treads" {{#if (eq mythicVehicleSystem.propulsion.type "treads")}}selected{{/if}}>Treads</option>
-                    <option value="wheels" {{#if (eq mythicVehicleSystem.propulsion.type "wheels")}}selected{{/if}}>Wheels</option>
+                    {{selectOptions mythicPropulsionTypeOptions selected=mythicVehicleSystem.propulsion.type}}
                   </select>
                 </label>
               </div>
-              <div class="compact-field"><div class="field-label">Intact</div><input class="small-input" type="number" name="system.propulsion.value" value="{{mythicVehicleSystem.propulsion.value}}" /></div>
-              <div class="compact-field"><div class="field-label">Total</div><input class="small-input" type="number" name="system.propulsion.max" value="{{mythicVehicleSystem.propulsion.max}}" /></div>
+              {{#if mythicShowPropulsionMaxField}}
+              <div class="compact-field">
+                <div class="field-label">Total</div>
+                <select class="small-input" name="system.propulsion.max">
+                  {{selectOptions mythicPropulsionMaxOptions selected=mythicVehicleSystem.propulsion.max}}
+                </select>
+              </div>
+              {{else}}
+              <input type="hidden" name="system.propulsion.max" value="" />
+              {{/if}}
             </div>
           </div>
 
@@ -249,16 +409,19 @@
               <div class="compact-field"><div class="field-label">Weapon</div><input class="small-input" type="number" name="system.weaponPoints" value="{{mythicVehicleSystem.weaponPoints}}" /></div>
             </div>
           </div>
+
+          <div class="panel crew-panel">
+            <h3>Crew & Complement</h3>
+            <div class="compact-row">
+              <div class="compact-field"><div class="field-label">Operators</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.operators" value="{{mythicVehicleSystem.crew.capacity.operators}}" /></div>
+              <div class="compact-field"><div class="field-label">Gunners</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.gunners" value="{{mythicVehicleSystem.crew.capacity.gunners}}" /></div>
+              <div class="compact-field"><div class="field-label">Passengers</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.passengers" value="{{mythicVehicleSystem.crew.capacity.passengers}}" /></div>
+            </div>
+            <p class="vehicle-loadout-note">Crew & Complement creates numbered slots from these counts.</p>
+          </div>
         </div>
 
         <div style="margin-top:12px;">
-          <h3>Crew & Complement</h3>
-          <div class="compact-row" style="margin-bottom:8px;">
-            <div class="compact-field"><div class="field-label">Operators</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.operators" value="{{mythicVehicleSystem.crew.capacity.operators}}" /></div>
-            <div class="compact-field"><div class="field-label">Gunners</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.gunners" value="{{mythicVehicleSystem.crew.capacity.gunners}}" /></div>
-            <div class="compact-field"><div class="field-label">Passengers</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.passengers" value="{{mythicVehicleSystem.crew.capacity.passengers}}" /></div>
-          </div>
-
           <h3>Special Rules</h3>
           <div class="special-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; font-size:12px;">
             <div style="display:flex;align-items:center;gap:6px;">
@@ -324,12 +487,24 @@
             </div>
           </div>
         </div>
+
+        <div class="panel mythic-sheet-appearance-card mythic-sheet-appearance-card-wide">
+          <h3>Sheet Appearance</h3>
+          {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-fields.hbs"}}
+        </div>
       </div>
     </div>
   </section>
 </div>
 {{else}}
-<div class="{{cssClass}} mythic-character-sheet" data-faction="{{mythicFactionIndex}}">
+<div
+  class="mythic-character-sheet mythic-sheet-theme-root"
+  data-faction="{{mythicFactionIndex}}"
+  data-theme-preset="{{mythicSheetAppearance.preset}}"
+  data-panel-style="{{mythicSheetAppearance.panelStyle}}"
+  data-portrait-frame="{{mythicSheetAppearance.portraitFrame}}"
+  data-banner-style="{{mythicSheetAppearance.banner.style}}"
+  data-has-banner="{{#if mythicSheetAppearance.displayBanner}}true{{else}}false{{/if}}">
   <aside class="sheet-nav">
     <nav class="sheet-tabs tabs" data-group="primary">
       <a class="item" data-tab="main" title="Main">

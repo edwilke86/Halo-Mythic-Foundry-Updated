@@ -1,0 +1,73 @@
+<div class="panel vehicle-crew-panel">
+  <h2>Crew & Complement</h2>
+
+  {{#if mythicVehicleCrewRoster.length}}
+    <div class="vehicle-crew-roster">
+      {{#each mythicVehicleCrewRoster as |crewSlot|}}
+        <div
+          class="crew-slot mythic-crew-dropzone vehicle-crew-roster-slot{{#if crewSlot.hasActor}} has-actor{{else}} is-empty{{/if}}{{#if crewSlot.isExpanded}} is-expanded{{/if}}"
+          data-kind="{{crewSlot.kind}}"
+          data-idx="{{crewSlot.idx}}"
+          data-slot-key="{{crewSlot.slotKey}}"
+          data-has-actor="{{crewSlot.hasActor}}"
+          aria-expanded="{{#if crewSlot.hasActor}}{{#if crewSlot.isExpanded}}true{{else}}false{{/if}}{{else}}false{{/if}}"
+          {{#if crewSlot.hasActor}}role="button" tabindex="0"{{/if}}
+        >
+          <div class="crew-slot-header">
+            <div class="crew-slot-identity">
+              <div class="crew-slot-summary">
+                <span class="crew-label">{{crewSlot.slotCode}}</span>
+                <span class="crew-separator">|</span>
+                {{#if crewSlot.hasActor}}
+                  <span class="crew-name">{{crewSlot.display}}</span>
+                  {{#if crewSlot.weaponDisplay}}
+                    <span class="crew-separator">|</span>
+                    <span class="crew-weapon">{{crewSlot.weaponDisplay}}</span>
+                  {{/if}}
+                {{else}}
+                  <span class="crew-empty">Empty - drop actor</span>
+                {{/if}}
+              </div>
+            </div>
+            <div class="crew-slot-actions">
+              {{#if crewSlot.hasActor}}
+                <span class="crew-type">{{crewSlot.actorTypeLabel}}</span>
+                <button type="button" class="crew-clear-btn" data-kind="{{crewSlot.kind}}" data-idx="{{crewSlot.idx}}">Clear</button>
+              {{/if}}
+            </div>
+          </div>
+
+          {{#if crewSlot.hasActor}}
+            {{#if crewSlot.stats}}
+              <div class="crew-slot-details">
+                <div class="crew-stat-grid">
+                  {{#each crewSlot.stats.characteristics}}
+                    <div class="crew-stat-chip" title="{{label}}">
+                      <span class="crew-stat-key">{{label}}</span>
+                      <span class="crew-stat-value">{{value}}</span>
+                    </div>
+                  {{/each}}
+                </div>
+
+                {{#if crewSlot.stats.hasMythicBoost}}
+                  <div class="crew-mythic-strip">
+                    <div class="crew-mythic-grid">
+                      {{#each crewSlot.stats.mythic}}
+                        <div class="crew-stat-chip crew-stat-chip-mythic" title="Mythic {{label}}">
+                          <span class="crew-stat-key">M{{label}}</span>
+                          <span class="crew-stat-value">{{value}}</span>
+                        </div>
+                      {{/each}}
+                    </div>
+                  </div>
+                {{/if}}
+              </div>
+            {{/if}}
+          {{/if}}
+        </div>
+      {{/each}}
+    </div>
+  {{else}}
+    <p class="vehicle-crew-empty-state">No operator, gunner, or passenger slots are configured yet. Define crew capacity in Setup before assigning controllers.</p>
+  {{/if}}
+</div>

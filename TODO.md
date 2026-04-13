@@ -95,7 +95,7 @@ Current direction (next):
 - [ ] P1 Add quick-roll buttons for common checks from each relevant tab
 - [ ] P1 Add critical/fumble handling with configurable thresholds
 - [x] P1 Add damage, armor penetration, and mitigation automation
-- [ ] P1 Add status effect hooks (conditions affecting rolls/stats)
+- [X] P1 Add status effect hooks (conditions affecting rolls/stats)
 - [ ] P2 Add optional GM secret roll mode controls
 
 ## Milestone 4: Full Character Sheet Tabs and UX
@@ -107,7 +107,7 @@ Implementation note:
 - [x] P0 Complete left-nav tabs to match intended structure and ordering
 - [x] P0 Build out Core tab sections (skills, education, languages, abilities)
 - [x] P0 Build Equipment tab (weapons, armor, inventory, encumbrance if used)
-- [ ] P0 Build Medical tab (wounds, treatment, statuses, recovery trackers)
+- [X] P0 Build Medical tab (wounds, treatment, statuses, recovery trackers)
 - [x] P0 Build Advancements tab (XP/spend log, unlocked features)
 - [x] P1 Build Journal/Notes tab with structured and freeform notes
 - [ ] P1 Build Vehicles tab (if rules include pilot/vehicle interactions)
@@ -519,6 +519,5 @@ Implementation intent:
 
 - [ ] Fix Huragok Infustion attack to use special rules
 - [ ] Add Huragok Overshield trait and rules
-- [ ] Make it so we can drop all compendium items anywhere on the sheet to create them in the correct section (e.g., drop a weapon item and it goes into the weapons section with correct type)
 - [ ] Refine ranged compendium
 - [ ] Separate grenades and explosive to their own compendium and add more options

@@ -35,10 +35,20 @@ const SPECIAL_RULES = Object.freeze([
 const PROPULSION_OPTIONS = Object.freeze([
   { value: "none", label: "Stationary" },
   { value: "legs", label: "Legs" },
-  { value: "thrusters", label: "Thrusters" },
+  { value: "thrusters", label: "Thrusters / Propellers" },
   { value: "treads", label: "Treads" },
   { value: "wheels", label: "Wheels" }
 ]);
+
+function getPropulsionMaxOptions(propulsionType = "wheels") {
+  const normalized = String(propulsionType ?? "").trim().toLowerCase();
+  if (normalized === "none") return [];
+  if (normalized === "wheels") return ["3", "4", "6", "8"];
+  if (normalized === "treads") return ["2", "4", "6", "8"];
+  if (normalized === "legs") return ["2", "3", "4", "5", "6"];
+  if (normalized === "thrusters") return Array.from({ length: 20 }, (_, index) => String(index + 1));
+  return ["3", "4", "6", "8"];
+}
 
 function normalizeVehicleItems(items = []) {
   return items
@@ -73,6 +83,18 @@ export class MythicVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2)
     context.cssClass = this.options.classes.join(" ");
     context.actor = this.actor;
     context.system = normalizeVehicleSystemData(this.actor.system ?? {});
+    context.mythicVehicleSystem = context.system;
+    const propulsionType = String(context.mythicVehicleSystem?.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
+    const propulsionMaxOptions = getPropulsionMaxOptions(propulsionType);
+    context.mythicPropulsionTypeOptions = PROPULSION_OPTIONS;
+    context.mythicPropulsionMaxOptions = propulsionMaxOptions.map((value) => ({ value, label: value }));
+    context.mythicShowPropulsionMaxField = propulsionMaxOptions.length > 0;
+    if (!propulsionMaxOptions.length) {
+      context.mythicVehicleSystem.propulsion.max = "";
+    } else {
+      const currentMax = String(context.mythicVehicleSystem?.propulsion?.max ?? "").trim();
+      context.mythicVehicleSystem.propulsion.max = propulsionMaxOptions.includes(currentMax) ? currentMax : propulsionMaxOptions[0];
+    }
     context.editable = this.isEditable;
     return context;
   }
@@ -87,9 +109,8 @@ export class MythicVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2)
         if (otherCheckbox instanceof HTMLInputElement) {
           if (input.checked) {
             otherCheckbox.checked = false;
-            otherCheckbox.disabled = true;
           } else {
-            otherCheckbox.disabled = false;
+            input.checked = true;
           }
         }
       }

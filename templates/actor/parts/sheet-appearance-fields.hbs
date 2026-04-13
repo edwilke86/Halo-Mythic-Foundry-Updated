@@ -1,0 +1,167 @@
+<p class="ccadv-note mythic-sheet-appearance-lead">Faction presets stay intact as the baseline. Use accents, surface modes, and gradient stops to push the sheet further without losing readability.</p>
+
+<div class="mythic-sheet-appearance-layout" data-gradient-type="{{mythicSheetAppearance.gradient.type}}" data-gradient-enabled="{{#if mythicSheetAppearance.gradient.enabled}}true{{else}}false{{/if}}">
+  <section class="mythic-sheet-appearance-section">
+    <div class="mythic-sheet-appearance-section-head">
+      <div>
+        <h4>Foundation</h4>
+        <p>Choose the preset, material, and overall presentation baseline.</p>
+      </div>
+    </div>
+    <div class="mythic-sheet-appearance-grid mythic-sheet-appearance-grid-foundation">
+      <label class="mythic-sheet-appearance-field">
+        <span>Theme Preset</span>
+        <select name="system.sheetAppearance.preset">
+          {{selectOptions mythicSheetAppearance.presetOptions selected=mythicSheetAppearance.preset}}
+        </select>
+      </label>
+
+      <label class="mythic-sheet-appearance-field">
+        <span>Texture Layer</span>
+        <select name="system.sheetAppearance.texture">
+          {{selectOptions mythicSheetAppearance.textureOptions selected=mythicSheetAppearance.texture}}
+        </select>
+      </label>
+
+      <label class="mythic-sheet-appearance-field">
+        <span>Panel Style</span>
+        <select name="system.sheetAppearance.panelStyle">
+          {{selectOptions mythicSheetAppearance.panelStyleOptions selected=mythicSheetAppearance.panelStyle}}
+        </select>
+      </label>
+
+      <label class="mythic-sheet-appearance-field mythic-sheet-appearance-color-field">
+        <span>Panel Background</span>
+        <div class="mythic-sheet-appearance-input-row">
+          <span class="mythic-sheet-appearance-swatch{{#if mythicSheetAppearance.panelBackground}} is-set{{/if}}"{{#if mythicSheetAppearance.panelBackground}} style="background: {{mythicSheetAppearance.panelBackground}};"{{/if}}></span>
+          <input type="text" name="system.sheetAppearance.panelBackground" value="{{mythicSheetAppearance.panelBackground}}" placeholder="#22354A" maxlength="7" spellcheck="false" autocomplete="off" />
+        </div>
+      </label>
+
+      <label class="mythic-sheet-appearance-field">
+        <span>Portrait Frame</span>
+        <select name="system.sheetAppearance.portraitFrame">
+          {{selectOptions mythicSheetAppearance.portraitFrameOptions selected=mythicSheetAppearance.portraitFrame}}
+        </select>
+      </label>
+
+    </div>
+    <p class="ccadv-note mythic-sheet-appearance-help">Set a panel background tint here. More colour customizations are coming.</p>
+  </section>
+
+  <section class="mythic-sheet-appearance-section">
+    <div class="mythic-sheet-appearance-section-head">
+      <div>
+        <h4>Accent and Banner</h4>
+        <p>A single accent colour drives borders, focus, and highlights. Banner colour is set independently.</p>
+      </div>
+    </div>
+    <div class="mythic-sheet-appearance-grid mythic-sheet-appearance-grid-identity">
+      <label class="mythic-sheet-appearance-field mythic-sheet-appearance-color-field">
+        <span>Accent Colour</span>
+        <div class="mythic-sheet-appearance-input-row">
+          <span class="mythic-sheet-appearance-swatch{{#if mythicSheetAppearance.accents.primary}} is-set{{/if}}"{{#if mythicSheetAppearance.accents.primary}} style="background: {{mythicSheetAppearance.accents.primary}};"{{/if}}></span>
+          <input type="text" name="system.sheetAppearance.accents.primary" value="{{mythicSheetAppearance.accents.primary}}" placeholder="#7CC5FF" maxlength="7" spellcheck="false" autocomplete="off" />
+        </div>
+      </label>
+
+      <label class="mythic-sheet-appearance-field mythic-sheet-appearance-color-field">
+        <span>Banner Colour</span>
+        <div class="mythic-sheet-appearance-input-row">
+          <span class="mythic-sheet-appearance-swatch{{#if mythicSheetAppearance.banner.color}} is-set{{/if}}"{{#if mythicSheetAppearance.banner.color}} style="background: {{mythicSheetAppearance.banner.color}};"{{/if}}></span>
+          <input type="text" name="system.sheetAppearance.banner.color" value="{{mythicSheetAppearance.banner.color}}" placeholder="#6ED4FF" maxlength="7" spellcheck="false" autocomplete="off" />
+        </div>
+      </label>
+
+      <label class="mythic-sheet-appearance-field mythic-sheet-appearance-toggle">
+        <span>Custom Banner</span>
+        <div class="mythic-sheet-appearance-checkbox-row">
+          <input type="hidden" name="system.sheetAppearance.banner.enabled" value="false" />
+          <input type="checkbox" name="system.sheetAppearance.banner.enabled" value="true" {{checked mythicSheetAppearance.banner.enabled}} />
+          <span>Show header callsign strip</span>
+        </div>
+      </label>
+
+      <label class="mythic-sheet-appearance-field">
+        <span>Banner Text</span>
+        <input type="text" name="system.sheetAppearance.banner.text" value="{{mythicSheetAppearance.banner.text}}" placeholder="MIDNIGHT LANCE" maxlength="48" />
+      </label>
+
+      <label class="mythic-sheet-appearance-field">
+        <span>Banner Style</span>
+        <select name="system.sheetAppearance.banner.style">
+          {{selectOptions mythicSheetAppearance.bannerStyleOptions selected=mythicSheetAppearance.banner.style}}
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="mythic-sheet-appearance-section mythic-sheet-appearance-gradient-section">
+    <div class="mythic-sheet-appearance-toolbar">
+      <div class="mythic-sheet-appearance-section-head">
+        <div>
+          <h4>Gradient Builder</h4>
+          <p>Use one stop for a solid fill, or stack multiple stops for richer presets and overlays.</p>
+        </div>
+      </div>
+      <button type="button" class="action-btn mythic-sheet-gradient-add-btn">Add Stop</button>
+    </div>
+
+    <div class="mythic-sheet-appearance-grid mythic-sheet-appearance-grid-gradient">
+      <label class="mythic-sheet-appearance-field mythic-sheet-appearance-toggle">
+        <span>Custom Gradient</span>
+        <div class="mythic-sheet-appearance-checkbox-row">
+          <input type="hidden" name="system.sheetAppearance.gradient.enabled" value="false" />
+          <input type="checkbox" name="system.sheetAppearance.gradient.enabled" value="true" {{checked mythicSheetAppearance.gradient.enabled}} />
+          <span>Override the preset gradient</span>
+        </div>
+      </label>
+
+      <label class="mythic-sheet-appearance-field">
+        <span>Gradient Type</span>
+        <select name="system.sheetAppearance.gradient.type">
+          {{selectOptions mythicSheetAppearance.gradientTypeOptions selected=mythicSheetAppearance.gradient.type}}
+        </select>
+      </label>
+
+      <label class="mythic-sheet-appearance-field mythic-sheet-appearance-angle-field">
+        <span>Angle / Start</span>
+        <input type="number" min="0" max="360" step="1" name="system.sheetAppearance.gradient.angle" value="{{mythicSheetAppearance.gradient.angle}}" />
+      </label>
+    </div>
+
+    <div class="mythic-sheet-gradient-stop-list">
+      {{#each mythicSheetAppearance.gradientStops}}
+      <div class="mythic-sheet-gradient-stop" data-gradient-index="{{index}}">
+        <div class="mythic-sheet-gradient-stop-meta">
+          <strong>Gradient Stop</strong>
+          <span>{{position}}%</span>
+        </div>
+
+        <label class="mythic-sheet-appearance-field mythic-sheet-appearance-color-field">
+          <span>Colour</span>
+          <div class="mythic-sheet-appearance-input-row">
+            <span class="mythic-sheet-appearance-swatch{{#if color}} is-set{{/if}}"{{#if color}} style="background: {{color}};"{{/if}}></span>
+            <input type="text" name="system.sheetAppearance.gradient.stops.{{index}}.color" value="{{color}}" placeholder="#7CC5FF" maxlength="7" spellcheck="false" autocomplete="off" />
+          </div>
+        </label>
+
+        <label class="mythic-sheet-appearance-field">
+          <span>Position</span>
+          <input type="number" min="0" max="100" step="1" name="system.sheetAppearance.gradient.stops.{{index}}.position" value="{{position}}" />
+        </label>
+
+        <div class="mythic-sheet-gradient-stop-actions">
+          <button type="button" class="action-btn mythic-sheet-gradient-move-btn" data-gradient-index="{{index}}" data-direction="up" {{#unless canMoveUp}}disabled{{/unless}} title="Move stop up">&#8593;</button>
+          <button type="button" class="action-btn mythic-sheet-gradient-move-btn" data-gradient-index="{{index}}" data-direction="down" {{#unless canMoveDown}}disabled{{/unless}} title="Move stop down">&#8595;</button>
+          <button type="button" class="action-btn mythic-sheet-gradient-remove-btn" data-gradient-index="{{index}}" title="Remove stop">Remove</button>
+        </div>
+      </div>
+      {{else}}
+      <p class="mythic-sheet-gradient-empty">No custom stops yet. Leave the gradient off to use the preset background, or add a stop to start a custom fill.</p>
+      {{/each}}
+    </div>
+
+    <p class="ccadv-note mythic-sheet-appearance-help">Radial gradients use a centered focal point. Conic gradients use the same angle field as their start angle. Legacy three-stop colours continue to migrate into this editor automatically.</p>
+  </section>
+</div>

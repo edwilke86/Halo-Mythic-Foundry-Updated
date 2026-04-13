@@ -111,7 +111,11 @@ export const MYTHIC_ACTOR_PARTIAL_TEMPLATES = [
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/notes-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicles-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-crew-roster.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-overview-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-fields.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-banner.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/characteristics-builder.hbs"
 ];
 

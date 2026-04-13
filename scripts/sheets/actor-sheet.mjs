@@ -38,6 +38,13 @@ import {
   buildCanonicalItemId,
   getAmmoConfig
 } from "../utils/helpers.mjs";
+import {
+  buildSheetAppearanceCssVariables,
+  buildSheetAppearanceViewData,
+  extractSubmittedSheetAppearance,
+  getFactionSheetBackgroundTheme,
+  normalizeSheetAppearanceData
+} from "../utils/sheet-appearance.mjs";
 
 import {
   normalizeCharacterSystemData,
@@ -178,11 +185,126 @@ const MYTHIC_ADVANCEMENT_WOUND_TIERS = Object.freeze([
 
 const MYTHIC_ENERGY_CELL_AMMO_MODES = Object.freeze(new Set(["plasma-battery", "light-mass"]));
 const MYTHIC_BATTERY_SUBTYPES = Object.freeze(new Set(["plasma", "ionized-particle", "unsc-cell", "grindell"]));
+const MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES = Object.freeze([
+  Object.freeze({ value: "operator", label: "Operator", crewKey: "operators", capacityKey: "operators" }),
+  Object.freeze({ value: "gunner", label: "Gunner", crewKey: "gunners", capacityKey: "gunners" }),
+  Object.freeze({ value: "passenger", label: "Passenger", crewKey: "complement", capacityKey: "passengers" })
+]);
+const MYTHIC_VEHICLE_SPECIAL_RULE_DEFINITIONS = Object.freeze([
+  Object.freeze({ key: "allTerrain", label: "All-Terrain" }),
+  Object.freeze({ key: "antiGrav", label: "Anti-Gravitational" }),
+  Object.freeze({ key: "autoloader", label: "Autoloader" }),
+  Object.freeze({ key: "boost", label: "Boost", valueSuffix: true }),
+  Object.freeze({ key: "continuousTrack", label: "Continuous Track" }),
+  Object.freeze({ key: "enclosedTop", label: "Enclosed Top" }),
+  Object.freeze({ key: "flight", label: "Flight" }),
+  Object.freeze({ key: "heavyPlating", label: "Heavy Plating" }),
+  Object.freeze({ key: "neuralInterface", label: "Neural Interface" }),
+  Object.freeze({ key: "openTop", label: "Open Top" }),
+  Object.freeze({ key: "slipspace", label: "Slipspace Travel" }),
+  Object.freeze({ key: "walkerStomp", label: "Walker Stomp" })
+]);
+const MYTHIC_VEHICLE_DOOM_LABELS = Object.freeze({
+  tier_0: "The vehicle is operational.",
+  tier_1: "The vehicle is stable.",
+  tier_2: "The vehicle is lightly damaged.",
+  tier_3: "The vehicle is significantly damaged.",
+  tier_4: "The vehicle is critically damaged but mobile.",
+  tier_5: "The vehicle has entered a doomed state.",
+  tier_6: "Detonation risk is escalating.",
+  tier_7: "Severe blast risk detected.",
+  tier_8: "Extreme detonation risk detected.",
+  tier_9: "Catastrophic detonation is imminent."
+});
+const MYTHIC_CREW_CHARACTERISTIC_LABELS = Object.freeze({
+  str: "STR",
+  tou: "TOU",
+  agi: "AGI",
+  wfm: "WFM",
+  wfr: "WFR",
+  int: "INT",
+  per: "PER",
+  crg: "CRG",
+  cha: "CHA",
+  ldr: "LDR"
+});
+const MYTHIC_CREW_MYTHIC_CHARACTERISTIC_KEYS = Object.freeze(["str", "tou", "agi"]);
 const MYTHIC_FIXED_BATTERY_COSTS = Object.freeze({
   "ionized-particle": 10,
   "unsc-cell": 10,
   grindell: 8
 });
+
+function normalizeCrewSeatPosition(value = "") {
+  return String(value ?? "").replace(/\s+/gu, " ").trim();
+}
+
+function buildVehicleCrewSeatLabel(roleLabel = "Seat", slotNumber = 1) {
+  const normalizedRoleLabel = String(roleLabel ?? "Seat").trim() || "Seat";
+  return `${normalizedRoleLabel} ${Math.max(1, Number(slotNumber) || 1)}`;
+}
+
+function buildVehicleCrewShortSlotLabel(roleLabel = "Seat", slotNumber = 1) {
+  const normalizedRoleLabel = String(roleLabel ?? "Seat").trim() || "Seat";
+  const rolePrefix = normalizedRoleLabel.charAt(0).toUpperCase() || "S";
+  return `${rolePrefix}${Math.max(1, Number(slotNumber) || 1)}`;
+}
+
+function getVehicleCrewRoleDefinition(crewKey = "") {
+  const normalizedCrewKey = String(crewKey ?? "").trim().toLowerCase();
+  return MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES.find((entry) => entry.crewKey === normalizedCrewKey) ?? null;
+}
+
+function getCrewActorRank(actorDoc = null) {
+  if (!actorDoc || typeof actorDoc !== "object") return "";
+  return String(foundry.utils.getProperty(actorDoc, "system.header.rank")
+    ?? foundry.utils.getProperty(actorDoc, "system.bestiary.rank")
+    ?? "").trim();
+}
+
+function getCrewActorCallsign(actorDoc = null) {
+  if (!actorDoc || typeof actorDoc !== "object") return "";
+  const rawCallsign = String(foundry.utils.getProperty(actorDoc, "system.vehicles.callsign") ?? "").trim();
+  return rawCallsign.replace(/^"+|"+$/gu, "").trim();
+}
+
+function buildCrewRosterDisplay(actorDoc = null, fallbackDisplay = "") {
+  const actorName = String(actorDoc?.name ?? fallbackDisplay ?? "").trim();
+  if (!actorName) return "";
+  const rank = getCrewActorRank(actorDoc);
+  return rank ? `${rank} ${actorName}` : actorName;
+}
+
+function buildCrewOccupantDisplay(actorDoc = null, fallbackDisplay = "") {
+  const actorName = String(actorDoc?.name ?? fallbackDisplay ?? "").trim();
+  if (!actorName) return "";
+  const rank = getCrewActorRank(actorDoc);
+  const callsign = getCrewActorCallsign(actorDoc);
+  const prefixedName = rank ? `${rank} ${actorName}` : actorName;
+  return callsign ? `${prefixedName}, "${callsign}"` : prefixedName;
+}
+
+function buildCrewActorStatDisplay(actorDoc = null) {
+  if (!actorDoc || typeof actorDoc !== "object") return null;
+
+  const system = actorDoc.system ?? {};
+  const characteristics = MYTHIC_CHARACTERISTIC_KEYS.map((key) => ({
+    key,
+    label: MYTHIC_CREW_CHARACTERISTIC_LABELS[key] ?? String(key ?? "").toUpperCase(),
+    value: toNonNegativeWhole(foundry.utils.getProperty(system, `characteristics.${key}`), 0)
+  }));
+  const mythic = MYTHIC_CREW_MYTHIC_CHARACTERISTIC_KEYS.map((key) => ({
+    key,
+    label: MYTHIC_CREW_CHARACTERISTIC_LABELS[key] ?? String(key ?? "").toUpperCase(),
+    value: toNonNegativeWhole(foundry.utils.getProperty(system, `mythic.characteristics.${key}`), 0)
+  }));
+
+  return {
+    characteristics,
+    mythic,
+    hasMythicBoost: mythic.some((entry) => Number(entry?.value ?? 0) > 0)
+  };
+}
 
 function isEnergyCellAmmoMode(ammoMode = "") {
   return MYTHIC_ENERGY_CELL_AMMO_MODES.has(String(ammoMode ?? "").trim().toLowerCase());
@@ -300,6 +422,14 @@ function roundWeightKg(value = 0) {
   const numeric = Number(value ?? 0);
   if (!Number.isFinite(numeric)) return 0;
   return Math.round(numeric * 1000) / 1000;
+}
+
+function formatWeightKg(value = 0) {
+  const rounded = roundWeightKg(value);
+  if (!rounded) return "0";
+  return String(rounded)
+    .replace(/(\.\d*?[1-9])0+$/u, "$1")
+    .replace(/\.0+$/u, "");
 }
 
 function inferBallisticContainerBaseCapacity(capacity = 0, optionId = "standard") {
@@ -829,10 +959,30 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     primary: null
   };
 
+  _getHeaderControls() {
+    const controls = super._getHeaderControls();
+    const seen = new Set();
+    const deduped = [];
+
+    for (const control of controls) {
+      const action = String(control?.action ?? "").trim();
+      const label = String(control?.label ?? "").trim();
+      const icon = String(control?.icon ?? "").trim();
+      const key = action || `${label}::${icon}`;
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(control);
+    }
+
+    return deduped;
+  }
+
   _sheetScrollTop = 0;
   _ccAdvScrollTop = 0;
   _outliersListScrollTop = 0;
   _showTokenPortrait = false;
+  _vehicleCrewExpandedRows = new Set();
+  _vehicleOverviewUiState = {};
   _batteryGroupExpanded = {};
   _ballisticGroupExpanded = {};
   _tabSelectArmed = false;
@@ -845,45 +995,133 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (isVehicleActor) {
       const normalizedVehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
       const displayVehicleSystem = foundry.utils.deepClone(normalizedVehicleSystem);
+      if (this._vehicleOverviewUiState && Object.keys(this._vehicleOverviewUiState).length) {
+        foundry.utils.mergeObject(displayVehicleSystem, foundry.utils.deepClone(this._vehicleOverviewUiState), {
+          inplace: true,
+          insertKeys: true,
+          insertValues: true,
+          overwrite: true,
+          recursive: true
+        });
+      }
+      const vehicleLoadoutView = this._getVehicleLoadoutViewData(displayVehicleSystem);
+      const crewWeaponBySlot = new Map(
+        (Array.isArray(vehicleLoadoutView?.emplacements) ? vehicleLoadoutView.emplacements : [])
+          .map((emplacement) => {
+            const controllerRole = String(emplacement?.controllerRole ?? "").trim().toLowerCase();
+            const controllerIndex = toNonNegativeWhole(emplacement?.controllerIndex, 0);
+            const slotKey = controllerRole && controllerIndex > 0 ? `${controllerRole}:${controllerIndex}` : "";
+            const weaponDisplay = String(emplacement?.weaponDisplayName ?? emplacement?.weaponName ?? "").trim();
+            return slotKey ? [slotKey, weaponDisplay] : null;
+          })
+          .filter(Boolean)
+      );
 
-      // Resolve crew display rows to include slotNumber and PC flag for rendering
-      const crewKinds = ["operators", "gunners", "complement"];
-      for (const kind of crewKinds) {
-        const capacityKey = (kind === "complement") ? "passengers" : kind;
-        const capacity = toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.[capacityKey], 0);
+      // Resolve crew display rows to include seat labels and live actor display formatting.
+      const crewRosterRows = [];
+      for (const definition of MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES) {
+        const kind = definition.crewKey;
+        const capacity = toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.[definition.capacityKey], 0);
         const sourceRows = Array.isArray(normalizedVehicleSystem?.crew?.[kind]) ? normalizedVehicleSystem.crew[kind] : [];
         const rows = [];
         for (let i = 0; i < capacity; i++) {
-          const entry = sourceRows[i] ?? { idx: i, id: "", display: "" };
+          const entry = sourceRows[i] ?? { idx: i, id: "", display: "", position: "" };
           const idStr = String(entry?.id ?? "").trim();
           let displayName = String(entry?.display ?? "").trim();
-          let isPC = false;
+          const position = normalizeCrewSeatPosition(entry?.position ?? "");
+          let actorType = "";
+          let stats = null;
           if (idStr) {
             let actorDoc = game.actors?.get(idStr) ?? null;
             if (!actorDoc && idStr.includes(".")) {
               actorDoc = await fromUuid(idStr).catch(() => null);
             }
             if (actorDoc) {
-              displayName = displayName || String(actorDoc.name ?? "").trim();
-              isPC = Boolean(actorDoc.hasPlayerOwner || (actorDoc.ownership && Object.values(actorDoc.ownership).some((v) => Number(v) > 0)));
+              displayName = buildCrewRosterDisplay(actorDoc, displayName) || displayName || String(actorDoc.name ?? "").trim();
+              actorType = String(actorDoc.type ?? "").trim().toLowerCase() === "character" ? "PC" : "NPC";
+              stats = buildCrewActorStatDisplay(actorDoc);
             }
           }
-          rows.push({ idx: i, id: idStr, display: displayName, isPC, slotNumber: i + 1 });
+          const slotNumber = i + 1;
+          const slotKey = `${kind}:${slotNumber}`;
+          rows.push({
+            idx: i,
+            id: idStr,
+            display: displayName,
+            actorTypeLabel: actorType,
+            hasActor: Boolean(idStr),
+            position,
+            roleLabel: definition.label,
+            seatLabel: buildVehicleCrewSeatLabel(definition.label, i + 1),
+            slotCode: buildVehicleCrewShortSlotLabel(definition.label, slotNumber),
+            slotKey,
+            weaponDisplay: idStr ? String(crewWeaponBySlot.get(slotKey) ?? "").trim() : "",
+            stats,
+            slotNumber,
+            isExpanded: this._vehicleCrewExpandedRows.has(slotKey),
+            kind
+          });
         }
         displayVehicleSystem.crew[kind] = rows;
+        crewRosterRows.push(...rows);
       }
 
       context.cssClass = this.options.classes.join(" ");
       context.actor = this.actor;
       context.editable = this.isEditable || Boolean(game.user?.isGM);
       context.mythicIsVehicleActor = true;
+      context.mythicVehicleLoadout = vehicleLoadoutView;
+      this._vehicleLoadoutNeedsMigration = Boolean(context.mythicVehicleLoadout?.needsMigration);
+      context.mythicVehicleCrewRoster = crewRosterRows;
+      const propulsionType = String(displayVehicleSystem?.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
+      const isWalkerVehicle = propulsionType === "legs";
+      const propulsionMaxOptions = this._getVehiclePropulsionMaxSelectOptions(propulsionType);
+      if (!propulsionMaxOptions.length) {
+        displayVehicleSystem.propulsion.max = "";
+      } else {
+        const currentMax = String(displayVehicleSystem?.propulsion?.max ?? "").trim();
+        const hasCurrentMax = propulsionMaxOptions.some((option) => option.value === currentMax);
+        displayVehicleSystem.propulsion.max = hasCurrentMax ? currentMax : propulsionMaxOptions[0].value;
+      }
+      const vehicleMobilityContext = this._buildVehicleMobilityContext(displayVehicleSystem);
+      displayVehicleSystem.movement.speed.value = vehicleMobilityContext.currentSpeed;
+      displayVehicleSystem.movement.speed.max = vehicleMobilityContext.topSpeed;
+      const vehicleWeightUnitRaw = String(displayVehicleSystem?.dimensions?.weightUnit ?? "t").trim().toLowerCase();
+      const vehicleWeightUnit = vehicleWeightUnitRaw === "kg" ? "kg" : "t";
+      const storedVehicleWeightTonnesRaw = Number(displayVehicleSystem?.dimensions?.weight ?? 0);
+      const storedVehicleWeightTonnes = Number.isFinite(storedVehicleWeightTonnesRaw)
+        ? Math.max(0, storedVehicleWeightTonnesRaw)
+        : 0;
+      const vehicleWeightDisplayRaw = vehicleWeightUnit === "kg"
+        ? storedVehicleWeightTonnes * 1000
+        : storedVehicleWeightTonnes;
+      const vehicleWeightDisplay = Math.round(Math.max(0, vehicleWeightDisplayRaw) * 1000) / 1000;
+      displayVehicleSystem.dimensions.weightUnit = vehicleWeightUnit;
+      const vehicleOverviewContext = this._buildVehicleOverviewContext(displayVehicleSystem, vehicleLoadoutView);
       context.mythicVehicleSystem = displayVehicleSystem;
-      // Vehicle tab contents intentionally cleared; no item lists or crew counts provided.
+      context.mythicVehicleOverview = vehicleOverviewContext;
+      context.mythicPropulsionTypeOptions = this._getVehiclePropulsionTypeOptions();
+      context.mythicPropulsionMaxOptions = propulsionMaxOptions;
+      context.mythicShowPropulsionMaxField = propulsionMaxOptions.length > 0;
+      context.mythicVehicleIsWalker = isWalkerVehicle;
+      context.mythicVehicleMobility = vehicleMobilityContext;
+      context.mythicVehicleDisplayWeight = vehicleWeightDisplay;
+      context.mythicVehicleDisplayWeightStep = vehicleWeightUnit === "kg" ? "0.1" : "0.001";
+      context.mythicVehicleWeightUnitOptions = [
+        { value: "kg", label: "kg" },
+        { value: "t", label: "tonnes" }
+      ];
       const faction = String(normalizedVehicleSystem?.faction ?? "").trim();
       const themedFaction = faction || "Other (Setting Agnostic)";
       const customLogo = String(normalizedVehicleSystem?.header?.logoPath ?? "").trim();
       context.mythicLogo = customLogo || this._getFactionLogoPath(themedFaction);
       context.mythicFactionIndex = this._getFactionIndex(themedFaction);
+      const vehicleSheetAppearance = normalizeSheetAppearanceData(normalizedVehicleSystem?.sheetAppearance ?? {});
+      const vehicleSheetAppearanceView = buildSheetAppearanceViewData(vehicleSheetAppearance, {
+        factionIndex: context.mythicFactionIndex
+      });
+      context.mythicSheetAppearance = vehicleSheetAppearanceView;
+      context.mythicSheetBackgroundImage = vehicleSheetAppearanceView.backgroundImage;
 
       context.mythicFactionOptions = [
         "United Nations Space Command",
@@ -918,9 +1156,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
     const characteristicRuntime = this._buildCharacteristicRuntime(effectiveSystem?.characteristics ?? {});
     const derived = computeCharacterDerivedValues(effectiveSystem);
-    const faction = this.actor.system?.header?.faction ?? "";
+    const faction = normalizedSystem?.header?.faction ?? "";
     const themedFaction = String(faction ?? "").trim() || "Other (Setting Agnostic)";
-    const customLogo = this.actor.system?.header?.logoPath ?? "";
+    const customLogo = normalizedSystem?.header?.logoPath ?? "";
 
     context.cssClass = this.options.classes.join(" ");
     context.actor = this.actor;
@@ -930,6 +1168,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicCreationPathOutcome = creationPathOutcome;
     context.mythicLogo = customLogo || this._getFactionLogoPath(themedFaction);
     context.mythicFactionIndex = this._getFactionIndex(themedFaction);
+    const characterSheetAppearance = normalizeSheetAppearanceData(normalizedSystem?.sheetAppearance ?? {});
+    const characterSheetAppearanceView = buildSheetAppearanceViewData(characterSheetAppearance, {
+      factionIndex: context.mythicFactionIndex
+    });
+    context.mythicSheetAppearance = characterSheetAppearanceView;
+    context.mythicSheetBackgroundImage = characterSheetAppearanceView.backgroundImage;
     const characteristicModifiers = characteristicRuntime.modifiers;
     context.mythicCharacteristicModifiers = characteristicModifiers;
     context.mythicCharacteristicScores = characteristicRuntime.scores;
@@ -1048,6 +1292,1446 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.equipment.energyCells": nextEnergyCells,
       "system.equipment.weaponState": nextWeaponState
     });
+  }
+
+  _getVehiclePropulsionTypeOptions() {
+    return [
+      { value: "none", label: "Stationary" },
+      { value: "legs", label: "Legs" },
+      { value: "thrusters", label: "Thrusters / Propellers" },
+      { value: "treads", label: "Treads" },
+      { value: "wheels", label: "Wheels" }
+    ];
+  }
+
+  _getVehiclePropulsionMaxOptions(propulsionType = "wheels") {
+    const normalized = String(propulsionType ?? "").trim().toLowerCase();
+    if (normalized === "none") return [];
+    if (normalized === "wheels") return ["3", "4", "6", "8"];
+    if (normalized === "treads") return ["2", "4", "6", "8"];
+    if (normalized === "legs") return ["2", "3", "4", "5", "6"];
+    if (normalized === "thrusters") return Array.from({ length: 20 }, (_, index) => String(index + 1));
+    return ["3", "4", "6", "8"];
+  }
+
+  _getVehiclePropulsionMaxSelectOptions(propulsionType = "wheels") {
+    return this._getVehiclePropulsionMaxOptions(propulsionType).map((value) => ({
+      value,
+      label: value
+    }));
+  }
+
+  _convertVehicleMptToKmh(speedMpt = 0) {
+    const speed = Number(speedMpt ?? 0);
+    if (!Number.isFinite(speed) || speed <= 0) return 0;
+    return Math.max(0, Math.round(speed * 0.6));
+  }
+
+  _buildVehicleMobilityContext(vehicleSystem = null) {
+    const source = vehicleSystem ?? this.actor?.system ?? {};
+    const currentSpeedRaw = toNonNegativeWhole(source?.movement?.speed?.value, 0);
+    const topSpeedRaw = toNonNegativeWhole(source?.movement?.speed?.max, 0);
+    const topSpeed = topSpeedRaw > 0 ? topSpeedRaw : currentSpeedRaw;
+    const currentSpeed = topSpeed > 0 ? Math.min(currentSpeedRaw, topSpeed) : currentSpeedRaw;
+    const ratio = topSpeed > 0 ? Math.max(0, Math.min(1, currentSpeed / topSpeed)) : 0;
+    const needleAngle = Math.round((-90 + (ratio * 180)) * 100) / 100;
+
+    return {
+      currentSpeed,
+      topSpeed,
+      currentKmh: this._convertVehicleMptToKmh(currentSpeed),
+      topKmh: this._convertVehicleMptToKmh(topSpeed),
+      brake: toNonNegativeWhole(source?.movement?.brake?.value, 0),
+      accelerate: toNonNegativeWhole(source?.movement?.accelerate?.value, 0),
+      maneuver: toNonNegativeWhole(source?.movement?.maneuver?.total, 0),
+      ratio,
+      needleAngle
+    };
+  }
+
+  _getVehicleConfiguredOverviewBaseValue(field = {}) {
+    const configuredValue = toNonNegativeWhole(field?.value, 0);
+    const configuredMax = toNonNegativeWhole(field?.max, 0);
+    return configuredValue > 0 || configuredMax <= 0 ? configuredValue : configuredMax;
+  }
+
+  _getVehicleOverviewEmplacementSlotCode(emplacement = {}, fallbackIndex = 0) {
+    const controllerRole = String(emplacement?.controllerRole ?? "").trim().toLowerCase();
+    const controllerIndex = toNonNegativeWhole(emplacement?.controllerIndex, 0);
+    const definition = MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES.find((entry) => entry.value === controllerRole) ?? null;
+    if (definition && controllerIndex > 0) {
+      return buildVehicleCrewShortSlotLabel(definition.label, controllerIndex);
+    }
+    return `W${Math.max(1, Number(fallbackIndex) + 1)}`;
+  }
+
+  _getVehicleOverviewMobilityComponentLabel(propulsionType = "wheels", plural = false) {
+    const normalizedType = String(propulsionType ?? "").trim().toLowerCase();
+    if (normalizedType === "treads") return plural ? "Treads" : "Tread";
+    if (normalizedType === "legs") return plural ? "Legs" : "Leg";
+    if (normalizedType === "thrusters") return plural ? "Thrusters" : "Thruster";
+    if (normalizedType === "none") return plural ? "Components" : "Component";
+    return plural ? "Wheels" : "Wheel";
+  }
+
+  _buildVehicleOverviewStatusContext({
+    vehicleSystem = null,
+    engineTracker = null,
+    hullTracker = null,
+    weaponTrackers = [],
+    opticsTrackers = [],
+    mobilityTrackers = [],
+    armorRows = [],
+    shields = null
+  } = {}) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const detailMessages = [];
+    const weaponCritical = weaponTrackers.filter((entry) => entry?.isCritical);
+    const opticsCritical = opticsTrackers.filter((entry) => entry?.isCritical);
+    const mobilityCritical = mobilityTrackers.filter((entry) => entry?.isCritical);
+    const reducedArmor = armorRows.filter((entry) => entry?.isReduced);
+    const doomLevel = String(source?.breakpoints?.hull?.doom?.level ?? "tier_0").trim().toLowerCase() || "tier_0";
+    const doomLabel = MYTHIC_VEHICLE_DOOM_LABELS[doomLevel] ?? "Vehicle status unresolved.";
+
+    if ((hullTracker?.max ?? 0) > 0 && (hullTracker?.current ?? hullTracker?.max ?? 0) < (hullTracker?.max ?? 0)) {
+      detailMessages.push({ text: "Hull integrity compromised." });
+    }
+
+    if (engineTracker?.isCritical) {
+      detailMessages.push({ text: "Engine offline." });
+    }
+
+    for (const tracker of weaponCritical) {
+      detailMessages.push({ text: `${tracker.fullLabel} offline.` });
+    }
+
+    for (const tracker of opticsCritical) {
+      detailMessages.push({ text: `${tracker.fullLabel} offline.` });
+    }
+
+    for (const tracker of mobilityCritical) {
+      detailMessages.push({ text: `${tracker.fullLabel} disabled.` });
+    }
+
+    if (reducedArmor.length) {
+      detailMessages.push({ text: "Armor compromised." });
+    }
+
+    if ((shields?.max ?? 0) > 0) {
+      if ((shields?.current ?? 0) <= 0) {
+        detailMessages.push({ text: "Shields depleted." });
+      } else if ((shields?.current ?? 0) < (shields?.max ?? 0)) {
+        detailMessages.push({ text: "Shields weakened." });
+      }
+    }
+
+    let summaryText = "The vehicle is operational.";
+    if ((hullTracker?.current ?? 0) <= 0 || ["tier_5", "tier_6", "tier_7", "tier_8", "tier_9"].includes(doomLevel)) {
+      summaryText = doomLabel;
+    } else if (mobilityCritical.length) {
+      summaryText = "Mobility damaged.";
+    } else if (engineTracker?.isCritical) {
+      summaryText = "Engine damaged.";
+    } else if (weaponCritical.length > 1) {
+      summaryText = `${weaponCritical.length} weapons offline.`;
+    } else if (weaponCritical.length === 1) {
+      summaryText = `${weaponCritical[0].fullLabel} offline.`;
+    } else if (opticsCritical.length > 1) {
+      summaryText = `${opticsCritical.length} optics systems offline.`;
+    } else if (opticsCritical.length === 1) {
+      summaryText = `${opticsCritical[0].fullLabel} offline.`;
+    } else if (reducedArmor.length) {
+      summaryText = "Armor compromised.";
+    } else if ((shields?.max ?? 0) > 0 && (shields?.current ?? shields?.max ?? 0) < (shields?.max ?? 0)) {
+      summaryText = "Shields weakened.";
+    }
+
+    const severity = summaryText === "The vehicle is operational."
+      ? "nominal"
+      : ((hullTracker?.current ?? 0) <= 0 || engineTracker?.isCritical ? "critical" : "warning");
+
+    return {
+      expanded: Boolean(source?.overview?.ui?.statusExpanded),
+      togglePath: "system.overview.ui.statusExpanded",
+      summaryText,
+      severity,
+      messages: detailMessages,
+      hasMessages: detailMessages.length > 0
+    };
+  }
+
+  _buildVehicleOverviewContext(vehicleSystem = null, vehicleLoadoutView = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const overview = (source?.overview && typeof source.overview === "object") ? source.overview : {};
+    const loadoutView = vehicleLoadoutView ?? this._getVehicleLoadoutViewData(source);
+    const clampWhole = (value, fallback = 0, { min = 0, max = Number.POSITIVE_INFINITY } = {}) => {
+      let resolved = Number(value);
+      if (!Number.isFinite(resolved)) resolved = Number(fallback);
+      if (!Number.isFinite(resolved)) resolved = min;
+      resolved = Math.round(resolved);
+      if (resolved < min) resolved = min;
+      if (Number.isFinite(max) && resolved > max) resolved = max;
+      return resolved;
+    };
+    const makeTracker = ({
+      id,
+      label,
+      fullLabel,
+      current,
+      max,
+      inputName,
+      min = 0,
+      meta = ""
+    }) => {
+      const resolvedCurrent = clampWhole(current, max, { min, max });
+      const resolvedMax = Math.max(0, clampWhole(max, 0, { min: 0 }));
+      return {
+        id,
+        label,
+        fullLabel,
+        meta: String(meta ?? "").trim(),
+        current: resolvedCurrent,
+        max: resolvedMax,
+        currentName: inputName,
+        clampMin: min,
+        clampMax: resolvedMax,
+        isCritical: resolvedCurrent <= 0
+      };
+    };
+    const buildSectionSummary = (rows = [], activeLabel = "Operational", inactiveLabel = "Offline") => {
+      const total = rows.length;
+      const activeCount = rows.filter((entry) => (entry?.current ?? 0) > 0).length;
+      const inactiveCount = Math.max(0, total - activeCount);
+      return {
+        primary: total > 0 ? `${activeLabel} ${activeCount} / ${total}` : "",
+        secondary: inactiveCount > 0 ? `${inactiveLabel} ${inactiveCount}` : ""
+      };
+    };
+    const buildTrackerBands = (rows = [], maxColumns = 8) => {
+      const bandSize = Math.max(1, Number(maxColumns) || 8);
+      const sourceRows = Array.isArray(rows) ? rows : [];
+      if (!sourceRows.length) return [];
+      const bands = [];
+      for (let index = 0; index < sourceRows.length; index += bandSize) {
+        bands.push(sourceRows.slice(index, index + bandSize));
+      }
+      return bands;
+    };
+
+    const specialRules = MYTHIC_VEHICLE_SPECIAL_RULE_DEFINITIONS
+      .filter((entry) => Boolean(source?.special?.[entry.key]?.has))
+      .map((entry) => {
+        const suffixValue = toNonNegativeWhole(source?.special?.[entry.key]?.value, 0);
+        return {
+          key: entry.key,
+          label: entry.valueSuffix && suffixValue > 0
+            ? `${entry.label} ${suffixValue}`
+            : entry.label
+        };
+      });
+
+    const engineMax = this._getVehicleConfiguredOverviewBaseValue(source?.breakpoints?.eng ?? {});
+    const hullMax = this._getVehicleConfiguredOverviewBaseValue(source?.breakpoints?.hull ?? {});
+    const weaponMax = this._getVehicleConfiguredOverviewBaseValue(source?.breakpoints?.wep ?? {});
+    const opticsMax = this._getVehicleConfiguredOverviewBaseValue(source?.breakpoints?.op ?? {});
+    const mobilityMax = this._getVehicleConfiguredOverviewBaseValue(source?.breakpoints?.mob ?? {});
+
+    const engineTracker = makeTracker({
+      id: "engine",
+      label: "ENG",
+      fullLabel: "Engine",
+      current: overview?.breakpoints?.engine?.current,
+      max: engineMax,
+      inputName: "system.overview.breakpoints.engine.current",
+      min: 0
+    });
+    const hullTracker = makeTracker({
+      id: "hull",
+      label: "HULL",
+      fullLabel: "Hull",
+      current: overview?.breakpoints?.hull?.current,
+      max: hullMax,
+      inputName: "system.overview.breakpoints.hull.current",
+      min: -100
+    });
+
+    const emplacements = Array.isArray(loadoutView?.emplacements) ? loadoutView.emplacements : [];
+    const weaponTrackers = emplacements.map((emplacement, index) => {
+      const emplacementId = String(emplacement?.id ?? `weapon-${index + 1}`).trim() || `weapon-${index + 1}`;
+      const slotCode = this._getVehicleOverviewEmplacementSlotCode(emplacement, index);
+      return makeTracker({
+        id: emplacementId,
+        label: slotCode,
+        fullLabel: `Weapon ${slotCode}`,
+        current: overview?.breakpoints?.weapons?.byId?.[emplacementId]?.current,
+        max: weaponMax,
+        inputName: `system.overview.breakpoints.weapons.byId.${emplacementId}.current`,
+        min: 0
+      });
+    });
+
+    const opticsEnabled = !Boolean(source?.breakpoints?.op?.noOptics);
+    const operatorRows = Array.isArray(source?.crew?.operators) ? source.crew.operators : [];
+    const opticsTrackers = opticsEnabled
+      ? [
+        ...operatorRows.map((row, index) => {
+          const trackerId = `operator-${index + 1}`;
+          const seatLabel = String(row?.seatLabel ?? `Operator ${index + 1}`).trim() || `Operator ${index + 1}`;
+          const slotCode = String(row?.slotCode ?? buildVehicleCrewShortSlotLabel("Operator", index + 1)).trim() || `O${index + 1}`;
+          return makeTracker({
+            id: trackerId,
+            label: slotCode,
+            fullLabel: `${seatLabel} optics`,
+            current: overview?.breakpoints?.optics?.byId?.[trackerId]?.current,
+            max: opticsMax,
+            inputName: `system.overview.breakpoints.optics.byId.${trackerId}.current`,
+            min: 0
+          });
+        }),
+        ...emplacements
+          .filter((emplacement) => String(emplacement?.controllerRole ?? "").trim().toLowerCase() !== "operator")
+          .map((emplacement, index) => {
+          const weaponId = String(emplacement?.id ?? `weapon-${index + 1}`).trim() || `weapon-${index + 1}`;
+          const slotCode = this._getVehicleOverviewEmplacementSlotCode(emplacement, index);
+          const trackerId = `weapon-${weaponId}`;
+          return makeTracker({
+            id: trackerId,
+            label: slotCode,
+            fullLabel: `Weapon ${slotCode} optics`,
+            current: overview?.breakpoints?.optics?.byId?.[trackerId]?.current,
+            max: opticsMax,
+            inputName: `system.overview.breakpoints.optics.byId.${trackerId}.current`,
+            min: 0
+          });
+        })
+      ]
+      : [];
+
+    const propulsionType = String(source?.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
+    const mobilityCount = Math.max(
+      0,
+      Number.parseInt(String(source?.propulsion?.max ?? ""), 10) || toNonNegativeWhole(source?.propulsion?.value, 0)
+    );
+    const mobilityComponentLabel = this._getVehicleOverviewMobilityComponentLabel(propulsionType, false);
+    const mobilityTrackers = Array.from({ length: mobilityCount }, (_entry, index) => {
+      const trackerId = `mobility-${index + 1}`;
+      return makeTracker({
+        id: trackerId,
+        label: String(index + 1),
+        fullLabel: `${mobilityComponentLabel} ${index + 1}`,
+        current: overview?.breakpoints?.mobility?.byId?.[trackerId]?.current,
+        max: mobilityMax,
+        inputName: `system.overview.breakpoints.mobility.byId.${trackerId}.current`,
+        min: 0
+      });
+    });
+
+    const armorRows = ["front", "back", "side", "top", "bottom"].map((key) => {
+      const label = key.charAt(0).toUpperCase() + key.slice(1);
+      const base = this._getVehicleConfiguredOverviewBaseValue(source?.armor?.[key] ?? {});
+      const current = clampWhole(base, base, { min: 0, max: base });
+      return {
+        key,
+        label,
+        current,
+        base,
+        isReduced: current < base,
+        isCritical: current <= 0 && base > 0
+      };
+    });
+
+    const configuredShieldMax = this._getVehicleConfiguredOverviewBaseValue(source?.shields ?? {});
+    const rawOverviewShieldMax = Number(overview?.shields?.max ?? 0);
+    const rawOverviewShieldCurrent = Number(overview?.shields?.current ?? 0);
+    const rawOverviewShieldDelay = Number(overview?.shields?.delay ?? 0);
+    const rawOverviewShieldRecharge = Number(overview?.shields?.recharge ?? 0);
+    const hasInitializedShieldState = rawOverviewShieldMax > 0
+      || rawOverviewShieldCurrent > 0
+      || rawOverviewShieldDelay > 0
+      || rawOverviewShieldRecharge > 0;
+    const shieldMax = clampWhole(configuredShieldMax, configuredShieldMax, { min: 0 });
+    const shields = {
+      currentName: "system.overview.shields.current",
+      current: clampWhole(hasInitializedShieldState ? overview?.shields?.current : shieldMax, shieldMax, { min: 0, max: shieldMax }),
+      max: shieldMax,
+      delay: clampWhole(source?.shields?.delay, source?.shields?.delay, { min: 0 }),
+      recharge: clampWhole(source?.shields?.recharge, source?.shields?.recharge, { min: 0 }),
+      isDepleted: shieldMax > 0 && clampWhole(hasInitializedShieldState ? overview?.shields?.current : shieldMax, shieldMax, { min: 0, max: shieldMax }) <= 0
+    };
+
+    const customEntries = (Array.isArray(overview?.breakpoints?.custom) ? overview.breakpoints.custom : []).map((entry, index) => ({
+      id: String(entry?.id ?? `custom-breakpoint-${index + 1}`).trim() || `custom-breakpoint-${index + 1}`,
+      label: String(entry?.label ?? "").trim(),
+      current: clampWhole(entry?.current, entry?.max, { min: 0, max: clampWhole(entry?.max, 0, { min: 0 }) }),
+      max: clampWhole(entry?.max, 0, { min: 0 }),
+      idName: `system.overview.breakpoints.custom.${index}.id`,
+      labelName: `system.overview.breakpoints.custom.${index}.label`,
+      currentName: `system.overview.breakpoints.custom.${index}.current`,
+      maxName: `system.overview.breakpoints.custom.${index}.max`
+    }));
+
+    const weaponSummary = buildSectionSummary(weaponTrackers, "Operational", "Offline");
+    const opticsSummary = buildSectionSummary(opticsTrackers, "Online", "Offline");
+    const mobilitySummary = buildSectionSummary(mobilityTrackers, "Intact", "Disabled");
+    const breakpointsCritical = [engineTracker, hullTracker, ...weaponTrackers, ...opticsTrackers, ...mobilityTrackers]
+      .some((entry) => entry?.isCritical);
+
+    const sections = [
+      {
+        key: "engineHull",
+        label: "Engine and Hull",
+        togglePath: "system.overview.ui.sections.engineHull",
+        expanded: Boolean(overview?.ui?.sections?.engineHull),
+        rows: [engineTracker, hullTracker],
+        bands: buildTrackerBands([engineTracker, hullTracker], 8),
+        hasRows: true,
+        emptyText: ""
+      },
+      {
+        key: "weapons",
+        label: "Weapons",
+        togglePath: "system.overview.ui.sections.weapons",
+        expanded: Boolean(overview?.ui?.sections?.weapons),
+        rows: weaponTrackers,
+        bands: buildTrackerBands(weaponTrackers, 8),
+        hasRows: weaponTrackers.length > 0,
+        descriptionText: weaponTrackers.length ? `Mounted positions x${weaponTrackers.length}` : "",
+        summaryPrimary: weaponSummary.primary,
+        summarySecondary: weaponSummary.secondary,
+        emptyText: "No mounted weapon positions configured yet."
+      }
+    ];
+
+    if (opticsEnabled) {
+      sections.push({
+        key: "optics",
+        label: "Optics",
+        togglePath: "system.overview.ui.sections.optics",
+        expanded: Boolean(overview?.ui?.sections?.optics),
+        rows: opticsTrackers,
+        bands: buildTrackerBands(opticsTrackers, 8),
+        hasRows: opticsTrackers.length > 0,
+        descriptionText: opticsTrackers.length ? `Optics systems x${opticsTrackers.length}` : "",
+        summaryPrimary: opticsSummary.primary,
+        summarySecondary: opticsSummary.secondary,
+        emptyText: "No optics trackers are available."
+      });
+    }
+
+    sections.push({
+      key: "mobility",
+      label: "Mobility",
+      togglePath: "system.overview.ui.sections.mobility",
+      expanded: Boolean(overview?.ui?.sections?.mobility),
+      rows: mobilityTrackers,
+      bands: buildTrackerBands(mobilityTrackers, 8),
+      hasRows: mobilityTrackers.length > 0,
+      descriptionText: mobilityCount > 0
+        ? `${this._getVehicleOverviewMobilityComponentLabel(propulsionType, true)} x${mobilityCount}`
+        : "No propulsion components configured.",
+      summaryPrimary: mobilitySummary.primary,
+      summarySecondary: mobilitySummary.secondary,
+      emptyText: "No propulsion components are configured."
+    });
+
+    return {
+      specialRules,
+      status: this._buildVehicleOverviewStatusContext({
+        vehicleSystem: source,
+        engineTracker,
+        hullTracker,
+        weaponTrackers,
+        opticsTrackers,
+        mobilityTrackers,
+        armorRows,
+        shields
+      }),
+      breakpoints: {
+        expanded: overview?.ui?.breakpointsExpanded !== false,
+        togglePath: "system.overview.ui.breakpointsExpanded",
+        isCritical: breakpointsCritical,
+        sections
+      },
+      armor: {
+        rows: armorRows
+      },
+      shields,
+      custom: {
+        expanded: Boolean(overview?.ui?.sections?.custom),
+        togglePath: "system.overview.ui.sections.custom",
+        entries: customEntries,
+        hasEntries: customEntries.length > 0
+      }
+    };
+  }
+
+  async _updateVehicleOverviewUiState(path = "", nextValue = false) {
+    const normalizedPath = String(path ?? "").trim();
+    if (!normalizedPath.startsWith("system.overview.")) return;
+
+    if (this.isEditable) {
+      await this.actor.update({ [normalizedPath]: nextValue });
+      return;
+    }
+
+    const localPath = normalizedPath.slice("system.".length);
+    foundry.utils.setProperty(this._vehicleOverviewUiState, localPath, nextValue);
+    this.render(false);
+  }
+
+  async _onToggleVehicleOverviewSection(event) {
+    event.preventDefault();
+    const button = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    const targetPath = String(button?.dataset?.targetPath ?? "").trim();
+    if (!targetPath) return;
+
+    const localPath = targetPath.replace(/^system\./u, "");
+    const localValue = foundry.utils.getProperty(this._vehicleOverviewUiState, localPath);
+    const currentValue = localValue !== undefined
+      ? Boolean(localValue)
+      : Boolean(foundry.utils.getProperty(this.actor, targetPath));
+    await this._updateVehicleOverviewUiState(targetPath, !currentValue);
+  }
+
+  async _onVehicleOverviewDetonate(event) {
+    event.preventDefault();
+    ui.notifications?.info("Vehicle detonation workflow is not wired yet.");
+  }
+
+  async _onAddVehicleOverviewCustomBreakpoint(event) {
+    event.preventDefault();
+    if (!this._isVehicleActor() || !this.isEditable) return;
+
+    const normalized = normalizeVehicleSystemData(this.actor.system ?? {});
+    const currentEntries = Array.isArray(normalized?.overview?.breakpoints?.custom)
+      ? normalized.overview.breakpoints.custom
+      : [];
+    const nextEntries = currentEntries.map((entry) => ({
+      id: String(entry?.id ?? foundry.utils.randomID()).trim() || foundry.utils.randomID(),
+      label: String(entry?.label ?? "").trim(),
+      current: Math.max(0, toNonNegativeWhole(entry?.current, 0)),
+      max: Math.max(0, toNonNegativeWhole(entry?.max, 0))
+    }));
+
+    nextEntries.push({
+      id: foundry.utils.randomID(),
+      label: "",
+      current: 0,
+      max: 0
+    });
+
+    await this.actor.update({ "system.overview.breakpoints.custom": nextEntries });
+  }
+
+  async _onClearVehicleOverviewCustomBreakpoints(event) {
+    event.preventDefault();
+    if (!this._isVehicleActor() || !this.isEditable) return;
+    await this.actor.update({ "system.overview.breakpoints.custom": [] });
+  }
+
+  _initializeVehicleNotesEditor(root) {
+    if (!this._isVehicleActor() || !root) return;
+    const notesTab = root.querySelector('.tab[data-group="primary"][data-tab="vehicle-notes"]');
+    if (!(notesTab instanceof HTMLElement)) return;
+    const isActive = notesTab.classList.contains("active");
+    if (!isActive) return;
+
+    const host = notesTab.querySelector('.vehicle-notes-editor[data-editor-target="system.notes"]');
+    if (!(host instanceof HTMLElement)) return;
+    if (host.querySelector("prose-mirror")) return;
+
+    const notesValue = String(this.actor?.system?.notes ?? "");
+    host.replaceChildren();
+
+    const ProseMirrorElement = foundry?.applications?.elements?.HTMLProseMirrorElement;
+    if (!ProseMirrorElement || typeof ProseMirrorElement.create !== "function") {
+      const fallback = document.createElement("textarea");
+      fallback.name = "system.notes";
+      fallback.value = notesValue;
+      fallback.rows = 18;
+      fallback.className = "vehicle-notes-richtext-fallback";
+      if (!this.isEditable) fallback.disabled = true;
+      host.append(fallback);
+      return;
+    }
+
+    const editor = ProseMirrorElement.create({
+      name: "system.notes",
+      value: notesValue,
+      collaborate: false,
+      compact: false,
+      toggled: false,
+      documentUUID: String(this.actor?.uuid ?? this.document?.uuid ?? ""),
+      height: 450
+    });
+    editor.classList.add("vehicle-notes-richtext");
+    if (!this.isEditable) editor.disabled = true;
+    host.append(editor);
+  }
+
+  _getVehicleWeaponControllerDefinitions(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    return MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES.map((definition) => {
+      const sourceRows = Array.isArray(source?.crew?.[definition.crewKey])
+        ? source.crew[definition.crewKey]
+        : [];
+      const fallbackCapacity = toNonNegativeWhole(source?.crew?.capacity?.[definition.capacityKey], sourceRows.length);
+      const count = Math.max(sourceRows.length, fallbackCapacity);
+      const rows = Array.from({ length: count }, (_, index) => {
+        const entry = sourceRows[index] ?? {};
+        const position = normalizeCrewSeatPosition(entry?.position ?? "");
+        return {
+          idx: index,
+          slotNumber: index + 1,
+          display: String(entry?.display ?? entry?.name ?? "").trim(),
+          position,
+          seatLabel: buildVehicleCrewSeatLabel(definition.label, index + 1)
+        };
+      });
+      return {
+        ...definition,
+        count,
+        rows,
+        roleOptionLabel: definition.label
+      };
+    });
+  }
+
+  _getVehicleWeaponControllerPositionOptions(controllerRole = "", vehicleSystem = null, currentPosition = 0, includeBlank = false) {
+    const normalizedRole = String(controllerRole ?? "").trim().toLowerCase();
+    const definition = this._getVehicleWeaponControllerDefinitions(vehicleSystem)
+      .find((entry) => entry.value === normalizedRole);
+    const options = [];
+    if (definition && includeBlank) {
+      options.push({
+        value: "",
+        label: `Select ${definition.label.toLowerCase()} position`
+      });
+    }
+    if (definition) {
+      for (const entry of definition.rows) {
+        const seatLabel = buildVehicleCrewSeatLabel(definition.label, entry.slotNumber);
+        const occupantLabel = entry.display ? ` - ${entry.display}` : "";
+        options.push({
+          value: String(entry.slotNumber),
+          label: `${seatLabel}${occupantLabel}`
+        });
+      }
+    }
+
+    const requestedPosition = toNonNegativeWhole(currentPosition, 0);
+    if (requestedPosition > 0 && !options.some((entry) => entry.value === String(requestedPosition))) {
+      const fallbackLabel = definition?.label ?? "Position";
+      const unavailableOption = {
+        value: String(requestedPosition),
+        label: `${fallbackLabel} ${requestedPosition} (unavailable)`
+      };
+      if (includeBlank && options.length > 0 && options[0].value === "") {
+        options.splice(1, 0, unavailableOption);
+      } else {
+        options.unshift(unavailableOption);
+      }
+    }
+
+    return options;
+  }
+
+  _getVehicleLoadoutItemTypeLabel(gear = {}) {
+    const itemClass = String(gear?.itemClass ?? "").trim().toLowerCase();
+    const weaponClass = String(gear?.weaponClass ?? "").trim().toLowerCase();
+    const equipmentType = String(gear?.equipmentType ?? "").trim().toLowerCase();
+    const toTitleCase = (value = "") => String(value ?? "")
+      .split(/[-_\s]+/u)
+      .filter(Boolean)
+      .map((entry) => entry.charAt(0).toUpperCase() + entry.slice(1))
+      .join(" ");
+
+    if (itemClass === "weapon") {
+      if (weaponClass === "melee") return "Melee Weapon";
+      if (weaponClass === "ranged") return "Ranged Weapon";
+      return "Weapon";
+    }
+    if (itemClass === "armor") return "Armor";
+    return toTitleCase(equipmentType || itemClass || "gear");
+  }
+
+  _buildVehicleWeaponEmplacementRecord(entry = {}, fallbackId = "") {
+    const requestedRole = String(entry?.controllerRole ?? "").trim().toLowerCase();
+    const controllerRole = ["operator", "gunner", "passenger"].includes(requestedRole)
+      ? requestedRole
+      : "";
+    const linked = Boolean(entry?.linked);
+    return {
+      id: String(entry?.id ?? fallbackId ?? foundry.utils.randomID()).trim() || fallbackId || foundry.utils.randomID(),
+      weaponItemId: String(entry?.weaponItemId ?? "").trim(),
+      controllerRole,
+      controllerIndex: controllerRole ? toNonNegativeWhole(entry?.controllerIndex ?? entry?.controllerPosition, 0) : 0,
+      linked,
+      linkedCount: linked ? Math.max(2, toNonNegativeWhole(entry?.linkedCount, 2)) : 1
+    };
+  }
+
+  _serializeVehicleWeaponEmplacements(emplacements = []) {
+    const serialized = [];
+    const seenIds = new Set();
+
+    for (const [index, entry] of (Array.isArray(emplacements) ? emplacements : []).entries()) {
+      let normalized = this._buildVehicleWeaponEmplacementRecord(entry, `vehicle-emplacement-${index + 1}`);
+      if (seenIds.has(normalized.id)) {
+        normalized = {
+          ...normalized,
+          id: foundry.utils.randomID()
+        };
+      }
+      seenIds.add(normalized.id);
+      serialized.push(normalized);
+    }
+
+    return serialized;
+  }
+
+  _getVehicleMountedWeaponItemUpdate(itemId = "", emplacementId = "") {
+    return {
+      _id: String(itemId ?? "").trim(),
+      "system.vehicleMount.isMounted": true,
+      "system.vehicleMount.emplacementId": String(emplacementId ?? "").trim(),
+      "system.vehicleMount.groupId": "",
+      "system.vehicleMount.controllerRole": "",
+      "system.vehicleMount.controllerPosition": 0,
+      "system.vehicleMount.linked": false,
+      "system.vehicleMount.linkedCount": 1
+    };
+  }
+
+  _getVehicleCargoItemUpdate(itemId = "") {
+    return {
+      _id: String(itemId ?? "").trim(),
+      "system.vehicleMount.isMounted": false,
+      "system.vehicleMount.emplacementId": "",
+      "system.vehicleMount.groupId": "",
+      "system.vehicleMount.controllerRole": "",
+      "system.vehicleMount.controllerPosition": 0,
+      "system.vehicleMount.linked": false,
+      "system.vehicleMount.linkedCount": 1
+    };
+  }
+
+  _buildVehicleMountedGearSystemData(gear = {}, itemName = "", emplacementId = "") {
+    return normalizeGearSystemData({
+      ...(gear ?? {}),
+      vehicleMount: {
+        ...(gear?.vehicleMount ?? {}),
+        isMounted: true,
+        emplacementId: String(emplacementId ?? "").trim(),
+        groupId: "",
+        controllerRole: "",
+        controllerPosition: 0,
+        linked: false,
+        linkedCount: 1
+      }
+    }, itemName);
+  }
+
+  _buildVehicleCargoGearSystemData(gear = {}, itemName = "") {
+    return normalizeGearSystemData({
+      ...(gear ?? {}),
+      vehicleMount: {
+        ...(gear?.vehicleMount ?? {}),
+        isMounted: false,
+        emplacementId: "",
+        groupId: "",
+        controllerRole: "",
+        controllerPosition: 0,
+        linked: false,
+        linkedCount: 1
+      }
+    }, itemName);
+  }
+
+  _getVehicleWeaponEmplacementState(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const controllerDefinitionByRole = new Map(this._getVehicleWeaponControllerDefinitions(source)
+      .filter((entry) => entry.count > 0)
+      .map((entry) => [entry.value, entry]));
+    const normalizeControllerAssignment = (emplacement = {}) => {
+      const nextEntry = { ...emplacement };
+      const requestedRole = String(nextEntry.controllerRole ?? "").trim().toLowerCase();
+      const definition = controllerDefinitionByRole.get(requestedRole) ?? null;
+      let didChange = false;
+
+      if (!definition) {
+        if (requestedRole) {
+          nextEntry.controllerRole = "";
+          didChange = true;
+        }
+        if (toNonNegativeWhole(nextEntry.controllerIndex, 0) !== 0) {
+          nextEntry.controllerIndex = 0;
+          didChange = true;
+        }
+        return { entry: nextEntry, didChange };
+      }
+
+      if (requestedRole !== definition.value) {
+        nextEntry.controllerRole = definition.value;
+        didChange = true;
+      }
+
+      const currentIndex = toNonNegativeWhole(nextEntry.controllerIndex, 0);
+      if (definition.count === 1) {
+        if (currentIndex !== 1) {
+          nextEntry.controllerIndex = 1;
+          didChange = true;
+        }
+      } else if (currentIndex > definition.count) {
+        nextEntry.controllerIndex = 0;
+        didChange = true;
+      } else if (currentIndex !== nextEntry.controllerIndex) {
+        nextEntry.controllerIndex = currentIndex;
+        didChange = true;
+      }
+
+      return { entry: nextEntry, didChange };
+    };
+
+    const gearItems = (this.actor?.items ?? [])
+      .filter((item) => item.type === "gear")
+      .map((item) => {
+        const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+        const mountData = (gear.vehicleMount && typeof gear.vehicleMount === "object") ? gear.vehicleMount : {};
+        const itemClass = String(gear.itemClass ?? "").trim().toLowerCase();
+        const weaponClass = String(gear.weaponClass ?? "").trim().toLowerCase();
+        const equipmentType = String(gear.equipmentType ?? "").trim().toLowerCase();
+        const emplacementId = String(mountData.emplacementId ?? mountData.groupId ?? "").trim();
+        return {
+          item,
+          id: String(item.id ?? "").trim(),
+          name: String(item.name ?? "").trim(),
+          img: item.img,
+          gear,
+          mountData,
+          itemClass,
+          weaponClass,
+          equipmentType,
+          typeLabel: this._getVehicleLoadoutItemTypeLabel(gear),
+          weightKg: roundWeightKg(gear.weightKg ?? 0),
+          hasLegacyMountedState: itemClass === "weapon" && (Boolean(mountData.isMounted) || Boolean(emplacementId))
+        };
+      });
+
+    const weaponGearById = new Map(gearItems
+      .filter((entry) => entry.itemClass === "weapon" && entry.id)
+      .map((entry) => [entry.id, entry]));
+
+    const nextEmplacements = [];
+    const seenIds = new Set();
+    const seenWeaponIds = new Set();
+    let needsMigration = false;
+
+    for (const [index, entry] of (Array.isArray(source.weaponEmplacements) ? source.weaponEmplacements : []).entries()) {
+      let normalized = this._buildVehicleWeaponEmplacementRecord(entry, `vehicle-emplacement-${index + 1}`);
+      if (seenIds.has(normalized.id)) {
+        normalized = {
+          ...normalized,
+          id: foundry.utils.randomID()
+        };
+        needsMigration = true;
+      }
+
+      if (normalized.weaponItemId && (!weaponGearById.has(normalized.weaponItemId) || seenWeaponIds.has(normalized.weaponItemId))) {
+        normalized = {
+          ...normalized,
+          weaponItemId: ""
+        };
+        needsMigration = true;
+      }
+
+      if (normalized.weaponItemId) seenWeaponIds.add(normalized.weaponItemId);
+      seenIds.add(normalized.id);
+      nextEmplacements.push(normalized);
+    }
+
+    const assignedWeaponIds = new Set(nextEmplacements.map((entry) => String(entry.weaponItemId ?? "").trim()).filter(Boolean));
+    const itemUpdates = [];
+
+    for (const weaponEntry of weaponGearById.values()) {
+      const mountData = weaponEntry.mountData ?? {};
+      const requestedEmplacementId = String(mountData.emplacementId ?? mountData.groupId ?? "").trim();
+      const shouldProcess = assignedWeaponIds.has(weaponEntry.id) || weaponEntry.hasLegacyMountedState;
+      if (!shouldProcess) continue;
+
+      let targetIndex = nextEmplacements.findIndex((entry) => entry.weaponItemId === weaponEntry.id);
+      if (targetIndex < 0 && requestedEmplacementId) {
+        targetIndex = nextEmplacements.findIndex((entry) => entry.id === requestedEmplacementId && !entry.weaponItemId);
+      }
+
+      let target = targetIndex >= 0 ? nextEmplacements[targetIndex] : null;
+      if (!target) {
+        const nextId = requestedEmplacementId && !seenIds.has(requestedEmplacementId)
+          ? requestedEmplacementId
+          : foundry.utils.randomID();
+        target = this._buildVehicleWeaponEmplacementRecord({
+          id: nextId,
+          weaponItemId: weaponEntry.id,
+          controllerRole: mountData.controllerRole,
+          controllerIndex: mountData.controllerPosition,
+          linked: mountData.linked,
+          linkedCount: mountData.linkedCount
+        }, nextId);
+        nextEmplacements.push(target);
+        seenIds.add(target.id);
+        assignedWeaponIds.add(weaponEntry.id);
+        needsMigration = true;
+      } else {
+        if (!target.weaponItemId) {
+          target.weaponItemId = weaponEntry.id;
+          assignedWeaponIds.add(weaponEntry.id);
+          needsMigration = true;
+        } else if (target.weaponItemId !== weaponEntry.id) {
+          const nextId = requestedEmplacementId
+            && requestedEmplacementId !== target.id
+            && !seenIds.has(requestedEmplacementId)
+            ? requestedEmplacementId
+            : foundry.utils.randomID();
+          target = this._buildVehicleWeaponEmplacementRecord({
+            id: nextId,
+            weaponItemId: weaponEntry.id,
+            controllerRole: mountData.controllerRole,
+            controllerIndex: mountData.controllerPosition,
+            linked: mountData.linked,
+            linkedCount: mountData.linkedCount
+          }, nextId);
+          nextEmplacements.push(target);
+          seenIds.add(target.id);
+          assignedWeaponIds.add(weaponEntry.id);
+          needsMigration = true;
+        }
+
+        const legacyRole = String(mountData.controllerRole ?? "").trim().toLowerCase();
+        const legacyPosition = toNonNegativeWhole(mountData.controllerPosition, 0);
+        if (!target.controllerRole && ["operator", "gunner", "passenger"].includes(legacyRole)) {
+          target.controllerRole = legacyRole;
+          needsMigration = true;
+        }
+        if (target.controllerRole && target.controllerIndex <= 0 && legacyPosition > 0) {
+          target.controllerIndex = legacyPosition;
+          needsMigration = true;
+        }
+        if (!target.linked && Boolean(mountData.linked)) {
+          target.linked = true;
+          target.linkedCount = Math.max(2, toNonNegativeWhole(mountData.linkedCount, 2));
+          needsMigration = true;
+        }
+      }
+
+      const currentEmplacementId = String(mountData.emplacementId ?? "").trim();
+      const currentGroupId = String(mountData.groupId ?? "").trim();
+      const currentControllerRole = String(mountData.controllerRole ?? "").trim();
+      const currentControllerPosition = toNonNegativeWhole(mountData.controllerPosition, 0);
+      const currentLinked = Boolean(mountData.linked);
+      const currentLinkedCount = Math.max(1, toNonNegativeWhole(mountData.linkedCount, 1));
+
+      if (
+        !Boolean(mountData.isMounted)
+        || currentEmplacementId !== target.id
+        || Boolean(currentGroupId)
+        || Boolean(currentControllerRole)
+        || currentControllerPosition > 0
+        || currentLinked
+        || currentLinkedCount !== 1
+      ) {
+        itemUpdates.push(this._getVehicleMountedWeaponItemUpdate(weaponEntry.id, target.id));
+        needsMigration = true;
+      }
+    }
+
+    for (let index = 0; index < nextEmplacements.length; index += 1) {
+      const normalizedAssignment = normalizeControllerAssignment(nextEmplacements[index]);
+      if (normalizedAssignment.didChange) {
+        nextEmplacements[index] = normalizedAssignment.entry;
+        needsMigration = true;
+      }
+    }
+
+    return {
+      emplacements: nextEmplacements,
+      gearItems,
+      weaponGearById,
+      itemUpdates,
+      needsMigration
+    };
+  }
+
+  _getVehicleLoadoutViewData(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const emplacementState = this._getVehicleWeaponEmplacementState(source);
+    const controllerDefinitions = this._getVehicleWeaponControllerDefinitions(source);
+    const controllerDefinitionByRole = new Map(controllerDefinitions
+      .filter((entry) => entry.count > 0)
+      .map((entry) => [entry.value, entry]));
+    const buildRoleOptions = (currentRole = "") => {
+      const options = [{ value: "", label: "Unassigned" }];
+      for (const definition of controllerDefinitions) {
+        if (definition.count <= 0) continue;
+        options.push({ value: definition.value, label: definition.roleOptionLabel });
+      }
+      return options;
+    };
+
+    const buildCargoGroupKey = (entry) => [
+      normalizeLookupText(entry?.name ?? ""),
+      String(entry?.itemClass ?? "").trim().toLowerCase(),
+      String(entry?.weaponClass ?? "").trim().toLowerCase(),
+      String(entry?.equipmentType ?? "").trim().toLowerCase(),
+      String(roundWeightKg(entry?.weightKg ?? 0))
+    ].join("|");
+
+    const buildCargoRows = (rows) => {
+      const groups = new Map();
+      for (const row of rows) {
+        const key = buildCargoGroupKey(row);
+        if (!key) continue;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(row);
+      }
+
+      return Array.from(groups.values())
+        .map((group) => {
+          const sortedGroup = [...group].sort((a, b) => String(a.id ?? "").localeCompare(String(b.id ?? "")));
+          const representative = sortedGroup[0] ?? {};
+          const quantity = sortedGroup.length;
+          const totalWeightKg = roundWeightKg(sortedGroup.reduce((sum, entry) => sum + Math.max(0, Number(entry?.weightKg ?? 0) || 0), 0));
+          return {
+            ...representative,
+            stackItemIds: sortedGroup.map((entry) => String(entry.id ?? "")).filter(Boolean),
+            quantity,
+            totalWeightKg,
+            totalWeightLabel: `${formatWeightKg(totalWeightKg)} kg`
+          };
+        })
+        .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")) || String(a.id ?? "").localeCompare(String(b.id ?? "")));
+    };
+
+    const assignedWeaponIds = new Set(emplacementState.emplacements
+      .map((entry) => String(entry.weaponItemId ?? "").trim())
+      .filter(Boolean));
+
+    const baseGearItems = emplacementState.gearItems
+      .map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+        img: entry.img,
+        itemClass: entry.itemClass,
+        weaponClass: entry.weaponClass,
+        equipmentType: entry.equipmentType,
+        typeLabel: entry.typeLabel,
+        weightKg: entry.weightKg
+      }))
+      .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")) || String(a.id ?? "").localeCompare(String(b.id ?? "")));
+
+    const cargoItems = buildCargoRows(baseGearItems.filter((entry) => !assignedWeaponIds.has(entry.id)));
+    const emplacements = emplacementState.emplacements.map((entry, index) => {
+      const controllerRole = String(entry.controllerRole ?? "").trim().toLowerCase();
+      const controllerDefinition = controllerDefinitionByRole.get(controllerRole) ?? null;
+      const hasSingleControllerSlot = Boolean(controllerDefinition && controllerDefinition.count === 1);
+      const showControllerPositionField = Boolean(controllerDefinition && controllerDefinition.count > 1);
+      const controllerIndex = controllerDefinition
+        ? (hasSingleControllerSlot ? 1 : toNonNegativeWhole(entry.controllerIndex, 0))
+        : 0;
+      const controllerPositionOptions = showControllerPositionField
+        ? this._getVehicleWeaponControllerPositionOptions(controllerRole, source, controllerIndex, true)
+        : [];
+      const controllerLabel = controllerDefinition?.label ?? "Controller";
+      const weaponEntry = entry.weaponItemId ? emplacementState.weaponGearById.get(entry.weaponItemId) ?? null : null;
+      return {
+        id: entry.id,
+        label: `Emplacement ${index + 1}`,
+        weaponId: weaponEntry?.id ?? "",
+        weaponName: weaponEntry?.name ?? "",
+        weaponNickname: String(weaponEntry?.gear?.nickname ?? "").trim(),
+        weaponDisplayName: String(weaponEntry?.gear?.nickname ?? "").trim() || String(weaponEntry?.name ?? "").trim(),
+        weaponImg: weaponEntry?.img ?? "",
+        weaponTypeLabel: weaponEntry?.typeLabel ?? "",
+        hasWeapon: Boolean(weaponEntry),
+        controllerRole,
+        controllerSlotKey: controllerRole && controllerIndex > 0 ? `${controllerRole}:${controllerIndex}` : "",
+        controllerRoleOptions: buildRoleOptions(controllerRole),
+        controllerIndex: controllerRole && controllerIndex > 0 ? String(controllerIndex) : "",
+        showControllerPositionField,
+        controllerPositionOptions,
+        controllerPositionPlaceholder: controllerRole
+          ? `No ${controllerLabel.toLowerCase()} slots defined`
+          : "Select role first",
+        linked: Boolean(entry.linked),
+        linkedCount: Math.max(2, toNonNegativeWhole(entry.linkedCount, 2)),
+        showLinkedCount: Boolean(entry.linked)
+      };
+    });
+
+    const cargoWeightKg = roundWeightKg(cargoItems.reduce((sum, entry) => sum + Math.max(0, Number(entry?.totalWeightKg ?? 0) || 0), 0));
+    const mountedWeaponCount = emplacements.reduce((sum, entry) => sum + (entry.hasWeapon ? 1 : 0), 0);
+    const cargoItemCount = cargoItems.reduce((sum, entry) => sum + Math.max(0, toNonNegativeWhole(entry?.quantity, 0)), 0);
+
+    return {
+      emplacements,
+      cargoItems,
+      cargoWeightKg,
+      cargoWeightLabel: `${formatWeightKg(cargoWeightKg)} kg`,
+      mountedWeaponCount,
+      cargoItemCount,
+      hasControllerSlots: controllerDefinitions.some((entry) => entry.count > 0),
+      needsMigration: emplacementState.needsMigration
+    };
+  }
+
+  async _updateVehicleWeaponEmplacements(emplacements = []) {
+    await this.actor.update({
+      "system.weaponEmplacements": this._serializeVehicleWeaponEmplacements(emplacements)
+    });
+  }
+
+  _getVehicleLoadoutDropTarget(event) {
+    const directTarget = event?.target instanceof HTMLElement ? event.target : null;
+    const pointTarget = (Number.isFinite(Number(event?.clientX)) && Number.isFinite(Number(event?.clientY)))
+      ? document.elementFromPoint(Number(event.clientX), Number(event.clientY))
+      : null;
+    const dropTarget = directTarget?.closest("[data-vehicle-loadout-drop]")
+      ?? (pointTarget instanceof HTMLElement ? pointTarget.closest("[data-vehicle-loadout-drop]") : null);
+
+    if (!(dropTarget instanceof HTMLElement)) return null;
+
+    const kind = String(dropTarget.dataset.vehicleLoadoutDrop ?? "").trim().toLowerCase();
+    if (kind !== "cargo" && kind !== "emplacement") return null;
+
+    const emplacementId = kind === "emplacement"
+      ? String(dropTarget.dataset.emplacementId ?? "").trim()
+      : "";
+    if (kind === "emplacement" && !emplacementId) return null;
+
+    return {
+      kind,
+      emplacementId,
+      element: dropTarget
+    };
+  }
+
+  _getCrewDropTarget(event) {
+    const directTarget = event?.target instanceof HTMLElement ? event.target : null;
+    const pointTarget = (Number.isFinite(Number(event?.clientX)) && Number.isFinite(Number(event?.clientY)))
+      ? document.elementFromPoint(Number(event.clientX), Number(event.clientY))
+      : null;
+    const dropTarget = directTarget?.closest(".mythic-crew-dropzone[data-kind][data-idx]")
+      ?? (pointTarget instanceof HTMLElement ? pointTarget.closest(".mythic-crew-dropzone[data-kind][data-idx]") : null);
+
+    if (!(dropTarget instanceof HTMLElement)) return null;
+
+    const kind = String(dropTarget.dataset.kind ?? "").trim();
+    if (!["operators", "gunners", "complement"].includes(kind)) return null;
+
+    const slotIndex = Number(dropTarget.dataset.idx ?? Number.NaN);
+    if (!Number.isFinite(slotIndex) || slotIndex < 0) return null;
+
+    return {
+      kind,
+      slotIndex,
+      element: dropTarget
+    };
+  }
+
+  async _ensureVehicleWeaponEmplacementsMigrated() {
+    if (!this._isVehicleActor() || !this.isEditable) return;
+    if (this._vehicleWeaponEmplacementMigrationPromise) return this._vehicleWeaponEmplacementMigrationPromise;
+
+    this._vehicleWeaponEmplacementMigrationPromise = (async () => {
+      const vehicleSystem = normalizeVehicleSystemData(this.actor?.system ?? {});
+      const state = this._getVehicleWeaponEmplacementState(vehicleSystem);
+      if (!state.needsMigration) return;
+
+      await this._updateVehicleWeaponEmplacements(state.emplacements);
+      if (state.itemUpdates.length) {
+        await this.actor.updateEmbeddedDocuments("Item", state.itemUpdates);
+      }
+    })().finally(() => {
+      this._vehicleWeaponEmplacementMigrationPromise = null;
+    });
+
+    return this._vehicleWeaponEmplacementMigrationPromise;
+  }
+
+  async _onAddVehicleWeaponEmplacement(event) {
+    event.preventDefault();
+    if (!this.isEditable || !this._isVehicleActor()) return;
+
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    const nextEmplacements = this._serializeVehicleWeaponEmplacements(vehicleSystem.weaponEmplacements ?? []);
+    nextEmplacements.push(this._buildVehicleWeaponEmplacementRecord({}, foundry.utils.randomID()));
+    await this._updateVehicleWeaponEmplacements(nextEmplacements);
+  }
+
+  async _onRemoveVehicleWeaponEmplacement(event) {
+    event.preventDefault();
+    if (!this.isEditable || !this._isVehicleActor()) return;
+
+    const emplacementId = String(event.currentTarget?.dataset?.emplacementId ?? "").trim();
+    if (!emplacementId) return;
+
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    const nextEmplacements = this._serializeVehicleWeaponEmplacements(vehicleSystem.weaponEmplacements ?? []);
+    const emplacementIndex = nextEmplacements.findIndex((entry) => entry.id === emplacementId);
+    if (emplacementIndex < 0) return;
+
+    const [removedEmplacement] = nextEmplacements.splice(emplacementIndex, 1);
+    const removedWeaponId = String(removedEmplacement?.weaponItemId ?? "").trim();
+
+    if (removedWeaponId && this.actor.items.has(removedWeaponId)) {
+      await this._onRemoveGearItem({
+        preventDefault() {},
+        currentTarget: { dataset: { itemId: removedWeaponId, itemIds: removedWeaponId } }
+      });
+      if (this.actor.items.has(removedWeaponId)) return;
+    }
+
+    await this._updateVehicleWeaponEmplacements(nextEmplacements);
+  }
+
+  async _onVehicleWeaponEmplacementFieldChange(event) {
+    event.preventDefault();
+    if (!this.isEditable || !this._isVehicleActor()) return;
+
+    const emplacementId = String(event.currentTarget?.dataset?.emplacementId ?? "").trim();
+    const field = String(event.currentTarget?.dataset?.field ?? "").trim();
+    if (!emplacementId || !field) return;
+
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    const nextEmplacements = this._serializeVehicleWeaponEmplacements(vehicleSystem.weaponEmplacements ?? []);
+    const emplacementIndex = nextEmplacements.findIndex((entry) => entry.id === emplacementId);
+    if (emplacementIndex < 0) return;
+
+    const nextEntry = { ...nextEmplacements[emplacementIndex] };
+    const controllerDefinitionByRole = new Map(this._getVehicleWeaponControllerDefinitions(vehicleSystem)
+      .filter((entry) => entry.count > 0)
+      .map((entry) => [entry.value, entry]));
+    const previousRole = String(nextEntry.controllerRole ?? "").trim().toLowerCase();
+
+    switch (field) {
+      case "controllerRole": {
+        const requestedRole = String(event.currentTarget?.value ?? "").trim().toLowerCase();
+        const nextDefinition = controllerDefinitionByRole.get(requestedRole) ?? null;
+        nextEntry.controllerRole = nextDefinition?.value ?? "";
+        if (!nextEntry.controllerRole) {
+          nextEntry.controllerIndex = 0;
+        } else if (nextDefinition.count === 1) {
+          nextEntry.controllerIndex = 1;
+        } else if (nextEntry.controllerRole !== previousRole) {
+          nextEntry.controllerIndex = 0;
+        }
+        break;
+      }
+      case "controllerIndex": {
+        nextEntry.controllerIndex = toNonNegativeWhole(event.currentTarget?.value, 0);
+        break;
+      }
+      case "linked": {
+        nextEntry.linked = Boolean(event.currentTarget?.checked);
+        if (!nextEntry.linked) nextEntry.linkedCount = 1;
+        break;
+      }
+      case "linkedCount": {
+        nextEntry.linked = true;
+        nextEntry.linkedCount = Math.max(2, toNonNegativeWhole(event.currentTarget?.value, nextEntry.linkedCount || 2));
+        break;
+      }
+      default:
+        return;
+    }
+
+    const activeDefinition = controllerDefinitionByRole.get(String(nextEntry.controllerRole ?? "").trim().toLowerCase()) ?? null;
+    if (activeDefinition) {
+      if (activeDefinition.count === 1) {
+        nextEntry.controllerIndex = 1;
+      } else {
+        nextEntry.controllerIndex = toNonNegativeWhole(nextEntry.controllerIndex, 0);
+      }
+      const positionOptions = this._getVehicleWeaponControllerPositionOptions(
+        nextEntry.controllerRole,
+        vehicleSystem,
+        nextEntry.controllerIndex,
+        true
+      );
+      if (activeDefinition.count > 1 && nextEntry.controllerIndex > 0 && !positionOptions.some((entry) => entry.value === String(nextEntry.controllerIndex))) {
+        nextEntry.controllerIndex = 0;
+      }
+    } else {
+      nextEntry.controllerRole = "";
+      nextEntry.controllerIndex = 0;
+    }
+
+    if (!nextEntry.linked) {
+      nextEntry.linkedCount = 1;
+    } else {
+      nextEntry.linkedCount = Math.max(2, toNonNegativeWhole(nextEntry.linkedCount, 2));
+    }
+
+    nextEmplacements[emplacementIndex] = nextEntry;
+    await this._updateVehicleWeaponEmplacements(nextEmplacements);
+  }
+
+  async _dropGearIntoVehicleCargo(item) {
+    if (!this._isVehicleActor() || item?.type !== "gear") return false;
+
+    const actorItemId = String(item?.parent?.id ?? "") === String(this.actor?.id ?? "")
+      ? String(item.id ?? "").trim()
+      : "";
+
+    if (actorItemId && this.actor.items.has(actorItemId)) {
+      const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+      const nextEmplacements = this._serializeVehicleWeaponEmplacements(vehicleSystem.weaponEmplacements ?? []);
+      let didChange = false;
+
+      for (const emplacement of nextEmplacements) {
+        if (String(emplacement.weaponItemId ?? "").trim() !== actorItemId) continue;
+        emplacement.weaponItemId = "";
+        didChange = true;
+      }
+
+      const actorItem = this.actor.items.get(actorItemId);
+      const actorGear = normalizeGearSystemData(actorItem?.system ?? {}, actorItem?.name ?? "");
+      const currentEmplacementId = String(actorGear.vehicleMount?.emplacementId ?? actorGear.vehicleMount?.groupId ?? "").trim();
+      const alreadyCargo = !Boolean(actorGear.vehicleMount?.isMounted) && !currentEmplacementId;
+
+      if (didChange) {
+        await this._updateVehicleWeaponEmplacements(nextEmplacements);
+      }
+      if (!alreadyCargo) {
+        await this.actor.updateEmbeddedDocuments("Item", [this._getVehicleCargoItemUpdate(actorItemId)]);
+      }
+      return false;
+    }
+
+    const itemData = item.toObject();
+    const normalizedGear = normalizeGearSystemData(itemData.system ?? {}, itemData.name ?? item.name ?? "");
+    itemData.system = this._buildVehicleCargoGearSystemData(normalizedGear, itemData.name ?? item.name ?? "");
+    await this.actor.createEmbeddedDocuments("Item", [itemData]);
+    return false;
+  }
+
+  async _assignDroppedWeaponToVehicleEmplacement(item, emplacementId = "") {
+    if (!this._isVehicleActor() || item?.type !== "gear") return false;
+
+    const targetEmplacementId = String(emplacementId ?? "").trim();
+    if (!targetEmplacementId) return false;
+
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    const nextEmplacements = this._serializeVehicleWeaponEmplacements(vehicleSystem.weaponEmplacements ?? []);
+    const emplacementIndex = nextEmplacements.findIndex((entry) => entry.id === targetEmplacementId);
+    if (emplacementIndex < 0) {
+      ui.notifications?.warn("That vehicle weapon emplacement no longer exists.");
+      return false;
+    }
+
+    const droppedGear = normalizeGearSystemData(item.system ?? item.toObject?.().system ?? {}, item.name ?? "");
+    if (String(droppedGear.itemClass ?? "").trim().toLowerCase() !== "weapon") {
+      ui.notifications?.warn("Only weapons can be assigned to a vehicle weapon emplacement.");
+      return false;
+    }
+
+    const actorItemId = String(item?.parent?.id ?? "") === String(this.actor?.id ?? "")
+      ? String(item.id ?? "").trim()
+      : "";
+    const currentWeaponId = String(nextEmplacements[emplacementIndex]?.weaponItemId ?? "").trim();
+    const itemUpdates = [];
+
+    if (actorItemId) {
+      for (const emplacement of nextEmplacements) {
+        if (String(emplacement.weaponItemId ?? "").trim() !== actorItemId) continue;
+        emplacement.weaponItemId = "";
+      }
+    }
+
+    if (currentWeaponId && currentWeaponId !== actorItemId && this.actor.items.has(currentWeaponId)) {
+      itemUpdates.push(this._getVehicleCargoItemUpdate(currentWeaponId));
+    }
+
+    let assignedWeaponId = actorItemId;
+    if (actorItemId) {
+      itemUpdates.push(this._getVehicleMountedWeaponItemUpdate(actorItemId, targetEmplacementId));
+    } else {
+      const itemData = item.toObject();
+      itemData.system = this._buildVehicleMountedGearSystemData(droppedGear, itemData.name ?? item.name ?? "", targetEmplacementId);
+      const created = await this.actor.createEmbeddedDocuments("Item", [itemData]);
+      assignedWeaponId = String(created?.[0]?.id ?? "").trim();
+    }
+
+    if (!assignedWeaponId) {
+      ui.notifications?.warn("Could not assign that weapon to the vehicle emplacement.");
+      return false;
+    }
+
+    nextEmplacements[emplacementIndex] = {
+      ...nextEmplacements[emplacementIndex],
+      weaponItemId: assignedWeaponId
+    };
+
+    await this._updateVehicleWeaponEmplacements(nextEmplacements);
+    if (itemUpdates.length) {
+      await this.actor.updateEmbeddedDocuments("Item", itemUpdates);
+    }
+    return false;
+  }
+
+  async _onVehicleLoadoutDrop(event, data = null) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.isEditable || !this._isVehicleActor()) return false;
+    if (event.__mythicVehicleLoadoutHandled) return false;
+    event.__mythicVehicleLoadoutHandled = true;
+
+    const dropTarget = this._getVehicleLoadoutDropTarget(event);
+    if (dropTarget?.element) {
+      dropTarget.element.classList.remove("is-dragover");
+    }
+    if (!dropTarget) return false;
+
+    const dropData = this._extractDropData(event, data);
+    const item = await this._resolveDroppedItemFromData(dropData);
+    if (!item) {
+      ui.notifications?.warn("Could not resolve dropped item data.");
+      return false;
+    }
+    if (item.type !== "gear") {
+      ui.notifications?.warn("Only equipment items can be dropped into a vehicle loadout.");
+      return false;
+    }
+
+    if (dropTarget.kind === "cargo") {
+      return this._dropGearIntoVehicleCargo(item);
+    }
+
+    return this._assignDroppedWeaponToVehicleEmplacement(item, dropTarget.emplacementId);
+  }
+
+  async _onAdjustVehicleCurrentSpeed(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+    const button = event.currentTarget instanceof HTMLElement
+      ? event.currentTarget
+      : (event.target instanceof HTMLElement ? event.target.closest(".vehicle-mobility-speed-btn[data-direction]") : null);
+    const direction = String(button?.dataset?.direction ?? "").trim().toLowerCase();
+    if (direction !== "up" && direction !== "down") return;
+
+    const mobility = this._buildVehicleMobilityContext(normalizeVehicleSystemData(this.actor.system ?? {}));
+    const step = direction === "up" ? mobility.accelerate : mobility.brake;
+    if (step <= 0) return;
+
+    let nextSpeed = direction === "up"
+      ? mobility.currentSpeed + step
+      : mobility.currentSpeed - step;
+    nextSpeed = Math.max(0, Math.round(nextSpeed));
+    if (mobility.topSpeed > 0) {
+      nextSpeed = Math.min(nextSpeed, mobility.topSpeed);
+    }
+    if (nextSpeed === mobility.currentSpeed) return;
+
+    await this.actor.update({ "system.movement.speed.value": nextSpeed });
   }
 
   _isSanShyuumActor(systemData = null) {
@@ -4919,7 +6603,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _rememberSheetScrollPosition(root = null) {
     const sourceRoot = root ?? (this.element?.querySelector(".mythic-character-sheet") ?? this.element);
-    const scrollable = sourceRoot?.querySelector?.(".sheet-tab-scrollable");
+    const scrollable = this._getActivePrimaryScrollable(sourceRoot);
     if (scrollable) {
       this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop ?? 0));
     }
@@ -4927,6 +6611,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (ccAdvScrollable) {
       this._ccAdvScrollTop = Math.max(0, Number(ccAdvScrollable.scrollTop ?? 0));
     }
+  }
+
+  _getActivePrimaryScrollable(root = null) {
+    const sourceRoot = root ?? (this.element?.querySelector(".mythic-character-sheet") ?? this.element);
+    if (!sourceRoot?.querySelectorAll) return null;
+    const panes = Array.from(sourceRoot.querySelectorAll(".sheet-tab-scrollable"));
+    if (!panes.length) return null;
+    if (panes.length === 1) return panes[0];
+
+    const activeByClass = panes.find((pane) => pane.classList.contains("active"));
+    if (activeByClass) return activeByClass;
+
+    const activeTab = String(this.tabGroups?.primary ?? "").trim();
+    if (activeTab) {
+      const activeByTab = panes.find((pane) => String(pane.dataset?.tab ?? "").trim() === activeTab);
+      if (activeByTab) return activeByTab;
+    }
+
+    return panes[0];
   }
 
   _refreshPortraitTokenControls(root) {
@@ -4974,24 +6677,259 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _dedupeHeaderControls(windowHeader) {
-    const controls = windowHeader?.querySelector(".window-controls, .window-actions, .header-actions, .header-buttons");
-    if (!controls) return;
+    const controlContainers = [...(windowHeader?.querySelectorAll(".window-controls, .window-actions, .header-actions, .header-buttons") ?? [])];
+    if (!controlContainers.length) return;
+
+    const primaryControls = controlContainers[0];
     const seen = new Set();
-    const actions = [...controls.querySelectorAll("a, button")];
-    for (const action of actions) {
-      const key = normalizeLookupText(
-        action.getAttribute("data-action")
-        || action.getAttribute("aria-label")
-        || action.getAttribute("title")
-        || action.textContent
-      );
-      if (!key) continue;
-      if (seen.has(key)) {
-        action.remove();
-        continue;
+
+    for (const controls of controlContainers) {
+      const actions = [...controls.querySelectorAll(":scope > a, :scope > button")];
+      for (const action of actions) {
+        const key = normalizeLookupText(
+          action.getAttribute("data-action")
+          || action.getAttribute("aria-label")
+          || action.getAttribute("title")
+          || action.textContent
+        );
+
+        if (!key) {
+          if (controls !== primaryControls) primaryControls.append(action);
+          continue;
+        }
+
+        if (seen.has(key)) {
+          action.remove();
+          continue;
+        }
+
+        seen.add(key);
+        if (controls !== primaryControls) primaryControls.append(action);
       }
-      seen.add(key);
     }
+
+    for (const controls of controlContainers.slice(1)) {
+      if (!controls.children.length) controls.remove();
+    }
+  }
+
+  _configureWindowHeaderChrome() {
+    const appWindow = this.window ?? {};
+    const windowHeader = appWindow.header ?? this.element?.querySelector(".window-header");
+    if (!windowHeader) return;
+
+    windowHeader.style.background = "transparent";
+    windowHeader.style.border = "none";
+    windowHeader.style.boxShadow = "none";
+    windowHeader.style.justifyContent = "flex-end";
+    windowHeader.style.overflow = "visible";
+
+    const controlsToggle = appWindow.controls
+      ?? windowHeader.querySelector(":scope > .window-controls, :scope > .window-actions, :scope > .header-actions, :scope > .header-buttons");
+    if (controlsToggle instanceof HTMLElement) {
+      controlsToggle.classList.add("mythic-window-controls-toggle");
+      controlsToggle.style.position = "";
+      controlsToggle.style.right = "";
+      controlsToggle.style.left = "";
+      controlsToggle.style.marginLeft = "";
+      controlsToggle.style.display = "";
+      controlsToggle.style.alignItems = "";
+      controlsToggle.style.gap = "";
+      controlsToggle.style.zIndex = "";
+      controlsToggle.style.overflow = "";
+    }
+
+    const controlsDropdown = appWindow.controlsDropdown;
+    if (controlsDropdown instanceof HTMLElement) {
+      controlsDropdown.classList.add("mythic-window-controls-dropdown");
+      controlsDropdown.style.zIndex = "102";
+      controlsDropdown.style.overflow = "visible";
+    }
+
+    const renderWindowHeaderBanner = typeof this._renderWindowHeaderBanner === "function"
+      ? this._renderWindowHeaderBanner
+      : MythicActorSheet.prototype._renderWindowHeaderBanner;
+    const dedupeHeaderControls = typeof this._dedupeHeaderControls === "function"
+      ? this._dedupeHeaderControls
+      : MythicActorSheet.prototype._dedupeHeaderControls;
+
+    renderWindowHeaderBanner.call(this, windowHeader);
+    dedupeHeaderControls.call(this, windowHeader);
+  }
+
+  _renderWindowHeaderBanner(windowHeader) {
+    if (!windowHeader) return;
+
+    const existing = windowHeader.querySelector(":scope > .mythic-window-banner");
+    if (existing) existing.remove();
+    windowHeader.classList.remove("mythic-window-header-has-banner");
+  }
+
+  _applyWindowTheme(root, renderContext = {}) {
+    if (!this.element || !root) return;
+    const factionIndex = Number(root.dataset?.faction ?? 1);
+    const fallbackTheme = getFactionSheetBackgroundTheme(factionIndex);
+    const nextSheetAppearance = normalizeSheetAppearanceData(
+      renderContext?.mythicSheetAppearance ?? this.actor?.system?.sheetAppearance ?? {}
+    );
+    const cssVariables = buildSheetAppearanceCssVariables(nextSheetAppearance, fallbackTheme);
+
+    for (const [name, value] of Object.entries(cssVariables)) {
+      const resolved = String(value ?? "").trim();
+      this.element.style.setProperty(name, resolved);
+      root.style.setProperty(name, resolved);
+    }
+  }
+
+  _bindSheetAppearanceControls(root) {
+    if (!root) return;
+
+    root.querySelectorAll(".mythic-sheet-gradient-add-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void MythicActorSheet.prototype._onAddSheetAppearanceGradientStop.call(this, event);
+      });
+    });
+
+    root.querySelectorAll(".mythic-sheet-gradient-remove-btn[data-gradient-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void MythicActorSheet.prototype._onRemoveSheetAppearanceGradientStop.call(this, event);
+      });
+    });
+
+    root.querySelectorAll(".mythic-sheet-gradient-move-btn[data-gradient-index][data-direction]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void MythicActorSheet.prototype._onMoveSheetAppearanceGradientStop.call(this, event);
+      });
+    });
+  }
+
+  _bindVehicleCrewRosterControls(root) {
+    if (!root) return;
+
+    const vehicleCrewRoot = root.querySelector(".vehicle-crew-panel");
+    if (!(vehicleCrewRoot instanceof HTMLElement)) return;
+    if (vehicleCrewRoot.dataset.mythicCrewRosterBound === "true") return;
+    vehicleCrewRoot.dataset.mythicCrewRosterBound = "true";
+
+    if (this.isEditable) {
+      vehicleCrewRoot.querySelectorAll(".mythic-crew-dropzone[data-kind]").forEach((zone) => {
+        zone.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          zone.classList.add("is-dragover");
+        });
+        zone.addEventListener("dragleave", (event) => {
+          zone.classList.remove("is-dragover");
+        });
+        zone.addEventListener("drop", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          zone.classList.remove("is-dragover");
+          void this._onDropCrewSlot(event);
+        });
+      });
+    }
+
+    vehicleCrewRoot.addEventListener("click", (event) => {
+      const clearButton = event.target instanceof HTMLElement ? event.target.closest(".crew-clear-btn[data-kind][data-idx]") : null;
+      if (clearButton instanceof HTMLElement) {
+        event.preventDefault();
+        event.stopPropagation();
+        void this._onClearCrewSlot(event);
+        return;
+      }
+
+      const crewSlot = event.target instanceof HTMLElement
+        ? event.target.closest(".mythic-crew-dropzone[data-kind][data-idx]")
+        : null;
+      if (!(crewSlot instanceof HTMLElement)) return;
+      if (event.target instanceof HTMLElement && event.target.closest("button, input, select, textarea, a")) return;
+      void this._toggleCrewSlotDetails(event);
+    });
+
+    vehicleCrewRoot.addEventListener("keydown", (event) => {
+      if (!["Enter", " "].includes(String(event.key ?? ""))) return;
+      if (event.target instanceof HTMLElement && event.target.closest("button, input, select, textarea, a")) return;
+      const crewSlot = event.target instanceof HTMLElement
+        ? event.target.closest(".mythic-crew-dropzone[data-kind][data-idx]")
+        : null;
+      if (!(crewSlot instanceof HTMLElement)) return;
+      event.preventDefault();
+      void this._toggleCrewSlotDetails(event);
+    });
+  }
+
+  _getCurrentSheetAppearanceData() {
+    return normalizeSheetAppearanceData(this.actor?.system?.sheetAppearance ?? {});
+  }
+
+  async _updateCurrentSheetAppearance(mutator) {
+    const nextAppearance = foundry.utils.deepClone(
+      MythicActorSheet.prototype._getCurrentSheetAppearanceData.call(this)
+    );
+    if (typeof mutator === "function") mutator(nextAppearance);
+    await this.actor.update({
+      "system.sheetAppearance": normalizeSheetAppearanceData(nextAppearance)
+    });
+  }
+
+  async _onAddSheetAppearanceGradientStop(event) {
+    event.preventDefault();
+
+    await MythicActorSheet.prototype._updateCurrentSheetAppearance.call(this, (appearance) => {
+      const stops = Array.isArray(appearance?.gradient?.stops)
+        ? appearance.gradient.stops.map((entry) => ({
+          color: String(entry?.color ?? "").trim(),
+          position: Number(entry?.position ?? 0)
+        }))
+        : [];
+      const lastStop = stops.at(-1) ?? null;
+      const nextColor = lastStop?.color
+        || appearance?.accents?.primary
+        || appearance?.accents?.secondary
+        || "#7CC5FF";
+      const nextPosition = stops.length
+        ? Math.min(100, Math.max(0, Number(lastStop?.position ?? 0) + (stops.length === 1 ? 50 : 10)))
+        : 0;
+
+      appearance.gradient ??= {};
+      appearance.gradient.enabled = true;
+      appearance.gradient.type = String(appearance.gradient.type ?? "linear").trim().toLowerCase() || "linear";
+      appearance.gradient.angle = Number.isFinite(Number(appearance.gradient.angle)) ? Number(appearance.gradient.angle) : 180;
+      appearance.gradient.stops = [...stops, { color: nextColor, position: nextPosition }];
+    });
+  }
+
+  async _onRemoveSheetAppearanceGradientStop(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const index = Number(button?.dataset?.gradientIndex);
+    if (!Number.isInteger(index) || index < 0) return;
+
+    await MythicActorSheet.prototype._updateCurrentSheetAppearance.call(this, (appearance) => {
+      const stops = Array.isArray(appearance?.gradient?.stops) ? [...appearance.gradient.stops] : [];
+      if (index >= stops.length) return;
+      stops.splice(index, 1);
+      appearance.gradient ??= {};
+      appearance.gradient.stops = stops;
+      if (!stops.length) appearance.gradient.enabled = false;
+    });
+  }
+
+  async _onMoveSheetAppearanceGradientStop(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const index = Number(button?.dataset?.gradientIndex);
+    const direction = String(button?.dataset?.direction ?? "").trim().toLowerCase();
+    if (!Number.isInteger(index) || index < 0 || !["up", "down"].includes(direction)) return;
+
+    await MythicActorSheet.prototype._updateCurrentSheetAppearance.call(this, (appearance) => {
+      const stops = Array.isArray(appearance?.gradient?.stops) ? [...appearance.gradient.stops] : [];
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (index >= stops.length || targetIndex < 0 || targetIndex >= stops.length) return;
+      [stops[index], stops[targetIndex]] = [stops[targetIndex], stops[index]];
+      appearance.gradient ??= {};
+      appearance.gradient.stops = stops;
+    });
   }
 
   _findWeaponTrainingDefinition(rawWeaponType) {
@@ -5572,7 +7510,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.biography.history.education",
       "system.biography.history.dutyStations",
       "system.biography.family",
-      "system.biography.generalEntries"
+      "system.biography.generalEntries",
+      "system.crew.operators",
+      "system.crew.gunners",
+      "system.crew.complement",
+      "system.overview.breakpoints.custom"
     ];
 
     for (const path of arrayPaths) {
@@ -5610,6 +7552,73 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const syncedGender = String(submittedHeaderGender ?? submittedBioGender ?? actorHeaderGender ?? actorBioGender ?? "");
     foundry.utils.setProperty(submitData, "system.header.gender", syncedGender);
     foundry.utils.setProperty(submitData, "system.biography.physical.gender", syncedGender);
+
+    const currentSheetAppearance = normalizeSheetAppearanceData(this.actor.system?.sheetAppearance ?? {});
+    const submittedSheetAppearance = foundry.utils.mergeObject(
+      foundry.utils.deepClone(currentSheetAppearance),
+      extractSubmittedSheetAppearance(submitData),
+      {
+        inplace: false,
+        insertKeys: true,
+        insertValues: true,
+        overwrite: true,
+        recursive: true
+      }
+    );
+    foundry.utils.setProperty(submitData, "system.sheetAppearance", normalizeSheetAppearanceData(submittedSheetAppearance));
+
+    if (this._isVehicleActor()) {
+      const vehicleWeightUnitRaw = String(
+        foundry.utils.getProperty(submitData, "system.dimensions.weightUnit")
+        ?? this.actor.system?.dimensions?.weightUnit
+        ?? "t"
+      ).trim().toLowerCase();
+      const vehicleWeightUnit = vehicleWeightUnitRaw === "kg" ? "kg" : "t";
+      const submittedVehicleWeightRaw = Number(foundry.utils.getProperty(submitData, "system.dimensions.weight"));
+      const actorVehicleWeightRaw = Number(this.actor.system?.dimensions?.weight ?? 0);
+      let resolvedVehicleWeightTonnes = Number.isFinite(submittedVehicleWeightRaw)
+        ? Math.max(0, submittedVehicleWeightRaw)
+        : (Number.isFinite(actorVehicleWeightRaw) ? Math.max(0, actorVehicleWeightRaw) : 0);
+      if (vehicleWeightUnit === "kg") {
+        resolvedVehicleWeightTonnes /= 1000;
+      }
+      resolvedVehicleWeightTonnes = Math.round(resolvedVehicleWeightTonnes * 1000) / 1000;
+      foundry.utils.setProperty(submitData, "system.dimensions.weight", resolvedVehicleWeightTonnes);
+      foundry.utils.setProperty(submitData, "system.dimensions.weightUnit", vehicleWeightUnit);
+
+      const submittedCurrentSpeedRaw = Number(foundry.utils.getProperty(submitData, "system.movement.speed.value"));
+      const submittedTopSpeedRaw = Number(foundry.utils.getProperty(submitData, "system.movement.speed.max"));
+      const actorCurrentSpeedRaw = Number(this.actor.system?.movement?.speed?.value ?? 0);
+      const actorTopSpeedRaw = Number(this.actor.system?.movement?.speed?.max ?? 0);
+      let resolvedCurrentSpeed = Number.isFinite(submittedCurrentSpeedRaw)
+        ? Math.max(0, Math.round(submittedCurrentSpeedRaw))
+        : (Number.isFinite(actorCurrentSpeedRaw) ? Math.max(0, Math.round(actorCurrentSpeedRaw)) : 0);
+      let resolvedTopSpeed = Number.isFinite(submittedTopSpeedRaw)
+        ? Math.max(0, Math.round(submittedTopSpeedRaw))
+        : (Number.isFinite(actorTopSpeedRaw) ? Math.max(0, Math.round(actorTopSpeedRaw)) : 0);
+      if (resolvedTopSpeed <= 0 && resolvedCurrentSpeed > 0) {
+        resolvedTopSpeed = resolvedCurrentSpeed;
+      }
+      if (resolvedTopSpeed > 0) {
+        resolvedCurrentSpeed = Math.min(resolvedCurrentSpeed, resolvedTopSpeed);
+      }
+      foundry.utils.setProperty(submitData, "system.movement.speed.value", resolvedCurrentSpeed);
+      foundry.utils.setProperty(submitData, "system.movement.speed.max", resolvedTopSpeed);
+
+      const mergedVehicleSystem = foundry.utils.mergeObject(
+        foundry.utils.deepClone(this.actor.system ?? {}),
+        foundry.utils.deepClone(submitData.system ?? {}),
+        {
+          inplace: false,
+          insertKeys: true,
+          insertValues: true,
+          overwrite: true,
+          recursive: true
+        }
+      );
+      const normalizedVehicleSystem = normalizeVehicleSystemData(mergedVehicleSystem);
+      foundry.utils.setProperty(submitData, "system.overview", foundry.utils.deepClone(normalizedVehicleSystem.overview));
+    }
 
     const submittedHeightCm = Number(foundry.utils.getProperty(submitData, "system.biography.physical.heightCm"));
     const submittedHeightImperial = String(foundry.utils.getProperty(submitData, "system.biography.physical.heightImperial") ?? "").trim();
@@ -5874,6 +7883,26 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         }
       }
 
+      const clampMinAttr = input.dataset.clampMin;
+      const clampMaxAttr = input.dataset.clampMax;
+      if (clampMinAttr !== undefined || clampMaxAttr !== undefined) {
+        const parsedMin = clampMinAttr !== undefined ? Number(clampMinAttr) : Number.NEGATIVE_INFINITY;
+        const parsedMax = clampMaxAttr !== undefined ? Number(clampMaxAttr) : Number.POSITIVE_INFINITY;
+        const actorPath = input.name.startsWith("system.") ? input.name.slice("system.".length) : "";
+        const fallbackValue = actorPath ? foundry.utils.getProperty(this.actor.system ?? {}, actorPath) : 0;
+        let resolvedValue = Number(input.value);
+        if (!Number.isFinite(resolvedValue)) {
+          resolvedValue = Number(fallbackValue);
+        }
+        if (!Number.isFinite(resolvedValue)) {
+          resolvedValue = Number.isFinite(parsedMin) ? parsedMin : 0;
+        }
+        resolvedValue = Math.round(resolvedValue);
+        if (Number.isFinite(parsedMin) && resolvedValue < parsedMin) resolvedValue = parsedMin;
+        if (Number.isFinite(parsedMax) && resolvedValue > parsedMax) resolvedValue = parsedMax;
+        input.value = String(resolvedValue);
+      }
+
       const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
       const setInputValue = (selector, value) => {
         const element = root?.querySelector(selector);
@@ -5915,6 +7944,59 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         input.value = String(resolvedLbs);
         setInputValue("input[name='system.biography.physical.weightKg']", poundsToKilograms(resolvedLbs));
       }
+
+      if (this._isVehicleActor() && (input.name === "system.movement.speed.value" || input.name === "system.movement.speed.max")) {
+        const toWhole = (raw, fallback = 0) => {
+          const num = Number(raw);
+          if (!Number.isFinite(num)) return Math.max(0, Math.round(Number(fallback ?? 0) || 0));
+          return Math.max(0, Math.round(num));
+        };
+        const speedInput = root?.querySelector("input[name='system.movement.speed.value']");
+        const topSpeedInput = root?.querySelector("input[name='system.movement.speed.max']");
+        const actorCurrentSpeed = Number(this.actor.system?.movement?.speed?.value ?? 0);
+        const actorTopSpeed = Number(this.actor.system?.movement?.speed?.max ?? 0);
+        let nextCurrentSpeed = speedInput instanceof HTMLInputElement
+          ? toWhole(speedInput.value, actorCurrentSpeed)
+          : toWhole(actorCurrentSpeed, 0);
+        let nextTopSpeed = topSpeedInput instanceof HTMLInputElement
+          ? toWhole(topSpeedInput.value, actorTopSpeed)
+          : toWhole(actorTopSpeed, 0);
+
+        if (nextTopSpeed > 0) {
+          nextCurrentSpeed = Math.min(nextCurrentSpeed, nextTopSpeed);
+        }
+
+        if (speedInput instanceof HTMLInputElement) {
+          speedInput.value = String(nextCurrentSpeed);
+        }
+        if (topSpeedInput instanceof HTMLInputElement) {
+          topSpeedInput.value = String(nextTopSpeed);
+        }
+      }
+    }
+
+    if (input instanceof HTMLSelectElement && this._isVehicleActor() && input.name === "system.dimensions.weightUnit") {
+      const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
+      const weightInput = root?.querySelector("input[name='system.dimensions.weight']");
+      const priorUnitRaw = String(input.dataset.prevUnit ?? this.actor.system?.dimensions?.weightUnit ?? "t").trim().toLowerCase();
+      const priorUnit = priorUnitRaw === "kg" ? "kg" : "t";
+      const nextUnitRaw = String(input.value ?? "").trim().toLowerCase();
+      const nextUnit = nextUnitRaw === "kg" ? "kg" : "t";
+      if (weightInput instanceof HTMLInputElement) {
+        const currentWeight = Number(weightInput.value);
+        if (Number.isFinite(currentWeight) && currentWeight >= 0 && priorUnit !== nextUnit) {
+          const convertedWeight = nextUnit === "kg"
+            ? currentWeight * 1000
+            : currentWeight / 1000;
+          const roundedWeight = nextUnit === "kg"
+            ? Math.round(convertedWeight * 10) / 10
+            : Math.round(convertedWeight * 1000) / 1000;
+          weightInput.value = String(Math.max(0, roundedWeight));
+        }
+        weightInput.step = nextUnit === "kg" ? "0.1" : "0.001";
+      }
+      input.dataset.prevUnit = nextUnit;
+      input.value = nextUnit;
     }
 
     if (input instanceof HTMLInputElement) {
@@ -5976,9 +8058,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (otherCheckbox instanceof HTMLInputElement) {
           if (input.checked) {
             otherCheckbox.checked = false;
-            otherCheckbox.disabled = true;
           } else {
-            otherCheckbox.disabled = false;
+            // Enforce exactly one of Open-Top / Enclosed-Top at all times.
+            input.checked = true;
           }
         }
       }
@@ -6006,9 +8088,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         initial: this.tabGroups.primary ?? "vehicle-summary",
         callback: (_event, _tabs, activeTab) => {
           this.tabGroups.primary = activeTab;
+          if (activeTab === "vehicle-notes") this._initializeVehicleNotesEditor(root);
         }
       });
       tabs.bind(root);
+      this._initializeVehicleNotesEditor(root);
+      if (this._vehicleLoadoutNeedsMigration) {
+        void this._ensureVehicleWeaponEmplacementsMigrated();
+      }
       if (this.isEditable) {
         const portrait = root.querySelector('.profile-img[data-edit="img"]');
         if (portrait) {
@@ -6017,38 +8104,98 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             this._openActorImagePicker("img");
           });
         }
+        root.querySelectorAll(".gear-open-btn[data-item-id]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+            if (!itemId) return;
+            const item = this.actor.items.get(itemId);
+            if (!item?.sheet) return;
+            item.sheet.render(true);
+          });
+        });
+        root.querySelectorAll(".gear-remove-btn[data-item-id]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onRemoveGearItem(event);
+          });
+        });
+        root.querySelectorAll(".gear-quantity-input[data-item-id]").forEach((input) => {
+          input.addEventListener("change", (event) => {
+            void this._onChangeGearQuantity(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-emplacement-add-btn").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onAddVehicleWeaponEmplacement(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-emplacement-remove-btn[data-emplacement-id]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onRemoveVehicleWeaponEmplacement(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-emplacement-field[data-emplacement-id][data-field]").forEach((input) => {
+          input.addEventListener("change", (event) => {
+            void this._onVehicleWeaponEmplacementFieldChange(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-loadout-drop-zone[data-vehicle-loadout-drop]").forEach((zone) => {
+          zone.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            zone.classList.add("is-dragover");
+          });
+          zone.addEventListener("dragleave", (event) => {
+            const relatedTarget = event.relatedTarget instanceof Node ? event.relatedTarget : null;
+            if (event.currentTarget === event.target || !relatedTarget || !zone.contains(relatedTarget)) {
+              zone.classList.remove("is-dragover");
+            }
+          });
+          zone.addEventListener("drop", (event) => {
+            zone.classList.remove("is-dragover");
+            void this._onVehicleLoadoutDrop(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-mobility-speed-btn[data-direction]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onAdjustVehicleCurrentSpeed(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-overview-custom-add-btn").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onAddVehicleOverviewCustomBreakpoint(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-overview-custom-clear-btn").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onClearVehicleOverviewCustomBreakpoints(event);
+          });
+        });
+        root.querySelectorAll(".shields-recharge-btn").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onShieldsRecharge(event);
+          });
+        });
       }
+      root.querySelectorAll(".vehicle-overview-toggle[data-target-path]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          void this._onToggleVehicleOverviewSection(event);
+        });
+      });
+      root.querySelectorAll(".vehicle-overview-detonate-btn").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          void this._onVehicleOverviewDetonate(event);
+        });
+      });
+      this._bindVehicleCrewRosterControls(root);
 
-      // Faction background on the outer window so it fills the rounded frame.
-      // Use root.dataset.faction — the correct computed value already rendered.
-      const factionIndex = Number(root.dataset?.faction ?? 1);
-      const factionVar = factionIndex > 1 ? `var(--mythic-faction-${factionIndex})` : `var(--mythic-faction-1)`;
-      if (this.element) this.element.style.background = factionVar;
+      this._lastSheetAppearanceForHeader = context?.mythicSheetAppearance ?? null;
+      this._applyWindowTheme(root, context);
 
-      // Belt-and-suspenders: force header chrome invisible via inline styles so
-      // Foundry's stylesheet cannot win the cascade regardless of specificity.
-      const windowHeader = this.element?.querySelector(".window-header");
-      if (windowHeader) {
-        windowHeader.style.background = "transparent";
-        windowHeader.style.border = "none";
-        windowHeader.style.boxShadow = "none";
-        windowHeader.style.justifyContent = "flex-end";
-
-        const controls = windowHeader.querySelector(".window-controls, .window-actions, .header-actions, .header-buttons");
-        if (controls) {
-          controls.style.position = "absolute";
-          controls.style.right = "6px";
-          controls.style.left = "auto";
-          controls.style.marginLeft = "0";
-          controls.style.display = "flex";
-          controls.style.alignItems = "center";
-          controls.style.gap = "6px";
-        }
-
-        this._dedupeHeaderControls(windowHeader);
-      }
+      // Keep Foundry's header controls above the themed sheet chrome.
+      this._configureWindowHeaderChrome();
+      this._bindSheetAppearanceControls(root);
       // Restore and track scroll position for vehicle sheets to avoid jumping
-      const scrollable = root.querySelector(".sheet-tab-scrollable");
+      const scrollable = this._getActivePrimaryScrollable(root);
       if (scrollable) {
         const scrollTop = Math.max(0, Number(this._sheetScrollTop ?? 0));
         requestAnimationFrame(() => {
@@ -6069,6 +8216,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
     if (!root) return;
+
+    if (this.isEditable) {
+      const headerPortrait = root.querySelector('.mythic-header-portrait-image[data-edit="img"]');
+      if (headerPortrait) {
+        headerPortrait.addEventListener("click", (event) => {
+          event.preventDefault();
+          this._openActorImagePicker("img");
+        });
+      }
+    }
 
     // Make tab-based entry faster by auto-selecting field contents when tabbing into an input.
     root.addEventListener("keydown", (event) => {
@@ -6098,34 +8255,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       this._tabSelectArmed = false;
     });
 
-    // Faction background on the outer window so it fills the rounded frame.
-    // Use root.dataset.faction â€” the correct computed value already rendered.
-    const factionIndex = Number(root.dataset?.faction ?? 1);
-    const factionVar = factionIndex > 1 ? `var(--mythic-faction-${factionIndex})` : `var(--mythic-faction-1)`;
-    if (this.element) this.element.style.background = factionVar;
+    this._lastSheetAppearanceForHeader = context?.mythicSheetAppearance ?? null;
+    this._applyWindowTheme(root, context);
 
-    // Belt-and-suspenders: force header chrome invisible via inline styles so
-    // Foundry's stylesheet cannot win the cascade regardless of specificity.
-    const windowHeader = this.element?.querySelector(".window-header");
-    if (windowHeader) {
-      windowHeader.style.background = "transparent";
-      windowHeader.style.border = "none";
-      windowHeader.style.boxShadow = "none";
-      windowHeader.style.justifyContent = "flex-end";
-
-      const controls = windowHeader.querySelector(".window-controls, .window-actions, .header-actions, .header-buttons");
-      if (controls) {
-        controls.style.position = "absolute";
-        controls.style.right = "6px";
-        controls.style.left = "auto";
-        controls.style.marginLeft = "0";
-        controls.style.display = "flex";
-        controls.style.alignItems = "center";
-        controls.style.gap = "6px";
-      }
-
-      this._dedupeHeaderControls(windowHeader);
-    }
+    // Keep Foundry's header controls above the themed sheet chrome.
+    this._configureWindowHeaderChrome();
+    this._bindSheetAppearanceControls(root);
 
     const hasOpenedActorSheet = Boolean(this.actor.getFlag("Halo-Mythic-Foundry-Updated", MYTHIC_ACTOR_SHEET_OPENED_FLAG_KEY));
     const initialTab = this.tabGroups.primary ?? "main";
@@ -6145,7 +8280,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       void this.actor.setFlag("Halo-Mythic-Foundry-Updated", MYTHIC_ACTOR_SHEET_OPENED_FLAG_KEY, true);
     }
 
-    const scrollable = root.querySelector(".sheet-tab-scrollable");
+    const scrollable = this._getActivePrimaryScrollable(root);
     if (scrollable) {
       const scrollTop = Math.max(0, Number(this._sheetScrollTop ?? 0));
       requestAnimationFrame(() => {
@@ -6923,28 +9058,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
-    // Crew slot dropzones: drag actors into named slots
-    root.querySelectorAll(".mythic-crew-dropzone[data-kind]").forEach((zone) => {
-      zone.addEventListener("dragover", (event) => {
-        event.preventDefault();
-        zone.classList.add("is-dragover");
-      });
-      zone.addEventListener("dragleave", (event) => {
-        zone.classList.remove("is-dragover");
-      });
-      zone.addEventListener("drop", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        zone.classList.remove("is-dragover");
-        void this._onDropCrewSlot(event);
-      });
-    });
-
-    root.querySelectorAll(".crew-clear-btn[data-kind][data-idx]").forEach((button) => {
-      button.addEventListener("click", (event) => {
-        void this._onClearCrewSlot(event);
-      });
-    });
+    this._bindVehicleCrewRosterControls(root);
 
     const portraitToggleButton = root.querySelector(".portrait-toggle-btn");
     if (portraitToggleButton) {
@@ -8726,6 +10840,66 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return null;
   }
 
+  async _resolveDroppedActorFromData(dropData = {}) {
+    const unwrapActorDocument = (resolved) => {
+      if (!resolved || typeof resolved !== "object") return null;
+      if (String(resolved.documentName ?? "") === "Actor") return resolved;
+      if (resolved.actor && String(resolved.actor.documentName ?? "") === "Actor") return resolved.actor;
+      return null;
+    };
+
+    const ActorClass = (typeof getDocumentClass === "function") ? getDocumentClass("Actor") : null;
+    if (ActorClass && typeof ActorClass.fromDropData === "function") {
+      const resolved = unwrapActorDocument(await ActorClass.fromDropData(dropData).catch(() => null));
+      if (resolved) return resolved;
+    }
+
+    const uuid = String(dropData?.uuid ?? "").trim();
+    if (uuid) {
+      const resolvedByUuid = unwrapActorDocument(await fromUuid(uuid).catch(() => null));
+      if (resolvedByUuid) return resolvedByUuid;
+
+      if (uuid.startsWith("Compendium.")) {
+        const parts = uuid.split(".");
+        const actorIdx = parts.indexOf("Actor");
+        if (parts[0] === "Compendium" && actorIdx > 2 && actorIdx + 1 < parts.length) {
+          const packKey = `${parts[1]}.${parts[2]}`;
+          const parsedId = String(parts[actorIdx + 1] ?? "").trim();
+          if (packKey && parsedId) {
+            const pack = game.packs?.get(packKey) ?? null;
+            const packDoc = unwrapActorDocument(pack ? await pack.getDocument(parsedId).catch(() => null) : null);
+            if (packDoc) return packDoc;
+          }
+        }
+      }
+    }
+
+    const rawData = (dropData?.data && typeof dropData.data === "object") ? dropData.data : dropData;
+    const packKey = String(dropData?.pack ?? dropData?.packKey ?? rawData?.pack ?? rawData?.packKey ?? "").trim();
+    const actorId = String(
+      dropData?.id
+      ?? dropData?._id
+      ?? dropData?.actorId
+      ?? rawData?.id
+      ?? rawData?._id
+      ?? rawData?.actorId
+      ?? ""
+    ).trim();
+
+    if (packKey && actorId) {
+      const pack = game.packs?.get(packKey) ?? null;
+      const packDoc = unwrapActorDocument(pack ? await pack.getDocument(actorId).catch(() => null) : null);
+      if (packDoc) return packDoc;
+    }
+
+    if (actorId) {
+      const worldActor = game.actors?.get(actorId) ?? null;
+      if (worldActor) return worldActor;
+    }
+
+    return null;
+  }
+
   async _tryConvertAmmoFromSuperDrop(event, data) {
     if (typeof super._onDropItem !== "function") return { handled: false, result: false };
 
@@ -8756,6 +10930,23 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     return { handled: false, result };
+  }
+
+  async _onDropActor(event, data) {
+    if (!this.isEditable) return false;
+
+    const crewDropTarget = this._isVehicleActor()
+      ? this._getCrewDropTarget(event)
+      : null;
+    if (crewDropTarget) {
+      crewDropTarget.element.classList.remove("is-dragover");
+      return this._onDropCrewSlot(event, data);
+    }
+
+    if (typeof super._onDropActor === "function") {
+      return super._onDropActor(event, data);
+    }
+    return false;
   }
 
   async _onDropItem(event, data) {
@@ -8795,6 +10986,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
+    const vehicleLoadoutDropTarget = this._isVehicleActor()
+      ? this._getVehicleLoadoutDropTarget(event)
+      : null;
+    if (vehicleLoadoutDropTarget) {
+      return this._onVehicleLoadoutDrop(event, data);
+    }
+
     const item = await this._resolveDroppedItemFromData(dropData);
     if (!item) {
       const fallback = await this._tryConvertAmmoFromSuperDrop(event, data);
@@ -8803,6 +11001,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ui.notifications?.warn("Could not resolve dropped item data.");
       }
       return fallback.result;
+    }
+
+    if (this._isVehicleActor() && item.type === "gear") {
+      ui.notifications?.warn("Drop gear onto Cargo or a specific Vehicle Weapon card in the Loadout tab.");
+      return false;
     }
 
     // Route ammo drops anywhere on the actor sheet into independent ammo tracking.
@@ -12448,6 +14651,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
+    if (this._isVehicleActor()) {
+      const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+      const nextEmplacements = this._serializeVehicleWeaponEmplacements(vehicleSystem.weaponEmplacements ?? []);
+      let didChange = false;
+      for (const emplacement of nextEmplacements) {
+        if (String(emplacement.weaponItemId ?? "").trim() !== itemId) continue;
+        emplacement.weaponItemId = "";
+        didChange = true;
+      }
+      if (didChange) {
+        await this._updateVehicleWeaponEmplacements(nextEmplacements);
+      }
+    }
   }
 
   async _onAddCustomInventoryItem(event) {
@@ -13300,6 +15516,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const desiredCount = Math.max(0, toNonNegativeWhole(event.currentTarget?.value, currentCount));
     event.currentTarget.value = String(desiredCount);
 
+    const sourceItem = this.actor.items.get(itemId);
+    if (!sourceItem || sourceItem.type !== "gear") return;
+
     if (desiredCount === currentCount) return;
 
     if (desiredCount < currentCount) {
@@ -13322,8 +15541,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const sourceItem = this.actor.items.get(itemId);
-    if (!sourceItem || sourceItem.type !== "gear") return;
     const addCount = desiredCount - currentCount;
     const sourceData = sourceItem.toObject();
     const createPayload = [];
@@ -14882,6 +17099,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onShieldsRecharge(event) {
     event.preventDefault();
+    if (this._isVehicleActor()) {
+      const normalizedVehicle = normalizeVehicleSystemData(this.actor.system ?? {});
+      const current = toNonNegativeWhole(normalizedVehicle?.overview?.shields?.current, 0);
+      const maxIntegrity = toNonNegativeWhole(normalizedVehicle?.overview?.shields?.max, 0);
+      const rechargeRate = toNonNegativeWhole(normalizedVehicle?.overview?.shields?.recharge, 0);
+
+      if (rechargeRate <= 0 || maxIntegrity <= 0) return;
+      const nextCurrent = Math.min(maxIntegrity, current + rechargeRate);
+      if (nextCurrent === current) return;
+
+      await this.actor.update({ "system.overview.shields.current": nextCurrent });
+      return;
+    }
+
     const normalized = normalizeCharacterSystemData(this.actor.system ?? {});
     const current = toNonNegativeWhole(normalized?.combat?.shields?.current, 0);
     const maxIntegrity = toNonNegativeWhole(normalized?.combat?.shields?.integrity, 0);
@@ -18016,32 +20247,27 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   /**
    * Handle dropping an Actor onto a crew slot
    */
-  async _onDropCrewSlot(event) {
+  async _onDropCrewSlot(event, data = null) {
     event.preventDefault();
     event.stopPropagation();
     if (!this.isEditable) return false;
 
-    const zone = event.currentTarget instanceof HTMLElement ? event.currentTarget : (event.target instanceof HTMLElement ? event.target.closest('.mythic-crew-dropzone[data-kind]') : null);
+    const crewDropTarget = this._getCrewDropTarget(event);
+    const zone = crewDropTarget?.element
+      ?? (event.currentTarget instanceof HTMLElement ? event.currentTarget : (event.target instanceof HTMLElement ? event.target.closest('.mythic-crew-dropzone[data-kind]') : null));
     if (!(zone instanceof HTMLElement)) return false;
 
-    const kind = String(zone.dataset.kind ?? '').trim();
-    const slotIndex = Number(zone.dataset.idx ?? 0) || 0;
+    const kind = crewDropTarget?.kind ?? String(zone.dataset.kind ?? '').trim();
+    const slotIndex = crewDropTarget?.slotIndex ?? (Number(zone.dataset.idx ?? 0) || 0);
 
-    const dropData = this._extractDropData(event);
-    const dropped = dropData.uuid ? await fromUuid(dropData.uuid).catch(() => null) : (game.actors?.get(String(dropData.id ?? '')) ?? null);
-    if (!dropped || (dropped?.documentName && String(dropped.documentName) !== 'Actor' && String(dropped.type) !== 'actor' && !dropped?.actor)) {
+    const dropData = this._extractDropData(event, data);
+    const actorDoc = await this._resolveDroppedActorFromData(dropData);
+    if (!actorDoc) {
       ui.notifications?.warn('Please drop an Actor into this slot.');
       return false;
     }
 
-    // Prefer actor document directly
-    const actorDoc = dropped.documentName === 'Actor' || dropped.type === 'actor' || dropped?.actor ? dropped : null;
-    if (!actorDoc) {
-      ui.notifications?.warn('Could not resolve dropped Actor.');
-      return false;
-    }
-
-    const actorId = String(actorDoc.id ?? actorDoc._id ?? '').trim();
+    const actorId = String(actorDoc.pack ? (actorDoc.uuid ?? '') : (actorDoc.id ?? actorDoc._id ?? '')).trim();
     const path = `system.crew.${kind}`;
 
     const existing = Array.isArray(this.actor.system?.crew?.[kind]) ? foundry.utils.deepClone(this.actor.system.crew[kind]) : [];
@@ -18049,11 +20275,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const capacity = toNonNegativeWhole(this.actor.system?.crew?.capacity?.[capacityKey], existing.length);
     while (existing.length < capacity) existing.push({ idx: existing.length, id: '', display: '' });
 
-    existing[slotIndex] = { idx: slotIndex, id: actorId, display: String(actorDoc.name ?? '') };
+    const definition = getVehicleCrewRoleDefinition(kind);
+    const position = normalizeCrewSeatPosition(existing[slotIndex]?.position ?? '');
+    existing[slotIndex] = {
+      ...existing[slotIndex],
+      idx: slotIndex,
+      id: actorId,
+      display: buildCrewOccupantDisplay(actorDoc, String(actorDoc.name ?? '')),
+      position
+    };
+    const seatLabel = buildVehicleCrewSeatLabel(definition?.label ?? 'Seat', slotIndex + 1);
 
     try {
       await this.actor.update({ [path]: existing });
-      ui.notifications?.info(`Assigned ${actorDoc.name} to slot ${slotIndex + 1}.`);
+      ui.notifications?.info(`Assigned ${actorDoc.name} to ${seatLabel}.`);
       return true;
     } catch (error) {
       console.error('[CREW-DROP] Update failed:', error);
@@ -18064,8 +20299,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onClearCrewSlot(event) {
     event.preventDefault();
+    event.stopPropagation();
     if (!this.isEditable) return false;
-    const button = event.currentTarget instanceof HTMLElement ? event.currentTarget : (event.target instanceof HTMLElement ? event.target.closest('.crew-clear-btn[data-kind][data-idx]') : null);
+    const currentTarget = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const button = currentTarget?.matches?.(".crew-clear-btn[data-kind][data-idx]")
+      ? currentTarget
+      : (target?.closest('.crew-clear-btn[data-kind][data-idx]') ?? null);
     if (!(button instanceof HTMLElement)) return false;
 
     const kind = String(button.dataset.kind ?? '').trim();
@@ -18074,17 +20314,67 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const existing = Array.isArray(this.actor.system?.crew?.[kind]) ? foundry.utils.deepClone(this.actor.system.crew[kind]) : [];
     if (slotIndex < 0 || slotIndex >= existing.length) return false;
-    existing[slotIndex] = { idx: slotIndex, id: '', display: '' };
+    const definition = getVehicleCrewRoleDefinition(kind);
+    const position = normalizeCrewSeatPosition(existing[slotIndex]?.position ?? '');
+    existing[slotIndex] = {
+      ...existing[slotIndex],
+      idx: slotIndex,
+      id: '',
+      display: '',
+      position
+    };
+    const seatLabel = buildVehicleCrewSeatLabel(definition?.label ?? 'Seat', slotIndex + 1);
 
     try {
       await this.actor.update({ [path]: existing });
-      ui.notifications?.info('Cleared crew slot.');
+      this._vehicleCrewExpandedRows?.delete(`${kind}:${slotIndex + 1}`);
+      ui.notifications?.info(`Cleared ${seatLabel}.`);
       return true;
     } catch (err) {
       console.error('[CREW-CLEAR] Update failed:', err);
       ui.notifications?.warn('Failed to clear crew slot.');
       return false;
     }
+  }
+
+  _toggleCrewSlotDetails(event) {
+    const currentTarget = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const zone = currentTarget?.matches?.(".mythic-crew-dropzone[data-kind][data-idx]")
+      ? currentTarget
+      : (target?.closest('.mythic-crew-dropzone[data-kind][data-idx]') ?? null);
+    if (!(zone instanceof HTMLElement)) return false;
+
+    const hasActor = String(zone.dataset.hasActor ?? "").trim().toLowerCase() === "true";
+    const slotKey = String(zone.dataset.slotKey ?? "").trim();
+    if (!hasActor || !slotKey) return false;
+
+    const root = zone.closest(".vehicle-crew-panel") ?? this.element;
+    const expandedRows = this._vehicleCrewExpandedRows ?? new Set();
+    const nextExpanded = !zone.classList.contains("is-expanded");
+
+    if (root instanceof HTMLElement) {
+      root.querySelectorAll(".mythic-crew-dropzone[data-slot-key].is-expanded").forEach((other) => {
+        if (!(other instanceof HTMLElement) || other === zone) return;
+        const otherKey = String(other.dataset.slotKey ?? "").trim();
+        if (otherKey) expandedRows.delete(otherKey);
+        other.classList.remove("is-expanded");
+        other.setAttribute("aria-expanded", "false");
+      });
+    }
+
+    if (nextExpanded) {
+      expandedRows.add(slotKey);
+      zone.classList.add("is-expanded");
+      zone.setAttribute("aria-expanded", "true");
+    } else {
+      expandedRows.delete(slotKey);
+      zone.classList.remove("is-expanded");
+      zone.setAttribute("aria-expanded", "false");
+    }
+
+    this._vehicleCrewExpandedRows = expandedRows;
+    return true;
   }
 
   async _deleteEquipmentMapKey(path, key, currentMap = null) {

@@ -6,15 +6,13 @@
       <summary>Physical Description</summary>
       <div class="bio-grid">
         <div class="bio-portrait-panel">
-          <img src="{{actor.img}}" alt="Character Portrait" class="bio-portrait-preview" />
+          <div class="mythic-sheet-portrait-surface">
+            <img src="{{actor.img}}" alt="Character Portrait" class="bio-portrait-preview mythic-sheet-portrait-image" />
+          </div>
           <input type="hidden" name="img" value="{{actor.img}}" />
           <input type="hidden" name="prototypeToken.texture.src" value="{{actor.prototypeToken.texture.src}}" />
           <div class="bio-portrait-controls">
-            <button class="action-btn portrait-view-toggle portrait-toggle-btn" type="button" title="Show portrait image">Portrait</button>
             <button class="action-btn portrait-view-toggle token-toggle-btn" type="button" title="Show token image">Token</button>
-            <button class="file-picker action-btn portrait-upload-btn" type="button" data-type="image" data-target="img" title="Upload portrait image">
-              <i class="fas fa-file-import"></i> Portrait
-            </button>
             <button class="file-picker action-btn token-upload-btn" type="button" data-type="image" data-target="prototypeToken.texture.src" title="Upload token image">
               <i class="fas fa-file-import"></i> Token
             </button>

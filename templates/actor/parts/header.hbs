@@ -1,8 +1,15 @@
-<header class="mythic-sticky-header panel">
+<header class="mythic-sticky-header panel mythic-sheet-header-surface">
   <div class="mythic-header-grid">
+    <div class="mythic-header-portrait-wrap">
+      <div class="mythic-sheet-portrait-surface mythic-header-portrait-surface">
+        <img src="{{actor.img}}" alt="{{actor.name}}" title="{{actor.name}}" class="profile-img mythic-sheet-portrait-image mythic-header-portrait-image" data-edit="img" />
+      </div>
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-banner.hbs"}}
+    </div>
+
     <section class="mythic-header-column left">
       <div class="mythic-header-row">
-        <label>Character Name</label>
+        <label>Name</label>
         <input name="name" type="text" value="{{actor.name}}" />
       </div>
       <div class="mythic-header-row">
@@ -18,7 +25,7 @@
         {{/if}}
       </div>
       <div class="mythic-header-row">
-        <label>Soldier Type</label>
+        <label>Sol. Type</label>
         <input name="system.header.soldierType" type="text" value="{{mythicHeader.values.soldierType}}" {{#if mythicHeader.locks.soldierType}}readonly class="mythic-header-locked"{{/if}} />
       </div>
       <div class="mythic-header-row">
@@ -48,7 +55,7 @@
         </div>
       {{else}}
         <div class="mythic-header-row">
-          <label>Specialization</label>
+          <label>SPEC.</label>
           <input name="system.header.specialisation" type="text" value="{{mythicHeader.values.specialisation}}" {{#if mythicHeader.locks.specialisation}}readonly class="mythic-header-locked"{{/if}} />
         </div>
       {{/if}}
@@ -60,7 +67,7 @@
 
     <section class="mythic-header-column right">
       <div class="mythic-header-row">
-        <label>Player Name</label>
+        <label>Player</label>
         <input name="system.header.playerName" type="text" value="{{mythicHeader.values.playerName}}" {{#if mythicHeader.locks.playerName}}readonly class="mythic-header-locked"{{/if}} />
       </div>
       <div class="mythic-header-row">
@@ -72,7 +79,7 @@
         <input name="system.header.upbringing" type="text" value="{{mythicHeader.values.upbringing}}" {{#if mythicHeader.locks.upbringing}}readonly class="mythic-header-locked"{{/if}} />
       </div>
       <div class="mythic-header-row">
-        <label>Environment</label>
+        <label>ENV.</label>
         <input name="system.header.environment" type="text" value="{{mythicHeader.values.environment}}" {{#if mythicHeader.locks.environment}}readonly class="mythic-header-locked"{{/if}} />
       </div>
       <div class="mythic-header-row">

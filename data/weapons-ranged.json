@@ -23107,8 +23107,8 @@
       ],
       "charge": {
         "damagePerLevel": 0,
-        "ammoPerLevel": 1,
-        "maxLevel": 0
+        "ammoPerLevel": 0.5,
+        "maxLevel": 2
       },
       "damage": {
         "diceCount": 3,
@@ -23125,7 +23125,7 @@
       "variantAttacks": [],
       "range": {
         "close": 500,
-        "max": 0,
+        "max": 12000,
         "reload": 17,
         "magazine": 40,
         "reach": "0"

@@ -204,17 +204,20 @@ const MYTHIC_VEHICLE_SPECIAL_RULE_DEFINITIONS = Object.freeze([
   Object.freeze({ key: "slipspace", label: "Slipspace Travel" }),
   Object.freeze({ key: "walkerStomp", label: "Walker Stomp" })
 ]);
-const MYTHIC_VEHICLE_DOOM_LABELS = Object.freeze({
-  tier_0: "The vehicle is operational.",
-  tier_1: "The vehicle is stable.",
-  tier_2: "The vehicle is lightly damaged.",
-  tier_3: "The vehicle is significantly damaged.",
-  tier_4: "The vehicle is critically damaged but mobile.",
-  tier_5: "The vehicle has entered a doomed state.",
-  tier_6: "Detonation risk is escalating.",
-  tier_7: "Severe blast risk detected.",
-  tier_8: "Extreme detonation risk detected.",
-  tier_9: "Catastrophic detonation is imminent."
+const MYTHIC_VEHICLE_HULL_NEGATIVE_FLOOR = -9999;
+const MYTHIC_VEHICLE_MOBILITY_PENALTY_TABLES = Object.freeze({
+  wheels: Object.freeze({
+    3: Object.freeze({ 0: 0, 1: 50, 2: 80, 3: 100 }),
+    4: Object.freeze({ 0: 0, 1: 30, 2: 60, 3: 90, 4: 100 }),
+    6: Object.freeze({ 0: 0, 1: 15, 2: 30, 3: 50, 4: 75, 5: 95, 6: 100 }),
+    8: Object.freeze({ 0: 0, 1: 10, 2: 20, 3: 40, 4: 55, 5: 75, 6: 90, 7: 95, 8: 100 })
+  }),
+  treads: Object.freeze({
+    2: Object.freeze({ 0: 0, 1: 70, 2: 100 }),
+    4: Object.freeze({ 0: 0, 1: 20, 2: 40, 3: 80, 4: 100 }),
+    6: Object.freeze({ 0: 0, 1: 10, 2: 25, 3: 40, 4: 70, 5: 95, 6: 100 }),
+    8: Object.freeze({ 0: 0, 1: 10, 2: 20, 3: 30, 4: 45, 5: 60, 6: 85, 7: 99, 8: 100 })
+  })
 });
 const MYTHIC_CREW_CHARACTERISTIC_LABELS = Object.freeze({
   str: "STR",
@@ -229,6 +232,12 @@ const MYTHIC_CREW_CHARACTERISTIC_LABELS = Object.freeze({
   ldr: "LDR"
 });
 const MYTHIC_CREW_MYTHIC_CHARACTERISTIC_KEYS = Object.freeze(["str", "tou", "agi"]);
+const MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES = Object.freeze({
+  token: "token",
+  characterActor: "character-actor",
+  legacyActor: "legacy-actor"
+});
+const MYTHIC_VEHICLE_CREW_SUPPORTED_TOKEN_ACTOR_TYPES = Object.freeze(new Set(["character", "bestiary", "npc"]));
 const MYTHIC_FIXED_BATTERY_COSTS = Object.freeze({
   "ionized-particle": 10,
   "unsc-cell": 10,
@@ -303,6 +312,296 @@ function buildCrewActorStatDisplay(actorDoc = null) {
     characteristics,
     mythic,
     hasMythicBoost: mythic.some((entry) => Number(entry?.value ?? 0) > 0)
+  };
+}
+
+function normalizeVehicleCrewAssignmentType(value = "") {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token) return MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token;
+  if (["character", "character-actor", "actor-character", "unique-character"].includes(normalized)) {
+    return MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor;
+  }
+  if (normalized === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.legacyActor) return MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.legacyActor;
+  return "";
+}
+
+function isVehicleCrewSceneTokenUuid(value = "") {
+  return /^Scene\.[^.]+\.Token\.[^.]+$/u.test(String(value ?? "").trim());
+}
+
+function isVehicleCrewSceneTokenActorUuid(value = "") {
+  return /^Scene\.[^.]+\.Token\.[^.]+\.Actor\.[^.]+$/u.test(String(value ?? "").trim());
+}
+
+function isVehicleCrewActorUuid(value = "") {
+  return /^(?:Actor\.[^.]+|Compendium\.[^.]+\.[^.]+\.Actor\.[^.]+)$/u.test(String(value ?? "").trim());
+}
+
+function isVehicleCrewCharacterActor(actorDoc = null) {
+  return String(actorDoc?.type ?? "").trim().toLowerCase() === "character";
+}
+
+function isVehicleCrewBestiaryActor(actorDoc = null) {
+  return String(actorDoc?.type ?? "").trim().toLowerCase() === "bestiary";
+}
+
+function isVehicleCrewSupportedTokenActor(actorDoc = null) {
+  return MYTHIC_VEHICLE_CREW_SUPPORTED_TOKEN_ACTOR_TYPES.has(String(actorDoc?.type ?? "").trim().toLowerCase());
+}
+
+function unwrapVehicleCrewTokenDocument(resolved = null) {
+  if (!resolved || typeof resolved !== "object") return null;
+  if (String(resolved.documentName ?? "") === "Token") return resolved;
+  if (String(resolved?.document?.documentName ?? "") === "Token") return resolved.document;
+  if (String(resolved?.token?.documentName ?? "") === "Token") return resolved.token;
+  if (String(resolved?.parent?.documentName ?? "") === "Token") return resolved.parent;
+  if (String(resolved?.document?.parent?.documentName ?? "") === "Token") return resolved.document.parent;
+  return null;
+}
+
+function unwrapVehicleCrewActorDocument(resolved = null) {
+  if (!resolved || typeof resolved !== "object") return null;
+  if (String(resolved.documentName ?? "") === "Actor") return resolved;
+  if (resolved.actor && String(resolved.actor.documentName ?? "") === "Actor") return resolved.actor;
+  return null;
+}
+
+function getVehicleCrewStoredReference(entry = null) {
+  const tokenUuid = String(entry?.tokenUuid ?? "").trim();
+  if (tokenUuid) return tokenUuid;
+  const actorUuid = String(entry?.actorUuid ?? "").trim();
+  if (actorUuid) return actorUuid;
+  return String(entry?.id ?? "").trim();
+}
+
+function getVehicleCrewActorUuid(actorDoc = null) {
+  if (!actorDoc || typeof actorDoc !== "object") return "";
+  return String(actorDoc?.uuid ?? actorDoc?.id ?? actorDoc?._id ?? "").trim();
+}
+
+function getVehicleCrewSceneName(tokenDoc = null) {
+  return String(tokenDoc?.parent?.name ?? "").trim();
+}
+
+function buildCrewTokenDisplay(actorDoc = null, tokenDoc = null, fallbackDisplay = "") {
+  const tokenName = String(tokenDoc?.name ?? "").trim();
+  const actorName = String(actorDoc?.name ?? fallbackDisplay ?? "").trim();
+  const baseName = tokenName || actorName || String(fallbackDisplay ?? "").trim();
+  if (!baseName) return { roster: "", occupant: "" };
+
+  const rank = getCrewActorRank(actorDoc);
+  const callsign = getCrewActorCallsign(actorDoc);
+  const shouldPrefixRank = Boolean(rank)
+    && (!tokenName || tokenName.toLowerCase() === actorName.toLowerCase());
+  const roster = shouldPrefixRank ? `${rank} ${baseName}` : baseName;
+  return {
+    roster,
+    occupant: callsign ? `${roster}, "${callsign}"` : roster
+  };
+}
+
+function buildVehicleCrewStoredResolution(entry = {}, resolvedDocument = null) {
+  const storedReference = getVehicleCrewStoredReference(entry);
+  const storedDisplay = String(entry?.display ?? "").trim();
+  const preferredAssignmentType = normalizeVehicleCrewAssignmentType(entry?.assignmentType ?? entry?.referenceType ?? "");
+  const base = {
+    reference: storedReference,
+    canonicalReference: storedReference,
+    storedDisplay,
+    assignmentType: preferredAssignmentType,
+    tokenDoc: null,
+    actorDoc: null,
+    tokenUuid: "",
+    actorUuid: "",
+    displayName: storedDisplay,
+    occupantDisplay: storedDisplay,
+    stats: null,
+    sceneName: "",
+    referenceTypeLabel: "Seat Reference",
+    statusKey: "empty",
+    statusLabel: "Empty",
+    statusMessage: "Paste a placed token UUID or drop a unique actor into this seat.",
+    isValid: false,
+    isPreferred: false,
+    hasReference: Boolean(storedReference),
+    canExpand: false
+  };
+
+  if (!storedReference) return base;
+
+  const tokenDoc = unwrapVehicleCrewTokenDocument(resolvedDocument);
+  if (tokenDoc) {
+    const actorDoc = unwrapVehicleCrewActorDocument(tokenDoc.actor ?? null) ?? tokenDoc.actor ?? null;
+    const tokenUuid = String(tokenDoc?.uuid ?? storedReference).trim() || storedReference;
+    const actorUuid = getVehicleCrewActorUuid(actorDoc);
+    const display = buildCrewTokenDisplay(actorDoc, tokenDoc, storedDisplay || String(tokenDoc?.name ?? "").trim());
+    const stats = isVehicleCrewSupportedTokenActor(actorDoc) ? buildCrewActorStatDisplay(actorDoc) : null;
+    const sceneName = getVehicleCrewSceneName(tokenDoc);
+    const isValid = isVehicleCrewSupportedTokenActor(actorDoc);
+
+    return {
+      ...base,
+      assignmentType: MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token,
+      canonicalReference: tokenUuid,
+      tokenDoc,
+      actorDoc,
+      tokenUuid,
+      actorUuid,
+      displayName: display.roster || storedDisplay || String(tokenDoc?.name ?? actorDoc?.name ?? "").trim(),
+      occupantDisplay: display.occupant || display.roster || storedDisplay || String(tokenDoc?.name ?? actorDoc?.name ?? "").trim(),
+      stats,
+      sceneName,
+      referenceTypeLabel: "Token UUID",
+      statusKey: isValid ? "token" : "invalid",
+      statusLabel: isValid ? "Token Linked" : "Invalid",
+      statusMessage: isValid
+        ? "Tracking the exact deployed occupant by placed token."
+        : "Only character and bestiary tokens can occupy vehicle crew seats.",
+      isValid,
+      isPreferred: isValid,
+      canExpand: isValid && Boolean(stats)
+    };
+  }
+
+  const actorDoc = unwrapVehicleCrewActorDocument(resolvedDocument);
+  if (actorDoc) {
+    const actorUuid = getVehicleCrewActorUuid(actorDoc) || storedReference;
+    const displayName = buildCrewRosterDisplay(actorDoc, storedDisplay) || storedDisplay || String(actorDoc?.name ?? "").trim();
+    const occupantDisplay = buildCrewOccupantDisplay(actorDoc, storedDisplay) || displayName;
+    const stats = isVehicleCrewCharacterActor(actorDoc) ? buildCrewActorStatDisplay(actorDoc) : null;
+
+    if (isVehicleCrewCharacterActor(actorDoc)) {
+      return {
+        ...base,
+        assignmentType: MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor,
+        canonicalReference: actorUuid,
+        actorDoc,
+        actorUuid,
+        displayName,
+        occupantDisplay,
+        stats,
+        referenceTypeLabel: "Character Actor",
+        statusKey: "character",
+        statusLabel: "Character Exception",
+        statusMessage: "Accepted as a unique character actor. Use token UUIDs for repeated NPC occupants.",
+        isValid: true,
+        isPreferred: false,
+        canExpand: Boolean(stats)
+      };
+    }
+
+    if (isVehicleCrewBestiaryActor(actorDoc)) {
+      return {
+        ...base,
+        assignmentType: preferredAssignmentType || MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.legacyActor,
+        canonicalReference: actorUuid,
+        actorDoc,
+        actorUuid,
+        displayName,
+        occupantDisplay,
+        referenceTypeLabel: "Bestiary Actor",
+        statusKey: "reassign",
+        statusLabel: "Reassign",
+        statusMessage: "Bestiary actor references do not identify an individual occupant. Assign a placed token UUID instead.",
+        isValid: false,
+        isPreferred: false,
+        canExpand: false
+      };
+    }
+
+    return {
+      ...base,
+      assignmentType: preferredAssignmentType || MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.legacyActor,
+      canonicalReference: actorUuid,
+      actorDoc,
+      actorUuid,
+      displayName,
+      occupantDisplay,
+      referenceTypeLabel: "Actor Reference",
+      statusKey: "invalid",
+      statusLabel: "Invalid",
+      statusMessage: "Only placed tokens or unique character actors can occupy vehicle crew seats.",
+      isValid: false,
+      isPreferred: false,
+      canExpand: false
+    };
+  }
+
+  const looksLikeTokenReference = isVehicleCrewSceneTokenUuid(storedReference)
+    || isVehicleCrewSceneTokenActorUuid(storedReference)
+    || preferredAssignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token;
+  const looksLikeActorReference = isVehicleCrewActorUuid(storedReference)
+    || preferredAssignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor
+    || preferredAssignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.legacyActor;
+
+  return {
+    ...base,
+    assignmentType: looksLikeTokenReference
+      ? MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token
+      : preferredAssignmentType,
+    referenceTypeLabel: looksLikeTokenReference ? "Token UUID" : (looksLikeActorReference ? "Actor Reference" : "Seat Reference"),
+    statusKey: looksLikeTokenReference ? "missing" : "invalid",
+    statusLabel: looksLikeTokenReference ? "Missing" : "Invalid",
+    statusMessage: looksLikeTokenReference
+      ? "Token UUID no longer resolves to a placed token. Reassign this seat with a deployed token."
+      : "Reference does not resolve to a placed token or a supported unique character actor.",
+    isValid: false,
+    isPreferred: false,
+    canExpand: false
+  };
+}
+
+async function resolveVehicleCrewStoredResolution(entry = {}) {
+  const storedReference = getVehicleCrewStoredReference(entry);
+  if (!storedReference) return buildVehicleCrewStoredResolution(entry, null);
+
+  let resolvedDocument = null;
+  if (isVehicleCrewSceneTokenUuid(storedReference)
+    || isVehicleCrewSceneTokenActorUuid(storedReference)
+    || isVehicleCrewActorUuid(storedReference)) {
+    if (typeof globalThis.fromUuidSync === "function") {
+      resolvedDocument = globalThis.fromUuidSync(storedReference) ?? null;
+    }
+    if (!resolvedDocument && typeof globalThis.fromUuid === "function") {
+      resolvedDocument = await globalThis.fromUuid(storedReference).catch(() => null);
+    }
+  } else {
+    resolvedDocument = game.actors?.get(storedReference) ?? null;
+  }
+
+  return buildVehicleCrewStoredResolution(entry, resolvedDocument);
+}
+
+function buildVehicleCrewAssignmentPayload(resolution = null, slotIndex = 0, existingRow = null) {
+  const position = normalizeCrewSeatPosition(existingRow?.position ?? "");
+  if (!resolution || !resolution.isValid) {
+    return {
+      ...(existingRow ?? {}),
+      idx: slotIndex,
+      id: "",
+      display: "",
+      position,
+      assignmentType: "",
+      tokenUuid: "",
+      actorUuid: ""
+    };
+  }
+
+  const canonicalReference = String(resolution.canonicalReference ?? resolution.reference ?? "").trim();
+  const assignmentType = normalizeVehicleCrewAssignmentType(resolution.assignmentType);
+  return {
+    ...(existingRow ?? {}),
+    idx: slotIndex,
+    id: canonicalReference,
+    display: String(resolution.occupantDisplay ?? resolution.displayName ?? existingRow?.display ?? "").trim(),
+    position,
+    assignmentType,
+    tokenUuid: assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token
+      ? String(resolution.tokenUuid ?? canonicalReference).trim()
+      : "",
+    actorUuid: assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor
+      ? String(resolution.actorUuid ?? canonicalReference).trim()
+      : ""
   };
 }
 
@@ -1017,54 +1316,137 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           .filter(Boolean)
       );
 
-      // Resolve crew display rows to include seat labels and live actor display formatting.
+      // Resolve crew display rows into token-aware seat assignments for the crew tab.
+      const crewGroupDescriptions = {
+        operators: "Pilots, drivers, commanders, and primary control stations.",
+        gunners: "Fire-control positions and dedicated weapon crews.",
+        complement: "Embarked personnel and transport compartment occupancy."
+      };
       const crewRosterRows = [];
+      const crewGroups = [];
+      const crewSummary = {
+        totalCapacity: 0,
+        filledCount: 0,
+        validCount: 0,
+        tokenCount: 0,
+        characterCount: 0,
+        invalidCount: 0,
+        hasConfiguredSeats: false,
+        cards: []
+      };
       for (const definition of MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES) {
         const kind = definition.crewKey;
         const capacity = toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.[definition.capacityKey], 0);
         const sourceRows = Array.isArray(normalizedVehicleSystem?.crew?.[kind]) ? normalizedVehicleSystem.crew[kind] : [];
         const rows = [];
         for (let i = 0; i < capacity; i++) {
-          const entry = sourceRows[i] ?? { idx: i, id: "", display: "", position: "" };
-          const idStr = String(entry?.id ?? "").trim();
-          let displayName = String(entry?.display ?? "").trim();
+          const entry = sourceRows[i] ?? {
+            idx: i,
+            id: "",
+            display: "",
+            position: "",
+            assignmentType: "",
+            tokenUuid: "",
+            actorUuid: ""
+          };
+          const resolution = await resolveVehicleCrewStoredResolution(entry);
           const position = normalizeCrewSeatPosition(entry?.position ?? "");
-          let actorType = "";
-          let stats = null;
-          if (idStr) {
-            let actorDoc = game.actors?.get(idStr) ?? null;
-            if (!actorDoc && idStr.includes(".")) {
-              actorDoc = await fromUuid(idStr).catch(() => null);
-            }
-            if (actorDoc) {
-              displayName = buildCrewRosterDisplay(actorDoc, displayName) || displayName || String(actorDoc.name ?? "").trim();
-              actorType = String(actorDoc.type ?? "").trim().toLowerCase() === "character" ? "PC" : "NPC";
-              stats = buildCrewActorStatDisplay(actorDoc);
-            }
-          }
           const slotNumber = i + 1;
           const slotKey = `${kind}:${slotNumber}`;
+          const hasReference = Boolean(resolution.reference);
+          const hasResolvedOccupant = Boolean(resolution.isValid);
+          const slotDisplay = String(
+            resolution.occupantDisplay
+            ?? resolution.displayName
+            ?? entry?.display
+            ?? ""
+          ).trim();
+          const stats = hasResolvedOccupant ? resolution.stats : null;
+          const weaponDisplay = String(crewWeaponBySlot.get(slotKey) ?? "").trim();
           rows.push({
             idx: i,
-            id: idStr,
-            display: displayName,
-            actorTypeLabel: actorType,
-            hasActor: Boolean(idStr),
+            id: String(resolution.canonicalReference ?? resolution.reference ?? "").trim(),
+            referenceValue: String(resolution.reference ?? "").trim(),
+            referenceInputValue: String(resolution.reference ?? "").trim(),
+            referencePlaceholder: "Paste Token UUID or drop unique actor here",
+            display: slotDisplay,
+            shortDisplay: String(resolution.displayName ?? slotDisplay).trim(),
+            assignmentType: normalizeVehicleCrewAssignmentType(resolution.assignmentType),
+            tokenUuid: String(resolution.tokenUuid ?? "").trim(),
+            actorUuid: String(resolution.actorUuid ?? "").trim(),
+            actorTypeLabel: hasResolvedOccupant
+              ? (resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token ? "Token UUID" : "Character Actor")
+              : "",
+            hasActor: hasResolvedOccupant,
+            hasReference,
+            hasResolvedOccupant,
+            isInvalid: hasReference && !hasResolvedOccupant,
+            showClear: hasReference,
             position,
             roleLabel: definition.label,
-            seatLabel: buildVehicleCrewSeatLabel(definition.label, i + 1),
+            seatLabel: buildVehicleCrewSeatLabel(definition.label, slotNumber),
             slotCode: buildVehicleCrewShortSlotLabel(definition.label, slotNumber),
             slotKey,
-            weaponDisplay: idStr ? String(crewWeaponBySlot.get(slotKey) ?? "").trim() : "",
+            weaponDisplay,
             stats,
             slotNumber,
-            isExpanded: this._vehicleCrewExpandedRows.has(slotKey),
-            kind
+            isExpanded: hasResolvedOccupant && this._vehicleCrewExpandedRows.has(slotKey),
+            kind,
+            statusKey: String(resolution.statusKey ?? "empty").trim() || "empty",
+            statusLabel: String(resolution.statusLabel ?? "Empty").trim() || "Empty",
+            statusClass: `status-${String(resolution.statusKey ?? "empty").trim() || "empty"}`,
+            statusMessage: String(resolution.statusMessage ?? "").trim(),
+            referenceTypeLabel: String(resolution.referenceTypeLabel ?? "Seat Reference").trim() || "Seat Reference",
+            sceneName: String(resolution.sceneName ?? "").trim(),
+            canExpand: hasResolvedOccupant && Boolean(stats),
+            isTokenAssignment: hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token,
+            isCharacterException: hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor
           });
+
+          crewSummary.totalCapacity += 1;
+          if (hasReference) crewSummary.filledCount += 1;
+          if (hasResolvedOccupant) crewSummary.validCount += 1;
+          if (hasReference && !hasResolvedOccupant) crewSummary.invalidCount += 1;
+          if (hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token) {
+            crewSummary.tokenCount += 1;
+          }
+          if (hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor) {
+            crewSummary.characterCount += 1;
+          }
         }
+
+        const title = kind === "complement" ? "Passengers" : `${definition.label}s`;
+        const assignedCount = rows.filter((row) => row.hasReference).length;
+        const validCount = rows.filter((row) => row.hasResolvedOccupant).length;
+        const invalidCount = rows.filter((row) => row.isInvalid).length;
+        const tokenCount = rows.filter((row) => row.isTokenAssignment).length;
+        const characterCount = rows.filter((row) => row.isCharacterException).length;
         displayVehicleSystem.crew[kind] = rows;
         crewRosterRows.push(...rows);
+        crewGroups.push({
+          key: kind,
+          title,
+          description: crewGroupDescriptions[kind] ?? "",
+          capacity,
+          assignedCount,
+          validCount,
+          invalidCount,
+          tokenCount,
+          characterCount,
+          rows
+        });
       }
+
+      crewSummary.hasConfiguredSeats = crewSummary.totalCapacity > 0;
+      crewSummary.cards = [
+        { label: "Operators", value: toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.operators, 0), meta: "Control stations", toneClass: "metric-neutral" },
+        { label: "Gunners", value: toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.gunners, 0), meta: "Weapon crews", toneClass: "metric-neutral" },
+        { label: "Passengers", value: toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.passengers, 0), meta: "Compartment", toneClass: "metric-neutral" },
+        { label: "Filled", value: crewSummary.filledCount, meta: `${crewSummary.totalCapacity} configured`, toneClass: "metric-neutral" },
+        { label: "Token Linked", value: crewSummary.tokenCount, meta: "Preferred", toneClass: "metric-token" },
+        { label: "Character Exceptions", value: crewSummary.characterCount, meta: "Unique actors", toneClass: "metric-character" },
+        { label: "Needs Reassignment", value: crewSummary.invalidCount, meta: "Token UUID required", toneClass: crewSummary.invalidCount > 0 ? "metric-warning" : "metric-neutral" }
+      ];
 
       context.cssClass = this.options.classes.join(" ");
       context.actor = this.actor;
@@ -1073,6 +1455,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       context.mythicVehicleLoadout = vehicleLoadoutView;
       this._vehicleLoadoutNeedsMigration = Boolean(context.mythicVehicleLoadout?.needsMigration);
       context.mythicVehicleCrewRoster = crewRosterRows;
+      context.mythicVehicleCrewGroups = crewGroups.filter((group) => group.capacity > 0);
+      context.mythicVehicleCrewSummary = crewSummary;
       const propulsionType = String(displayVehicleSystem?.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
       const isWalkerVehicle = propulsionType === "legs";
       const propulsionMaxOptions = this._getVehiclePropulsionMaxSelectOptions(propulsionType);
@@ -1085,7 +1469,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       const vehicleMobilityContext = this._buildVehicleMobilityContext(displayVehicleSystem);
       displayVehicleSystem.movement.speed.value = vehicleMobilityContext.currentSpeed;
-      displayVehicleSystem.movement.speed.max = vehicleMobilityContext.topSpeed;
       const vehicleWeightUnitRaw = String(displayVehicleSystem?.dimensions?.weightUnit ?? "t").trim().toLowerCase();
       const vehicleWeightUnit = vehicleWeightUnitRaw === "kg" ? "kg" : "t";
       const storedVehicleWeightTonnesRaw = Number(displayVehicleSystem?.dimensions?.weight ?? 0);
@@ -1097,7 +1480,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         : storedVehicleWeightTonnes;
       const vehicleWeightDisplay = Math.round(Math.max(0, vehicleWeightDisplayRaw) * 1000) / 1000;
       displayVehicleSystem.dimensions.weightUnit = vehicleWeightUnit;
-      const vehicleOverviewContext = this._buildVehicleOverviewContext(displayVehicleSystem, vehicleLoadoutView);
+      const vehicleOverviewWeaponCards = await this._buildVehicleOverviewWeaponCards(displayVehicleSystem, vehicleLoadoutView);
+      const vehicleOverviewContext = this._buildVehicleOverviewContext(displayVehicleSystem, vehicleLoadoutView, vehicleOverviewWeaponCards);
       context.mythicVehicleSystem = displayVehicleSystem;
       context.mythicVehicleOverview = vehicleOverviewContext;
       context.mythicPropulsionTypeOptions = this._getVehiclePropulsionTypeOptions();
@@ -1327,23 +1711,196 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return Math.max(0, Math.round(speed * 0.6));
   }
 
+  _formatVehicleStatusList(values = []) {
+    const entries = (Array.isArray(values) ? values : [])
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean);
+    if (!entries.length) return "";
+    if (entries.length === 1) return entries[0];
+    if (entries.length === 2) return `${entries[0]} and ${entries[1]}`;
+    return `${entries.slice(0, -1).join(", ")}, and ${entries[entries.length - 1]}`;
+  }
+
+  _resolveVehicleMobilityPenaltyPercent(propulsionType = "", totalComponents = 0, destroyedCount = 0) {
+    const type = String(propulsionType ?? "").trim().toLowerCase();
+    if (!["wheels", "treads"].includes(type)) return 0;
+    const total = Math.max(0, Number.parseInt(String(totalComponents ?? 0), 10) || 0);
+    const destroyed = Math.max(0, Math.min(total, Number.parseInt(String(destroyedCount ?? 0), 10) || 0));
+    const tableByType = MYTHIC_VEHICLE_MOBILITY_PENALTY_TABLES[type];
+    const tableByCount = tableByType?.[total];
+
+    if (tableByCount && Object.prototype.hasOwnProperty.call(tableByCount, destroyed)) {
+      return Math.max(0, Math.min(100, Number(tableByCount[destroyed]) || 0));
+    }
+
+    if (total > 0 && destroyed >= total) return 100;
+    return 0;
+  }
+
+  _buildVehicleMobilityDamageState(vehicleSystem = null, mobilityTrackers = []) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const propulsionType = String(source?.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
+    const totalComponents = Math.max(
+      0,
+      Number.parseInt(String(source?.propulsion?.max ?? ""), 10) || toNonNegativeWhole(source?.propulsion?.value, 0)
+    );
+
+    const trackerRows = Array.isArray(mobilityTrackers) ? mobilityTrackers : [];
+    const hasTrackerRows = trackerRows.length > 0;
+    const fallbackBreakpointMax = this._getVehicleConfiguredOverviewBaseValue(source?.breakpoints?.mob ?? {});
+    const overviewMobility = source?.overview?.breakpoints?.mobility?.byId ?? {};
+    const destroyedSet = new Set();
+
+    const markDestroyedIndex = (index) => {
+      if (Number.isInteger(index) && index > 0 && index <= totalComponents) {
+        destroyedSet.add(index);
+      }
+    };
+
+    if (hasTrackerRows) {
+      for (const tracker of trackerRows) {
+        const trackerId = String(tracker?.id ?? "").trim();
+        const idMatch = /^mobility-(\d+)$/u.exec(trackerId);
+        const trackerIndex = idMatch ? Number.parseInt(idMatch[1], 10) : NaN;
+        const current = Number(tracker?.current ?? 0);
+        const max = Number(tracker?.max ?? fallbackBreakpointMax);
+        if (Number.isFinite(current) && Number.isFinite(max) && max > 0 && current <= 0) {
+          markDestroyedIndex(trackerIndex);
+        }
+      }
+    } else if (totalComponents > 0) {
+      for (let index = 1; index <= totalComponents; index += 1) {
+        const trackerId = `mobility-${index}`;
+        const trackerCurrent = Number(overviewMobility?.[trackerId]?.current ?? fallbackBreakpointMax);
+        if (fallbackBreakpointMax > 0 && Number.isFinite(trackerCurrent) && trackerCurrent <= 0) {
+          markDestroyedIndex(index);
+        }
+      }
+    }
+
+    const destroyedIndices = Array.from(destroyedSet).sort((a, b) => a - b);
+    const destroyedMobilityCount = destroyedIndices.length;
+    const mobilityPenaltyPercent = this._resolveVehicleMobilityPenaltyPercent(
+      propulsionType,
+      totalComponents,
+      destroyedMobilityCount
+    );
+    const mobilityRemainingPercent = Math.max(0, 100 - mobilityPenaltyPercent);
+    const isImmobilized = mobilityPenaltyPercent >= 100;
+
+    const baseTopSpeedRaw = toNonNegativeWhole(source?.movement?.speed?.max, 0);
+    const baseCurrentSpeedRaw = toNonNegativeWhole(source?.movement?.speed?.value, 0);
+    const baseTopSpeed = baseTopSpeedRaw > 0 ? baseTopSpeedRaw : baseCurrentSpeedRaw;
+    const baseAcceleration = toNonNegativeWhole(source?.movement?.accelerate?.value, 0);
+
+    const reducedTopSpeed = isImmobilized
+      ? 0
+      : Math.max(0, Math.round((baseTopSpeed * mobilityRemainingPercent) / 100));
+    const reducedAcceleration = isImmobilized
+      ? 0
+      : Math.max(0, Math.round((baseAcceleration * mobilityRemainingPercent) / 100));
+
+    const hasIndexedComponents = destroyedIndices.length > 0 && totalComponents > 0;
+    const singularLabel = this._getVehicleOverviewMobilityComponentLabel(propulsionType, false);
+    const destroyedMobilityLabels = hasIndexedComponents
+      ? destroyedIndices.map((index) => `${singularLabel} ${index}`)
+      : [];
+
+    return {
+      propulsionType,
+      totalComponents,
+      mobilityPenaltyPercent,
+      mobilityRemainingPercent,
+      isImmobilized,
+      reducedTopSpeed,
+      reducedAcceleration,
+      destroyedMobilityCount,
+      destroyedMobilityIndices: destroyedIndices,
+      destroyedMobilityLabels,
+      hasIndexedComponents,
+      baseTopSpeed,
+      baseAcceleration
+    };
+  }
+
+  _formatVehicleMobilityStatusSummary(mobilityState = {}) {
+    const penalty = Number(mobilityState?.mobilityPenaltyPercent ?? 0) || 0;
+    const remaining = Math.max(0, Number(mobilityState?.mobilityRemainingPercent ?? 100) || 0);
+    if (penalty >= 100) return "Vehicle Immobilized";
+    if (penalty > 0) return `Mobility Reduced to ${remaining}%`;
+    return "";
+  }
+
+  _formatVehicleMobilityStatusDetail(mobilityState = {}) {
+    const penalty = Number(mobilityState?.mobilityPenaltyPercent ?? 0) || 0;
+    if (penalty <= 0) return "";
+
+    const propulsionType = String(mobilityState?.propulsionType ?? "").trim().toLowerCase();
+    const destroyedCount = Math.max(0, Number(mobilityState?.destroyedMobilityCount ?? 0) || 0);
+    const totalComponents = Math.max(0, Number(mobilityState?.totalComponents ?? 0) || 0);
+    const isImmobilized = Boolean(mobilityState?.isImmobilized);
+    const singularLabel = this._getVehicleOverviewMobilityComponentLabel(propulsionType, false);
+    const pluralLabel = this._getVehicleOverviewMobilityComponentLabel(propulsionType, true);
+    const indices = Array.isArray(mobilityState?.destroyedMobilityIndices)
+      ? mobilityState.destroyedMobilityIndices
+      : [];
+    const hasIndexedComponents = Boolean(mobilityState?.hasIndexedComponents) && indices.length > 0;
+
+    if (isImmobilized && totalComponents > 0 && destroyedCount >= totalComponents) {
+      return `All ${pluralLabel} Destroyed. Vehicle Immobilized.`;
+    }
+
+    const remaining = Math.max(0, Number(mobilityState?.mobilityRemainingPercent ?? 100) || 0);
+    let destroyedPrefix = "";
+    if (hasIndexedComponents) {
+      if (indices.length === 1) {
+        destroyedPrefix = `${singularLabel} ${indices[0]} Destroyed.`;
+      } else if (indices.length > 1) {
+        destroyedPrefix = `${pluralLabel} ${this._formatVehicleStatusList(indices)} Destroyed.`;
+      }
+    } else if (destroyedCount > 0) {
+      destroyedPrefix = `${destroyedCount} ${destroyedCount === 1 ? singularLabel : pluralLabel} Destroyed.`;
+    }
+
+    const mobilityText = isImmobilized
+      ? "Vehicle Immobilized."
+      : `Mobility Reduced to ${remaining}%.`;
+    return destroyedPrefix ? `${destroyedPrefix} ${mobilityText}` : mobilityText;
+  }
+
   _buildVehicleMobilityContext(vehicleSystem = null) {
     const source = vehicleSystem ?? this.actor?.system ?? {};
+    const mobilityState = this._buildVehicleMobilityDamageState(source);
+    const doomState = this._getVehicleDoomStateSnapshot(source);
+    const doomedVehicleImmobile = Boolean(doomState?.doomedVehicleImmobile);
     const currentSpeedRaw = toNonNegativeWhole(source?.movement?.speed?.value, 0);
-    const topSpeedRaw = toNonNegativeWhole(source?.movement?.speed?.max, 0);
-    const topSpeed = topSpeedRaw > 0 ? topSpeedRaw : currentSpeedRaw;
-    const currentSpeed = topSpeed > 0 ? Math.min(currentSpeedRaw, topSpeed) : currentSpeedRaw;
-    const ratio = topSpeed > 0 ? Math.max(0, Math.min(1, currentSpeed / topSpeed)) : 0;
+    const effectiveTopSpeed = doomedVehicleImmobile ? 0 : toNonNegativeWhole(mobilityState?.reducedTopSpeed, 0);
+    const baseTopSpeed = toNonNegativeWhole(mobilityState?.baseTopSpeed, 0);
+    const speedometerMaxSpeed = baseTopSpeed > 0 ? baseTopSpeed : effectiveTopSpeed;
+    const currentSpeed = effectiveTopSpeed > 0 ? Math.min(currentSpeedRaw, effectiveTopSpeed) : 0;
+    const ratio = speedometerMaxSpeed > 0 ? Math.max(0, Math.min(1, currentSpeed / speedometerMaxSpeed)) : 0;
     const needleAngle = Math.round((-90 + (ratio * 180)) * 100) / 100;
 
     return {
       currentSpeed,
-      topSpeed,
+      topSpeed: effectiveTopSpeed,
+      effectiveTopSpeed,
+      baseTopSpeed,
+      speedometerMaxSpeed,
       currentKmh: this._convertVehicleMptToKmh(currentSpeed),
-      topKmh: this._convertVehicleMptToKmh(topSpeed),
+      topKmh: this._convertVehicleMptToKmh(effectiveTopSpeed),
+      speedometerMaxKmh: this._convertVehicleMptToKmh(speedometerMaxSpeed),
       brake: toNonNegativeWhole(source?.movement?.brake?.value, 0),
-      accelerate: toNonNegativeWhole(source?.movement?.accelerate?.value, 0),
+      accelerate: doomedVehicleImmobile ? 0 : toNonNegativeWhole(mobilityState?.reducedAcceleration, 0),
       maneuver: toNonNegativeWhole(source?.movement?.maneuver?.total, 0),
+      baseAcceleration: toNonNegativeWhole(mobilityState?.baseAcceleration, 0),
+      mobilityPenaltyPercent: toNonNegativeWhole(mobilityState?.mobilityPenaltyPercent, 0),
+      mobilityRemainingPercent: toNonNegativeWhole(mobilityState?.mobilityRemainingPercent, 100),
+      isImmobilized: doomedVehicleImmobile || Boolean(mobilityState?.isImmobilized),
+      destroyedMobilityCount: toNonNegativeWhole(mobilityState?.destroyedMobilityCount, 0),
+      destroyedMobilityLabels: Array.isArray(mobilityState?.destroyedMobilityLabels)
+        ? mobilityState.destroyedMobilityLabels
+        : [],
       ratio,
       needleAngle
     };
@@ -1374,6 +1931,535 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return plural ? "Wheels" : "Wheel";
   }
 
+  _resolveStrengthContributionForRuntime(mode = "", characteristicRuntime = null) {
+    const normalized = String(mode ?? "").trim().toLowerCase();
+    const strengthModifier = Number(characteristicRuntime?.modifiers?.str ?? 0) || 0;
+    if (normalized === "double-str-mod") return strengthModifier * 2;
+    if (normalized === "half-str-mod") return Math.floor(strengthModifier / 2);
+    if (normalized === "full-str-mod") return strengthModifier;
+    return 0;
+  }
+
+  _buildCompactWeaponBadges(gear = {}) {
+    const compactBadgeText = (label) => {
+      const text = String(label ?? "").trim();
+      if (!text) return "?";
+      if (text.length <= 4) return text.toUpperCase();
+      const words = text.split(/[\s\-_/]+/u).filter(Boolean);
+      if (words.length >= 2) return words.map((word) => word.charAt(0).toUpperCase()).join("").slice(0, 4);
+      return text.slice(0, 4).toUpperCase();
+    };
+
+    const tagLabelByKey = new Map(MYTHIC_WEAPON_TAG_DEFINITIONS.map((entry) => [
+      String(entry?.key ?? "").trim().toLowerCase(),
+      String(entry?.label ?? entry?.key ?? "").trim()
+    ]).filter(([key, label]) => key && label));
+    const ruleLabelByKey = new Map(MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS.map((entry) => [
+      String(entry?.key ?? "").trim().toLowerCase(),
+      String(entry?.label ?? entry?.key ?? "").trim()
+    ]).filter(([key, label]) => key && label));
+    const ignoredTagTokens = new Set(["u", "i", "p", "nc", "npu", "ncu"]);
+    const shouldIgnoreTagKey = (rawKey) => {
+      const normalized = String(rawKey ?? "").trim().toLowerCase();
+      if (!normalized) return false;
+      return ignoredTagTokens.has(normalized.replace(/[^a-z0-9]/gu, ""));
+    };
+
+    const badges = [];
+    const seen = new Set();
+    const pushBadge = (kind, key, label) => {
+      const safeKind = String(kind ?? "").trim().toLowerCase() === "rule" ? "rule" : "tag";
+      const safeKey = String(key ?? "").trim();
+      const safeLabel = String(label ?? safeKey).trim();
+      if (!safeLabel) return;
+      const dedupeKey = `${safeKind}:${safeKey.toLowerCase() || safeLabel.toLowerCase()}`;
+      if (seen.has(dedupeKey)) return;
+      seen.add(dedupeKey);
+      badges.push({
+        kind: safeKind,
+        key: safeKey,
+        shortLabel: compactBadgeText(safeLabel),
+        fullLabel: safeLabel
+      });
+    };
+
+    for (const rawKey of normalizeStringList(Array.isArray(gear?.weaponTagKeys) ? gear.weaponTagKeys : [])) {
+      const key = String(rawKey ?? "").trim();
+      if (!key || shouldIgnoreTagKey(key)) continue;
+      pushBadge("tag", key, tagLabelByKey.get(key.toLowerCase()) ?? key);
+    }
+
+    for (const rawKey of normalizeStringList(Array.isArray(gear?.weaponSpecialRuleKeys) ? gear.weaponSpecialRuleKeys : [])) {
+      const key = String(rawKey ?? "").trim();
+      if (!key) continue;
+      pushBadge("rule", key, ruleLabelByKey.get(key.toLowerCase()) ?? key);
+    }
+
+    const bracketTagPattern = /\[([A-Za-z0-9+\-]+)\]/gu;
+    const rulesText = String(gear?.specialRules ?? "");
+    let match = bracketTagPattern.exec(rulesText);
+    while (match) {
+      const token = String(match[1] ?? "").trim();
+      if (token) {
+        const bracketed = `[${token}]`;
+        if (shouldIgnoreTagKey(bracketed)) {
+          match = bracketTagPattern.exec(rulesText);
+          continue;
+        }
+        pushBadge("tag", bracketed, tagLabelByKey.get(bracketed.toLowerCase()) ?? tagLabelByKey.get(token.toLowerCase()) ?? bracketed);
+      }
+      match = bracketTagPattern.exec(rulesText);
+    }
+
+    return badges;
+  }
+
+  _formatVehicleWeaponModeSummary(modeLabel = "", modeProfile = null) {
+    const normalizedLabel = String(modeLabel ?? "").trim();
+    const profile = (modeProfile && typeof modeProfile === "object") ? modeProfile : parseFireModeProfile(normalizedLabel);
+    if (!normalizedLabel) return "Single";
+    switch (String(profile?.kind ?? "").trim().toLowerCase()) {
+      case "auto":
+        return `Auto(${Math.max(1, Number(profile?.count ?? 0) || 1)})`;
+      case "burst":
+        return `Burst(${Math.max(1, Number(profile?.count ?? 0) || 1)})`;
+      case "charge":
+        return `Charge(${Math.max(1, Number(profile?.count ?? 0) || 1)})`;
+      case "drawback":
+        return `Draw(${Math.max(1, Number(profile?.count ?? 0) || 1)})`;
+      case "sustained":
+        return "Sustain";
+      case "pump":
+        return "Pump";
+      case "flintlock":
+        return "Flint";
+      default:
+        return normalizedLabel;
+    }
+  }
+
+  async _buildVehicleOverviewWeaponCards(vehicleSystem = null, vehicleLoadoutView = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const loadoutView = vehicleLoadoutView ?? this._getVehicleLoadoutViewData(source);
+    const seatMap = this._getVehicleCrewSeatMap(source);
+    const emplacements = Array.isArray(loadoutView?.emplacements) ? loadoutView.emplacements : [];
+    const hasNeuralLinkCapability = Boolean(source?.special?.neuralInterface?.has);
+    const scopeOptions = {
+      none: "No Scope",
+      x2: "2x Scope",
+      x4: "4x Scope"
+    };
+
+    const cards = [];
+    for (const emplacement of emplacements) {
+      const weaponId = String(emplacement?.weaponId ?? "").trim();
+      if (!weaponId) continue;
+      const item = this.actor.items.get(weaponId);
+      if (!item || item.type !== "gear") continue;
+      const slotCode = this._getVehicleOverviewEmplacementSlotCode(emplacement, cards.length);
+
+      const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+      const state = (emplacement?.weaponState && typeof emplacement.weaponState === "object")
+        ? emplacement.weaponState
+        : {};
+      const activeUser = this._resolveVehicleWeaponActiveUser(emplacement, source, emplacements);
+      const characteristicRuntime = activeUser.activeUserActor
+        ? await this._getLiveCharacteristicRuntime(activeUser.activeUserActor)
+        : this._buildCharacteristicRuntime({});
+      const trainingStatus = activeUser.activeUserActor
+        ? this._evaluateWeaponTrainingStatus(gear, item.name ?? "", activeUser.activeUserActor)
+        : {
+            hasAnyMismatch: false,
+            warningText: "",
+            missingFactionTraining: false,
+            missingWeaponTraining: false
+          };
+      const isMelee = gear.weaponClass === "melee";
+      const isInfusionRadius = this._isInfusionRadiusWeapon(item);
+      const isGrenadeWeapon = isGrenadeAmmoMode(gear.ammoMode)
+        || String(gear.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades";
+      const smartText = `${gear.specialRules ?? ""} ${gear.attachments ?? ""} ${gear.description ?? ""}`.toLowerCase();
+      const isSmartLinkCapable = /smart\s*-?\s*link/.test(smartText);
+      const rawFireModes = Array.isArray(gear.fireModes) && gear.fireModes.length ? gear.fireModes : ["Single"];
+      const selectedFireModeValue = String(state.fireMode ?? "").trim().toLowerCase();
+      const fireModes = rawFireModes.map((mode, index) => {
+        const label = String(mode ?? "Single").trim() || "Single";
+        const value = label.toLowerCase() || `single-${index + 1}`;
+        return {
+          value,
+          label,
+          isSelected: selectedFireModeValue ? selectedFireModeValue === value : index === 0
+        };
+      });
+      const selectedFireModeLabel = fireModes.find((mode) => mode.isSelected)?.label ?? fireModes[0]?.label ?? "Single";
+      const selectedProfile = parseFireModeProfile(selectedFireModeLabel);
+      const isSustainedFireMode = selectedProfile.kind === "sustained";
+      const halfActionAttackCount = isInfusionRadius ? 1 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "half", {
+        isMelee,
+        warfareMeleeModifier: Number(characteristicRuntime?.modifiers?.wfm ?? 0)
+      }));
+      const fullActionAttackCount = isInfusionRadius ? 0 : Math.max(0, getAttackIterationsForProfile(selectedProfile, "full", {
+        isMelee,
+        warfareMeleeModifier: Number(characteristicRuntime?.modifiers?.wfm ?? 0)
+      }));
+      const hasChargeModeSelected = selectedProfile.kind === "charge" || selectedProfile.kind === "drawback";
+      const chargeMaxLevel = hasChargeModeSelected ? Math.max(1, selectedProfile.count) : 0;
+      const chargeLevel = chargeMaxLevel > 0 ? Math.min(toNonNegativeWhole(state.chargeLevel, 0), chargeMaxLevel) : 0;
+      const chargeDamagePerLevel = toNonNegativeWhole(gear.charge?.damagePerLevel, 0);
+      const chargePips = Array.from({ length: chargeMaxLevel }, (_entry, index) => ({
+        filled: index < chargeLevel,
+        level: index + 1
+      }));
+      const variantAttacksRaw = Array.isArray(gear.variantAttacks) ? gear.variantAttacks : [];
+      const hasVariants = isMelee && variantAttacksRaw.length > 0;
+      const selectedVariantIdx = hasVariants
+        ? Math.max(0, Math.min(toNonNegativeWhole(state.variantIndex, 0), variantAttacksRaw.length))
+        : 0;
+      const primaryAttackName = hasVariants
+        ? (String(gear.attackName ?? "").trim() || "Primary Attack")
+        : null;
+      const variantOptions = hasVariants ? [
+        { label: primaryAttackName, index: 0, isSelected: selectedVariantIdx === 0 },
+        ...variantAttacksRaw.map((variant, variantIndex) => ({
+          label: String(variant?.name ?? "").trim() || `Variant ${variantIndex + 1}`,
+          index: variantIndex + 1,
+          isSelected: selectedVariantIdx === variantIndex + 1
+        }))
+      ] : [];
+      const activeVariantData = hasVariants && selectedVariantIdx > 0
+        ? variantAttacksRaw[selectedVariantIdx - 1]
+        : null;
+      const activeDiceCount = activeVariantData ? toNonNegativeWhole(activeVariantData.diceCount, 0) : toNonNegativeWhole(gear.damage?.diceCount, 0);
+      const activeDiceType = activeVariantData
+        ? (String(activeVariantData.diceType ?? "d10").toLowerCase() === "d5" ? "d5" : "d10")
+        : (String(gear.damage?.diceType ?? "d10").toLowerCase() === "d5" ? "d5" : "d10");
+      const activeBaseDamage = activeVariantData ? Number(activeVariantData.baseDamage ?? 0) : Number(gear.damage?.baseDamage ?? 0);
+      const activeBaseDamageModMode = activeVariantData
+        ? String(activeVariantData.baseDamageModifierMode ?? "full-str-mod").toLowerCase()
+        : String(gear.damage?.baseDamageModifierMode ?? "full-str-mod").toLowerCase();
+      const activePierce = activeVariantData ? Number(activeVariantData.pierce ?? 0) : Number(gear.damage?.pierce ?? 0);
+      const activePierceModMode = activeVariantData
+        ? String(activeVariantData.pierceModifierMode ?? "full-str-mod").toLowerCase()
+        : String(gear.damage?.pierceModifierMode ?? "full-str-mod").toLowerCase();
+      const baseDamageStrengthBonus = isMelee ? this._resolveStrengthContributionForRuntime(activeBaseDamageModMode, characteristicRuntime) : 0;
+      const pierceStrengthBonus = isMelee ? this._resolveStrengthContributionForRuntime(activePierceModMode, characteristicRuntime) : 0;
+      const displayDamageBase = isMelee ? activeBaseDamage + baseDamageStrengthBonus : activeBaseDamage;
+      const displayDamagePierce = isMelee ? Math.max(0, activePierce + pierceStrengthBonus) : Math.max(0, activePierce);
+      const displayDiceCount = activeDiceCount > 0
+        ? activeDiceCount
+        : Math.max(toNonNegativeWhole(gear.damage?.baseRollD10, 0), toNonNegativeWhole(gear.damage?.baseRollD5, 0));
+      const displayDiceType = activeDiceCount > 0
+        ? activeDiceType
+        : (toNonNegativeWhole(gear.damage?.baseRollD10, 0) > 0 ? "d10" : "d5");
+      const damageDiceLabel = displayDiceCount > 0 ? `${displayDiceCount}${displayDiceType}` : "0";
+      const currentAttackName = hasVariants
+        ? (selectedVariantIdx === 0
+            ? primaryAttackName
+            : (String(variantAttacksRaw[selectedVariantIdx - 1]?.name ?? "").trim() || `Variant ${selectedVariantIdx}`))
+        : null;
+
+      const validOperatorSeatKeys = Array.isArray(activeUser.validNeuralLinkOperatorSeatKeys)
+        ? activeUser.validNeuralLinkOperatorSeatKeys
+        : [];
+      const selectedNeuralLinkSeatKey = activeUser.resolvedNeuralLinkSeatKey || String(emplacement?.neuralLinkOperatorSeatKey ?? "").trim();
+      const neuralLinkOperatorOptions = validOperatorSeatKeys.map((seatKey) => {
+        const seat = seatMap.get(seatKey) ?? null;
+        return {
+          value: seatKey,
+          label: String(seat?.display ?? seat?.seatLabel ?? seatKey).trim() || seatKey,
+          isSelected: seatKey === selectedNeuralLinkSeatKey
+        };
+      });
+
+      let grenadeThrowRangeMax = 0;
+      let grenadeThrowCanThrow = false;
+      if (isGrenadeWeapon && activeUser.activeUserActor) {
+        const strScore = toNonNegativeWhole(characteristicRuntime?.scores?.str, 0);
+        const mythicStrength = Math.max(0, toNonNegativeWhole(activeUser.activeUserActor?.system?.mythic?.characteristics?.str, 0));
+        const strengthPower = Math.max(0, Math.floor(strScore / 10) + mythicStrength);
+        grenadeThrowRangeMax = Math.max(0, Math.floor(strengthPower * 15));
+        grenadeThrowCanThrow = grenadeThrowRangeMax > 0;
+      }
+
+      const weaponBadges = this._buildCompactWeaponBadges(gear);
+      const compactBadges = weaponBadges.slice(0, 6);
+      if (!compactBadges.length && String(gear.specialRules ?? "").trim()) {
+        compactBadges.push({
+          kind: "rule",
+          key: "rules",
+          shortLabel: "RLS",
+          fullLabel: String(gear.specialRules ?? "").trim()
+        });
+      }
+      const rangeSummary = isMelee
+        ? `Reach ${Math.max(1, toNonNegativeWhole(gear.range?.close, 1))}m`
+        : (isGrenadeWeapon
+            ? `Thr ${Math.max(0, grenadeThrowRangeMax)}m`
+            : `${toNonNegativeWhole(gear.range?.max, 0)}/${toNonNegativeWhole(gear.range?.close, 0)}m`);
+      const scopeMode = String(state.scopeMode ?? "none").trim().toLowerCase() || "none";
+      const toHitModifier = Number.isFinite(Number(state.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
+      const damageModifier = Number.isFinite(Number(state.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0;
+      const displayName = ((Array.isArray(gear.nicknames) && gear.nicknames.length)
+        ? (String(gear.nicknames[0] ?? "").trim())
+        : "") || String(item.name ?? "").trim() || "Weapon";
+      const compactControllerLabel = String(activeUser?.activeUserLabel ?? activeUser?.activeUserActor?.name ?? "Unmanned").trim() || "Unmanned";
+      const isExpanded = Boolean(source?.overview?.ui?.weaponPanelsExpanded?.[emplacement.id]);
+      const togglePath = `system.overview.ui.weaponPanelsExpanded.${emplacement.id}`;
+      const collapsedActionButtons = [];
+      const expandedActionButtons = [];
+      if (hasChargeModeSelected) {
+        collapsedActionButtons.push({ action: "chargeFire", label: "Fire", title: "Charge Fire", cssClass: "weapon-charge-fire-btn" });
+      } else if (isGrenadeWeapon) {
+        collapsedActionButtons.push(
+          { action: "half", grenadeAction: "throw", label: "Throw", title: "Throw" },
+          { action: "half", grenadeAction: "cook", label: "Cook", title: "Cook" }
+        );
+      } else {
+        if (isSustainedFireMode) collapsedActionButtons.push({ action: "single", label: "Atk", title: "Attack" });
+        if (!isSustainedFireMode && selectedProfile.kind !== "flintlock") {
+          collapsedActionButtons.push({ action: "single", label: "S", title: "Single Attack" });
+          collapsedActionButtons.push({ action: "half", label: `H${halfActionAttackCount}`, title: `Half Action (${halfActionAttackCount})` });
+        }
+        if (!isSustainedFireMode) {
+          collapsedActionButtons.push({ action: "full", label: `F${fullActionAttackCount}`, title: `Full Action (${fullActionAttackCount})` });
+        }
+        if (!isMelee) {
+          collapsedActionButtons.push({ action: "buttstroke", label: "Butt", title: "Buttstroke", cssClass: "weapon-buttstroke-btn" });
+        }
+        if (selectedProfile.kind === "pump") {
+          expandedActionButtons.push({ action: "pump-reaction", label: "Reaction Shot", title: "Reaction Shot" });
+        }
+      }
+      if (!isInfusionRadius) {
+        expandedActionButtons.push({ action: "execution", label: "Execution", title: "Execution Attack", cssClass: "weapon-execution-btn" });
+      }
+
+      cards.push({
+        id: item.id,
+        emplacementId: emplacement.id,
+        slotCode,
+        panelTitle: `Weapon ${slotCode}`,
+        name: item.name,
+        displayName,
+        nickname: (Array.isArray(gear.nicknames) && gear.nicknames.length)
+          ? (String(gear.nicknames[0] ?? "").trim())
+          : String(gear.nickname ?? "").trim(),
+        displayWeaponClass: isInfusionRadius ? "Special" : String(gear.weaponClass ?? "weapon").trim(),
+        controllingUserLabel: activeUser.activeUserLabel || "Unmanned",
+        compactControllerLabel,
+        activeUserType: activeUser.activeUserType,
+        canAttack: Boolean(activeUser.canAttack),
+        disableReason: String(activeUser.disableReason ?? "").trim(),
+        hasTrainingWarning: trainingStatus.hasAnyMismatch,
+        trainingWarningText: trainingStatus.warningText,
+        showNeuralLinkToggle: hasNeuralLinkCapability,
+        useNeuralLink: emplacement?.useNeuralLink === true,
+        showNeuralLinkOperatorSelect: hasNeuralLinkCapability && emplacement?.useNeuralLink === true && neuralLinkOperatorOptions.length > 1,
+        neuralLinkOperatorOptions: [
+          { value: "", label: "Select operator", isSelected: !selectedNeuralLinkSeatKey },
+          ...neuralLinkOperatorOptions
+        ],
+        isMelee,
+        isInfusionRadius,
+        isGrenadeWeapon,
+        isSmartLinkCapable,
+        showStandardFireModes: !isInfusionRadius && !isMelee && !isGrenadeWeapon && fireModes.length > 0,
+        showVariantSelector: hasVariants,
+        variantOptions,
+        currentAttackName,
+        showSustainedAttack: !isInfusionRadius && isSustainedFireMode,
+        showSingleAttack: !isInfusionRadius && selectedProfile.kind !== "flintlock" && !isSustainedFireMode,
+        showHalfAttack: !isInfusionRadius && selectedProfile.kind !== "flintlock" && !isSustainedFireMode,
+        showFullAttack: !isInfusionRadius && !isSustainedFireMode,
+        showPumpReactionAttack: !isInfusionRadius && selectedProfile.kind === "pump",
+        showExecutionAttack: !isInfusionRadius,
+        showButtstrokeAttack: !isInfusionRadius && !isMelee,
+        fireModes,
+        fireModeSummary: this._formatVehicleWeaponModeSummary(selectedFireModeLabel, selectedProfile),
+        selectedFireModeLabel,
+        halfActionAttackCount,
+        fullActionAttackCount,
+        collapsedActionButtons,
+        expandedActionButtons,
+        hasExpandedActionButtons: expandedActionButtons.length > 0,
+        hasChargeModeSelected,
+        chargeLevel,
+        chargeMaxLevel,
+        chargeDamageBonusPreview: chargeLevel * chargeDamagePerLevel,
+        chargePips,
+        rangeClose: toNonNegativeWhole(gear.range?.close, 0),
+        rangeMax: toNonNegativeWhole(gear.range?.max, 0),
+        rangeSummary,
+        reach: Math.max(1, toNonNegativeWhole(gear.range?.close, 1)),
+        damageDiceLabel,
+        displayDamageBase,
+        displayDamagePierce,
+        scopeMode,
+        scopeOptions,
+        toHitModifier,
+        damageModifier,
+        hitModifierLabel: `${toHitModifier >= 0 ? "+" : ""}${toHitModifier}`,
+        damageModifierLabel: `${damageModifier >= 0 ? "+" : ""}${damageModifier}`,
+        specialRulesText: String(gear.specialRules ?? "").trim(),
+        hasSpecialRulesText: Boolean(String(gear.specialRules ?? "").trim()),
+        compactBadges,
+        hasCompactBadges: compactBadges.length > 0,
+        compactBadgeOverflow: Math.max(0, weaponBadges.length - compactBadges.length),
+        isExpanded,
+        togglePath,
+        grenadeThrowCanThrow,
+        grenadeThrowRangeMax
+      });
+    }
+
+    return cards;
+  }
+
+  _getVehicleDoomStateSnapshot(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const normalizedDoomed = (source?.doomed && typeof source.doomed === "object" && !Array.isArray(source.doomed))
+      ? source.doomed
+      : {};
+    const legacyDoomed = (source?.breakpoints?.hull?.doom && typeof source.breakpoints.hull.doom === "object" && !Array.isArray(source.breakpoints.hull.doom))
+      ? source.breakpoints.hull.doom
+      : {};
+    const merged = foundry.utils.mergeObject(foundry.utils.deepClone(legacyDoomed), normalizedDoomed, {
+      inplace: false,
+      insertKeys: true,
+      insertValues: true,
+      overwrite: true,
+      recursive: true
+    });
+    merged.isDoomed = Boolean(merged?.isDoomed ?? merged?.active);
+    return merged;
+  }
+
+  _pushVehicleStatusItem(items = [], text = "") {
+    const message = String(text ?? "").replace(/\s+/gu, " ").trim();
+    if (!message) return;
+    if (!items.includes(message)) items.push(message);
+  }
+
+  _buildVehicleOfflineWeaponLabels(weaponTrackers = []) {
+    return weaponTrackers
+      .filter((entry) => entry?.isCritical)
+      .map((entry) => String(entry?.label ?? "").trim())
+      .filter(Boolean);
+  }
+
+  _buildVehicleOfflineOpticsLabels(opticsTrackers = []) {
+    return (Array.isArray(opticsTrackers) ? opticsTrackers : [])
+      .filter((entry) => String(entry?.id ?? "").trim() && Number(entry?.current ?? 0) <= 0)
+      .map((entry) => String(entry?.label ?? "").trim())
+      .filter(Boolean);
+  }
+
+  _formatVehicleOfflineWeaponSummary(offlineWeaponLabels = []) {
+    const labels = Array.isArray(offlineWeaponLabels) ? offlineWeaponLabels.filter(Boolean) : [];
+    if (!labels.length) return "";
+    if (labels.length === 1) return `${labels[0]} Weapon Offline`;
+    return `${labels.join(", ")} Weapons Offline`;
+  }
+
+  _formatVehicleOfflineOpticsSummary(offlineOpticsLabels = []) {
+    const labels = Array.isArray(offlineOpticsLabels) ? offlineOpticsLabels.filter(Boolean) : [];
+    if (!labels.length) return "";
+    if (labels.length === 1) return `${labels[0]} Optics Offline`;
+    return `${labels.join(", ")} Optics Offline`;
+  }
+
+  _formatVehicleDetonationCountdownText(doomState = {}) {
+    const immediate = Boolean(doomState?.doomedImmediateDetonation)
+      || String(doomState?.doomedDetonationState ?? "").trim().toLowerCase() === "immediate";
+    if (immediate) return "Immediate detonation expected.";
+
+    const roundsRemaining = Math.max(0, Number(doomState?.doomedDetonationRoundsRemaining ?? 0) || 0);
+    const secondsRemaining = Math.max(0, Number(doomState?.doomedDetonationSecondsRemaining ?? 0) || 0);
+    if (roundsRemaining <= 0) return "Immediate detonation expected.";
+
+    const roundLabel = roundsRemaining === 1 ? "Round" : "Rounds";
+    const secondLabel = secondsRemaining === 1 ? "second" : "seconds";
+    return `Detonation expected within ${secondsRemaining} ${secondLabel} (${roundsRemaining} ${roundLabel}).`;
+  }
+
+  _buildVehicleDoomStatusSummaryItems(doomState = {}) {
+    const summaryItems = [];
+    if (!doomState?.isDoomed) return summaryItems;
+    const isImmediateDetonation = Boolean(doomState?.doomedImmediateDetonation)
+      || String(doomState?.doomedDetonationState ?? "").trim().toLowerCase() === "immediate"
+      || Math.max(0, Number(doomState?.doomedTier ?? 0) || 0) >= 9;
+    if (isImmediateDetonation) return ["Detonation"];
+
+    this._pushVehicleStatusItem(summaryItems, "Armor Compromised");
+    if (Boolean(doomState?.doomedOnFire)) {
+      this._pushVehicleStatusItem(summaryItems, "Vehicle on fire");
+    }
+    if (Boolean(doomState?.doomedVehicleImmobile)) {
+      this._pushVehicleStatusItem(summaryItems, "Vehicle Immobilized");
+    }
+    if (String(doomState?.doomedDetonationState ?? "").trim().toLowerCase() === "countdown") {
+      this._pushVehicleStatusItem(summaryItems, "Detonation Imminent");
+    }
+    return summaryItems;
+  }
+
+  _buildVehicleDoomStatusReadoutItems(doomState = {}) {
+    const readoutItems = [];
+    if (!doomState?.isDoomed) return readoutItems;
+
+    const doomedTier = Math.max(0, Number(doomState?.doomedTier ?? 0) || 0);
+    const isImmediateDetonation = Boolean(doomState?.doomedImmediateDetonation)
+      || String(doomState?.doomedDetonationState ?? "").trim().toLowerCase() === "immediate"
+      || doomedTier >= 9;
+    if (isImmediateDetonation) return ["Detonation."];
+
+    const doomedArmorPenaltyFlat = Math.max(0, Number(doomState?.doomedArmorPenaltyFlat ?? 0) || 0);
+    const doomedFlameRating = Math.max(0, Number(doomState?.doomedFlameRating ?? 0) || 0);
+    const doomedOccupantsDamageMode = String(doomState?.doomedOccupantsDamageMode ?? doomState?.doomedOccupantDamageMode ?? "none").trim();
+    const detonationState = String(doomState?.doomedDetonationState ?? "").trim().toLowerCase();
+
+    this._pushVehicleStatusItem(readoutItems, "Armor Compromised");
+    if (Boolean(doomState?.doomedHeavyPlatingLost)) this._pushVehicleStatusItem(readoutItems, "Heavy Plating lost");
+    this._pushVehicleStatusItem(readoutItems, "Armor reduced to half on all locations");
+    if (doomedArmorPenaltyFlat > 0) {
+      this._pushVehicleStatusItem(readoutItems, `Armor reduced by ${doomedArmorPenaltyFlat} on all locations`);
+    }
+
+    if (Boolean(doomState?.doomedVehicleImmobile)) {
+      this._pushVehicleStatusItem(readoutItems, "Vehicle Immobilized");
+    }
+    if (Boolean(doomState?.doomedEngineAimingDisabled)) {
+      this._pushVehicleStatusItem(readoutItems, "Engine-powered weapons can no longer turn and aim");
+    }
+
+    if (doomedOccupantsDamageMode === "halfCurrentArmorReduction") {
+      this._pushVehicleStatusItem(readoutItems, "Occupants take attack damage reduced by half current armor");
+    } else if (doomedOccupantsDamageMode === "fullDamage") {
+      this._pushVehicleStatusItem(readoutItems, "Occupants take full attack damage");
+    }
+
+    if (Boolean(doomState?.doomedOnFire)) {
+      this._pushVehicleStatusItem(readoutItems, "Vehicle on fire");
+      const flameRating = doomedFlameRating > 0 ? doomedFlameRating : 2;
+      this._pushVehicleStatusItem(readoutItems, `Occupants take Flame (${flameRating}) each Round`);
+    }
+
+    if (doomedTier >= 7 && detonationState === "countdown") {
+      if (doomedTier === 7) this._pushVehicleStatusItem(readoutItems, "Major sections destroyed");
+      if (doomedTier >= 8) this._pushVehicleStatusItem(readoutItems, "Violent internal detonation underway");
+      this._pushVehicleStatusItem(readoutItems, this._formatVehicleDetonationCountdownText(doomState).replace(/\.$/u, ""));
+    }
+
+    if (doomedTier >= 7 && (Number(doomState?.doomedBlastRadius ?? 0) > 0 || Number(doomState?.doomedKillRadius ?? 0) > 0)) {
+      this._pushVehicleStatusItem(
+        readoutItems,
+        `Blast Radius: ${Math.max(0, Number(doomState?.doomedBlastRadius ?? 0) || 0)}. Kill Radius: ${Math.max(0, Number(doomState?.doomedKillRadius ?? 0) || 0)}.`
+      );
+    }
+
+    return readoutItems;
+  }
+
   _buildVehicleOverviewStatusContext({
     vehicleSystem = null,
     engineTracker = null,
@@ -1385,85 +2471,110 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     shields = null
   } = {}) {
     const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
-    const detailMessages = [];
+    const doomState = this._getVehicleDoomStateSnapshot(source);
+    const summaryItems = [];
+    const readoutItems = [];
     const weaponCritical = weaponTrackers.filter((entry) => entry?.isCritical);
-    const opticsCritical = opticsTrackers.filter((entry) => entry?.isCritical);
-    const mobilityCritical = mobilityTrackers.filter((entry) => entry?.isCritical);
+    const opticsCritical = opticsTrackers.filter((entry) => String(entry?.id ?? "").trim() && Number(entry?.current ?? 0) <= 0);
+    const mobilityCritical = mobilityTrackers.filter((entry) => Number(entry?.max ?? 0) > 0 && entry?.isCritical);
+    const mobilityState = this._buildVehicleMobilityDamageState(source, mobilityTrackers);
+    const mobilitySummaryText = this._formatVehicleMobilityStatusSummary(mobilityState);
+    const mobilityDetailText = this._formatVehicleMobilityStatusDetail(mobilityState);
     const reducedArmor = armorRows.filter((entry) => entry?.isReduced);
-    const doomLevel = String(source?.breakpoints?.hull?.doom?.level ?? "tier_0").trim().toLowerCase() || "tier_0";
-    const doomLabel = MYTHIC_VEHICLE_DOOM_LABELS[doomLevel] ?? "Vehicle status unresolved.";
+    const offlineWeaponLabels = this._buildVehicleOfflineWeaponLabels(weaponTrackers);
+    const offlineOpticsLabels = this._buildVehicleOfflineOpticsLabels(opticsTrackers);
+    const isDoomed = Boolean(doomState?.isDoomed);
+    const isTierNineOverride = Boolean(doomState?.doomedImmediateDetonation)
+      || String(doomState?.doomedDetonationState ?? "").trim().toLowerCase() === "immediate"
+      || Math.max(0, Number(doomState?.doomedTier ?? 0) || 0) >= 9;
 
-    if ((hullTracker?.max ?? 0) > 0 && (hullTracker?.current ?? hullTracker?.max ?? 0) < (hullTracker?.max ?? 0)) {
-      detailMessages.push({ text: "Hull integrity compromised." });
-    }
+    if (isTierNineOverride) {
+      summaryItems.push("Detonation");
+      readoutItems.push("Detonation.");
+    } else {
+      if (isDoomed) {
+        for (const item of this._buildVehicleDoomStatusSummaryItems(doomState)) this._pushVehicleStatusItem(summaryItems, item);
+        for (const item of this._buildVehicleDoomStatusReadoutItems(doomState)) this._pushVehicleStatusItem(readoutItems, item);
+      } else if ((hullTracker?.max ?? 0) > 0 && (hullTracker?.current ?? hullTracker?.max ?? 0) < (hullTracker?.max ?? 0)) {
+        this._pushVehicleStatusItem(readoutItems, "Hull integrity compromised");
+      }
 
-    if (engineTracker?.isCritical) {
-      detailMessages.push({ text: "Engine offline." });
-    }
+      if (engineTracker?.isCritical) {
+        this._pushVehicleStatusItem(summaryItems, "Engine Offline");
+        this._pushVehicleStatusItem(readoutItems, "Engine offline");
+      }
 
-    for (const tracker of weaponCritical) {
-      detailMessages.push({ text: `${tracker.fullLabel} offline.` });
-    }
+      if (!doomState?.doomedVehicleImmobile) {
+        if (mobilitySummaryText) this._pushVehicleStatusItem(summaryItems, mobilitySummaryText);
+        if (mobilityDetailText) {
+          this._pushVehicleStatusItem(readoutItems, mobilityDetailText);
+        } else {
+          for (const tracker of mobilityCritical) {
+            this._pushVehicleStatusItem(readoutItems, `${tracker.fullLabel} disabled`);
+          }
+        }
+      }
 
-    for (const tracker of opticsCritical) {
-      detailMessages.push({ text: `${tracker.fullLabel} offline.` });
-    }
+      const weaponOfflineSummary = this._formatVehicleOfflineWeaponSummary(offlineWeaponLabels);
+      if (weaponOfflineSummary) this._pushVehicleStatusItem(summaryItems, weaponOfflineSummary);
+      for (const tracker of weaponCritical) {
+        this._pushVehicleStatusItem(readoutItems, `${tracker.label} Weapon Offline`);
+      }
 
-    for (const tracker of mobilityCritical) {
-      detailMessages.push({ text: `${tracker.fullLabel} disabled.` });
-    }
+      const opticsOfflineSummary = this._formatVehicleOfflineOpticsSummary(offlineOpticsLabels);
+      if (opticsOfflineSummary) this._pushVehicleStatusItem(summaryItems, opticsOfflineSummary);
+      for (const tracker of opticsCritical) {
+        this._pushVehicleStatusItem(readoutItems, `${tracker.label} Optics Offline`);
+      }
 
-    if (reducedArmor.length) {
-      detailMessages.push({ text: "Armor compromised." });
-    }
+      if (reducedArmor.length && !isDoomed) {
+        this._pushVehicleStatusItem(summaryItems, "Armor Compromised");
+        this._pushVehicleStatusItem(readoutItems, "Armor compromised");
+      }
 
-    if ((shields?.max ?? 0) > 0) {
-      if ((shields?.current ?? 0) <= 0) {
-        detailMessages.push({ text: "Shields depleted." });
-      } else if ((shields?.current ?? 0) < (shields?.max ?? 0)) {
-        detailMessages.push({ text: "Shields weakened." });
+      if ((shields?.max ?? 0) > 0) {
+        if ((shields?.current ?? 0) <= 0) {
+          this._pushVehicleStatusItem(summaryItems, "Shields Depleted");
+          this._pushVehicleStatusItem(readoutItems, "Shields depleted");
+        } else if ((shields?.current ?? 0) < (shields?.max ?? 0)) {
+          this._pushVehicleStatusItem(summaryItems, "Shields Weakened");
+          this._pushVehicleStatusItem(readoutItems, "Shields weakened");
+        }
       }
     }
 
-    let summaryText = "The vehicle is operational.";
-    if ((hullTracker?.current ?? 0) <= 0 || ["tier_5", "tier_6", "tier_7", "tier_8", "tier_9"].includes(doomLevel)) {
-      summaryText = doomLabel;
-    } else if (mobilityCritical.length) {
-      summaryText = "Mobility damaged.";
-    } else if (engineTracker?.isCritical) {
-      summaryText = "Engine damaged.";
-    } else if (weaponCritical.length > 1) {
-      summaryText = `${weaponCritical.length} weapons offline.`;
-    } else if (weaponCritical.length === 1) {
-      summaryText = `${weaponCritical[0].fullLabel} offline.`;
-    } else if (opticsCritical.length > 1) {
-      summaryText = `${opticsCritical.length} optics systems offline.`;
-    } else if (opticsCritical.length === 1) {
-      summaryText = `${opticsCritical[0].fullLabel} offline.`;
-    } else if (reducedArmor.length) {
-      summaryText = "Armor compromised.";
-    } else if ((shields?.max ?? 0) > 0 && (shields?.current ?? shields?.max ?? 0) < (shields?.max ?? 0)) {
-      summaryText = "Shields weakened.";
-    }
+    const statusSummaryItems = summaryItems;
+    const statusReadoutItems = readoutItems;
+    const summaryText = statusSummaryItems.length ? statusSummaryItems.join(" | ") : "The vehicle is operational.";
+    const detailMessages = statusReadoutItems.map((text) => ({ text }));
 
     const severity = summaryText === "The vehicle is operational."
       ? "nominal"
-      : ((hullTracker?.current ?? 0) <= 0 || engineTracker?.isCritical ? "critical" : "warning");
+      : ((doomState?.doomedImmediateDetonation || doomState?.doomedDetonationState === "countdown" || doomState?.doomedVehicleImmobile || engineTracker?.isCritical || mobilityState?.isImmobilized)
+        ? "critical"
+        : "warning");
+    const doomedTier = Math.max(0, Number(doomState?.doomedTier ?? 0) || 0);
+    const canDetonate = doomedTier >= 7;
 
     return {
       expanded: Boolean(source?.overview?.ui?.statusExpanded),
       togglePath: "system.overview.ui.statusExpanded",
       summaryText,
+      statusSummaryItems,
+      statusReadoutItems,
       severity,
       messages: detailMessages,
-      hasMessages: detailMessages.length > 0
+      hasMessages: detailMessages.length > 0,
+      canDetonate
     };
   }
 
-  _buildVehicleOverviewContext(vehicleSystem = null, vehicleLoadoutView = null) {
+  _buildVehicleOverviewContext(vehicleSystem = null, vehicleLoadoutView = null, vehicleWeaponCards = null) {
     const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
     const overview = (source?.overview && typeof source.overview === "object") ? source.overview : {};
+    const doomState = this._getVehicleDoomStateSnapshot(source);
     const loadoutView = vehicleLoadoutView ?? this._getVehicleLoadoutViewData(source);
+    const overviewWeaponCards = Array.isArray(vehicleWeaponCards) ? vehicleWeaponCards : [];
     const clampWhole = (value, fallback = 0, { min = 0, max = Number.POSITIVE_INFINITY } = {}) => {
       let resolved = Number(value);
       if (!Number.isFinite(resolved)) resolved = Number(fallback);
@@ -1495,7 +2606,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         currentName: inputName,
         clampMin: min,
         clampMax: resolvedMax,
-        isCritical: resolvedCurrent <= 0
+        isCritical: resolvedMax > 0 && resolvedCurrent <= 0
       };
     };
     const buildSectionSummary = (rows = [], activeLabel = "Operational", inactiveLabel = "Offline") => {
@@ -1524,6 +2635,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const suffixValue = toNonNegativeWhole(source?.special?.[entry.key]?.value, 0);
         return {
           key: entry.key,
+          isDisabled: entry.key === "heavyPlating" && Boolean(doomState?.doomedHeavyPlatingLost),
           label: entry.valueSuffix && suffixValue > 0
             ? `${entry.label} ${suffixValue}`
             : entry.label
@@ -1552,7 +2664,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       current: overview?.breakpoints?.hull?.current,
       max: hullMax,
       inputName: "system.overview.breakpoints.hull.current",
-      min: -100
+      min: MYTHIC_VEHICLE_HULL_NEGATIVE_FLOOR
     });
 
     const emplacements = Array.isArray(loadoutView?.emplacements) ? loadoutView.emplacements : [];
@@ -1629,7 +2741,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const armorRows = ["front", "back", "side", "top", "bottom"].map((key) => {
       const label = key.charAt(0).toUpperCase() + key.slice(1);
       const base = this._getVehicleConfiguredOverviewBaseValue(source?.armor?.[key] ?? {});
-      const current = clampWhole(base, base, { min: 0, max: base });
+      const effectiveArmor = Number(doomState?.doomedEffectiveArmorByLocation?.[key]);
+      const current = clampWhole(
+        Number.isFinite(effectiveArmor) ? effectiveArmor : base,
+        base,
+        { min: 0, max: base }
+      );
       return {
         key,
         label,
@@ -1736,6 +2853,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     return {
       specialRules,
+      weapons: {
+        cards: overviewWeaponCards,
+        hasCards: overviewWeaponCards.length > 0
+      },
       status: this._buildVehicleOverviewStatusContext({
         vehicleSystem: source,
         engineTracker,
@@ -1793,9 +2914,127 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this._updateVehicleOverviewUiState(targetPath, !currentValue);
   }
 
+  _buildVehicleDetonationProfile(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const sizePoints = Math.max(0, toNonNegativeWhole(source?.sizePoints, 0));
+    const weaponPoints = Math.max(0, toNonNegativeWhole(source?.weaponPoints, 0));
+    const sizeDice = Math.floor(sizePoints / 2);
+    const weaponDice = Math.floor(weaponPoints / 2);
+    const totalDice = Math.max(0, sizeDice + weaponDice);
+    const flatDamage = sizePoints > 0 ? 5 : 0;
+    const pierce = weaponPoints > 0 ? 5 : 0;
+    const formulaParts = [];
+    if (totalDice > 0) formulaParts.push(`${totalDice}d10`);
+    if (flatDamage > 0) formulaParts.push(String(flatDamage));
+    const damageFormula = formulaParts.length ? formulaParts.join(" + ") : "0";
+
+    return {
+      sizePoints,
+      weaponPoints,
+      sizeDice,
+      weaponDice,
+      totalDice,
+      flatDamage,
+      pierce,
+      damageFormula
+    };
+  }
+
   async _onVehicleOverviewDetonate(event) {
     event.preventDefault();
-    ui.notifications?.info("Vehicle detonation workflow is not wired yet.");
+    if (!this._isVehicleActor()) return;
+
+    const source = normalizeVehicleSystemData(this.actor?.system ?? {});
+    const doomState = this._getVehicleDoomStateSnapshot(source);
+    if (!doomState?.isDoomed) {
+      ui.notifications?.warn("Vehicle detonation is only available while in Doomed State.");
+      return;
+    }
+    const profile = this._buildVehicleDetonationProfile(source);
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+
+    let totalDamage = 0;
+    let evaluatedRoll = null;
+    if (profile.damageFormula !== "0") {
+      evaluatedRoll = await (new Roll(profile.damageFormula)).evaluate();
+      totalDamage = Math.max(0, Number(evaluatedRoll?.total ?? 0) || 0);
+    }
+
+    const blastRadius = Math.max(0, Number(doomState?.doomedBlastRadius ?? 0) || 0);
+    const killRadius = Math.max(0, Number(doomState?.doomedKillRadius ?? 0) || 0);
+    const damageText = evaluatedRoll
+      ? `${totalDamage} [${esc(profile.damageFormula)}]`
+      : "0";
+
+    const content = `
+      <article class="mythic-chat-card mythic-chat-ability">
+        <header class="mythic-chat-header">
+          <span class="mythic-chat-title">${esc(this.actor?.name)} Vehicle Detonation</span>
+        </header>
+        <div class="mythic-chat-ability-body">
+          <div class="mythic-chat-ability-row"><strong>Total Damage</strong><span>${damageText}</span></div>
+          <div class="mythic-chat-ability-row"><strong>Pierce</strong><span>${profile.pierce}</span></div>
+          <div class="mythic-chat-ability-row"><strong>Size Points</strong><span>${profile.sizePoints} (${profile.sizeDice}d10 + ${profile.flatDamage} Damage)</span></div>
+          <div class="mythic-chat-ability-row"><strong>Weapon Points</strong><span>${profile.weaponPoints} (${profile.weaponDice}d10 + ${profile.pierce} Pierce)</span></div>
+          ${blastRadius > 0 || killRadius > 0
+    ? `<div class="mythic-chat-ability-row"><strong>Blast / Kill Radius</strong><span>${blastRadius} / ${killRadius}</span></div>`
+    : ""}
+        </div>
+      </article>
+    `;
+
+    await ChatMessage.create({
+      speaker,
+      content
+    });
+
+    if (this.isEditable) {
+      const updateData = {
+        "system.doomed.persistent.detonation.armed": true,
+        "system.doomed.persistent.detonation.mode": "instant",
+        "system.doomed.persistent.detonation.roundsRemaining": null
+      };
+      const combatId = String(game.combat?.id ?? "").trim();
+      if (combatId) {
+        updateData["system.doomed.persistent.detonation.combatId"] = combatId;
+        updateData["system.doomed.persistent.detonation.startedAtCombatRound"] = Math.max(0, Math.floor(Number(game.combat?.round ?? 0) || 0));
+      }
+      await this.actor.update(updateData);
+    }
+  }
+
+  async _onVehicleFullRepair(event) {
+    event.preventDefault();
+    if (!this._isVehicleActor() || !this.isEditable) return;
+
+    const normalized = normalizeVehicleSystemData(this.actor.system ?? {});
+    const overview = (normalized?.overview && typeof normalized.overview === "object") ? normalized.overview : {};
+    const nextWeaponTrackers = Object.fromEntries(Object.entries(overview?.breakpoints?.weapons?.byId ?? {}).map(([id]) => [
+      id,
+      { current: this._getVehicleConfiguredOverviewBaseValue(normalized?.breakpoints?.wep ?? {}) }
+    ]));
+    const nextOpticsTrackers = Object.fromEntries(Object.entries(overview?.breakpoints?.optics?.byId ?? {}).map(([id]) => [
+      id,
+      { current: this._getVehicleConfiguredOverviewBaseValue(normalized?.breakpoints?.op ?? {}) }
+    ]));
+    const nextMobilityTrackers = Object.fromEntries(Object.entries(overview?.breakpoints?.mobility?.byId ?? {}).map(([id]) => [
+      id,
+      { current: this._getVehicleConfiguredOverviewBaseValue(normalized?.breakpoints?.mob ?? {}) }
+    ]));
+    const nextCustomBreakpoints = (Array.isArray(overview?.breakpoints?.custom) ? overview.breakpoints.custom : []).map((entry) => ({
+      ...entry,
+      current: Math.max(0, toNonNegativeWhole(entry?.max, 0))
+    }));
+
+    await this.actor.update({
+      "system.overview.breakpoints.engine.current": this._getVehicleConfiguredOverviewBaseValue(normalized?.breakpoints?.eng ?? {}),
+      "system.overview.breakpoints.hull.current": this._getVehicleConfiguredOverviewBaseValue(normalized?.breakpoints?.hull ?? {}),
+      "system.overview.breakpoints.weapons.byId": nextWeaponTrackers,
+      "system.overview.breakpoints.optics.byId": nextOpticsTrackers,
+      "system.overview.breakpoints.mobility.byId": nextMobilityTrackers,
+      "system.overview.breakpoints.custom": nextCustomBreakpoints
+    });
   }
 
   async _onAddVehicleOverviewCustomBreakpoint(event) {
@@ -1961,13 +3200,31 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? requestedRole
       : "";
     const linked = Boolean(entry?.linked);
+    const requestedNeuralLinkOperatorSeatKey = String(entry?.neuralLinkOperatorSeatKey ?? "").trim();
+    const neuralLinkOperatorSeatKey = /^operators:\d+$/u.test(requestedNeuralLinkOperatorSeatKey)
+      ? requestedNeuralLinkOperatorSeatKey
+      : "";
+    const sourceWeaponState = (entry?.weaponState && typeof entry.weaponState === "object" && !Array.isArray(entry.weaponState))
+      ? entry.weaponState
+      : {};
     return {
       id: String(entry?.id ?? fallbackId ?? foundry.utils.randomID()).trim() || fallbackId || foundry.utils.randomID(),
       weaponItemId: String(entry?.weaponItemId ?? "").trim(),
       controllerRole,
       controllerIndex: controllerRole ? toNonNegativeWhole(entry?.controllerIndex ?? entry?.controllerPosition, 0) : 0,
       linked,
-      linkedCount: linked ? Math.max(2, toNonNegativeWhole(entry?.linkedCount, 2)) : 1
+      linkedCount: linked ? Math.max(2, toNonNegativeWhole(entry?.linkedCount, 2)) : 1,
+      useNeuralLink: entry?.useNeuralLink === true,
+      neuralLinkOperatorSeatKey,
+      weaponState: {
+        fireMode: String(sourceWeaponState.fireMode ?? "").trim().toLowerCase(),
+        toHitModifier: Number.isFinite(Number(sourceWeaponState.toHitModifier)) ? Math.round(Number(sourceWeaponState.toHitModifier)) : 0,
+        damageModifier: Number.isFinite(Number(sourceWeaponState.damageModifier)) ? Math.round(Number(sourceWeaponState.damageModifier)) : 0,
+        chargeLevel: toNonNegativeWhole(sourceWeaponState.chargeLevel, 0),
+        rechargeRemaining: toNonNegativeWhole(sourceWeaponState.rechargeRemaining, 0),
+        variantIndex: toNonNegativeWhole(sourceWeaponState.variantIndex, 0),
+        scopeMode: String(sourceWeaponState.scopeMode ?? "none").trim().toLowerCase() || "none"
+      }
     };
   }
 
@@ -2363,7 +3620,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           : "Select role first",
         linked: Boolean(entry.linked),
         linkedCount: Math.max(2, toNonNegativeWhole(entry.linkedCount, 2)),
-        showLinkedCount: Boolean(entry.linked)
+        showLinkedCount: Boolean(entry.linked),
+        useNeuralLink: entry?.useNeuralLink === true,
+        neuralLinkOperatorSeatKey: String(entry?.neuralLinkOperatorSeatKey ?? "").trim(),
+        weaponState: foundry.utils.deepClone(entry?.weaponState ?? {})
       };
     });
 
@@ -2381,6 +3641,176 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       hasControllerSlots: controllerDefinitions.some((entry) => entry.count > 0),
       needsMigration: emplacementState.needsMigration
     };
+  }
+
+  _getVehicleCrewSeatMap(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const seatMap = new Map();
+
+    for (const definition of MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES) {
+      const crewKey = definition.crewKey;
+      const rows = Array.isArray(source?.crew?.[crewKey]) ? source.crew[crewKey] : [];
+      for (let index = 0; index < rows.length; index += 1) {
+        const row = rows[index] ?? {};
+        const slotNumber = index + 1;
+        const slotKey = `${crewKey}:${slotNumber}`;
+        const seatLabel = String(row?.seatLabel ?? buildVehicleCrewSeatLabel(definition.label, slotNumber)).trim() || buildVehicleCrewSeatLabel(definition.label, slotNumber);
+        const slotCode = String(row?.slotCode ?? buildVehicleCrewShortSlotLabel(definition.label, slotNumber)).trim() || buildVehicleCrewShortSlotLabel(definition.label, slotNumber);
+        const resolution = buildVehicleCrewStoredResolution(row, (() => {
+          const storedReference = getVehicleCrewStoredReference(row);
+          if (!storedReference) return null;
+          if ((isVehicleCrewSceneTokenUuid(storedReference)
+            || isVehicleCrewSceneTokenActorUuid(storedReference)
+            || isVehicleCrewActorUuid(storedReference))
+            && typeof globalThis.fromUuidSync === "function") {
+            return globalThis.fromUuidSync(storedReference) ?? null;
+          }
+          return game.actors?.get(storedReference) ?? null;
+        })());
+        const actorReference = String(resolution.reference ?? getVehicleCrewStoredReference(row) ?? "").trim();
+        seatMap.set(slotKey, {
+          seatKey: slotKey,
+          crewKey,
+          roleLabel: definition.label,
+          slotNumber,
+          seatLabel,
+          slotCode,
+          actorReference,
+          actorDoc: resolution.isValid ? resolution.actorDoc : null,
+          tokenDoc: resolution.isValid ? resolution.tokenDoc : null,
+          display: String(resolution.occupantDisplay ?? resolution.displayName ?? row?.display ?? "").trim(),
+          assignmentType: normalizeVehicleCrewAssignmentType(resolution.assignmentType),
+          statusKey: String(resolution.statusKey ?? "empty").trim() || "empty",
+          isValidAssignment: Boolean(resolution.isValid),
+          hasActor: Boolean(resolution.isValid && resolution.actorDoc)
+        });
+      }
+    }
+
+    return seatMap;
+  }
+
+  _getVehicleNeuralLinkAssignmentsByOperator(emplacements = []) {
+    const assignments = new Map();
+    for (const entry of (Array.isArray(emplacements) ? emplacements : [])) {
+      const emplacementId = String(entry?.id ?? "").trim();
+      const operatorSeatKey = String(entry?.neuralLinkOperatorSeatKey ?? "").trim();
+      if (!emplacementId || entry?.useNeuralLink !== true || !/^operators:\d+$/u.test(operatorSeatKey)) continue;
+      const list = assignments.get(operatorSeatKey) ?? [];
+      list.push(emplacementId);
+      assignments.set(operatorSeatKey, list);
+    }
+    return assignments;
+  }
+
+  _getValidVehicleNeuralLinkOperatorSeatKeys(emplacementId = "", vehicleSystem = null, emplacements = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const resolvedEmplacements = Array.isArray(emplacements) ? emplacements : (Array.isArray(source?.weaponEmplacements) ? source.weaponEmplacements : []);
+    const seatMap = this._getVehicleCrewSeatMap(source);
+    const assignments = this._getVehicleNeuralLinkAssignmentsByOperator(resolvedEmplacements);
+    const normalizedEmplacementId = String(emplacementId ?? "").trim();
+    const validSeatKeys = [];
+
+    for (const [seatKey, seatEntry] of seatMap.entries()) {
+      if (!String(seatEntry?.crewKey ?? "").trim().toLowerCase().startsWith("operator")) continue;
+      if (!seatEntry?.actorDoc) continue;
+      const assignedEmplacements = assignments.get(seatKey) ?? [];
+      if (!assignedEmplacements.length || assignedEmplacements.every((entryId) => entryId === normalizedEmplacementId)) {
+        validSeatKeys.push(seatKey);
+      }
+    }
+
+    return validSeatKeys;
+  }
+
+  _resolveVehicleWeaponActiveUser(emplacement = {}, vehicleSystem = null, emplacements = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const seatMap = this._getVehicleCrewSeatMap(source);
+    const resolvedEmplacements = Array.isArray(emplacements) ? emplacements : (Array.isArray(source?.weaponEmplacements) ? source.weaponEmplacements : []);
+    const normalizedEmplacementId = String(emplacement?.id ?? "").trim();
+    const useNeuralLink = emplacement?.useNeuralLink === true && Boolean(source?.special?.neuralInterface?.has);
+    const validOperatorSeatKeys = this._getValidVehicleNeuralLinkOperatorSeatKeys(normalizedEmplacementId, source, resolvedEmplacements);
+    const requestedNeuralLinkSeatKey = String(emplacement?.neuralLinkOperatorSeatKey ?? "").trim();
+    const requestedNeuralLinkSeat = requestedNeuralLinkSeatKey ? seatMap.get(requestedNeuralLinkSeatKey) ?? null : null;
+    const isStoredNeuralLinkSelectionValid = requestedNeuralLinkSeatKey && validOperatorSeatKeys.includes(requestedNeuralLinkSeatKey);
+    const resolvedNeuralLinkSeatKey = isStoredNeuralLinkSelectionValid
+      ? requestedNeuralLinkSeatKey
+      : (validOperatorSeatKeys.length === 1 ? validOperatorSeatKeys[0] : "");
+    const resolvedNeuralLinkSeat = resolvedNeuralLinkSeatKey ? seatMap.get(resolvedNeuralLinkSeatKey) ?? null : null;
+
+    const controllerDefinition = MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES.find((entry) => entry.value === String(emplacement?.controllerRole ?? "").trim().toLowerCase()) ?? null;
+    const controllerSeatKey = controllerDefinition && Number(emplacement?.controllerIndex ?? 0) > 0
+      ? `${controllerDefinition.crewKey}:${toNonNegativeWhole(emplacement?.controllerIndex, 0)}`
+      : "";
+    const controllerSeat = controllerSeatKey ? seatMap.get(controllerSeatKey) ?? null : null;
+    const weaponTrackerCurrent = Number(source?.overview?.breakpoints?.weapons?.byId?.[normalizedEmplacementId]?.current ?? 0);
+    const weaponDisabled = normalizedEmplacementId && weaponTrackerCurrent <= 0;
+    const engineAimingDisabled = Boolean(source?.doomed?.doomedEngineAimingDisabled ?? source?.breakpoints?.hull?.doom?.doomedEngineAimingDisabled);
+
+    let activeUserActor = null;
+    let activeUserType = null;
+    let activeUserSeatKey = null;
+    let activeUserLabel = "Unmanned";
+    let disableReason = null;
+
+    if (weaponDisabled) {
+      disableReason = "Weapon offline.";
+    } else if (engineAimingDisabled) {
+      disableReason = "Engine-powered weapons can no longer turn and aim.";
+    } else if (useNeuralLink) {
+      if (resolvedNeuralLinkSeat?.actorDoc) {
+        activeUserActor = resolvedNeuralLinkSeat.actorDoc;
+        activeUserType = "neuralLink";
+        activeUserSeatKey = resolvedNeuralLinkSeat.seatKey;
+        activeUserLabel = `Neural Link: ${resolvedNeuralLinkSeat.display || resolvedNeuralLinkSeat.seatLabel}`;
+      } else if (requestedNeuralLinkSeat && !isStoredNeuralLinkSelectionValid) {
+        disableReason = "Neural Link assignment conflict.";
+      } else if (!validOperatorSeatKeys.length) {
+        disableReason = "No operator available for Neural Link.";
+      } else {
+        disableReason = "Select a Neural Link operator.";
+      }
+    }
+
+    if (!activeUserActor && !disableReason) {
+      if (controllerSeat?.actorDoc) {
+        activeUserActor = controllerSeat.actorDoc;
+        activeUserType = "seat";
+        activeUserSeatKey = controllerSeat.seatKey;
+        activeUserLabel = `${controllerDefinition?.label ?? "Seat"}: ${controllerSeat.display || controllerSeat.seatLabel}`;
+      } else if (controllerDefinition && controllerSeatKey) {
+        disableReason = `${controllerDefinition.label} seat is empty.`;
+      } else {
+        disableReason = "Weapon is unmanned.";
+      }
+    }
+
+    return {
+      activeUserActor,
+      activeUserType,
+      activeUserSeatKey,
+      activeUserLabel,
+      canAttack: Boolean(activeUserActor) && !disableReason,
+      disableReason,
+      useNeuralLink,
+      validNeuralLinkOperatorSeatKeys: validOperatorSeatKeys,
+      resolvedNeuralLinkSeatKey,
+      hasNeuralLinkConflict: Boolean(useNeuralLink && requestedNeuralLinkSeatKey && !isStoredNeuralLinkSelectionValid)
+    };
+  }
+
+  async _updateVehicleWeaponEmplacementById(emplacementId = "", mutator = null) {
+    const normalizedEmplacementId = String(emplacementId ?? "").trim();
+    if (!normalizedEmplacementId || typeof mutator !== "function") return;
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    const currentEmplacements = this._serializeVehicleWeaponEmplacements(vehicleSystem.weaponEmplacements ?? []);
+    const nextEmplacements = currentEmplacements.map((entry) => ({ ...entry }));
+    const targetIndex = nextEmplacements.findIndex((entry) => String(entry?.id ?? "").trim() === normalizedEmplacementId);
+    if (targetIndex < 0) return;
+    const nextEntry = this._buildVehicleWeaponEmplacementRecord(nextEmplacements[targetIndex], normalizedEmplacementId);
+    mutator(nextEntry, nextEmplacements, vehicleSystem);
+    nextEmplacements[targetIndex] = this._buildVehicleWeaponEmplacementRecord(nextEntry, normalizedEmplacementId);
+    await this._updateVehicleWeaponEmplacements(nextEmplacements);
   }
 
   async _updateVehicleWeaponEmplacements(emplacements = []) {
@@ -6301,8 +7731,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return { scores, modifiers, aliases };
   }
 
-  async _getLiveCharacteristicRuntime() {
-    const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
+  async _getLiveCharacteristicRuntime(actorDoc = this.actor) {
+    if (!actorDoc || typeof actorDoc !== "object") {
+      return this._buildCharacteristicRuntime({});
+    }
+
+    if (String(actorDoc?.type ?? "").trim().toLowerCase() === "bestiary") {
+      return this._buildCharacteristicRuntime(actorDoc.system?.characteristics ?? {});
+    }
+
+    const normalizedSystem = normalizeCharacterSystemData(actorDoc.system);
     const creationPathOutcome = await this._resolveCreationPathOutcome(normalizedSystem);
     const charBuilderView = this._getCharBuilderViewData(normalizedSystem, creationPathOutcome);
     const effectiveSystem = this._applyCreationPathOutcomeToSystem(normalizedSystem, creationPathOutcome);
@@ -6827,6 +8265,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           void this._onDropCrewSlot(event);
         });
       });
+
+      vehicleCrewRoot.querySelectorAll(".vehicle-crew-reference-input[data-kind][data-idx]").forEach((input) => {
+        input.addEventListener("change", (event) => {
+          void this._onVehicleCrewReferenceInputChange(event);
+        });
+        input.addEventListener("keydown", (event) => {
+          if (String(event.key ?? "") !== "Enter") return;
+          event.preventDefault();
+          event.stopPropagation();
+          input.blur();
+        });
+      });
     }
 
     vehicleCrewRoot.addEventListener("click", (event) => {
@@ -6983,17 +8433,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ) ?? null;
   }
 
-  _evaluateWeaponTrainingStatus(weaponSystemData = {}, fallbackName = "") {
+  _evaluateWeaponTrainingStatus(weaponSystemData = {}, fallbackName = "", actorDoc = this.actor) {
     const weaponTypeLabel = String(weaponSystemData?.training ?? weaponSystemData?.weaponType ?? "").trim();
     const factionLabel = String(weaponSystemData?.armorySelection ?? weaponSystemData?.faction ?? "").trim();
-    const training = normalizeTrainingData(this.actor.system?.training ?? {});
+    const training = normalizeTrainingData(actorDoc?.system?.training ?? {});
     const weaponDefinition = this._findWeaponTrainingDefinition(weaponTypeLabel || fallbackName);
     const factionDefinition = this._findFactionTrainingDefinition(factionLabel);
-    const lockFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks");
+    const lockFlag = actorDoc?.getFlag?.("Halo-Mythic-Foundry-Updated", "soldierTypeAutoTrainingLocks");
     const lockedWeaponKeys = new Set(Array.isArray(lockFlag?.weaponKeys) ? lockFlag.weaponKeys : []);
     const lockedFactionKeys = new Set(this._canonicalizeFactionTrainingKeys(Array.isArray(lockFlag?.factionKeys) ? lockFlag.factionKeys : []));
 
-    const isBestiary = this.actor?.type === "bestiary";
+    const isBestiary = actorDoc?.type === "bestiary";
     const hasWeaponTraining = isBestiary
       ? true
       : (weaponDefinition ? (lockedWeaponKeys.has(weaponDefinition.key) || Boolean(training.weapon?.[weaponDefinition.key])) : true);
@@ -8170,9 +9620,56 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             void this._onClearVehicleOverviewCustomBreakpoints(event);
           });
         });
+        root.querySelectorAll(".vehicle-breakpoints-full-repair-btn").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onVehicleFullRepair(event);
+          });
+        });
         root.querySelectorAll(".shields-recharge-btn").forEach((button) => {
           button.addEventListener("click", (event) => {
             void this._onShieldsRecharge(event);
+          });
+        });
+        root.querySelectorAll(".weapon-attack-btn[data-item-id][data-action]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onWeaponAttack(event);
+          });
+        });
+        root.querySelectorAll(".weapon-fire-mode-btn[data-item-id][data-fire-mode]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onWeaponFireModeToggle(event);
+          });
+        });
+        root.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) return;
+          const variantBtn = target.closest(".weapon-variant-btn[data-item-id][data-variant-index]");
+          if (!variantBtn || !root.contains(variantBtn)) return;
+          void this._onWeaponVariantSelect(event);
+        });
+        root.querySelectorAll(".weapon-charge-btn[data-item-id]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onWeaponCharge(event);
+          });
+        });
+        root.querySelectorAll(".weapon-clear-charge-btn[data-item-id]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onWeaponClearCharge(event);
+          });
+        });
+        root.querySelectorAll(".weapon-state-input[data-item-id][data-field]").forEach((input) => {
+          input.addEventListener("change", (event) => {
+            void this._onWeaponStateInputChange(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-weapon-neural-link-toggle[data-emplacement-id]").forEach((input) => {
+          input.addEventListener("change", (event) => {
+            void this._onVehicleWeaponNeuralLinkToggle(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-weapon-neural-link-operator[data-emplacement-id]").forEach((select) => {
+          select.addEventListener("change", (event) => {
+            void this._onVehicleWeaponNeuralLinkOperatorChange(event);
           });
         });
       }
@@ -10756,11 +12253,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       for (const raw of candidates) {
         const text = String(raw ?? "").trim();
         if (!text) continue;
-        if (/^(Compendium\.|Item\.|Actor\.)/u.test(text)) {
+        if (/^(Compendium\.|Item\.|Actor\.|Scene\.)/u.test(text)) {
           merged.uuid = text;
           break;
         }
-        const embeddedUuid = text.match(/(Compendium\.[^\s"]+|Item\.[^\s"]+|Actor\.[^\s"]+)/u);
+        const embeddedUuid = text.match(/(Compendium\.[^\s"]+|Item\.[^\s"]+|Actor\.[^\s"]+|Scene\.[^\s"]+)/u);
         if (embeddedUuid?.[1]) {
           merged.uuid = embeddedUuid[1];
           break;
@@ -10898,6 +12395,207 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     return null;
+  }
+
+  async _resolveVehicleCrewAssignmentFromDropData(dropData = {}) {
+    const rawUuid = String(dropData?.uuid ?? dropData?.tokenUuid ?? "").trim();
+    let resolvedDocument = null;
+
+    if (rawUuid && typeof globalThis.fromUuid === "function") {
+      resolvedDocument = await globalThis.fromUuid(rawUuid).catch(() => null);
+    }
+
+    if (!resolvedDocument && String(dropData?.type ?? "").trim().toLowerCase() === "token") {
+      const sceneId = String(dropData?.sceneId ?? dropData?.data?.sceneId ?? "").trim();
+      const tokenId = String(dropData?.tokenId ?? dropData?.id ?? dropData?.data?.tokenId ?? dropData?.data?.token?._id ?? "").trim();
+      if (sceneId && tokenId) {
+        const scene = game.scenes?.get(sceneId) ?? null;
+        resolvedDocument = scene?.tokens?.get(tokenId) ?? null;
+      }
+    }
+
+    if (!resolvedDocument) {
+      const actorDoc = await this._resolveDroppedActorFromData(dropData);
+      if (actorDoc) resolvedDocument = actorDoc;
+    }
+
+    const tokenDoc = unwrapVehicleCrewTokenDocument(resolvedDocument);
+    const actorDoc = unwrapVehicleCrewActorDocument(resolvedDocument);
+    const reference = String(tokenDoc?.uuid ?? actorDoc?.uuid ?? rawUuid ?? "").trim();
+    return buildVehicleCrewStoredResolution({ id: reference }, resolvedDocument);
+  }
+
+  _getVehicleCrewRejectionMessage(resolution = null) {
+    const statusKey = String(resolution?.statusKey ?? "invalid").trim().toLowerCase();
+    switch (statusKey) {
+      case "reassign":
+        return "Bestiary actors are shared templates. Assign a placed token UUID so the seat tracks the correct deployed occupant.";
+      case "missing":
+        return "The stored token UUID does not resolve to a placed token. Reassign this seat with a deployed token or a unique character actor.";
+      case "invalid":
+        return "Crew seats accept placed tokens or unique character actors only.";
+      default:
+        return "Could not validate this crew assignment. Use a placed token UUID or a unique character actor.";
+    }
+  }
+
+  _getVehicleCrewSuccessMessage(resolution = null, seatLabel = "Seat") {
+    const occupantName = String(resolution?.displayName ?? resolution?.occupantDisplay ?? "Occupant").trim() || "Occupant";
+    if (resolution?.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token) {
+      return `Linked ${occupantName} to ${seatLabel}.`;
+    }
+    if (resolution?.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor) {
+      return `Assigned ${occupantName} to ${seatLabel} as a unique character occupant.`;
+    }
+    return `Assigned ${occupantName} to ${seatLabel}.`;
+  }
+
+  _getVehicleCrewDuplicateSeatLabels(kind = "", slotIndex = 0, resolution = null, crewSource = null) {
+    const normalizedKind = String(kind ?? "").trim();
+    if (!resolution?.isValid) return [];
+
+    const candidateRefs = new Set([
+      String(resolution.canonicalReference ?? "").trim().toLowerCase(),
+      String(resolution.reference ?? "").trim().toLowerCase(),
+      String(resolution.tokenUuid ?? "").trim().toLowerCase(),
+      String(resolution.actorUuid ?? "").trim().toLowerCase()
+    ].filter(Boolean));
+    if (!candidateRefs.size) return [];
+
+    const sourceCrew = (crewSource && typeof crewSource === "object") ? crewSource : (this.actor.system?.crew ?? {});
+    const labels = [];
+
+    for (const crewKey of ["operators", "gunners", "complement"]) {
+      const rows = Array.isArray(sourceCrew?.[crewKey]) ? sourceCrew[crewKey] : [];
+      const definition = getVehicleCrewRoleDefinition(crewKey);
+      for (let i = 0; i < rows.length; i += 1) {
+        if (crewKey === normalizedKind && i === slotIndex) continue;
+        const row = rows[i] ?? {};
+        const rowRefs = [
+          getVehicleCrewStoredReference(row),
+          String(row?.id ?? "").trim(),
+          String(row?.tokenUuid ?? "").trim(),
+          String(row?.actorUuid ?? "").trim()
+        ].map((entry) => String(entry ?? "").trim().toLowerCase()).filter(Boolean);
+        if (!rowRefs.length) continue;
+        const hasMatch = rowRefs.some((entry) => candidateRefs.has(entry));
+        if (!hasMatch) continue;
+        labels.push(buildVehicleCrewSeatLabel(definition?.label ?? "Seat", i + 1));
+      }
+    }
+
+    return labels;
+  }
+
+  async _updateVehicleCrewSlotReference(kind = "", slotIndex = 0, resolution = null, { notify = true } = {}) {
+    if (!this.isEditable) return false;
+    const normalizedKind = String(kind ?? "").trim();
+    if (!["operators", "gunners", "complement"].includes(normalizedKind)) return false;
+    if (!resolution?.isValid) return false;
+
+    const path = `system.crew.${normalizedKind}`;
+    const existing = Array.isArray(this.actor.system?.crew?.[normalizedKind])
+      ? foundry.utils.deepClone(this.actor.system.crew[normalizedKind])
+      : [];
+    const capacityKey = normalizedKind === "complement" ? "passengers" : normalizedKind;
+    const capacity = toNonNegativeWhole(this.actor.system?.crew?.capacity?.[capacityKey], existing.length);
+    while (existing.length < capacity) {
+      existing.push({ idx: existing.length, id: "", display: "", position: "", assignmentType: "", tokenUuid: "", actorUuid: "" });
+    }
+    if (slotIndex < 0 || slotIndex >= existing.length) return false;
+
+    existing[slotIndex] = buildVehicleCrewAssignmentPayload(resolution, slotIndex, existing[slotIndex]);
+    const definition = getVehicleCrewRoleDefinition(normalizedKind);
+    const seatLabel = buildVehicleCrewSeatLabel(definition?.label ?? "Seat", slotIndex + 1);
+    const crewSourceForDuplicateScan = {
+      ...(this.actor.system?.crew ?? {}),
+      [normalizedKind]: existing
+    };
+    const duplicateSeatLabels = this._getVehicleCrewDuplicateSeatLabels(
+      normalizedKind,
+      slotIndex,
+      resolution,
+      crewSourceForDuplicateScan
+    );
+
+    try {
+      await this.actor.update({ [path]: existing });
+      if (notify) {
+        if (duplicateSeatLabels.length) {
+          const occupantName = String(resolution?.displayName ?? resolution?.occupantDisplay ?? "Occupant").trim() || "Occupant";
+          const destinations = duplicateSeatLabels.join(", ");
+          ui.notifications?.warn(`${occupantName} is already assigned to ${destinations}. Duplicate assignments are allowed.`);
+        }
+        ui.notifications?.info(this._getVehicleCrewSuccessMessage(resolution, seatLabel));
+      }
+      return true;
+    } catch (error) {
+      console.error("[CREW-ASSIGN] Update failed:", error);
+      ui.notifications?.warn("Failed to assign crew slot.");
+      return false;
+    }
+  }
+
+  async _clearVehicleCrewSlot(kind = "", slotIndex = 0, { notify = true } = {}) {
+    if (!this.isEditable) return false;
+    const normalizedKind = String(kind ?? "").trim();
+    if (!["operators", "gunners", "complement"].includes(normalizedKind)) return false;
+
+    const path = `system.crew.${normalizedKind}`;
+    const existing = Array.isArray(this.actor.system?.crew?.[normalizedKind])
+      ? foundry.utils.deepClone(this.actor.system.crew[normalizedKind])
+      : [];
+    if (slotIndex < 0 || slotIndex >= existing.length) return false;
+
+    existing[slotIndex] = buildVehicleCrewAssignmentPayload(null, slotIndex, existing[slotIndex]);
+    const definition = getVehicleCrewRoleDefinition(normalizedKind);
+    const seatLabel = buildVehicleCrewSeatLabel(definition?.label ?? "Seat", slotIndex + 1);
+
+    try {
+      await this.actor.update({ [path]: existing });
+      this._vehicleCrewExpandedRows?.delete(`${normalizedKind}:${slotIndex + 1}`);
+      if (notify) {
+        ui.notifications?.info(`Cleared ${seatLabel}.`);
+      }
+      return true;
+    } catch (error) {
+      console.error("[CREW-CLEAR] Update failed:", error);
+      ui.notifications?.warn("Failed to clear crew slot.");
+      return false;
+    }
+  }
+
+  async _onVehicleCrewReferenceInputChange(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.isEditable) return false;
+
+    const input = event.currentTarget instanceof HTMLInputElement
+      ? event.currentTarget
+      : (event.target instanceof HTMLInputElement ? event.target : null);
+    if (!(input instanceof HTMLInputElement)) return false;
+
+    const kind = String(input.dataset.kind ?? "").trim();
+    const slotIndex = Number(input.dataset.idx ?? Number.NaN);
+    if (!["operators", "gunners", "complement"].includes(kind)) return false;
+    if (!Number.isFinite(slotIndex) || slotIndex < 0) return false;
+
+    const priorValue = String(input.dataset.referenceValue ?? "").trim();
+    const rawReference = String(input.value ?? "").trim();
+    if (!rawReference) {
+      const cleared = await this._clearVehicleCrewSlot(kind, slotIndex, { notify: true });
+      if (!cleared) input.value = priorValue;
+      return cleared;
+    }
+
+    const resolution = await resolveVehicleCrewStoredResolution({ id: rawReference });
+    if (!resolution?.isValid) {
+      ui.notifications?.warn(this._getVehicleCrewRejectionMessage(resolution));
+      input.value = priorValue;
+      return false;
+    }
+
+    return this._updateVehicleCrewSlotReference(kind, slotIndex, resolution, { notify: true });
   }
 
   async _tryConvertAmmoFromSuperDrop(event, data) {
@@ -15610,8 +17308,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return;
 
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    const vehicleEmplacementId = String(event.currentTarget?.dataset?.vehicleEmplacementId ?? "").trim();
     const field = String(event.currentTarget?.dataset?.field ?? "").trim();
-    if (!itemId || !field) return;
+    if ((!itemId && !vehicleEmplacementId) || !field) return;
 
     let value;
     if (field === "scopeMode") {
@@ -15623,13 +17322,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         : 0;
     }
 
-    if (field === "magazineCurrent") {
+    if (field === "magazineCurrent" && itemId) {
       const item = this.actor.items.get(itemId);
       if (item?.type === "gear") {
         const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
         const maxMagazine = toNonNegativeWhole(gear.range?.magazine, 0);
         value = Math.max(0, Math.min(maxMagazine, Number(value ?? 0)));
       }
+    }
+
+    if (vehicleEmplacementId) {
+      await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
+        const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
+          ? foundry.utils.deepClone(entry.weaponState)
+          : {};
+        nextWeaponState[field] = value;
+        entry.weaponState = nextWeaponState;
+      });
+      return;
     }
 
     await this.actor.update({
@@ -15642,8 +17352,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return;
 
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    const vehicleEmplacementId = String(event.currentTarget?.dataset?.vehicleEmplacementId ?? "").trim();
     const fireMode = String(event.currentTarget?.dataset?.fireMode ?? "").trim().toLowerCase();
-    if (!itemId || !fireMode) return;
+    if ((!itemId && !vehicleEmplacementId) || !fireMode) return;
+
+    if (vehicleEmplacementId) {
+      await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
+        const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
+          ? foundry.utils.deepClone(entry.weaponState)
+          : {};
+        nextWeaponState.fireMode = fireMode;
+        entry.weaponState = nextWeaponState;
+      });
+      return;
+    }
 
     await this.actor.update({
       [`system.equipment.weaponState.${itemId}.fireMode`]: fireMode
@@ -15661,8 +17383,22 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ? event.currentTarget
           : null);
     const itemId = String(target?.dataset?.itemId ?? "").trim();
+    const vehicleEmplacementId = String(target?.dataset?.vehicleEmplacementId ?? "").trim();
     const variantIndex = toNonNegativeWhole(target?.dataset?.variantIndex, 0);
-    if (!itemId) return;
+    if (!itemId && !vehicleEmplacementId) return;
+
+    if (vehicleEmplacementId) {
+      await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
+        const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
+          ? foundry.utils.deepClone(entry.weaponState)
+          : {};
+        const currentVariant = toNonNegativeWhole(nextWeaponState.variantIndex, 0);
+        if (currentVariant === variantIndex) return;
+        nextWeaponState.variantIndex = variantIndex;
+        entry.weaponState = nextWeaponState;
+      });
+      return;
+    }
 
     const nextWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
     const currentEntry = (nextWeaponState[itemId] && typeof nextWeaponState[itemId] === "object")
@@ -17130,6 +18866,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return;
 
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    const vehicleEmplacementId = String(event.currentTarget?.dataset?.vehicleEmplacementId ?? "").trim();
     if (!itemId) return;
 
     const item = this.actor.items.get(itemId);
@@ -17141,7 +18878,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const state = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
+    const state = vehicleEmplacementId
+      ? (() => {
+          const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+          const emplacements = Array.isArray(vehicleSystem?.weaponEmplacements) ? vehicleSystem.weaponEmplacements : [];
+          const matchedEmplacement = emplacements.find((entry) => String(entry?.id ?? "").trim() === vehicleEmplacementId) ?? null;
+          return (matchedEmplacement?.weaponState && typeof matchedEmplacement.weaponState === "object")
+            ? matchedEmplacement.weaponState
+            : {};
+        })()
+      : (this.actor.system?.equipment?.weaponState?.[itemId] ?? {});
     const availableFireModes = Array.isArray(gear.fireModes) && gear.fireModes.length ? gear.fireModes : ["Single"];
     const selectedFireMode = String(state?.fireMode ?? "").trim().toLowerCase();
     const modeLabel = availableFireModes.find((mode) => String(mode).trim().toLowerCase() === selectedFireMode)
@@ -17162,11 +18908,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const updateData = {
-      [`system.equipment.weaponState.${itemId}.chargeLevel`]: currentLevel + 1
-    };
+    if (vehicleEmplacementId) {
+      await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
+        const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
+          ? foundry.utils.deepClone(entry.weaponState)
+          : {};
+        nextWeaponState.chargeLevel = currentLevel + 1;
+        entry.weaponState = nextWeaponState;
+      });
+      return;
+    }
 
-    await this.actor.update(updateData);
+    await this.actor.update({
+      [`system.equipment.weaponState.${itemId}.chargeLevel`]: currentLevel + 1
+    });
   }
 
   async _onWeaponClearCharge(event) {
@@ -17174,13 +18929,74 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return;
 
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    const vehicleEmplacementId = String(event.currentTarget?.dataset?.vehicleEmplacementId ?? "").trim();
     if (!itemId) return;
 
-    const currentLevel = toNonNegativeWhole(this.actor.system?.equipment?.weaponState?.[itemId]?.chargeLevel, 0);
+    const currentLevel = vehicleEmplacementId
+      ? (() => {
+          const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+          const emplacements = Array.isArray(vehicleSystem?.weaponEmplacements) ? vehicleSystem.weaponEmplacements : [];
+          const matchedEmplacement = emplacements.find((entry) => String(entry?.id ?? "").trim() === vehicleEmplacementId) ?? null;
+          return toNonNegativeWhole(matchedEmplacement?.weaponState?.chargeLevel, 0);
+        })()
+      : toNonNegativeWhole(this.actor.system?.equipment?.weaponState?.[itemId]?.chargeLevel, 0);
     if (currentLevel <= 0) return;
+
+    if (vehicleEmplacementId) {
+      await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
+        const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
+          ? foundry.utils.deepClone(entry.weaponState)
+          : {};
+        nextWeaponState.chargeLevel = 0;
+        entry.weaponState = nextWeaponState;
+      });
+      return;
+    }
 
     await this.actor.update({
       [`system.equipment.weaponState.${itemId}.chargeLevel`]: 0
+    });
+  }
+
+  async _onVehicleWeaponNeuralLinkToggle(event) {
+    event.preventDefault();
+    if (!this.isEditable || !this._isVehicleActor()) return;
+
+    const emplacementId = String(event.currentTarget?.dataset?.emplacementId ?? "").trim();
+    if (!emplacementId) return;
+
+    const checked = event.currentTarget?.checked === true;
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    const emplacements = Array.isArray(vehicleSystem?.weaponEmplacements) ? vehicleSystem.weaponEmplacements : [];
+    const validOperatorSeatKeys = this._getValidVehicleNeuralLinkOperatorSeatKeys(emplacementId, vehicleSystem, emplacements);
+    const autoOperatorSeatKey = checked && validOperatorSeatKeys.length === 1 ? validOperatorSeatKeys[0] : "";
+
+    await this._updateVehicleWeaponEmplacementById(emplacementId, (entry) => {
+      entry.useNeuralLink = checked;
+      entry.neuralLinkOperatorSeatKey = checked ? autoOperatorSeatKey : "";
+    });
+  }
+
+  async _onVehicleWeaponNeuralLinkOperatorChange(event) {
+    event.preventDefault();
+    if (!this.isEditable || !this._isVehicleActor()) return;
+
+    const emplacementId = String(event.currentTarget?.dataset?.emplacementId ?? "").trim();
+    const requestedSeatKey = String(event.currentTarget?.value ?? "").trim();
+    if (!emplacementId) return;
+
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    const emplacements = Array.isArray(vehicleSystem?.weaponEmplacements) ? vehicleSystem.weaponEmplacements : [];
+    const validOperatorSeatKeys = this._getValidVehicleNeuralLinkOperatorSeatKeys(emplacementId, vehicleSystem, emplacements);
+    if (requestedSeatKey && !validOperatorSeatKeys.includes(requestedSeatKey)) {
+      ui.notifications?.warn("That operator is already assigned to another Neural Link weapon.");
+      this.render(false);
+      return;
+    }
+
+    await this._updateVehicleWeaponEmplacementById(emplacementId, (entry) => {
+      entry.useNeuralLink = true;
+      entry.neuralLinkOperatorSeatKey = requestedSeatKey;
     });
   }
 
@@ -17687,13 +19503,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * Check if actor has Pacifist trait and if so, perform a Courage test.
    * Returns true if attack should proceed, false if blocked by failed Pacifist test.
    */
-  async _checkPacifistTrait() {
-    if (this._isInfusedHuragokActor()) {
+  async _checkPacifistTrait(actorDoc = this.actor) {
+    if (!actorDoc || typeof actorDoc !== "object") return true;
+    if (actorDoc === this.actor && this._isInfusedHuragokActor()) {
       return true;
     }
 
     // Look for Pacifist trait
-    const pacifistTrait = this.actor.items.find(
+    const pacifistTrait = actorDoc.items.find(
       (item) => item.type === "trait" && String(item.name ?? "").trim().toLowerCase() === "pacifist"
     );
 
@@ -17702,7 +19519,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     // Get Courage characteristic
-    const characteristicRuntime = await this._getLiveCharacteristicRuntime();
+    const characteristicRuntime = await this._getLiveCharacteristicRuntime(actorDoc);
     const crgStat = toNonNegativeWhole(characteristicRuntime.scores?.crg ?? 0, 0);
 
     // Roll d100 for Courage test (must use async evaluation)
@@ -17720,17 +19537,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const outcomeClass = "success";
       const content = `<article class="mythic-chat-card ${outcomeClass}">
         <header class="mythic-chat-header">
-          <span class="mythic-chat-title">${esc(this.actor.name)} - Courage Test</span>
+          <span class="mythic-chat-title">${esc(actorDoc.name)} - Courage Test</span>
           <span class="mythic-chat-outcome ${outcomeClass}">SUCCESS</span>
         </header>
         <div class="mythic-stat-label">CRG ${crgStat} vs 1d100 rolled ${rollResult}${dosText}</div>
         <div class="mythic-chat-body">
-          <p><em>${esc(this.actor.name)} struggles against their pacifist nature, but pushes through...</em></p>
+          <p><em>${esc(actorDoc.name)} struggles against their pacifist nature, but pushes through...</em></p>
           <p><strong>The attack proceeds.</strong></p>
         </div>
       </article>`;
       await ChatMessage.create({
-        speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+        speaker: ChatMessage.getSpeaker({ actor: actorDoc }),
         content,
         type: CONST.CHAT_MESSAGE_STYLES.OTHER
       });
@@ -17742,17 +19559,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const outcomeClass = "failure";
       const content = `<article class="mythic-chat-card ${outcomeClass}">
         <header class="mythic-chat-header">
-          <span class="mythic-chat-title">${esc(this.actor.name)} - Courage Test</span>
+          <span class="mythic-chat-title">${esc(actorDoc.name)} - Courage Test</span>
           <span class="mythic-chat-outcome ${outcomeClass}">FAILURE</span>
         </header>
         <div class="mythic-stat-label">CRG ${crgStat} vs 1d100 rolled ${rollResult}${dosText}</div>
         <div class="mythic-chat-body">
-          <p><em>${esc(this.actor.name)} cannot bring themselves to cause harm...</em></p>
-          <p><strong>${esc(this.actor.name)} cannot make any attacks this round.</strong></p>
+          <p><em>${esc(actorDoc.name)} cannot bring themselves to cause harm...</em></p>
+          <p><strong>${esc(actorDoc.name)} cannot make any attacks this round.</strong></p>
         </div>
       </article>`;
       await ChatMessage.create({
-        speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+        speaker: ChatMessage.getSpeaker({ actor: actorDoc }),
         content,
         type: CONST.CHAT_MESSAGE_STYLES.OTHER
       });
@@ -17764,16 +19581,35 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    const vehicleEmplacementId = String(event.currentTarget?.dataset?.vehicleEmplacementId ?? "").trim();
     const actionType = String(event.currentTarget?.dataset?.action ?? "single").trim().toLowerCase();
     const grenadeArmAction = String(event.currentTarget?.dataset?.grenadeAction ?? "").trim().toLowerCase();
     let executionVariant = null;
     if (!itemId) return;
 
-    const item = this.actor.items.get(itemId);
+    const weaponOwnerActor = this.actor;
+    const isVehicleWeaponAttack = this._isVehicleActor() && Boolean(vehicleEmplacementId);
+    const vehicleSystem = isVehicleWeaponAttack ? normalizeVehicleSystemData(weaponOwnerActor.system ?? {}) : null;
+    const vehicleEmplacements = isVehicleWeaponAttack && Array.isArray(vehicleSystem?.weaponEmplacements)
+      ? vehicleSystem.weaponEmplacements
+      : [];
+    const vehicleEmplacement = isVehicleWeaponAttack
+      ? (vehicleEmplacements.find((entry) => String(entry?.id ?? "").trim() === vehicleEmplacementId) ?? null)
+      : null;
+    const activeVehicleUser = isVehicleWeaponAttack
+      ? this._resolveVehicleWeaponActiveUser(vehicleEmplacement ?? {}, vehicleSystem, vehicleEmplacements)
+      : null;
+    if (isVehicleWeaponAttack && !activeVehicleUser?.canAttack) {
+      ui.notifications?.warn(activeVehicleUser?.disableReason || "No crew member is available to fire this vehicle weapon.");
+      return;
+    }
+    const attackActor = activeVehicleUser?.activeUserActor ?? weaponOwnerActor;
+
+    const item = weaponOwnerActor.items.get(itemId);
     if (!item || item.type !== "gear") return;
 
     // Check Pacifist trait - if it fails, block the attack
-    const pacifistTestPassed = await this._checkPacifistTrait();
+    const pacifistTestPassed = await this._checkPacifistTrait(attackActor);
     if (!pacifistTestPassed) return;
 
     const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
@@ -17794,8 +19630,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
-    const wieldedWeaponId = String(this.actor.system?.equipment?.equipped?.wieldedWeaponId ?? "").trim();
-    const bypassWieldedCheck = Boolean(this._mythicBypassWieldedCheck);
+    const wieldedWeaponId = String(weaponOwnerActor.system?.equipment?.equipped?.wieldedWeaponId ?? "").trim();
+    const bypassWieldedCheck = isVehicleWeaponAttack || Boolean(this._mythicBypassWieldedCheck);
     if (!bypassWieldedCheck && wieldedWeaponId !== itemId) {
       if (!this.isEditable) {
         ui.notifications.warn(`${item.name} is not currently wielded.`);
@@ -17826,16 +19662,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       if (!proceed) return;
 
-      await this.actor.update({
+      await weaponOwnerActor.update({
         "system.equipment.equipped.wieldedWeaponId": itemId
       });
     }
 
-    const state = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
+    const state = isVehicleWeaponAttack
+      ? (vehicleEmplacement?.weaponState ?? {})
+      : (weaponOwnerActor.system?.equipment?.weaponState?.[itemId] ?? {});
     const isCookGrenadeWeapon = String(gear.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades"
       || String(gear.ammoMode ?? "").trim().toLowerCase() === "grenade";
     if (isCookGrenadeWeapon && grenadeArmAction === "cook") {
-      await this._startDeferredGrenadeCook({ item, itemId, gear, state });
+      await this._startDeferredGrenadeCook({
+        item,
+        itemId,
+        gear,
+        state,
+        attackActor,
+        vehicleEmplacementId
+      });
       return;
     }
     const toHitMod = Number.isFinite(Number(state?.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
@@ -17861,8 +19706,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const tracksBasicAmmo = !isMelee && !isInfusionRadiusWeapon && !isGrenadeWeapon && !ammoConfig.ignoreBasicAmmoCounts;
     const ammoName = String(gear.ammoName ?? "").trim();
     const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
-    const weaponEnergyCells = isEnergyWeapon && this.actor.system?.equipment?.energyCells && typeof this.actor.system.equipment.energyCells === "object"
-      ? (Array.isArray(this.actor.system.equipment.energyCells[itemId]) ? this.actor.system.equipment.energyCells[itemId] : [])
+    const weaponEnergyCells = isEnergyWeapon && weaponOwnerActor.system?.equipment?.energyCells && typeof weaponOwnerActor.system.equipment.energyCells === "object"
+      ? (Array.isArray(weaponOwnerActor.system.equipment.energyCells[itemId]) ? weaponOwnerActor.system.equipment.energyCells[itemId] : [])
       : [];
     const activeEnergyCell = isEnergyWeapon
       ? (weaponEnergyCells.find((entry) => String(entry?.id ?? "").trim() === String(state?.activeEnergyCellId ?? "").trim())
@@ -17889,7 +19734,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const activeChargeLevel = chargeMaxLevel > 0 ? Math.min(storedChargeLevel, chargeMaxLevel) : 0;
     const chargeDamageBonus = activeChargeLevel * chargeDamagePerLevel;
     const isFullChargeShot = isChargeMode && chargeMaxLevel > 0 && activeChargeLevel >= chargeMaxLevel;
-    const trainingStatus = this._evaluateWeaponTrainingStatus(gear, item.name ?? "");
+    const trainingStatus = this._evaluateWeaponTrainingStatus(gear, item.name ?? "", attackActor);
     const factionTrainingPenalty = trainingStatus.missingFactionTraining ? -20 : 0;
     const weaponTrainingPenalty = trainingStatus.missingWeaponTraining ? -20 : 0;
     const weaponRuleKeys = normalizeStringList(Array.isArray(gear.weaponSpecialRuleKeys) ? gear.weaponSpecialRuleKeys : []);
@@ -17911,24 +19756,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const weaponDisplayName = (Array.isArray(gear.nicknames) && gear.nicknames.length)
       ? String(gear.nicknames[0] ?? "").trim() || item.name
       : item.name;
-    const attackerToken = canvas?.tokens?.placeables?.find((token) => token?.actor?.id === this.actor.id) ?? null;
+    const attackerToken = canvas?.tokens?.placeables?.find((token) => token?.actor?.id === attackActor.id) ?? null;
     const distanceMeters = (attackerToken && targetToken && canvas?.grid?.measureDistance)
       ? Number(canvas.grid.measureDistance(attackerToken.center, targetToken.center))
       : NaN;
-    const trackedCombat = isActorActivelyInCombat(this.actor) ? game.combat : null;
+    const trackedCombat = isActorActivelyInCombat(attackActor) ? game.combat : null;
 
     let targetSwitchPenalty = 0;
     if (trackedCombat && !isGrenadeThrowAction) {
       const combatId = String(trackedCombat.id ?? "");
       const round = Math.max(0, Number(trackedCombat.round ?? 0));
       const currentTargetId = String(targetToken?.id ?? "");
-      const tracker = this.actor.system?.combat?.targetSwitch ?? {};
+      const tracker = attackActor.system?.combat?.targetSwitch ?? {};
       const isSameRound = String(tracker?.combatId ?? "") === combatId && Number(tracker?.round ?? -1) === round;
       let switchCount = isSameRound ? Math.max(0, Number(tracker?.switchCount ?? 0)) : 0;
       const lastTargetId = isSameRound ? String(tracker?.lastTargetId ?? "") : "";
       if (currentTargetId && lastTargetId && currentTargetId !== lastTargetId) switchCount += 1;
       targetSwitchPenalty = switchCount * -10;
-      await this.actor.update({
+      await attackActor.update({
         "system.combat.targetSwitch": {
           combatId,
           round,
@@ -17984,7 +19829,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const autoHalfCeil = isAutomaticFire ? (autoShotsPerTurn - autoHalfFloor) : 0;
     const combatIdForAuto = String(trackedCombat?.id ?? "");
     const combatRoundForAuto = Math.max(0, Number(trackedCombat?.round ?? 0));
-    const autoTrackerRoot = this.actor.system?.combat?.autoFireTracker ?? {};
+    const autoTrackerRoot = attackActor.system?.combat?.autoFireTracker ?? {};
     const isAutoTrackerCurrentRound = Boolean(trackedCombat)
       && isAutomaticFire
       && String(autoTrackerRoot?.combatId ?? "") === combatIdForAuto
@@ -17996,7 +19841,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? (autoTrackerWeapons[itemId] ?? { halfAutoActions: 0, shotsSpent: 0 })
       : null;
 
-    const characteristicRuntime = await this._getLiveCharacteristicRuntime();
+    const characteristicRuntime = await this._getLiveCharacteristicRuntime(attackActor);
     const meleeAttackWarfareModifier = Number(characteristicRuntime?.modifiers?.wfm ?? 0);
 
     let rawRollIterations = (actionType === "execution" || actionType === "buttstroke" || actionType === "pump-reaction" || actionType === "chargeFire")
@@ -18054,7 +19899,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const grenadeThrowProfile = isGrenadeWeapon
       ? (() => {
         const strScore = toNonNegativeWhole(characteristicRuntime?.scores?.str, 0);
-        const hasServoAssisted = this.actor.items.some((entry) => {
+        const hasServoAssisted = attackActor.items.some((entry) => {
           const nameText = String(entry?.name ?? "").trim().toLowerCase();
           const descText = String(entry?.system?.description ?? entry?.system?.modifiers ?? "").trim().toLowerCase();
           return nameText.includes("servo-assisted") || descText.includes("finding throwing distance");
@@ -18062,7 +19907,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const throwStrengthBonus = hasServoAssisted ? 25 : 0;
         const effectiveStrengthScore = Math.max(0, strScore + throwStrengthBonus);
         const effectiveStrengthModifier = Math.floor(effectiveStrengthScore / 10);
-        const mythicStrength = Math.max(0, toNonNegativeWhole(this.actor.system?.mythic?.characteristics?.str, 0));
+        const mythicStrength = Math.max(0, toNonNegativeWhole(attackActor.system?.mythic?.characteristics?.str, 0));
         const strengthPower = Math.max(0, effectiveStrengthModifier + mythicStrength);
         const throwWeightKgRaw = Number(gear.weightKg ?? gear.weightPerRoundKg ?? 0);
         const throwWeightKg = Number.isFinite(throwWeightKgRaw) && throwWeightKgRaw > 0 ? throwWeightKgRaw : 1;
@@ -18083,7 +19928,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const weightPenalty = Math.max(0, weightSteps * strengthBand.reductionPerStep);
         const baseMultiplier = 15;
         const multiplierAfterWeight = baseMultiplier - weightPenalty;
-        const carryCapacityKg = Number(computeCharacterDerivedValues(this.actor.system ?? {})?.carryingCapacity?.carry ?? 0);
+        const carryCapacityKg = Number(computeCharacterDerivedValues(attackActor.system ?? {})?.carryingCapacity?.carry ?? 0);
         const exceedsCarryWeight = Number.isFinite(carryCapacityKg) && carryCapacityKg > 0
           ? throwWeightKg > carryCapacityKg
           : false;
@@ -18296,7 +20141,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         halfAutoActions: priorHalfActions + 1,
         shotsSpent: Math.min(autoShotsPerTurn, priorShotsSpent + rollIterations)
       };
-      await this.actor.update({
+      await attackActor.update({
         "system.combat.autoFireTracker": {
           combatId: combatIdForAuto,
           round: combatRoundForAuto,
@@ -18308,7 +20153,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (isEnergyWeapon) {
       const updateData = {};
       if (ammoToConsume > 0 && resolvedActiveEnergyCellId) {
-        const energyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
+        const energyCells = foundry.utils.deepClone(weaponOwnerActor.system?.equipment?.energyCells ?? {});
         const cells = Array.isArray(energyCells[itemId]) ? [...energyCells[itemId]] : [];
         const cellIndex = cells.findIndex((entry) => String(entry?.id ?? "").trim() === resolvedActiveEnergyCellId);
         if (cellIndex >= 0) {
@@ -18320,23 +20165,37 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           };
           energyCells[itemId] = cells;
           updateData["system.equipment.energyCells"] = energyCells;
-          updateData[`system.equipment.weaponState.${itemId}.activeEnergyCellId`] = resolvedActiveEnergyCellId;
-          updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = nextCurrent;
+          if (!isVehicleWeaponAttack) {
+            updateData[`system.equipment.weaponState.${itemId}.activeEnergyCellId`] = resolvedActiveEnergyCellId;
+            updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = nextCurrent;
+          }
           newAmmoCurrent = nextCurrent;
         }
       }
       if (Object.keys(updateData).length) {
-        await this.actor.update(updateData);
+        await weaponOwnerActor.update(updateData);
+        if (isVehicleWeaponAttack) {
+          await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
+            const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
+              ? foundry.utils.deepClone(entry.weaponState)
+              : {};
+            nextWeaponState.activeEnergyCellId = resolvedActiveEnergyCellId;
+            nextWeaponState.magazineCurrent = newAmmoCurrent;
+            entry.weaponState = nextWeaponState;
+          });
+        }
       }
     } else if (tracksBasicAmmo) {
       const updateData = {};
       if (ammoToConsume > 0) {
         const newMagCurrent = Math.max(0, ammoCurrent - ammoToConsume);
-        updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = newMagCurrent;
+        if (!isVehicleWeaponAttack) {
+          updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = newMagCurrent;
+        }
         // Sync the active container's stored .current so unloaded magazines retain their count.
         const activeMagId = String(state?.activeMagazineId ?? "").trim();
         if (activeMagId) {
-          const bContainers = foundry.utils.deepClone(this.actor.system?.equipment?.ballisticContainers ?? {});
+          const bContainers = foundry.utils.deepClone(weaponOwnerActor.system?.equipment?.ballisticContainers ?? {});
           for (const [gk, grp] of Object.entries(bContainers)) {
             if (!Array.isArray(grp)) continue;
             const magIdx = grp.findIndex((c) => !c?._stub && String(c?.id ?? "").trim() === activeMagId);
@@ -18352,7 +20211,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         newAmmoCurrent = newMagCurrent;
       }
       if (Object.keys(updateData).length) {
-        await this.actor.update(updateData);
+        await weaponOwnerActor.update(updateData);
+      }
+      if (isVehicleWeaponAttack && ammoToConsume > 0) {
+        await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
+          const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
+            ? foundry.utils.deepClone(entry.weaponState)
+            : {};
+          nextWeaponState.magazineCurrent = newAmmoCurrent;
+          entry.weaponState = nextWeaponState;
+        });
       }
     }
 
@@ -19027,10 +20895,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : "";
 
     const attackHeaderHtml = isGrenadeThrowAction
-      ? `<strong>${esc(this.actor.name)}</strong> throws <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
+      ? `<strong>${esc(attackActor.name)}</strong> throws <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
       : (targets.length === 1 && targetName
-        ? `<strong>${esc(this.actor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
-        : `<strong>${esc(this.actor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`);
+        ? `<strong>${esc(attackActor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
+        : `<strong>${esc(attackActor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`);
 
     const content = `<div class="mythic-attack-card">
   <div class="mythic-attack-header">
@@ -19046,8 +20914,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     // Attack data stored in flags so the GM can roll evasion from the chat card
     const attackData = {
-      attackerId: this.actor.id,
-      attackerName: this.actor.name,
+      attackerId: attackActor.id,
+      attackerName: attackActor.name,
+      weaponOwnerActorId: weaponOwnerActor.id,
       weaponId: itemId,
       weaponName: weaponDisplayName,
       mode: modeLabel,
@@ -19130,7 +20999,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      speaker: ChatMessage.getSpeaker({ actor: attackActor }),
       content,
       rolls: allRolls,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER,
@@ -19145,7 +21014,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ? (executionVariant === "assassination" ? 2 : 1)
           : 0;
     if (actionEconomyCost > 0) {
-      await consumeActorHalfActions(this.actor, {
+      await consumeActorHalfActions(attackActor, {
         halfActions: actionEconomyCost,
         label: `${weaponDisplayName} ${actionType === "execution" ? executionVariant : actionType} attack`,
         source: "weapon-attack"
@@ -19153,9 +21022,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (isChargeMode && activeChargeLevel > 0) {
-      await this.actor.update({
-        [`system.equipment.weaponState.${itemId}.chargeLevel`]: 0
-      });
+      if (isVehicleWeaponAttack) {
+        await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
+          const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
+            ? foundry.utils.deepClone(entry.weaponState)
+            : {};
+          nextWeaponState.chargeLevel = 0;
+          entry.weaponState = nextWeaponState;
+        });
+      } else {
+        await weaponOwnerActor.update({
+          [`system.equipment.weaponState.${itemId}.chargeLevel`]: 0
+        });
+      }
     }
     if (isInfusionRadiusWeapon) {
       await this._setInfusionRadiusRechargeRemaining(itemId, 10);
@@ -19163,8 +21042,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (actionType === "pump-reaction") {
       if (trackedCombat) {
-        const currentReactions = Math.max(0, Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)));
-        await this.actor.update({ "system.combat.reactions.count": currentReactions + 1 });
+        const currentReactions = Math.max(0, Math.floor(Number(attackActor.system?.combat?.reactions?.count ?? 0)));
+        await attackActor.update({ "system.combat.reactions.count": currentReactions + 1 });
       }
     }
 
@@ -19180,7 +21059,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
   }
 
-  async _buildDeferredGrenadeCookAttackData({ itemId, item, gear, state, weaponDisplayName }) {
+  async _buildDeferredGrenadeCookAttackData({ itemId, item, gear, state, weaponDisplayName, attackActor = this.actor }) {
     const weaponRuleKeys = normalizeStringList(Array.isArray(gear?.weaponSpecialRuleKeys) ? gear.weaponSpecialRuleKeys : []);
     const weaponRuleText = `${weaponRuleKeys.join(" ")} ${String(gear?.specialRules ?? "")}`;
     const baseToHitMod = Number.isFinite(Number(gear?.baseToHitModifier)) ? Math.round(Number(gear.baseToHitModifier)) : 0;
@@ -19195,14 +21074,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (baseFlat !== 0 || damageParts.length === 0) damageParts.push(String(baseFlat));
     const damageFormula = damageParts.join(" + ");
     const basePierce = Math.max(0, Number(gear?.damage?.pierce ?? 0));
-    const trainingStatus = this._evaluateWeaponTrainingStatus(gear, item?.name ?? "");
+    const trainingStatus = this._evaluateWeaponTrainingStatus(gear, item?.name ?? "", attackActor);
     const factionTrainingPenalty = trainingStatus.missingFactionTraining ? -20 : 0;
     const weaponTrainingPenalty = trainingStatus.missingWeaponTraining ? -20 : 0;
-    const characteristicRuntime = await this._getLiveCharacteristicRuntime();
+    const characteristicRuntime = await this._getLiveCharacteristicRuntime(attackActor);
     const strScore = toNonNegativeWhole(characteristicRuntime?.scores?.str, 0);
-    const mythicStrength = Math.max(0, toNonNegativeWhole(this.actor.system?.mythic?.characteristics?.str, 0));
-    const carryCapacityKg = Number(computeCharacterDerivedValues(this.actor.system ?? {})?.carryingCapacity?.carry ?? 0);
-    const hasServoAssisted = this.actor.items.some((entry) => {
+    const mythicStrength = Math.max(0, toNonNegativeWhole(attackActor.system?.mythic?.characteristics?.str, 0));
+    const carryCapacityKg = Number(computeCharacterDerivedValues(attackActor.system ?? {})?.carryingCapacity?.carry ?? 0);
+    const hasServoAssisted = attackActor.items.some((entry) => {
       const nameText = String(entry?.name ?? "").trim().toLowerCase();
       const descText = String(entry?.system?.description ?? entry?.system?.modifiers ?? "").trim().toLowerCase();
       return nameText.includes("servo-assisted") || descText.includes("finding throwing distance");
@@ -19257,8 +21136,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const throwCanThrow = !Number.isFinite(carryCapacityKg) || carryCapacityKg <= 0 || throwWeightKg <= carryCapacityKg;
 
     return {
-      attackerId: this.actor.id,
-      attackerName: this.actor.name,
+      attackerId: attackActor.id,
+      attackerName: attackActor.name,
+      weaponOwnerActorId: this.actor.id,
       weaponId: itemId,
       weaponName: weaponDisplayName,
       actionType: "half",
@@ -19330,12 +21210,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await item.update({ "system.quantity": currentQuantity - 1 });
   }
 
-  async _startDeferredGrenadeCook({ item, itemId, gear, state }) {
+  async _startDeferredGrenadeCook({ item, itemId, gear, state, attackActor = this.actor }) {
     const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
     const weaponDisplayName = (Array.isArray(gear?.nicknames) && gear.nicknames.length)
       ? (String(gear.nicknames[0] ?? "").trim() || String(item?.name ?? "Grenade"))
       : String(item?.name ?? "Grenade");
-    const tracksCombat = Boolean(isActorActivelyInCombat(this.actor));
+    const tracksCombat = Boolean(isActorActivelyInCombat(attackActor));
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: "Confirm Cook" },
       content: tracksCombat
@@ -19349,7 +21229,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!confirmed) return;
 
     if (tracksCombat) {
-      await consumeActorHalfActions(this.actor, {
+      await consumeActorHalfActions(attackActor, {
         halfActions: 1,
         label: `${weaponDisplayName} cook`,
         source: "weapon-attack"
@@ -19361,7 +21241,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       item,
       gear,
       state,
-      weaponDisplayName
+      weaponDisplayName,
+      attackActor
     });
 
     await this._consumeGrenadeItem(item);
@@ -19370,7 +21251,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       <div class="mythic-evasion-card">
         <div class="mythic-evasion-header">Grenade Cooking</div>
         <div class="mythic-evasion-line">
-          <p><strong>${esc(this.actor.name)}</strong> starts cooking <strong>${esc(weaponDisplayName)}</strong>.</p>
+          <p><strong>${esc(attackActor.name)}</strong> starts cooking <strong>${esc(weaponDisplayName)}</strong>.</p>
           <p>${tracksCombat
             ? "No roll yet. Resolve the cook throw at the start of the next turn."
             : "No roll yet. There is no active combat, so resolve the cooked grenade manually."}</p>
@@ -19379,7 +21260,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     `;
 
     await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      speaker: ChatMessage.getSpeaker({ actor: attackActor }),
       content,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER,
       flags: {
@@ -20245,7 +22126,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   /**
-   * Handle dropping an Actor onto a crew slot
+   * Handle dropping a token or supported actor onto a crew slot.
    */
   async _onDropCrewSlot(event, data = null) {
     event.preventDefault();
@@ -20261,40 +22142,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const slotIndex = crewDropTarget?.slotIndex ?? (Number(zone.dataset.idx ?? 0) || 0);
 
     const dropData = this._extractDropData(event, data);
-    const actorDoc = await this._resolveDroppedActorFromData(dropData);
-    if (!actorDoc) {
-      ui.notifications?.warn('Please drop an Actor into this slot.');
+    const resolution = await this._resolveVehicleCrewAssignmentFromDropData(dropData);
+    if (!resolution?.isValid) {
+      ui.notifications?.warn(this._getVehicleCrewRejectionMessage(resolution));
       return false;
     }
 
-    const actorId = String(actorDoc.pack ? (actorDoc.uuid ?? '') : (actorDoc.id ?? actorDoc._id ?? '')).trim();
-    const path = `system.crew.${kind}`;
-
-    const existing = Array.isArray(this.actor.system?.crew?.[kind]) ? foundry.utils.deepClone(this.actor.system.crew[kind]) : [];
-    const capacityKey = (kind === 'complement') ? 'passengers' : kind;
-    const capacity = toNonNegativeWhole(this.actor.system?.crew?.capacity?.[capacityKey], existing.length);
-    while (existing.length < capacity) existing.push({ idx: existing.length, id: '', display: '' });
-
-    const definition = getVehicleCrewRoleDefinition(kind);
-    const position = normalizeCrewSeatPosition(existing[slotIndex]?.position ?? '');
-    existing[slotIndex] = {
-      ...existing[slotIndex],
-      idx: slotIndex,
-      id: actorId,
-      display: buildCrewOccupantDisplay(actorDoc, String(actorDoc.name ?? '')),
-      position
-    };
-    const seatLabel = buildVehicleCrewSeatLabel(definition?.label ?? 'Seat', slotIndex + 1);
-
-    try {
-      await this.actor.update({ [path]: existing });
-      ui.notifications?.info(`Assigned ${actorDoc.name} to ${seatLabel}.`);
-      return true;
-    } catch (error) {
-      console.error('[CREW-DROP] Update failed:', error);
-      ui.notifications?.warn('Failed to assign crew slot.');
-      return false;
-    }
+    return this._updateVehicleCrewSlotReference(kind, slotIndex, resolution, { notify: true });
   }
 
   async _onClearCrewSlot(event) {
@@ -20310,31 +22164,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const kind = String(button.dataset.kind ?? '').trim();
     const slotIndex = Number(button.dataset.idx ?? 0) || 0;
-    const path = `system.crew.${kind}`;
-
-    const existing = Array.isArray(this.actor.system?.crew?.[kind]) ? foundry.utils.deepClone(this.actor.system.crew[kind]) : [];
-    if (slotIndex < 0 || slotIndex >= existing.length) return false;
-    const definition = getVehicleCrewRoleDefinition(kind);
-    const position = normalizeCrewSeatPosition(existing[slotIndex]?.position ?? '');
-    existing[slotIndex] = {
-      ...existing[slotIndex],
-      idx: slotIndex,
-      id: '',
-      display: '',
-      position
-    };
-    const seatLabel = buildVehicleCrewSeatLabel(definition?.label ?? 'Seat', slotIndex + 1);
-
-    try {
-      await this.actor.update({ [path]: existing });
-      this._vehicleCrewExpandedRows?.delete(`${kind}:${slotIndex + 1}`);
-      ui.notifications?.info(`Cleared ${seatLabel}.`);
-      return true;
-    } catch (err) {
-      console.error('[CREW-CLEAR] Update failed:', err);
-      ui.notifications?.warn('Failed to clear crew slot.');
-      return false;
-    }
+    return this._clearVehicleCrewSlot(kind, slotIndex, { notify: true });
   }
 
   _toggleCrewSlotDetails(event) {

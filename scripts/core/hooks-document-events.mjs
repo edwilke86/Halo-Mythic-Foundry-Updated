@@ -51,6 +51,20 @@ const MYTHIC_GRENADE_MARKER_ANIMATION_HANDLER_KEY = "_mythicGrenadeMarkerAnimati
 const MYTHIC_GRENADE_MARKER_ANIMATION_STATE_KEY = "_mythicGrenadeMarkerAnimationState";
 const MYTHIC_GRENADE_MARKER_TEXTURE_SRC = "systems/Halo-Mythic-Foundry-Updated/assets/icons/convergence-target.png";
 const MYTHIC_PENDING_GRENADE_EVENT_MESSAGE_IDS = new Set();
+const MYTHIC_VEHICLE_DOOMED_PERSISTENT_RESET = Object.freeze({
+  onFire: false,
+  flameRating: 0,
+  occupantsDamageMode: "none",
+  movementDisabled: false,
+  engineAimingDisabled: false,
+  detonation: Object.freeze({
+    armed: false,
+    mode: null,
+    roundsRemaining: null,
+    startedAtCombatRound: null,
+    combatId: ""
+  })
+});
 
 function isEnergyCellAmmoMode(ammoMode = "") {
   return MYTHIC_ENERGY_CELL_AMMO_MODES.has(String(ammoMode ?? "").trim().toLowerCase());
@@ -83,6 +97,162 @@ function getEnergyCellLabel(ammoMode = "") {
 function isTimedDetonationWeapon(ammoMode = "", timedDetonation = false) {
   const normalized = String(ammoMode ?? "").trim().toLowerCase();
   return normalized === "grenade" || timedDetonation === true;
+}
+
+function cloneVehicleDoomedPersistentState(persistent = {}) {
+  const source = (persistent && typeof persistent === "object" && !Array.isArray(persistent)) ? persistent : {};
+  const sourceDetonation = (source.detonation && typeof source.detonation === "object" && !Array.isArray(source.detonation))
+    ? source.detonation
+    : {};
+  return {
+    onFire: source.onFire === true,
+    flameRating: Math.max(0, Math.floor(Number(source.flameRating ?? 0) || 0)),
+    occupantsDamageMode: ["none", "halfCurrentArmorReduction", "fullDamage"].includes(String(source.occupantsDamageMode ?? "none"))
+      ? String(source.occupantsDamageMode ?? "none")
+      : "none",
+    movementDisabled: source.movementDisabled === true,
+    engineAimingDisabled: source.engineAimingDisabled === true,
+    detonation: {
+      armed: sourceDetonation.armed === true,
+      mode: [null, "tier7", "tier8", "instant"].includes(sourceDetonation.mode ?? null)
+        ? (sourceDetonation.mode ?? null)
+        : null,
+      roundsRemaining: sourceDetonation.roundsRemaining === null || sourceDetonation.roundsRemaining === undefined
+        ? null
+        : Math.max(0, Math.floor(Number(sourceDetonation.roundsRemaining) || 0)),
+      startedAtCombatRound: sourceDetonation.startedAtCombatRound === null || sourceDetonation.startedAtCombatRound === undefined
+        ? null
+        : Math.max(0, Math.floor(Number(sourceDetonation.startedAtCombatRound) || 0)),
+      combatId: String(sourceDetonation.combatId ?? "").trim()
+    }
+  };
+}
+
+function buildResetVehicleDoomedPersistentState() {
+  return cloneVehicleDoomedPersistentState(foundry.utils.deepClone(MYTHIC_VEHICLE_DOOMED_PERSISTENT_RESET));
+}
+
+function areVehicleDoomedPersistentStatesEqual(left = {}, right = {}) {
+  const a = cloneVehicleDoomedPersistentState(left);
+  const b = cloneVehicleDoomedPersistentState(right);
+  return a.onFire === b.onFire
+    && a.flameRating === b.flameRating
+    && a.occupantsDamageMode === b.occupantsDamageMode
+    && a.movementDisabled === b.movementDisabled
+    && a.engineAimingDisabled === b.engineAimingDisabled
+    && a.detonation.armed === b.detonation.armed
+    && a.detonation.mode === b.detonation.mode
+    && a.detonation.roundsRemaining === b.detonation.roundsRemaining
+    && a.detonation.startedAtCombatRound === b.detonation.startedAtCombatRound
+    && a.detonation.combatId === b.detonation.combatId;
+}
+
+function buildVehicleDoomedPersistentStateForActorUpdate(actor, nextSystem = {}, combat = game.combat) {
+  const nextNormalized = normalizeVehicleSystemData(nextSystem ?? {});
+  const nextDoomed = nextNormalized?.doomed ?? {};
+  const nextTier = Math.max(0, Math.floor(Number(nextDoomed?.currentTier ?? 0) || 0));
+  const persistent = cloneVehicleDoomedPersistentState(nextDoomed?.persistent ?? {});
+
+  if (!nextDoomed?.active) {
+    return buildResetVehicleDoomedPersistentState();
+  }
+
+  const combatId = String(combat?.id ?? "").trim();
+  const combatRound = Math.max(0, Math.floor(Number(combat?.round ?? 0)));
+  const hasCombat = Boolean(combatId);
+
+  if (nextTier >= 9) {
+    persistent.detonation.armed = true;
+    persistent.detonation.mode = "instant";
+    persistent.detonation.roundsRemaining = null;
+    if (hasCombat && persistent.detonation.startedAtCombatRound == null) {
+      persistent.detonation.startedAtCombatRound = combatRound;
+    }
+    if (hasCombat) persistent.detonation.combatId = combatId;
+    return persistent;
+  }
+
+  if (nextTier >= 8) {
+    if (!persistent.detonation.armed) {
+      persistent.detonation.armed = true;
+      persistent.detonation.mode = "tier8";
+      persistent.detonation.roundsRemaining = 2;
+      if (hasCombat) {
+        persistent.detonation.startedAtCombatRound = combatRound;
+        persistent.detonation.combatId = combatId;
+      }
+      return persistent;
+    }
+
+    if (persistent.detonation.mode !== "instant") persistent.detonation.mode = "tier8";
+    const rounds = persistent.detonation.roundsRemaining;
+    if (rounds == null) {
+      persistent.detonation.roundsRemaining = 2;
+    } else {
+      const resolvedRounds = Math.max(0, Math.floor(Number(rounds) || 0));
+      if (resolvedRounds >= 3) persistent.detonation.roundsRemaining = 2;
+      else if (resolvedRounds <= 0) persistent.detonation.roundsRemaining = 0;
+      else persistent.detonation.roundsRemaining = resolvedRounds;
+    }
+    if (hasCombat && !persistent.detonation.combatId) persistent.detonation.combatId = combatId;
+    return persistent;
+  }
+
+  if (nextTier >= 7 && !persistent.detonation.armed) {
+    persistent.detonation.armed = true;
+    persistent.detonation.mode = "tier7";
+    persistent.detonation.roundsRemaining = 4;
+    if (hasCombat) {
+      persistent.detonation.startedAtCombatRound = combatRound;
+      persistent.detonation.combatId = combatId;
+    }
+  } else if (nextTier >= 7 && !persistent.detonation.mode) {
+    persistent.detonation.mode = "tier7";
+  }
+
+  return persistent;
+}
+
+function buildVehicleDoomedPersistentUpdateForCombat(actor, combat = game.combat, changed = {}) {
+  const normalized = normalizeVehicleSystemData(actor?.system ?? {});
+  const doomed = normalized?.doomed ?? {};
+  const nextTier = Math.max(0, Math.floor(Number(doomed?.currentTier ?? 0) || 0));
+  const currentPersistent = cloneVehicleDoomedPersistentState(doomed?.persistent ?? {});
+  const nextPersistent = cloneVehicleDoomedPersistentState(currentPersistent);
+  if (!doomed?.active) return null;
+
+  const combatId = String(combat?.id ?? "").trim();
+  if (!combatId) return null;
+  const combatRound = Math.max(0, Math.floor(Number(combat?.round ?? 0)));
+  const roundAdvanced = Object.prototype.hasOwnProperty.call(changed ?? {}, "round");
+
+  if (nextTier >= 9) {
+    nextPersistent.detonation.armed = true;
+    nextPersistent.detonation.mode = "instant";
+    nextPersistent.detonation.roundsRemaining = null;
+    if (nextPersistent.detonation.startedAtCombatRound == null) nextPersistent.detonation.startedAtCombatRound = combatRound;
+    nextPersistent.detonation.combatId = combatId;
+    return areVehicleDoomedPersistentStatesEqual(currentPersistent, nextPersistent) ? null : nextPersistent;
+  }
+
+  if (nextPersistent.detonation.armed && nextPersistent.detonation.mode !== "instant" && roundAdvanced) {
+    const baselineRounds = nextPersistent.detonation.roundsRemaining == null
+      ? (nextPersistent.detonation.mode === "tier8" ? 2 : 4)
+      : Math.max(0, Math.floor(Number(nextPersistent.detonation.roundsRemaining) || 0));
+    const nextRounds = Math.max(0, baselineRounds - 1);
+    if (nextRounds <= 0) {
+      nextPersistent.detonation.mode = "instant";
+      nextPersistent.detonation.roundsRemaining = null;
+    } else {
+      nextPersistent.detonation.roundsRemaining = nextRounds;
+    }
+    nextPersistent.detonation.combatId = combatId;
+    if (nextPersistent.detonation.startedAtCombatRound == null) {
+      nextPersistent.detonation.startedAtCombatRound = Math.max(0, combatRound - 1);
+    }
+  }
+
+  return areVehicleDoomedPersistentStatesEqual(currentPersistent, nextPersistent) ? null : nextPersistent;
 }
 
 function isGrenadeMarkerTileDocument(tileDocument) {
@@ -1671,7 +1841,7 @@ async function createGrenadeEvent(message, attackData = {}, action = "throw", op
   const hasCombat = Boolean(combat);
   const currentRound = hasCombat ? Math.max(0, Math.floor(Number(combat.round ?? 0))) : 0;
   const currentTurn = hasCombat ? Math.max(0, Math.floor(Number(combat.turn ?? 0))) : 0;
-  const ownerActor = game.actors.get(String(attackData.attackerId ?? ""));
+  const weaponOwnerActor = game.actors.get(String(attackData.weaponOwnerActorId ?? attackData.attackerId ?? ""));
   const ownerToken = canvas?.tokens?.placeables?.find((token) => token?.actor?.id === attackData.attackerId) ?? null;
   const origin = ownerToken?.center ?? { x: 0, y: 0 };
   const timerDelayRounds = Math.max(1, Math.floor(Number(attackData.timerDelayRounds ?? 1)));
@@ -1744,7 +1914,7 @@ async function createGrenadeEvent(message, attackData = {}, action = "throw", op
       killRadius: radii.killRadius,
       attackData: {
         ...attackData,
-        specialRules: String(ownerActor?.items?.get?.(attackData.weaponId)?.system?.specialRules ?? attackData.specialRules ?? "")
+        specialRules: String(weaponOwnerActor?.items?.get?.(attackData.weaponId)?.system?.specialRules ?? attackData.specialRules ?? "")
       }
     };
 
@@ -3088,6 +3258,17 @@ async function processCombatGrenadeCooks(combat) {
   }
 }
 
+async function processVehicleDoomCountdowns(combat, changed = {}) {
+  if (!combat || !game.user.isGM) return;
+
+  const vehicleActors = Array.from(game.actors ?? []).filter((actor) => ["vehicle", "Vehicle"].includes(String(actor?.type ?? "").trim()));
+  for (const actor of vehicleActors) {
+    const nextPersistent = buildVehicleDoomedPersistentUpdateForCombat(actor, combat, changed);
+    if (!nextPersistent) continue;
+    await actor.update({ "system.doomed.persistent": nextPersistent });
+  }
+}
+
 function normalizeEnergyCellSignaturePart(value = "") {
   return String(value ?? "")
     .trim()
@@ -4049,7 +4230,11 @@ export function registerMythicDocumentAndChatHooks({
         overwrite: true,
         recursive: true
       });
-      changes.system = normalizeVehicleSystemData(nextSystem);
+      let normalizedVehicleSystem = normalizeVehicleSystemData(nextSystem);
+      const nextPersistent = buildVehicleDoomedPersistentStateForActorUpdate(actor, normalizedVehicleSystem, game.combat);
+      foundry.utils.setProperty(normalizedVehicleSystem, "doomed.persistent", nextPersistent);
+      normalizedVehicleSystem = normalizeVehicleSystemData(normalizedVehicleSystem);
+      changes.system = normalizedVehicleSystem;
     }
 
     if (changes.name !== undefined) {
@@ -4328,6 +4513,7 @@ export function registerMythicDocumentAndChatHooks({
     if (actor?.type === "character") {
       await applyCombatTurnStart(actor, combat);
     }
+    await processVehicleDoomCountdowns(combat, changed);
     await processCombatGrenadeCooks(combat);
   });
 

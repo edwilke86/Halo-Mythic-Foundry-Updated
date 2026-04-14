@@ -4,7 +4,7 @@
   {{#if mythicVehicleOverview.specialRules.length}}
     <div class="vehicle-overview-badge-row">
       {{#each mythicVehicleOverview.specialRules as |rule|}}
-        <span class="vehicle-overview-badge">{{rule.label}}</span>
+        <span class="vehicle-overview-badge{{#if rule.isDisabled}} is-disabled{{/if}}">{{rule.label}}</span>
       {{/each}}
     </div>
   {{else}}
@@ -23,7 +23,7 @@
         <span class="vehicle-overview-status-summary">{{mythicVehicleOverview.status.summaryText}}</span>
         <span class="vehicle-overview-toggle-indicator">{{#if mythicVehicleOverview.status.expanded}}-{{else}}+{{/if}}</span>
       </button>
-      <button type="button" class="action-btn vehicle-overview-detonate-btn" title="Detonate">
+      <button type="button" class="action-btn vehicle-overview-detonate-btn" title="Detonate" {{#unless mythicVehicleOverview.status.canDetonate}}disabled{{/unless}}>
         <i class="fas fa-bomb"></i>
       </button>
     </div>

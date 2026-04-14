@@ -427,7 +427,44 @@ export function getCanonicalVehicleSystemData() {
       hull: {
         value: 0,
         max: 0,
-        doom: { level: "tier_0", armor: 0, blast: 0, kill: 0, move: true }
+        doom: {
+          level: "tier_0",
+          armor: 0,
+          blast: 0,
+          kill: 0,
+          move: true,
+          isDoomed: false,
+          doomedTier: 0,
+          doomedNegativeHullValue: 0,
+          doomedArmorPenaltyFlat: 0,
+          doomedArmorCompromised: false,
+          doomedEffectiveArmorByLocation: {
+            front: 0,
+            back: 0,
+            side: 0,
+            top: 0,
+            bottom: 0
+          },
+          doomedVehicleImmobile: false,
+          doomedEngineAimingDisabled: false,
+          doomedOnFire: false,
+          doomedFlameRating: 0,
+          doomedOccupantDamageMode: "none",
+          doomedDetonationState: "none",
+          doomedDetonationRoundsRemaining: 0,
+          doomedDetonationSecondsRemaining: 0,
+          doomedBlastRadius: 0,
+          doomedKillRadius: 0,
+          doomedImmediateDetonation: false,
+          doomedHeavyPlatingLost: false,
+          countdown: {
+            active: false,
+            expired: false,
+            combatId: "",
+            detonationRound: 0,
+            roundsRemaining: 0
+          }
+        }
       }
     },
     armor: {
@@ -442,6 +479,46 @@ export function getCanonicalVehicleSystemData() {
       max: 0,
       recharge: 0,
       delay: 0
+    },
+    doomed: {
+      active: false,
+      negativeHull: 0,
+      currentTier: 0,
+      doomedArmorPenaltyFlat: 0,
+      doomedArmorCompromised: false,
+      doomedEffectiveArmorByLocation: {
+        front: 0,
+        back: 0,
+        side: 0,
+        top: 0,
+        bottom: 0
+      },
+      doomedVehicleImmobile: false,
+      doomedEngineAimingDisabled: false,
+      doomedOnFire: false,
+      doomedFlameRating: 0,
+      doomedOccupantsDamageMode: "none",
+      doomedDetonationState: "none",
+      doomedDetonationRoundsRemaining: 0,
+      doomedDetonationSecondsRemaining: 0,
+      doomedBlastRadius: 0,
+      doomedKillRadius: 0,
+      doomedImmediateDetonation: false,
+      doomedHeavyPlatingLost: false,
+      persistent: {
+        onFire: false,
+        flameRating: 0,
+        occupantsDamageMode: "none",
+        movementDisabled: false,
+        engineAimingDisabled: false,
+        detonation: {
+          armed: false,
+          mode: null,
+          roundsRemaining: null,
+          startedAtCombatRound: null,
+          combatId: ""
+        }
+      }
     },
     overview: {
       ui: {

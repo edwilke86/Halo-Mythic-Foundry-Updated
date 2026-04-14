@@ -138,8 +138,8 @@
             <div class="vehicle-speedometer-center"></div>
           </div>
           <div class="vehicle-speedometer-readout">
-            <div>{{mythicVehicleMobility.currentSpeed}} / {{mythicVehicleMobility.topSpeed}} MpT</div>
-            <div>{{mythicVehicleMobility.currentKmh}} / {{mythicVehicleMobility.topKmh}} Km/H</div>
+            <div>{{mythicVehicleMobility.currentSpeed}} / {{mythicVehicleMobility.speedometerMaxSpeed}} MpT</div>
+            <div>{{mythicVehicleMobility.currentKmh}} / {{mythicVehicleMobility.speedometerMaxKmh}} Km/H</div>
           </div>
           <div class="vehicle-mobility-stat-row">
             <label>Brake</label>
@@ -163,6 +163,32 @@
         <div class="panel vehicle-summary-main">
           {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-overview-tab.hbs"}}
         </div>
+
+        <section class="panel vehicle-summary-weapons-panel">
+          <h2>Weapons</h2>
+
+          {{#if mythicVehicleOverview.weapons.hasCards}}
+            <div class="vehicle-summary-weapons-table">
+              <div class="vehicle-summary-weapons-table-head" aria-hidden="true">
+                <span>Weapon</span>
+                <span>Mode</span>
+                <span>Attacks</span>
+                <span>NL</span>
+                <span></span>
+              </div>
+
+              <div class="vehicle-summary-weapons-table-body">
+                {{#each mythicVehicleOverview.weapons.cards as |weapon|}}
+                  {{#with weapon}}
+                    {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-weapon-panel.hbs"}}
+                  {{/with}}
+                {{/each}}
+              </div>
+            </div>
+          {{else}}
+            <div class="vehicle-overview-empty">No mounted weapons assigned.</div>
+          {{/if}}
+        </section>
       </div>
     </div>
 
@@ -345,6 +371,11 @@
                 <input id="vehicle-{{actor.id}}-no-optics" type="checkbox" name="system.breakpoints.op.noOptics" value="true" {{#if mythicVehicleSystem.breakpoints.op.noOptics}}checked{{/if}} />
               </div>
             </div>
+            {{#if editable}}
+              <div class="vehicle-setup-panel-actions">
+                <button type="button" class="action-btn vehicle-breakpoints-full-repair-btn">Full Repair</button>
+              </div>
+            {{/if}}
           </div>
 
           <div class="panel armor-panel">

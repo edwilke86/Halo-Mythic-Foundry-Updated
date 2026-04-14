@@ -172,18 +172,368 @@ function getEnergyCellLabel(ammoMode = "", batterySubtype = "plasma") {
   return "Plasma Battery";
 }
 
-function getVehicleDoomState(hullValue = 0) {
-  const bp = Math.max(0, Number(hullValue ?? 0)) * -1;
-  if (bp >= 100) return { level: "tier_9", armor: 5, blast: 4, kill: 3, move: false };
-  if (bp >= 81) return { level: "tier_8", armor: 5, blast: 3, kill: 2, move: false };
-  if (bp >= 66) return { level: "tier_7", armor: 5, blast: 2, kill: 1, move: false };
-  if (bp >= 51) return { level: "tier_6", armor: 5, blast: 0, kill: 0, move: false };
-  if (bp >= 41) return { level: "tier_5", armor: 4, blast: 0, kill: 0, move: false };
-  if (bp >= 31) return { level: "tier_4", armor: 3, blast: 0, kill: 0, move: true };
-  if (bp >= 21) return { level: "tier_3", armor: 2, blast: 0, kill: 0, move: true };
-  if (bp >= 11) return { level: "tier_2", armor: 1, blast: 0, kill: 0, move: true };
-  if (bp >= 0) return { level: "tier_1", armor: 0, blast: 0, kill: 0, move: true };
-  return { level: "tier_0", armor: 0, blast: 0, kill: 0, move: true };
+const MYTHIC_VEHICLE_ARMOR_LOCATION_KEYS = Object.freeze(["front", "back", "side", "top", "bottom"]);
+const MYTHIC_VEHICLE_HULL_NEGATIVE_FLOOR = -9999;
+const MYTHIC_VEHICLE_DOOMED_OCCUPANT_DAMAGE_MODES = Object.freeze([
+  "none",
+  "halfCurrentArmorReduction",
+  "fullDamage"
+]);
+const MYTHIC_VEHICLE_DOOMED_DETONATION_MODES = Object.freeze([null, "tier7", "tier8", "instant"]);
+const MYTHIC_VEHICLE_DOOM_COUNTDOWN_DEFAULTS = Object.freeze({
+  active: false,
+  expired: false,
+  combatId: "",
+  detonationRound: 0,
+  roundsRemaining: 0
+});
+const MYTHIC_VEHICLE_DOOMED_PERSISTENT_DEFAULTS = Object.freeze({
+  onFire: false,
+  flameRating: 0,
+  occupantsDamageMode: "none",
+  movementDisabled: false,
+  engineAimingDisabled: false,
+  detonation: Object.freeze({
+    armed: false,
+    mode: null,
+    roundsRemaining: null,
+    startedAtCombatRound: null,
+    combatId: ""
+  })
+});
+
+function normalizeVehicleDoomedPersistentLedger(persistent = {}) {
+  const source = (persistent && typeof persistent === "object" && !Array.isArray(persistent))
+    ? persistent
+    : {};
+  const requestedDamageMode = String(source.occupantsDamageMode ?? "none").trim();
+  const occupantsDamageMode = MYTHIC_VEHICLE_DOOMED_OCCUPANT_DAMAGE_MODES.includes(requestedDamageMode)
+    ? requestedDamageMode
+    : "none";
+  const sourceDetonation = (source.detonation && typeof source.detonation === "object" && !Array.isArray(source.detonation))
+    ? source.detonation
+    : {};
+  const requestedDetonationMode = sourceDetonation.mode ?? null;
+  const detonationMode = MYTHIC_VEHICLE_DOOMED_DETONATION_MODES.includes(requestedDetonationMode)
+    ? requestedDetonationMode
+    : null;
+  const detonationRoundsRemaining = sourceDetonation.roundsRemaining === null || sourceDetonation.roundsRemaining === undefined
+    ? null
+    : Math.max(0, Math.floor(Number(sourceDetonation.roundsRemaining) || 0));
+  const detonationStartedAtRound = sourceDetonation.startedAtCombatRound === null || sourceDetonation.startedAtCombatRound === undefined
+    ? null
+    : Math.max(0, Math.floor(Number(sourceDetonation.startedAtCombatRound) || 0));
+
+  return {
+    onFire: source.onFire === true,
+    flameRating: Math.max(0, Math.floor(Number(source.flameRating ?? 0) || 0)),
+    occupantsDamageMode,
+    movementDisabled: source.movementDisabled === true,
+    engineAimingDisabled: source.engineAimingDisabled === true,
+    detonation: {
+      armed: sourceDetonation.armed === true,
+      mode: detonationMode,
+      roundsRemaining: detonationRoundsRemaining,
+      startedAtCombatRound: detonationStartedAtRound,
+      combatId: String(sourceDetonation.combatId ?? "").trim()
+    }
+  };
+}
+
+function getVehicleCombatContext(combat = globalThis.game?.combat) {
+  return {
+    combatId: String(combat?.id ?? "").trim(),
+    round: Math.max(0, Math.floor(Number(combat?.round ?? 0)))
+  };
+}
+
+function getVehicleDoomTier(negativeHullValue = 0) {
+  const negativeHull = Math.max(0, Math.floor(Number(negativeHullValue ?? 0)));
+  if (negativeHull >= 100) return 9;
+  if (negativeHull >= 81) return 8;
+  if (negativeHull >= 66) return 7;
+  if (negativeHull >= 51) return 6;
+  if (negativeHull >= 41) return 5;
+  if (negativeHull >= 31) return 4;
+  if (negativeHull >= 21) return 3;
+  if (negativeHull >= 11) return 2;
+  if (negativeHull >= 1) return 1;
+  return 0;
+}
+
+function getVehicleDoomArmorPenaltyFlat(doomedTier = 0) {
+  if (doomedTier >= 2 && doomedTier <= 5) return doomedTier - 1;
+  if (doomedTier >= 6 && doomedTier <= 8) return 5;
+  return 0;
+}
+
+function normalizeVehicleDoomCountdownState(countdown = {}) {
+  const source = (countdown && typeof countdown === "object" && !Array.isArray(countdown))
+    ? countdown
+    : {};
+  return {
+    active: source.active === true,
+    expired: source.expired === true,
+    combatId: String(source.combatId ?? "").trim(),
+    detonationRound: Math.max(0, Math.floor(Number(source.detonationRound ?? 0) || 0)),
+    roundsRemaining: Math.max(0, Math.floor(Number(source.roundsRemaining ?? 0) || 0))
+  };
+}
+
+function resolveVehicleDoomCountdownState(doomedTier = 0, countdown = {}) {
+  const normalizedCountdown = normalizeVehicleDoomCountdownState(countdown);
+  if (doomedTier !== 7 && doomedTier !== 8) {
+    return {
+      ...normalizedCountdown,
+      active: false,
+      expired: false,
+      combatId: "",
+      detonationRound: 0,
+      roundsRemaining: 0,
+      state: "none"
+    };
+  }
+
+  const defaultRounds = doomedTier === 7 ? 4 : 2;
+  const combatContext = getVehicleCombatContext();
+  const sameCombat = Boolean(normalizedCountdown.active)
+    && normalizedCountdown.combatId
+    && normalizedCountdown.combatId === combatContext.combatId;
+  const derivedRoundsRemaining = sameCombat && normalizedCountdown.detonationRound > 0
+    ? Math.max(0, normalizedCountdown.detonationRound - combatContext.round)
+    : normalizedCountdown.roundsRemaining;
+  const expired = normalizedCountdown.expired === true
+    || (Boolean(normalizedCountdown.active) && derivedRoundsRemaining <= 0);
+  const roundsRemaining = expired
+    ? 0
+    : Math.max(0, Math.floor(Number(derivedRoundsRemaining ?? 0) || 0));
+
+  return {
+    ...normalizedCountdown,
+    expired,
+    roundsRemaining: expired
+      ? 0
+      : (roundsRemaining > 0 ? roundsRemaining : defaultRounds),
+    state: expired ? "immediate" : "countdown"
+  };
+}
+
+function getVehicleBlastRadiusForDoomTier(doomedTier = 0, weaponPoints = 0, sizePoints = 0) {
+  const safeWeaponPoints = Math.max(0, Math.floor(Number(weaponPoints ?? 0) || 0));
+  const safeSizePoints = Math.max(0, Math.floor(Number(sizePoints ?? 0) || 0));
+  if (doomedTier === 7) return Math.floor((safeWeaponPoints + safeSizePoints) / 2);
+  if (doomedTier === 8) return safeWeaponPoints + Math.floor(safeSizePoints / 2);
+  if (doomedTier >= 9) return safeWeaponPoints + safeSizePoints;
+  return 0;
+}
+
+function getVehicleDoomState({
+  hullCurrent = 0,
+  hullMax = 0,
+  baseArmorByLocation = {},
+  hasHeavyPlating = false,
+  weaponPoints = 0,
+  sizePoints = 0,
+  persistent = {},
+  countdown = {},
+  legacy = {}
+} = {}) {
+  const safeHullMax = Math.max(0, Math.floor(Number(hullMax ?? 0) || 0));
+  const safeHullCurrent = Math.round(Number(hullCurrent ?? 0) || 0);
+  const isDoomed = safeHullMax > 0 && safeHullCurrent <= 0;
+  const doomedNegativeHullValue = isDoomed
+    ? Math.max(0, Math.abs(Math.min(0, safeHullCurrent)))
+    : 0;
+  const doomedTier = isDoomed ? getVehicleDoomTier(doomedNegativeHullValue) : 0;
+  const doomedArmorPenaltyFlat = isDoomed ? getVehicleDoomArmorPenaltyFlat(doomedTier) : 0;
+  const normalizedPersistent = normalizeVehicleDoomedPersistentLedger(persistent);
+  const normalizedLegacyCountdown = normalizeVehicleDoomCountdownState(countdown);
+  const legacySource = (legacy && typeof legacy === "object" && !Array.isArray(legacy))
+    ? legacy
+    : {};
+  const combatContext = getVehicleCombatContext();
+  const hasActiveCombat = Boolean(combatContext.combatId);
+  const legacyRoundsRemaining = Math.max(0, Math.floor(Number(legacySource?.doomedDetonationRoundsRemaining ?? 0) || 0));
+
+  const nextPersistent = foundry.utils.deepClone(MYTHIC_VEHICLE_DOOMED_PERSISTENT_DEFAULTS);
+  nextPersistent.onFire = normalizedPersistent.onFire || legacySource?.doomedOnFire === true;
+  nextPersistent.flameRating = Math.max(0, normalizedPersistent.flameRating, Number(legacySource?.doomedFlameRating ?? 0) || 0);
+  nextPersistent.occupantsDamageMode = normalizedPersistent.occupantsDamageMode;
+  if (!MYTHIC_VEHICLE_DOOMED_OCCUPANT_DAMAGE_MODES.includes(nextPersistent.occupantsDamageMode)) {
+    nextPersistent.occupantsDamageMode = "none";
+  }
+  nextPersistent.movementDisabled = normalizedPersistent.movementDisabled || legacySource?.doomedVehicleImmobile === true;
+  nextPersistent.engineAimingDisabled = normalizedPersistent.engineAimingDisabled || legacySource?.doomedEngineAimingDisabled === true;
+  nextPersistent.detonation = {
+    armed: normalizedPersistent.detonation.armed || normalizedLegacyCountdown.active === true,
+    mode: normalizedPersistent.detonation.mode,
+    roundsRemaining: normalizedPersistent.detonation.roundsRemaining,
+    startedAtCombatRound: normalizedPersistent.detonation.startedAtCombatRound,
+    combatId: normalizedPersistent.detonation.combatId || normalizedLegacyCountdown.combatId
+  };
+  if (!nextPersistent.detonation.roundsRemaining && legacyRoundsRemaining > 0) {
+    nextPersistent.detonation.roundsRemaining = legacyRoundsRemaining;
+  }
+  if (!nextPersistent.detonation.mode) {
+    const legacyDetonationState = String(legacySource?.doomedDetonationState ?? "").trim().toLowerCase();
+    if (legacyDetonationState === "immediate" || legacySource?.doomedImmediateDetonation === true) nextPersistent.detonation.mode = "instant";
+    else if (legacyDetonationState === "countdown" && doomedTier >= 8) nextPersistent.detonation.mode = "tier8";
+    else if (legacyDetonationState === "countdown" && doomedTier >= 7) nextPersistent.detonation.mode = "tier7";
+  }
+
+  if (!isDoomed) {
+    const resetPersistent = normalizeVehicleDoomedPersistentLedger(foundry.utils.deepClone(MYTHIC_VEHICLE_DOOMED_PERSISTENT_DEFAULTS));
+    return {
+      level: "tier_0",
+      armor: 0,
+      blast: 0,
+      kill: 0,
+      move: true,
+      active: false,
+      isDoomed: false,
+      currentTier: 0,
+      doomedTier: 0,
+      negativeHull: 0,
+      doomedNegativeHullValue: 0,
+      doomedArmorPenaltyFlat: 0,
+      doomedArmorCompromised: false,
+      doomedEffectiveArmorByLocation: Object.fromEntries(MYTHIC_VEHICLE_ARMOR_LOCATION_KEYS.map((key) => {
+        const baseArmor = Math.max(0, Math.floor(Number(baseArmorByLocation?.[key] ?? 0) || 0));
+        return [key, baseArmor];
+      })),
+      doomedVehicleImmobile: false,
+      doomedEngineAimingDisabled: false,
+      doomedOnFire: false,
+      doomedFlameRating: 0,
+      doomedOccupantsDamageMode: "none",
+      doomedOccupantDamageMode: "none",
+      doomedDetonationState: "none",
+      doomedDetonationRoundsRemaining: 0,
+      doomedDetonationSecondsRemaining: 0,
+      doomedBlastRadius: 0,
+      doomedKillRadius: 0,
+      doomedImmediateDetonation: false,
+      doomedHeavyPlatingLost: false,
+      persistent: resetPersistent,
+      countdown: foundry.utils.deepClone(MYTHIC_VEHICLE_DOOM_COUNTDOWN_DEFAULTS)
+    };
+  }
+
+  if (doomedTier >= 3 && nextPersistent.occupantsDamageMode === "none") {
+    nextPersistent.occupantsDamageMode = "halfCurrentArmorReduction";
+  }
+  if (doomedTier >= 4) {
+    nextPersistent.occupantsDamageMode = "fullDamage";
+  }
+  if (doomedTier >= 5) {
+    nextPersistent.movementDisabled = true;
+    nextPersistent.engineAimingDisabled = true;
+  }
+  if (doomedTier >= 6) {
+    nextPersistent.onFire = true;
+    nextPersistent.flameRating = Math.max(2, nextPersistent.flameRating);
+  }
+
+  if (doomedTier >= 9) {
+    nextPersistent.detonation.armed = true;
+    nextPersistent.detonation.mode = "instant";
+    nextPersistent.detonation.roundsRemaining = null;
+    nextPersistent.detonation.startedAtCombatRound = hasActiveCombat ? combatContext.round : nextPersistent.detonation.startedAtCombatRound;
+    nextPersistent.detonation.combatId = hasActiveCombat ? combatContext.combatId : nextPersistent.detonation.combatId;
+  } else if (doomedTier >= 8) {
+    if (!nextPersistent.detonation.armed) {
+      nextPersistent.detonation.armed = true;
+      nextPersistent.detonation.mode = "tier8";
+      nextPersistent.detonation.roundsRemaining = 2;
+      nextPersistent.detonation.startedAtCombatRound = hasActiveCombat ? combatContext.round : nextPersistent.detonation.startedAtCombatRound;
+      nextPersistent.detonation.combatId = hasActiveCombat ? combatContext.combatId : nextPersistent.detonation.combatId;
+    } else {
+      if (nextPersistent.detonation.mode !== "instant") nextPersistent.detonation.mode = "tier8";
+      const currentRemaining = nextPersistent.detonation.roundsRemaining;
+      if (currentRemaining === null || currentRemaining === undefined) {
+        nextPersistent.detonation.roundsRemaining = 2;
+      } else {
+        const resolvedRemaining = Math.max(0, Math.floor(Number(currentRemaining) || 0));
+        if (resolvedRemaining >= 3) nextPersistent.detonation.roundsRemaining = 2;
+        else if (resolvedRemaining <= 0) nextPersistent.detonation.roundsRemaining = 0;
+        else nextPersistent.detonation.roundsRemaining = resolvedRemaining;
+      }
+      if (hasActiveCombat && !nextPersistent.detonation.combatId) {
+        nextPersistent.detonation.combatId = combatContext.combatId;
+      }
+    }
+  } else if (doomedTier >= 7) {
+    if (!nextPersistent.detonation.armed) {
+      nextPersistent.detonation.armed = true;
+      nextPersistent.detonation.mode = "tier7";
+      nextPersistent.detonation.roundsRemaining = 4;
+      nextPersistent.detonation.startedAtCombatRound = hasActiveCombat ? combatContext.round : nextPersistent.detonation.startedAtCombatRound;
+      nextPersistent.detonation.combatId = hasActiveCombat ? combatContext.combatId : nextPersistent.detonation.combatId;
+    } else if (!nextPersistent.detonation.mode) {
+      nextPersistent.detonation.mode = "tier7";
+    }
+  }
+
+  let detonationRoundsRemaining = 0;
+  if (nextPersistent.detonation.mode === "instant") {
+    detonationRoundsRemaining = 0;
+  } else if (nextPersistent.detonation.armed) {
+    const storedRemaining = nextPersistent.detonation.roundsRemaining === null || nextPersistent.detonation.roundsRemaining === undefined
+      ? 0
+      : Math.max(0, Math.floor(Number(nextPersistent.detonation.roundsRemaining) || 0));
+    detonationRoundsRemaining = storedRemaining;
+  }
+  const doomedImmediateDetonation = nextPersistent.detonation.mode === "instant"
+    || (nextPersistent.detonation.armed && detonationRoundsRemaining <= 0 && doomedTier >= 7);
+  const doomedDetonationState = doomedImmediateDetonation
+    ? "immediate"
+    : (nextPersistent.detonation.armed ? "countdown" : "none");
+
+  const doomedEffectiveArmorByLocation = Object.fromEntries(MYTHIC_VEHICLE_ARMOR_LOCATION_KEYS.map((key) => {
+    const baseArmor = Math.max(0, Math.floor(Number(baseArmorByLocation?.[key] ?? 0) || 0));
+    const effectiveArmor = Math.max(0, Math.floor(baseArmor / 2) - doomedArmorPenaltyFlat);
+    return [key, effectiveArmor];
+  }));
+  const doomedBlastRadius = getVehicleBlastRadiusForDoomTier(doomedTier, weaponPoints, sizePoints);
+  const doomedKillRadius = doomedBlastRadius > 0 ? Math.floor(doomedBlastRadius / 2) : 0;
+
+  return {
+    level: doomedTier > 0 ? `tier_${doomedTier}` : "doomed",
+    armor: doomedArmorPenaltyFlat,
+    blast: doomedBlastRadius,
+    kill: doomedKillRadius,
+    move: !nextPersistent.movementDisabled,
+    active: true,
+    isDoomed,
+    currentTier: doomedTier,
+    doomedTier,
+    negativeHull: doomedNegativeHullValue,
+    doomedNegativeHullValue,
+    doomedArmorPenaltyFlat,
+    doomedArmorCompromised: true,
+    doomedEffectiveArmorByLocation,
+    doomedVehicleImmobile: nextPersistent.movementDisabled,
+    doomedEngineAimingDisabled: nextPersistent.engineAimingDisabled,
+    doomedOnFire: nextPersistent.onFire,
+    doomedFlameRating: nextPersistent.onFire ? Math.max(2, nextPersistent.flameRating) : 0,
+    doomedOccupantsDamageMode: nextPersistent.occupantsDamageMode,
+    doomedOccupantDamageMode: nextPersistent.occupantsDamageMode,
+    doomedDetonationState,
+    doomedDetonationRoundsRemaining: doomedImmediateDetonation ? 0 : detonationRoundsRemaining,
+    doomedDetonationSecondsRemaining: doomedImmediateDetonation ? 0 : (detonationRoundsRemaining * 6),
+    doomedBlastRadius,
+    doomedKillRadius,
+    doomedImmediateDetonation,
+    doomedHeavyPlatingLost: hasHeavyPlating,
+    persistent: nextPersistent,
+    countdown: normalizeVehicleDoomCountdownState({
+      active: nextPersistent.detonation.armed && !doomedImmediateDetonation,
+      expired: doomedImmediateDetonation,
+      combatId: nextPersistent.detonation.combatId,
+      detonationRound: 0,
+      roundsRemaining: doomedImmediateDetonation ? 0 : detonationRoundsRemaining
+    })
+  };
 }
 
 function coerceVehicleCheckboxBoolean(value, fallback = false) {
@@ -333,7 +683,7 @@ function normalizeVehicleOverviewState(overview = {}, vehicleSystem = {}) {
     max: engineMax
   });
   mergedOverview.breakpoints.hull.current = clampWholeInRange(hasHullCurrent ? sourceBreakpoints.hull.current : hullMax, hullMax, {
-    min: -100,
+    min: MYTHIC_VEHICLE_HULL_NEGATIVE_FLOOR,
     max: hullMax
   });
 
@@ -369,7 +719,7 @@ function normalizeVehicleOverviewState(overview = {}, vehicleSystem = {}) {
   mergedOverview.breakpoints.custom = normalizeVehicleOverviewCustomBreakpoints(mergedOverview.breakpoints?.custom);
 
   mergedOverview.armor ??= {};
-  for (const key of ["front", "back", "side", "top", "bottom"]) {
+  for (const key of MYTHIC_VEHICLE_ARMOR_LOCATION_KEYS) {
     const baseArmor = getVehicleConfiguredBaseValue(vehicleSystem?.armor?.[key] ?? {});
     mergedOverview.armor[key] ??= {};
     const rawCurrent = sourceArmor?.[key]?.current;
@@ -1395,12 +1745,13 @@ export function normalizeVehicleSystemData(systemData) {
     merged.breakpoints.hull?.doom ?? {},
     { inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true }
   );
-  const normalizedDoom = getVehicleDoomState(merged.breakpoints.hull.value);
-  merged.breakpoints.hull.doom.level = String(normalizedDoom.level);
-  merged.breakpoints.hull.doom.armor = toNonNegativeWhole(normalizedDoom.armor, 0);
-  merged.breakpoints.hull.doom.blast = toNonNegativeWhole(normalizedDoom.blast, 0);
-  merged.breakpoints.hull.doom.kill = toNonNegativeWhole(normalizedDoom.kill, 0);
-  merged.breakpoints.hull.doom.move = Boolean(normalizedDoom.move);
+  merged.breakpoints.hull.doom.countdown = normalizeVehicleDoomCountdownState(merged.breakpoints.hull?.doom?.countdown);
+  merged.doomed = foundry.utils.mergeObject(
+    getCanonicalVehicleSystemData().doomed,
+    merged.doomed ?? {},
+    { inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true }
+  );
+  merged.doomed.persistent = normalizeVehicleDoomedPersistentLedger(merged?.doomed?.persistent);
 
   merged.armor ??= {};
   for (const key of ["front", "back", "side", "top", "bottom"]) {
@@ -1417,14 +1768,49 @@ export function normalizeVehicleSystemData(systemData) {
 
   merged.sizePoints = toNonNegativeWhole(merged.sizePoints, 0);
   merged.weaponPoints = toNonNegativeWhole(merged.weaponPoints, 0);
+  const normalizeCrewAssignmentType = (value = "") => {
+    const normalized = String(value ?? "").trim().toLowerCase();
+    if (normalized === "token") return "token";
+    if (["character", "character-actor", "actor-character", "unique-character"].includes(normalized)) {
+      return "character-actor";
+    }
+    if (normalized === "legacy-actor") return "legacy-actor";
+    return "";
+  };
+
   const normalizeCrewRows = (rows = []) => {
     const sourceRows = Array.isArray(rows) ? rows : [];
-    return sourceRows.map((entry, index) => ({
-      idx: toNonNegativeWhole(entry?.idx, index),
-      id: String(entry?.id ?? "").trim(),
-      display: String(entry?.display ?? "").trim(),
-      position: String(entry?.position ?? "").replace(/\s+/gu, " ").trim()
-    }));
+    return sourceRows.map((entry, index) => {
+      const directId = String(entry?.id ?? "").trim();
+      const requestedTokenUuid = String(entry?.tokenUuid ?? "").trim();
+      const requestedActorUuid = String(entry?.actorUuid ?? "").trim();
+      let assignmentType = normalizeCrewAssignmentType(entry?.assignmentType ?? entry?.referenceType ?? "");
+      const canonicalReference = requestedTokenUuid || requestedActorUuid || directId;
+
+      if (!assignmentType && requestedTokenUuid) assignmentType = "token";
+      if (!assignmentType && requestedActorUuid) assignmentType = "character-actor";
+      if (!assignmentType && /^Scene\.[^.]+\.Token\.[^.]+$/u.test(canonicalReference)) assignmentType = "token";
+      if (!assignmentType && canonicalReference) assignmentType = "legacy-actor";
+
+      const tokenUuid = requestedTokenUuid
+        || (assignmentType === "token" && /^Scene\.[^.]+\.Token\.[^.]+$/u.test(canonicalReference) ? canonicalReference : "");
+      const actorUuid = requestedActorUuid
+        || ((assignmentType === "character-actor"
+          || /^Actor\.[^.]+$/u.test(canonicalReference)
+          || /^Compendium\.[^.]+\.[^.]+\.Actor\.[^.]+$/u.test(canonicalReference))
+          ? canonicalReference
+          : "");
+
+      return {
+        idx: toNonNegativeWhole(entry?.idx, index),
+        id: canonicalReference,
+        display: String(entry?.display ?? "").trim(),
+        position: String(entry?.position ?? "").replace(/\s+/gu, " ").trim(),
+        assignmentType,
+        tokenUuid,
+        actorUuid
+      };
+    });
   };
 
   merged.crew ??= {};
@@ -1437,13 +1823,16 @@ export function normalizeVehicleSystemData(systemData) {
     const normalized = normalizeCrewRows(rows);
     const result = Array.isArray(normalized) ? normalized.slice(0, capacity) : [];
     for (let i = result.length; i < capacity; i++) {
-      result.push({ idx: i, id: "", display: "", position: "" });
+      result.push({ idx: i, id: "", display: "", position: "", assignmentType: "", tokenUuid: "", actorUuid: "" });
     }
     return result.map((entry, i) => ({
       idx: i,
       id: String(entry?.id ?? "").trim(),
       display: String(entry?.display ?? "").trim(),
-      position: String(entry?.position ?? "").replace(/\s+/gu, " ").trim()
+      position: String(entry?.position ?? "").replace(/\s+/gu, " ").trim(),
+      assignmentType: normalizeCrewAssignmentType(entry?.assignmentType ?? entry?.referenceType ?? ""),
+      tokenUuid: String(entry?.tokenUuid ?? "").trim(),
+      actorUuid: String(entry?.actorUuid ?? "").trim()
     }));
   };
 
@@ -1514,17 +1903,122 @@ export function normalizeVehicleSystemData(systemData) {
         ? requestedRole
         : "";
       const linked = Boolean(entry?.linked);
+      const requestedNeuralLinkOperatorSeatKey = String(entry?.neuralLinkOperatorSeatKey ?? "").trim();
+      const neuralLinkOperatorSeatKey = /^operators:\d+$/u.test(requestedNeuralLinkOperatorSeatKey)
+        ? requestedNeuralLinkOperatorSeatKey
+        : "";
+      const sourceWeaponState = (entry?.weaponState && typeof entry.weaponState === "object" && !Array.isArray(entry.weaponState))
+        ? entry.weaponState
+        : {};
       return {
         id: String(entry?.id ?? `legacy-emplacement-${index + 1}`).trim() || `legacy-emplacement-${index + 1}`,
         weaponItemId: String(entry?.weaponItemId ?? "").trim(),
         controllerRole,
         controllerIndex: controllerRole ? toNonNegativeWhole(entry?.controllerIndex ?? entry?.controllerPosition, 0) : 0,
         linked,
-        linkedCount: linked ? Math.max(2, toNonNegativeWhole(entry?.linkedCount, 2)) : 1
+        linkedCount: linked ? Math.max(2, toNonNegativeWhole(entry?.linkedCount, 2)) : 1,
+        useNeuralLink: entry?.useNeuralLink === true,
+        neuralLinkOperatorSeatKey,
+        weaponState: {
+          fireMode: String(sourceWeaponState.fireMode ?? "").trim().toLowerCase(),
+          toHitModifier: Number.isFinite(Number(sourceWeaponState.toHitModifier)) ? Math.round(Number(sourceWeaponState.toHitModifier)) : 0,
+          damageModifier: Number.isFinite(Number(sourceWeaponState.damageModifier)) ? Math.round(Number(sourceWeaponState.damageModifier)) : 0,
+          chargeLevel: toNonNegativeWhole(sourceWeaponState.chargeLevel, 0),
+          rechargeRemaining: toNonNegativeWhole(sourceWeaponState.rechargeRemaining, 0),
+          variantIndex: toNonNegativeWhole(sourceWeaponState.variantIndex, 0),
+          scopeMode: String(sourceWeaponState.scopeMode ?? "none").trim().toLowerCase() || "none"
+        }
       };
     });
 
   merged.overview = normalizeVehicleOverviewState(merged.overview, merged);
+
+  const hullMax = getVehicleConfiguredBaseValue(merged?.breakpoints?.hull ?? {});
+  const hullCurrent = Math.round(Number(merged?.overview?.breakpoints?.hull?.current ?? hullMax) || 0);
+  const baseArmorByLocation = Object.fromEntries(MYTHIC_VEHICLE_ARMOR_LOCATION_KEYS.map((key) => [
+    key,
+    getVehicleConfiguredBaseValue(merged?.armor?.[key] ?? {})
+  ]));
+  const normalizedDoom = getVehicleDoomState({
+    hullCurrent,
+    hullMax,
+    baseArmorByLocation,
+    hasHeavyPlating: Boolean(merged?.special?.heavyPlating?.has),
+    weaponPoints: merged.weaponPoints,
+    sizePoints: merged.sizePoints,
+    persistent: merged?.doomed?.persistent,
+    countdown: merged?.breakpoints?.hull?.doom?.countdown,
+    legacy: merged?.breakpoints?.hull?.doom
+  });
+  merged.doomed = foundry.utils.mergeObject(
+    merged.doomed,
+    {
+      active: Boolean(normalizedDoom?.active),
+      negativeHull: Math.max(0, Number(normalizedDoom?.negativeHull ?? 0) || 0),
+      currentTier: Math.max(0, Number(normalizedDoom?.currentTier ?? 0) || 0),
+      doomedArmorPenaltyFlat: Math.max(0, Number(normalizedDoom?.doomedArmorPenaltyFlat ?? 0) || 0),
+      doomedArmorCompromised: Boolean(normalizedDoom?.doomedArmorCompromised),
+      doomedEffectiveArmorByLocation: foundry.utils.deepClone(normalizedDoom?.doomedEffectiveArmorByLocation ?? {}),
+      doomedVehicleImmobile: Boolean(normalizedDoom?.doomedVehicleImmobile),
+      doomedEngineAimingDisabled: Boolean(normalizedDoom?.doomedEngineAimingDisabled),
+      doomedOnFire: Boolean(normalizedDoom?.doomedOnFire),
+      doomedFlameRating: Math.max(0, Number(normalizedDoom?.doomedFlameRating ?? 0) || 0),
+      doomedOccupantsDamageMode: String(normalizedDoom?.doomedOccupantsDamageMode ?? "none"),
+      doomedDetonationState: String(normalizedDoom?.doomedDetonationState ?? "none"),
+      doomedDetonationRoundsRemaining: Math.max(0, Number(normalizedDoom?.doomedDetonationRoundsRemaining ?? 0) || 0),
+      doomedDetonationSecondsRemaining: Math.max(0, Number(normalizedDoom?.doomedDetonationSecondsRemaining ?? 0) || 0),
+      doomedBlastRadius: Math.max(0, Number(normalizedDoom?.doomedBlastRadius ?? 0) || 0),
+      doomedKillRadius: Math.max(0, Number(normalizedDoom?.doomedKillRadius ?? 0) || 0),
+      doomedImmediateDetonation: Boolean(normalizedDoom?.doomedImmediateDetonation),
+      doomedHeavyPlatingLost: Boolean(normalizedDoom?.doomedHeavyPlatingLost),
+      persistent: normalizeVehicleDoomedPersistentLedger(normalizedDoom?.persistent ?? {})
+    },
+    { inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true }
+  );
+  merged.breakpoints.hull.doom = foundry.utils.mergeObject(
+    merged.breakpoints.hull.doom,
+    {
+      level: String(normalizedDoom?.level ?? "tier_0"),
+      armor: Math.max(0, Number(normalizedDoom?.armor ?? 0) || 0),
+      blast: Math.max(0, Number(normalizedDoom?.blast ?? 0) || 0),
+      kill: Math.max(0, Number(normalizedDoom?.kill ?? 0) || 0),
+      move: Boolean(normalizedDoom?.move),
+      isDoomed: Boolean(normalizedDoom?.isDoomed),
+      doomedTier: Math.max(0, Number(normalizedDoom?.doomedTier ?? 0) || 0),
+      doomedNegativeHullValue: Math.max(0, Number(normalizedDoom?.doomedNegativeHullValue ?? 0) || 0),
+      doomedArmorPenaltyFlat: Math.max(0, Number(normalizedDoom?.doomedArmorPenaltyFlat ?? 0) || 0),
+      doomedArmorCompromised: Boolean(normalizedDoom?.doomedArmorCompromised),
+      doomedEffectiveArmorByLocation: foundry.utils.deepClone(normalizedDoom?.doomedEffectiveArmorByLocation ?? {}),
+      doomedVehicleImmobile: Boolean(normalizedDoom?.doomedVehicleImmobile),
+      doomedEngineAimingDisabled: Boolean(normalizedDoom?.doomedEngineAimingDisabled),
+      doomedOnFire: Boolean(normalizedDoom?.doomedOnFire),
+      doomedFlameRating: Math.max(0, Number(normalizedDoom?.doomedFlameRating ?? 0) || 0),
+      doomedOccupantsDamageMode: String(normalizedDoom?.doomedOccupantsDamageMode ?? "none"),
+      doomedOccupantDamageMode: String(normalizedDoom?.doomedOccupantsDamageMode ?? "none"),
+      doomedDetonationState: String(normalizedDoom?.doomedDetonationState ?? "none"),
+      doomedDetonationRoundsRemaining: Math.max(0, Number(normalizedDoom?.doomedDetonationRoundsRemaining ?? 0) || 0),
+      doomedDetonationSecondsRemaining: Math.max(0, Number(normalizedDoom?.doomedDetonationSecondsRemaining ?? 0) || 0),
+      doomedBlastRadius: Math.max(0, Number(normalizedDoom?.doomedBlastRadius ?? 0) || 0),
+      doomedKillRadius: Math.max(0, Number(normalizedDoom?.doomedKillRadius ?? 0) || 0),
+      doomedImmediateDetonation: Boolean(normalizedDoom?.doomedImmediateDetonation),
+      doomedHeavyPlatingLost: Boolean(normalizedDoom?.doomedHeavyPlatingLost),
+      countdown: foundry.utils.deepClone(normalizedDoom?.countdown ?? MYTHIC_VEHICLE_DOOM_COUNTDOWN_DEFAULTS)
+    },
+    { inplace: false, insertKeys: true, insertValues: true, overwrite: true, recursive: true }
+  );
+
+  if (Boolean(normalizedDoom?.doomedVehicleImmobile)) {
+    if (merged?.overview?.breakpoints?.engine && typeof merged.overview.breakpoints.engine === "object") {
+      merged.overview.breakpoints.engine.current = 0;
+    }
+    const mobilityById = (merged?.overview?.breakpoints?.mobility?.byId && typeof merged.overview.breakpoints.mobility.byId === "object")
+      ? merged.overview.breakpoints.mobility.byId
+      : {};
+    for (const tracker of Object.values(mobilityById)) {
+      if (!tracker || typeof tracker !== "object") continue;
+      tracker.current = 0;
+    }
+  }
 
   merged.perceptiveRange ??= {};
   merged.perceptiveRange.total = toNonNegativeWhole(merged.perceptiveRange?.total, 0);

@@ -6,18 +6,21 @@ This project is actively in development and currently targets Foundry v13.
 
 ## Current Status
 
-- Implemented: modular v13 system architecture, unified actor/item sheets, characteristic and combat automation foundations, fear/shock/PTSD chat workflow, and tracked medical effects with structured duration controls.
-- In progress: deeper rules automation, Character Creation and Advancement parity polish, and compendium/content coverage expansion.
+- Implemented: modular v13 system architecture, unified actor/item sheets, characteristic and combat automation foundations, fear/shock/PTSD chat workflow, tracked medical effects with structured duration controls, and expanded system compendium sync coverage (weapons, armor, equipment, bestiary baseline).
+- In progress: deeper rules automation, Character Creation and Advancement parity polish, compendium/content coverage expansion, and current alpha.2 branch hardening (grenade flow, ammo handling, and crew/inventory UX fixes).
 - Roadmap: see [TODO.md](TODO.md).
 
 ## Alpha Readiness
 
-Current build target: `0.3.0-alpha.1` (playtest alpha)
+Current build target: `0.3.0-alpha.2` (playtest alpha, unreleased)
+
+Latest published release: `0.3.0-alpha.1` (2026-04-03)
 
 Known alpha limitations:
 
 - Some Character Creation and Advancement workflows are still being hardened for edge cases.
 - Group inventory duplicate-row behavior can still occur in some drop flows.
+- Actor sheet multiline textarea indentation drift is still open in some fields.
 - Content/compendium coverage is incomplete and still under active import/reconciliation.
 
 Recommended alpha test focus:
@@ -42,7 +45,7 @@ Where to report:
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.3.0-alpha.1`
+1. Build/version: `0.3.0-alpha.2` (or latest published build in use)
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -61,7 +64,8 @@ Format:
 
 Current working version:
 
-- `0.3.0-alpha.1`
+- Development target: `0.3.0-alpha.2` (unreleased)
+- Latest published: `0.3.0-alpha.1`
 
 Rules used:
 
@@ -81,6 +85,15 @@ Use this section for short public-facing updates as development progresses.
 - Removed load-time alpha notice chat post; retained startup modal notice flow.
 - Updated roadmap/changelog/reporting docs for 0.3.0-alpha.1 consistency.
 
+### 0.3.0-alpha.2 (UNRELEASED)
+
+- Added ammo split support and uncarry flow for ammo/magazines.
+- Added grenade throw and cook actions with range-aware chat details and staged resolution flow.
+- Fixed ammo import classification issues and corrected selected item weight source errors.
+- Improved training and education handling in Character Creation/Advancement purchase flow.
+- Fixed token HUD wounds/shields modification bug.
+- Removed queued XP display from Character Creation panel in favor of unified XP tracking/logging.
+
 ## Planned Major Features
 
 - Drag-and-drop Soldier Type compendium entries to apply starting stats
@@ -92,10 +105,12 @@ Use this section for short public-facing updates as development progresses.
 
 This project builds heavily on prior community work and inspiration.
 
-- Michael van Weelde (GitHub) / Warhound266 (Discord): Roll20 Halo Mythic sheet work and resources
-- AugmenTab (GitHub and Discord): original Foundry sheet work and groundwork
+- Brandon Miller (Discord: Vorked): creator of the Halo Mythic tabletop system. This project exists because of his ruleset, design work, and continued support.
+- Michael van Weelde (GitHub) / Warhound266 (Discord): creator and maintainer of the Roll20 Halo Mythic sheet implementation and resources that informed many structure and UX decisions in this project.
+- AugmenTab (GitHub and Discord): creator of the original Foundry Halo Mythic system implementation and foundational groundwork this project builds upon.
 
-Large portions of structure, ideas, and assets are being adapted from or inspired by their work while this Foundry system is developed.
+Large portions of structure, ideas, implementation approach, and presentation in this repository are adapted from or inspired by their work. Their contributions to the Mythic community are substantial, and this project intentionally acknowledges that lineage.
+
 
 ## License
 
@@ -106,10 +121,18 @@ This repository uses a split-license model:
 
 Attribution is required for CC BY 4.0 content.
 
+Additional attribution and non-affiliation notice:
+
+- Halo Mythic as a ruleset was created by Brandon Miller (Vorked).
+- This repository is a community continuation/adaptation effort and is not presented as the original Roll20 or original Foundry implementation.
+- This repository is not an official product of, nor endorsed by, Brandon Miller, Michael van Weelde/Warhound266, or AugmenTab unless explicitly stated by them.
+- Derivative use should preserve clear credit to Brandon Miller (Mythic creator), Michael van Weelde/Warhound266 (Roll20 implementation), and AugmenTab (original Foundry implementation), alongside attribution to this repository.
+
 Preferred citation format:
 
 "Halo Mythic Foundry Updated" by edwil and contributors,
-with acknowledgements to Michael van Weelde (GitHub) / Warhound266 (Discord)
+with acknowledgements to Brandon Miller (Discord: Vorked),
+Michael van Weelde (GitHub) / Warhound266 (Discord),
 and AugmenTab (GitHub and Discord).
 
 Include a link to this repository and indicate whether changes were made.

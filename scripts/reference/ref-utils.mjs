@@ -29,13 +29,22 @@ export function getCell(row, headerMap, key) {
   return index === undefined ? "" : String(row[index] ?? "").trim();
 }
 
+export function parseReferenceNumber(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return Number.NaN;
+
+  const normalized = text.replace(/,/gu, "");
+  const numeric = Number(normalized);
+  return Number.isFinite(numeric) ? numeric : Number.NaN;
+}
+
 export function parseWholeOrZero(value) {
-  const numeric = Number(value);
+  const numeric = parseReferenceNumber(value);
   return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
 }
 
 export function parseNumericOrZero(value) {
-  const numeric = Number(value);
+  const numeric = parseReferenceNumber(value);
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
@@ -54,7 +63,7 @@ export function parseWeaponFireModes(row, headerMap) {
   const result = [];
   for (const [column, label] of modeMap) {
     const raw = getCell(row, headerMap, column);
-    const value = Number(raw);
+    const value = parseReferenceNumber(raw);
     if (Number.isFinite(value) && value > 0) {
       result.push(`${label}(${Math.floor(value)})`);
     }

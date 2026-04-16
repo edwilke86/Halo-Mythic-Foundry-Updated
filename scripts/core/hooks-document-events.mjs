@@ -38,8 +38,10 @@ import {
 import { isGoodFortuneModeEnabled } from "../mechanics/derived.mjs";
 import { computeAttackDOS } from "../mechanics/combat.mjs";
 import { applyCombatTurnStart } from "../mechanics/action-economy.mjs";
+import { advanceFarSightForCombatTurn, clearActorFarSightState } from "../mechanics/perceptive-range.mjs";
 
 import { getMythicTokenDefaultsForCharacter } from "../core/token-defaults.mjs";
+import { promptAttackModifiersDialog } from "../ui/attack-modifiers-dialog.mjs";
 
 import {
   isHuragokCharacterSystem,
@@ -2608,7 +2610,15 @@ async function resolveCookThrowAtTurnStart(event, { combat = game.combat, prompt
     attackMods = await promptAttackModifiersForActor(
       actor,
       String(nextEvent?.attackData?.weaponName ?? deferredWeaponData?.name ?? "Weapon"),
-      deferredWeaponData
+      deferredWeaponData,
+      {
+        rangeContext: {
+          sourceActor: actor,
+          explicitSourceToken: actorToken,
+          targetsSnapshot: [...(game.user?.targets ?? [])].filter(Boolean),
+          sceneId: String(canvas?.scene?.id ?? game.scenes?.active?.id ?? "").trim()
+        }
+      }
     );
   } catch (err) {
     console.error("[mythic-system] promptAttackModifiersForActor failed:", err);
@@ -4513,8 +4523,28 @@ export function registerMythicDocumentAndChatHooks({
     if (actor?.type === "character") {
       await applyCombatTurnStart(actor, combat);
     }
+    if (actor) {
+      await advanceFarSightForCombatTurn(actor, combat);
+    }
     await processVehicleDoomCountdowns(combat, changed);
     await processCombatGrenadeCooks(combat);
+  });
+
+  Hooks.on("deleteCombatant", async (combatant) => {
+    if (!game.user.isGM) return;
+    const actor = combatant?.actor;
+    if (!actor) return;
+    await clearActorFarSightState(actor);
+  });
+
+  Hooks.on("deleteCombat", async (combat) => {
+    if (!game.user.isGM) return;
+    const combatants = Array.from(combat?.combatants ?? []);
+    for (const combatant of combatants) {
+      const actor = combatant?.actor;
+      if (!actor) continue;
+      await clearActorFarSightState(actor);
+    }
   });
 
   Hooks.on("renderChatMessageHTML", async (message, htmlElement) => {
@@ -5120,214 +5150,17 @@ export function registerMythicDocumentAndChatHooks({
   });
 }
 
-async function promptAttackModifiersForActor(actor, weaponName = "Weapon", gear = null) {
-  const esc = foundry.utils.escapeHTML;
-  if (!actor) {
-    return {
-      toHitMod: 0,
-      damageMod: "0",
-      pierceMod: 0,
-      calledShotPenalty: 0,
-      calledShot: null,
-      rangeMeters: null
-    };
-  }
-
-  const isMelee = gear?.weaponClass === "melee";
-  const isGrenadeWeapon = String(gear?.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades"
-    || String(gear?.ammoMode ?? "").trim().toLowerCase() === "grenade";
-  const closeRange = toNonNegativeWhole(gear?.range?.close, 0);
-  const maxRange = toNonNegativeWhole(gear?.range?.max, 0);
-  const showRangeField = !isMelee && !isGrenadeWeapon && maxRange > 0;
-  const showCalledShot = !isGrenadeWeapon;
-
-  const _normalizeNameForMatch = (value) => String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const abilityNames = new Set((actor.items || [])
-    .filter((item) => String(item?.type ?? "").trim() === "ability")
-    .map((item) => _normalizeNameForMatch(item?.name))
-    .filter(Boolean));
-  const hasClearTarget = abilityNames.has("clear target");
-  const hasPrecisionStrike = abilityNames.has("precision strike");
-
-  const calledShotZoneDefs = [
-    { value: "none", label: "No" },
-    { value: "head", label: "Head", zone: "Head", drKey: "head", kind: "location" },
-    { value: "larm", label: "Left Arm", zone: "Left Arm", drKey: "lArm", kind: "location" },
-    { value: "rarm", label: "Right Arm", zone: "Right Arm", drKey: "rArm", kind: "location" },
-    { value: "lleg", label: "Left Leg", zone: "Left Leg", drKey: "lLeg", kind: "location" },
-    { value: "rleg", label: "Right Leg", zone: "Right Leg", drKey: "rLeg", kind: "location" },
-    { value: "chest", label: "Chest", zone: "Chest", drKey: "chest", kind: "location" },
-    { value: "weapon-standard", label: "Weapon (Standard)", kind: "weapon", weaponClass: "standard" },
-    { value: "weapon-large-heavy", label: "Weapon (Large/Heavy)", kind: "weapon", weaponClass: "large-heavy" }
-  ];
-
-  const calledShotSubZonesByZone = (() => {
-    const subzones = new Map();
-    const tableEntries = typeof MYTHIC_HIT_LOCATION_TABLE !== "undefined"
-      ? Object.values(MYTHIC_HIT_LOCATION_TABLE ?? {})
-      : [];
-    for (const entry of tableEntries) {
-      const zone = String(entry?.zone ?? "").trim();
-      const subZone = String(entry?.subZone ?? "").trim();
-      if (!zone || !subZone) continue;
-      if (!subzones.has(zone)) subzones.set(zone, new Set());
-      subzones.get(zone).add(subZone);
-    }
-    const result = {};
-    for (const zoneDef of calledShotZoneDefs) {
-      if (zoneDef.kind !== "location") continue;
-      result[zoneDef.zone] = [...(subzones.get(zoneDef.zone) ?? [])].sort((a, b) => a.localeCompare(b));
-    }
-    return result;
-  })();
-
-  const calledShotZoneOptionMarkup = calledShotZoneDefs
-    .map((entry) => `<option value="${esc(String(entry.value ?? ""))}">${esc(String(entry.label ?? entry.value ?? ""))}</option>`)
-    .join("");
-  const calledShotSubOptionMarkup = ["<option value=\"\">No</option>", ...calledShotZoneDefs
-    .filter((entry) => entry.kind === "location")
-    .flatMap((entry) => {
-      const zoneValue = String(entry.value ?? "").trim();
-      const zoneLabel = String(entry.zone ?? "").trim();
-      const values = calledShotSubZonesByZone[zoneLabel] ?? [];
-      return values.map((subZone) => {
-        const optionValue = `${zoneValue}::${subZone}`;
-        return `<option value="${esc(optionValue)}" data-zone="${esc(zoneValue)}">${esc(`${subZone} (${zoneLabel})`)}</option>`;
-      });
-    })].join("");
-
-  return foundry.applications.api.DialogV2.wait({
-    window: {
-      title: `Attack Modifiers - ${esc(String(weaponName ?? "Weapon"))}`
-    },
-    content: `
-      <style>
-        .attack-mod-form input[type="number"],
-        .attack-mod-form input[type="text"] {
-          width: 8ch;
-        }
-      </style>
-      <form class="attack-mod-form">
-        <div class="form-group">
-          <label for="mythic-atk-tohit">To Hit</label>
-          <input id="mythic-atk-tohit" type="number" step="1" value="0" />
-          <p class="hint">Bonus/penalty to attack roll.</p>
-        </div>
-        <div class="form-group">
-          <label for="mythic-atk-damage">Damage</label>
-          <input id="mythic-atk-damage" type="text" value="" placeholder="5, -3, 1d10" />
-          <p class="hint">Flat or dice expression.</p>
-        </div>
-        <div class="form-group">
-          <label for="mythic-atk-pierce">Pierce</label>
-          <input id="mythic-atk-pierce" type="number" step="1" value="0" />
-          <p class="hint">Bonus/penalty to pierce.</p>
-        </div>
-        ${showCalledShot ? `
-        <div class="form-group">
-          <label for="mythic-atk-called-zone">Called Shot</label>
-          <select id="mythic-atk-called-zone" onchange="
-            const zone = String(this.value || 'none');
-            const sub = document.getElementById('mythic-atk-called-sub');
-            if (!sub) return;
-            const disableSub = zone === 'none' || zone.startsWith('weapon-');
-            for (const opt of sub.options) {
-              const parentZone = String(opt.dataset.zone || '');
-              opt.hidden = Boolean(parentZone) && parentZone !== zone;
-            }
-            sub.disabled = disableSub;
-            const selected = sub.options[sub.selectedIndex];
-            if (disableSub || (selected && selected.hidden)) sub.value = '';
-          ">
-            ${calledShotZoneOptionMarkup}
-          </select>
-          <p class="hint">Body location -30, sublocation -60. Weapon shots: -40 standard, -20 large/heavy.</p>
-        </div>
-        <div class="form-group">
-          <label for="mythic-atk-called-sub">Called Shot Sublocation</label>
-          <select id="mythic-atk-called-sub" disabled>
-            ${calledShotSubOptionMarkup}
-          </select>
-          <p class="hint">Pick a matching sublocation for the selected location. Clear Target halves ranged penalties, Precision Strike halves melee penalties.</p>
-        </div>
-        ` : ""}
-        ${showRangeField ? `
-        <div class="form-group">
-          <label for="mythic-atk-range">Range (m)</label>
-          <input id="mythic-atk-range" type="number" step="1" value="0" min="0" />
-          <p class="hint">Optimal Range: ${closeRange}m - ${maxRange}m</p>
-        </div>
-        ` : ""}
-      </form>
-    `,
-    buttons: [
-      {
-        action: "roll",
-        label: "Roll Attack",
-        callback: () => {
-          const toHitRaw = Number(document.getElementById("mythic-atk-tohit")?.value ?? 0);
-          const damageRaw = String(document.getElementById("mythic-atk-damage")?.value ?? "").trim();
-          const pierceRaw = Number(document.getElementById("mythic-atk-pierce")?.value ?? 0);
-          const calledShotZoneRaw = String(document.getElementById("mythic-atk-called-zone")?.value ?? "none").trim().toLowerCase();
-          const calledShotSubRaw = String(document.getElementById("mythic-atk-called-sub")?.value ?? "").trim();
-          const rangeRaw = showRangeField
-            ? Number(document.getElementById("mythic-atk-range")?.value ?? NaN)
-            : NaN;
-
-          const selectedCalledZone = calledShotZoneDefs.find((entry) => String(entry.value ?? "").toLowerCase() === calledShotZoneRaw) ?? calledShotZoneDefs[0];
-          let calledShotPenalty = 0;
-          let calledShot = null;
-
-          if (selectedCalledZone?.value !== "none") {
-            const reductionFactor = (isMelee && hasPrecisionStrike) || (!isMelee && hasClearTarget)
-              ? 0.5
-              : 1;
-
-            if (selectedCalledZone.kind === "weapon") {
-              const basePenalty = selectedCalledZone.weaponClass === "large-heavy" ? -20 : -40;
-              calledShotPenalty = Math.round(basePenalty * reductionFactor);
-              calledShot = {
-                kind: "weapon",
-                targetClass: selectedCalledZone.weaponClass,
-                label: selectedCalledZone.label,
-                basePenalty,
-                penalty: calledShotPenalty
-              };
-            } else {
-              const [subZoneParent = "", subZoneName = ""] = calledShotSubRaw.split("::").map((entry) => String(entry ?? "").trim());
-              const hasMatchingSublocation = subZoneParent === selectedCalledZone.value && subZoneName;
-              const basePenalty = hasMatchingSublocation ? -60 : -30;
-              calledShotPenalty = Math.round(basePenalty * reductionFactor);
-              calledShot = {
-                kind: "location",
-                zone: selectedCalledZone.zone,
-                subZone: hasMatchingSublocation ? subZoneName : selectedCalledZone.zone,
-                drKey: selectedCalledZone.drKey,
-                isSublocation: Boolean(hasMatchingSublocation),
-                basePenalty,
-                penalty: calledShotPenalty
-              };
-            }
-          }
-
-          return {
-            toHitMod: Number.isFinite(toHitRaw) ? Math.round(toHitRaw) : 0,
-            damageMod: damageRaw || "0",
-            pierceMod: Number.isFinite(pierceRaw) ? Math.round(pierceRaw) : 0,
-            calledShotPenalty,
-            calledShot,
-            rangeMeters: Number.isFinite(rangeRaw) && rangeRaw >= 0 ? rangeRaw : null
-          };
-        }
-      },
-      {
-        action: "cancel",
-        label: "Cancel",
-        callback: () => null
-      }
-    ],
-    rejectClose: false,
-    modal: true
+async function promptAttackModifiersForActor(actor, weaponName = "Weapon", gear = null, options = {}) {
+  return promptAttackModifiersDialog({
+    actor,
+    weaponName,
+    gear,
+    vehicleTargetingContext: (options?.vehicleTargetingContext && typeof options.vehicleTargetingContext === "object")
+      ? options.vehicleTargetingContext
+      : null,
+    rangeContext: (options?.rangeContext && typeof options.rangeContext === "object")
+      ? options.rangeContext
+      : null
   });
 }
 

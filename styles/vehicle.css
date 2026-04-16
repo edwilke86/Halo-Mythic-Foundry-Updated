@@ -46,7 +46,7 @@
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-summary-weapons-table-head {
-  display: grid;
+  display: none;
   grid-template-columns: minmax(0, 1.6fr) auto auto auto 24px;
   gap: 6px;
   align-items: center;
@@ -62,22 +62,18 @@
 
 .mythic-vehicle-fallback-sheet .vehicle-summary-weapons-table-body {
   display: grid;
-  gap: 0;
+  gap: 10px;
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-summary-weapons-panel .vehicle-summary-weapon-card {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   margin: 0;
-  padding: 8px 6px;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.mythic-vehicle-fallback-sheet .vehicle-summary-weapons-table-body .vehicle-summary-weapon-card + .vehicle-summary-weapon-card {
-  border-top: 1px solid rgba(150, 179, 219, 0.16);
+  padding: 8px 10px;
+  border: 1px solid rgba(139, 180, 226, 0.2);
+  border-radius: 10px;
+  background: rgba(18, 27, 42, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(112, 170, 229, 0.08), 0 0 14px rgba(7, 15, 26, 0.45);
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-row {
@@ -87,11 +83,12 @@
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-primary {
-  grid-template-columns: minmax(0, 1.6fr) auto auto auto auto;
+  align-items: start;
+  grid-template-columns: minmax(0, 1.6fr) auto auto 24px;
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-secondary {
-  grid-template-columns: auto auto auto auto minmax(0, 1fr);
+  grid-template-columns: auto auto minmax(0, auto) auto auto minmax(0, 1fr);
   padding-top: 2px;
   border-top: 1px solid rgba(150, 179, 219, 0.12);
 }
@@ -122,9 +119,8 @@
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-title-block {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: grid;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -211,6 +207,10 @@
   line-height: 1;
 }
 
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-reload-btn {
+  margin-left: 2px;
+}
+
 .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-nl {
   display: inline-flex;
   align-items: center;
@@ -221,23 +221,29 @@
 .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-nl-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  min-height: 24px;
-  padding: 0 8px;
-  border: 1px solid rgba(148, 180, 220, 0.24);
-  border-radius: 4px;
-  background: rgba(23, 35, 51, 0.76);
-  color: rgba(243, 247, 255, 0.9);
+  gap: 6px;
+  min-height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(230, 238, 250, 0.84);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-nl-toggle input {
   width: 14px;
   height: 14px;
   margin: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-nl-inline {
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expand-btn {
@@ -257,6 +263,10 @@
   font-size: 10px;
   color: rgba(230, 238, 250, 0.84);
   white-space: nowrap;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-ammo {
+  color: rgba(226, 236, 249, 0.9);
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-field > span {

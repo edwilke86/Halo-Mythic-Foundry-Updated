@@ -141,6 +141,9 @@ export function getCanonicalCharacterSystemData() {
       }
     },
     gravity: 1.0,
+    perceptiveRange: {
+      lightingCondition: "normal"
+    },
     equipment: {
       credits: 0,
       carriedWeight: 0,
@@ -598,6 +601,12 @@ export function getCanonicalVehicleSystemData() {
     cargo: {
       total: 0,
       notes: ""
+    },
+    vehicle: {
+      ammoTrackingMode: "standard",
+      autoloader: {
+        enabled: true
+      }
     },
     weaponEmplacements: [],
     perceptiveRange: {

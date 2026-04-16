@@ -13,6 +13,7 @@ import {
   MYTHIC_CONTENT_SYNC_VERSION
 } from '../config.mjs';
 import { splitCsvText, findHeaderRowIndex, buildHeaderMap } from '../utils/csv-parser.mjs';
+import { parseReferenceNumber } from './ref-utils.mjs';
 import { normalizeGearSystemData } from '../data/normalization.mjs';
 import { buildCanonicalItemId, normalizeStringList } from '../utils/helpers.mjs';
 
@@ -85,12 +86,12 @@ function getCellAny(row, headerMap, keys = []) {
 }
 
 export function parseWholeOrZero(value) {
-  const numeric = Number(value);
+  const numeric = parseReferenceNumber(value);
   return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
 }
 
 export function parseNumericOrZero(value) {
-  const numeric = Number(value);
+  const numeric = parseReferenceNumber(value);
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
@@ -146,14 +147,14 @@ function deriveAmmoModeFallback(weaponCategory = "", weaponType = "") {
 
 function parseSpecialRuleValueNumber(row, headerMap, keys = []) {
   const raw = getCellAny(row, headerMap, keys);
-  const numeric = Number(raw);
+  const numeric = parseReferenceNumber(raw);
   return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : 0;
 }
 
 function parseSpecialRuleValue(rawValue) {
   const text = String(rawValue ?? "").trim();
   if (!text) return "";
-  const numeric = Number(text);
+  const numeric = parseReferenceNumber(text);
   if (Number.isFinite(numeric) && numeric > 0) return String(Math.floor(numeric));
   if (parseTruthyFlag(text)) return "1";
   return "";
@@ -305,7 +306,7 @@ export function parseWeaponFireModes(row, headerMap) {
   const result = [];
   for (const [column, label] of modeMap) {
     const raw = getCell(row, headerMap, column);
-    const value = Number(raw);
+    const value = parseReferenceNumber(raw);
     if (Number.isFinite(value) && value > 0) {
       result.push(`${label}(${Math.floor(value)})`);
     }

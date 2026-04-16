@@ -111,6 +111,15 @@ import {
 } from "../mechanics/combat.mjs";
 import { consumeActorHalfActions, isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
 
+import {
+  calculatePerceptiveRange,
+  normalizePerceptiveLighting,
+  getActorFarSightState,
+  setActorFarSightState,
+  clearActorFarSightState,
+  actorHasAbilityByName
+} from "../mechanics/perceptive-range.mjs";
+
 import { generateSmartAiCognitivePattern } from "../mechanics/cognitive.mjs";
 import { browseImage } from "../utils/file-picker.mjs";
 
@@ -132,6 +141,7 @@ import {
 
 import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
 import { openEffectReferenceDialog } from "../ui/effect-reference-dialog.mjs";
+import { promptAttackModifiersDialog } from "../ui/attack-modifiers-dialog.mjs";
 import { mythicStartFearTest } from "../core/chat-fear.mjs";
 import {
   buildInitiativeChatCard,
@@ -650,6 +660,38 @@ function isDetachableBallisticAmmoMode(ammoMode = "") {
   return normalized === "magazine" || normalized === "belt";
 }
 
+function measureSceneDistanceMeters(scene, originPoint, targetPoint) {
+  const originX = Number(originPoint?.x ?? NaN);
+  const originY = Number(originPoint?.y ?? NaN);
+  const targetX = Number(targetPoint?.x ?? NaN);
+  const targetY = Number(targetPoint?.y ?? NaN);
+  if (![originX, originY, targetX, targetY].every((value) => Number.isFinite(value))) {
+    return NaN;
+  }
+
+  const liveGrid = canvas?.scene?.id === scene?.id ? canvas?.grid : null;
+  if (liveGrid?.measurePath) {
+    try {
+      const measuredPath = liveGrid.measurePath([
+        { x: originX, y: originY },
+        { x: targetX, y: targetY }
+      ]);
+      const measuredDistance = Number(measuredPath?.distance ?? NaN);
+      if (Number.isFinite(measuredDistance)) return measuredDistance;
+    } catch (_error) {
+      // Fall through to geometric fallback below.
+    }
+  }
+
+  const pixelDistance = Math.hypot(targetX - originX, targetY - originY);
+  const gridSize = Math.max(1, Number(scene?.grid?.size ?? 0));
+  const distancePerGrid = Number(scene?.grid?.distance ?? 1);
+  if (gridSize > 0 && Number.isFinite(distancePerGrid) && distancePerGrid > 0) {
+    return (pixelDistance / gridSize) * distancePerGrid;
+  }
+  return pixelDistance;
+}
+
 function getEnergyCellLabel(ammoMode = "", batterySubtype = "plasma") {
   if (String(ammoMode ?? "").trim().toLowerCase() !== "plasma-battery") {
     return "Forerunner Magazine";
@@ -943,6 +985,138 @@ const BALLISTIC_CONTAINER_OPTIONS = {
 function getAvailableBallisticOptions(ammoMode = "") {
   const mode = String(ammoMode ?? "").trim().toLowerCase();
   return Object.values(BALLISTIC_CONTAINER_OPTIONS).filter((opt) => opt.validModes.includes(mode));
+}
+
+const MYTHIC_VEHICLE_DEFAULT_MAGAZINE_COUNT = 5;
+
+function normalizeVehicleAmmoTrackingMode(value = "standard") {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return ["none", "standard"].includes(normalized) ? normalized : "standard";
+}
+
+function getVehicleWeaponAmmoType(gear = {}) {
+  return String(gear?.specialAmmoCategory ?? gear?.ammoName ?? "").trim() || "Standard";
+}
+
+function getVehicleWeaponAmmoContainerType(gear = {}) {
+  const ammoMode = isEnergyCellAmmoMode(gear?.ammoMode)
+    ? String(gear?.ammoMode ?? "").trim().toLowerCase()
+    : normalizeBallisticAmmoMode(gear?.ammoMode);
+  if (ammoMode === "plasma-battery") return "battery";
+  if (isEnergyCellAmmoMode(ammoMode)) return "cell";
+  if (ammoMode === "belt") return "belt";
+  if (ammoMode === "tube") return "tube";
+  if (ammoMode === "grenade") return "load";
+  return getBallisticContainerType(ammoMode || "magazine", "magazine");
+}
+
+function getVehicleWeaponAmmoContainerLabel(gear = {}) {
+  const containerType = getVehicleWeaponAmmoContainerType(gear);
+  if (containerType === "battery") return "Battery";
+  if (containerType === "cell") return "Cell";
+  if (containerType === "belt") return "Belt";
+  if (containerType === "tube") return "Tube";
+  if (containerType === "load") return "Load";
+  return "Magazine";
+}
+
+function buildVehicleWeaponAmmoCompatibilityKey(weaponId = "", gear = {}, weaponName = "", ammoType = "") {
+  const ammoMode = isEnergyCellAmmoMode(gear?.ammoMode)
+    ? String(gear?.ammoMode ?? "").trim().toLowerCase()
+    : normalizeBallisticAmmoMode(gear?.ammoMode);
+  const capacity = toNonNegativeWhole(gear?.range?.magazine, 0);
+  const weaponType = String(gear?.weaponType ?? "").trim().toLowerCase();
+  const training = String(gear?.training ?? "").trim().toLowerCase();
+  const weaponKey = normalizeLookupText(weaponName);
+  const ammoKey = normalizeLookupText(ammoType);
+  return [
+    String(weaponId ?? "").trim(),
+    ammoMode || "standard",
+    String(capacity),
+    weaponType,
+    training,
+    ammoKey,
+    weaponKey
+  ].join("|");
+}
+
+function normalizeVehicleWeaponMagazineEntry(entry = {}, defaults = {}) {
+  const source = (entry && typeof entry === "object") ? entry : {};
+  const fallbackMax = toNonNegativeWhole(defaults.max, 0);
+  const max = toNonNegativeWhole(source.max, fallbackMax);
+  const fallbackCurrent = Number.isFinite(Number(defaults.current))
+    ? toNonNegativeWhole(defaults.current, fallbackMax || max)
+    : (fallbackMax || max);
+  const rawCurrent = toNonNegativeWhole(source.current, fallbackCurrent);
+  const current = max > 0 ? Math.max(0, Math.min(rawCurrent, max)) : 0;
+  return {
+    id: String(source.id ?? defaults.id ?? foundry.utils.randomID()).trim() || foundry.utils.randomID(),
+    type: String(source.type ?? defaults.type ?? "Standard").trim() || "Standard",
+    current,
+    max,
+    loadOrder: toNonNegativeWhole(source.loadOrder, defaults.loadOrder ?? 0),
+    createdAt: String(source.createdAt ?? defaults.createdAt ?? "").trim(),
+    compatibilityKey: String(source.compatibilityKey ?? defaults.compatibilityKey ?? "").trim(),
+    containerType: String(source.containerType ?? defaults.containerType ?? "").trim() || "magazine",
+    label: String(source.label ?? defaults.label ?? "").trim(),
+    weaponId: String(source.weaponId ?? defaults.weaponId ?? "").trim()
+  };
+}
+
+function buildVehicleWeaponMagazineEntry(weaponId = "", gear = {}, weaponName = "", options = {}) {
+  const itemId = String(weaponId ?? "").trim();
+  const capacity = toNonNegativeWhole(gear?.range?.magazine, 0);
+  const loadOrder = toNonNegativeWhole(options.loadOrder, 0);
+  const type = String(options.type ?? getVehicleWeaponAmmoType(gear)).trim() || "Standard";
+  const containerType = String(options.containerType ?? getVehicleWeaponAmmoContainerType(gear)).trim() || "magazine";
+  const compatibilityKey = String(options.compatibilityKey ?? buildVehicleWeaponAmmoCompatibilityKey(itemId, gear, weaponName, type)).trim();
+  const createdAt = String(options.createdAt ?? new Date(Date.now() + loadOrder).toISOString()).trim();
+  const label = String(options.label ?? "").trim() || `${getVehicleWeaponAmmoContainerLabel(gear)} ${loadOrder + 1}`;
+  return normalizeVehicleWeaponMagazineEntry({
+    id: options.id,
+    type,
+    current: Number.isFinite(Number(options.current)) ? options.current : capacity,
+    max: capacity,
+    loadOrder,
+    createdAt,
+    compatibilityKey,
+    containerType,
+    label,
+    weaponId: itemId
+  }, {
+    max: capacity,
+    current: capacity,
+    loadOrder,
+    createdAt,
+    type,
+    compatibilityKey,
+    containerType,
+    label,
+    weaponId: itemId
+  });
+}
+
+function buildDefaultVehicleWeaponAmmoState(ammo = {}) {
+  const source = (ammo && typeof ammo === "object") ? ammo : {};
+  const rawMagazines = source.magazines;
+  const magazineArray = Array.isArray(rawMagazines)
+    ? rawMagazines
+    : (rawMagazines && typeof rawMagazines === "object")
+      ? Object.values(rawMagazines).filter((entry) => entry && typeof entry === "object")
+      : [];
+  return {
+    trackingMode: normalizeVehicleAmmoTrackingMode(source.trackingMode ?? "standard"),
+    magazines: magazineArray.map((entry, index) => normalizeVehicleWeaponMagazineEntry(entry, { loadOrder: index })),
+    loadedMagazineId: String(source.loadedMagazineId ?? "").trim()
+  };
+}
+
+function sortVehicleWeaponMagazineEntries(a = {}, b = {}) {
+  const loadOrderDiff = toNonNegativeWhole(a?.loadOrder, 0) - toNonNegativeWhole(b?.loadOrder, 0);
+  if (loadOrderDiff !== 0) return loadOrderDiff;
+  const createdDiff = String(a?.createdAt ?? "").localeCompare(String(b?.createdAt ?? ""), undefined, { sensitivity: "base" });
+  if (createdDiff !== 0) return createdDiff;
+  return String(a?.id ?? "").localeCompare(String(b?.id ?? ""), undefined, { sensitivity: "base" });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1484,6 +1658,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const vehicleOverviewContext = this._buildVehicleOverviewContext(displayVehicleSystem, vehicleLoadoutView, vehicleOverviewWeaponCards);
       context.mythicVehicleSystem = displayVehicleSystem;
       context.mythicVehicleOverview = vehicleOverviewContext;
+      context.mythicVehicleAmmoTrackingOptions = [
+        { value: "none", label: "None" },
+        { value: "standard", label: "Standard" }
+      ];
       context.mythicPropulsionTypeOptions = this._getVehiclePropulsionTypeOptions();
       context.mythicPropulsionMaxOptions = propulsionMaxOptions;
       context.mythicShowPropulsionMaxField = propulsionMaxOptions.length > 0;
@@ -1565,6 +1743,46 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicBiography = this._getBiographyData(normalizedSystem);
     context.editable = this.isEditable || Boolean(game.user?.isGM);
     context.mythicDerived = this._getMythicDerivedData(effectiveSystem);
+    const actorLightingCondition = this._getActorLightingCondition();
+    const activePerceptive = calculatePerceptiveRange({
+      actor: this.actor,
+      systemData: effectiveSystem,
+      lightingCondition: actorLightingCondition,
+      opticsMagnification: 1,
+      targetDistanceMeters: NaN
+    });
+    const farSightState = getActorFarSightState(this.actor);
+    const inInitiative = Boolean(game.combat?.combatants?.some((entry) => entry?.actor?.id === this.actor.id));
+    const hasFarSightAbility = actorHasAbilityByName(this.actor, "far-sight") || actorHasAbilityByName(this.actor, "far sight");
+    context.mythicPerceptiveRange = {
+      effectiveMeters: activePerceptive.effectiveMeters,
+      multiplier: activePerceptive.multiplierBreakdown.multiplierBeforeOptics,
+      penalty20Max: activePerceptive.effectiveMeters * 2,
+      penalty60Max: activePerceptive.effectiveMeters * 3,
+      lightingCondition: actorLightingCondition,
+      lightingOptions: [
+        { value: "normal", label: "Normal (x2)", selected: actorLightingCondition === "normal" },
+        { value: "bright", label: "Bright (x1)", selected: actorLightingCondition === "bright" },
+        { value: "low-light", label: "Low-Light (x1)", selected: actorLightingCondition === "low-light" },
+        { value: "blinding", label: "Blinding (x0.5)", selected: actorLightingCondition === "blinding" },
+        { value: "darkness", label: "Darkness (x0.5)", selected: actorLightingCondition === "darkness" },
+        { value: "black", label: "Black / No Ambient (x0)", selected: actorLightingCondition === "black" }
+      ],
+      breakdown: activePerceptive.multiplierBreakdown
+    };
+    const farSightActive = Boolean(farSightState.active);
+    const farSightCooldownTurnsRemaining = Math.max(0, Number(farSightState.cooldownTurnsRemaining ?? 0));
+    const farSightCooldownApplies = inInitiative && farSightCooldownTurnsRemaining > 0;
+    context.mythicFarSight = {
+      hasAbility: hasFarSightAbility,
+      active: farSightActive,
+      inInitiative,
+      cooldownTurnsRemaining: farSightCooldownTurnsRemaining,
+      canActivate: hasFarSightAbility && (!inInitiative || (!farSightActive && farSightCooldownTurnsRemaining <= 0)),
+      buttonLabel: farSightActive
+        ? (inInitiative ? "Active" : "Deactivate")
+        : (farSightCooldownApplies ? `Cooldown (${farSightCooldownTurnsRemaining})` : "Activate")
+    };
     context.mythicIsHuragok = this._isHuragokActor(effectiveSystem);
     context.mythicCombat = this._getCombatViewData(effectiveSystem, characteristicModifiers);
     context.mythicCcAdv = this._getCharacterCreationAdvancementViewData();
@@ -2062,6 +2280,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const state = (emplacement?.weaponState && typeof emplacement.weaponState === "object")
         ? emplacement.weaponState
         : {};
+      const rawEmplacement = (Array.isArray(source?.weaponEmplacements) ? source.weaponEmplacements : [])
+        .find((entry) => String(entry?.id ?? "").trim() === String(emplacement?.id ?? "").trim()) ?? emplacement;
+      const ammoContext = this._getVehicleWeaponAmmoContext(rawEmplacement, item, source);
       const activeUser = this._resolveVehicleWeaponActiveUser(emplacement, source, emplacements);
       const characteristicRuntime = activeUser.activeUserActor
         ? await this._getLiveCharacteristicRuntime(activeUser.activeUserActor)
@@ -2195,10 +2416,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ? `Reach ${Math.max(1, toNonNegativeWhole(gear.range?.close, 1))}m`
         : (isGrenadeWeapon
             ? `Thr ${Math.max(0, grenadeThrowRangeMax)}m`
-            : `${toNonNegativeWhole(gear.range?.max, 0)}/${toNonNegativeWhole(gear.range?.close, 0)}m`);
+            : `${toNonNegativeWhole(gear.range?.close, 0)} - ${toNonNegativeWhole(gear.range?.max, 0)}m`);
       const scopeMode = String(state.scopeMode ?? "none").trim().toLowerCase() || "none";
       const toHitModifier = Number.isFinite(Number(state.toHitModifier)) ? Math.round(Number(state.toHitModifier)) : 0;
       const damageModifier = Number.isFinite(Number(state.damageModifier)) ? Math.round(Number(state.damageModifier)) : 0;
+      const displaySc = Number.isFinite(Number(gear.baseToHitModifier)) ? Math.round(Number(gear.baseToHitModifier)) : 0;
       const displayName = ((Array.isArray(gear.nicknames) && gear.nicknames.length)
         ? (String(gear.nicknames[0] ?? "").trim())
         : "") || String(item.name ?? "").trim() || "Weapon";
@@ -2207,31 +2429,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const togglePath = `system.overview.ui.weaponPanelsExpanded.${emplacement.id}`;
       const collapsedActionButtons = [];
       const expandedActionButtons = [];
-      if (hasChargeModeSelected) {
-        collapsedActionButtons.push({ action: "chargeFire", label: "Fire", title: "Charge Fire", cssClass: "weapon-charge-fire-btn" });
-      } else if (isGrenadeWeapon) {
-        collapsedActionButtons.push(
-          { action: "half", grenadeAction: "throw", label: "Throw", title: "Throw" },
-          { action: "half", grenadeAction: "cook", label: "Cook", title: "Cook" }
-        );
+      if (isGrenadeWeapon) {
+        collapsedActionButtons.push({ action: "half", grenadeAction: "throw", label: "Single", title: "Throw" });
+      } else if (isSustainedFireMode) {
+        collapsedActionButtons.push({ action: "single", label: "Single", title: "Attack" });
+      } else if (selectedProfile.kind === "flintlock") {
+        if (fullActionAttackCount > 0) {
+          collapsedActionButtons.push({
+            action: "full",
+            label: `Full - ${fullActionAttackCount}`,
+            title: `Full Action (${fullActionAttackCount})`
+          });
+        }
       } else {
-        if (isSustainedFireMode) collapsedActionButtons.push({ action: "single", label: "Atk", title: "Attack" });
-        if (!isSustainedFireMode && selectedProfile.kind !== "flintlock") {
-          collapsedActionButtons.push({ action: "single", label: "S", title: "Single Attack" });
-          collapsedActionButtons.push({ action: "half", label: `H${halfActionAttackCount}`, title: `Half Action (${halfActionAttackCount})` });
+        collapsedActionButtons.push({ action: "single", label: "Single", title: "Single Attack" });
+        if (halfActionAttackCount > 0) {
+          collapsedActionButtons.push({
+            action: "half",
+            label: `Half - ${halfActionAttackCount}`,
+            title: `Half Action (${halfActionAttackCount})`
+          });
         }
-        if (!isSustainedFireMode) {
-          collapsedActionButtons.push({ action: "full", label: `F${fullActionAttackCount}`, title: `Full Action (${fullActionAttackCount})` });
+        if (fullActionAttackCount > 0) {
+          collapsedActionButtons.push({
+            action: "full",
+            label: `Full - ${fullActionAttackCount}`,
+            title: `Full Action (${fullActionAttackCount})`
+          });
         }
-        if (!isMelee) {
-          collapsedActionButtons.push({ action: "buttstroke", label: "Butt", title: "Buttstroke", cssClass: "weapon-buttstroke-btn" });
-        }
-        if (selectedProfile.kind === "pump") {
-          expandedActionButtons.push({ action: "pump-reaction", label: "Reaction Shot", title: "Reaction Shot" });
-        }
-      }
-      if (!isInfusionRadius) {
-        expandedActionButtons.push({ action: "execution", label: "Execution", title: "Execution Attack", cssClass: "weapon-execution-btn" });
       }
 
       cards.push({
@@ -2283,6 +2508,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         expandedActionButtons,
         hasExpandedActionButtons: expandedActionButtons.length > 0,
         hasChargeModeSelected,
+        requiresChargeBeforeFire: hasChargeModeSelected && chargeLevel <= 0,
         chargeLevel,
         chargeMaxLevel,
         chargeDamageBonusPreview: chargeLevel * chargeDamagePerLevel,
@@ -2291,9 +2517,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         rangeMax: toNonNegativeWhole(gear.range?.max, 0),
         rangeSummary,
         reach: Math.max(1, toNonNegativeWhole(gear.range?.close, 1)),
+        displaySc,
         damageDiceLabel,
         displayDamageBase,
         displayDamagePierce,
+        loadedAmmoDisplay: String(ammoContext?.loadedAmmoDisplay ?? "—").trim() || "—",
+        remainingMagazineSummary: String(ammoContext?.remainingMagazineSummary ?? "N/A").trim() || "N/A",
+        ammoSummaryTitle: String(ammoContext?.ammoSummaryTitle ?? "").trim(),
+        showReloadButton: ammoContext?.showReloadButton === true,
         scopeMode,
         scopeOptions,
         toHitModifier,
@@ -3194,6 +3425,418 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return toTitleCase(equipmentType || itemClass || "gear");
   }
 
+  _getVehicleAmmoTrackingMode(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    return normalizeVehicleAmmoTrackingMode(source?.vehicle?.ammoTrackingMode ?? "standard");
+  }
+
+  _isVehicleWeaponAmmoTrackingEnabled(vehicleSystem = null) {
+    return this._getVehicleAmmoTrackingMode(vehicleSystem) === "standard";
+  }
+
+  _isVehicleWeaponAutoloaderEnabled(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    return source?.vehicle?.autoloader?.enabled !== false;
+  }
+
+  _getVehicleWeaponReloadTimingText(gear = {}) {
+    const reloadHalfActions = toNonNegativeWhole(gear?.range?.reload, 0);
+    if (reloadHalfActions <= 0) return "Use the weapon's normal reload rules manually.";
+    return `Use the weapon's normal reload timing (${reloadHalfActions} ${reloadHalfActions === 1 ? "Half Action" : "Half Actions"}) manually.`;
+  }
+
+  _hasVehicleWeaponTag(gear = {}, token = "") {
+    const normalizedToken = String(token ?? "").trim().toUpperCase();
+    if (!normalizedToken) return false;
+    const bracketedToken = normalizedToken.startsWith("[") ? normalizedToken : `[${normalizedToken}]`;
+    const weaponTagKeys = normalizeStringList(Array.isArray(gear?.weaponTagKeys) ? gear.weaponTagKeys : [])
+      .map((entry) => String(entry ?? "").trim().toUpperCase());
+    if (weaponTagKeys.includes(bracketedToken) || weaponTagKeys.includes(normalizedToken)) return true;
+    const ruleText = String(gear?.specialRules ?? "").toUpperCase();
+    return new RegExp(`\\[${normalizedToken.replace(/[.*+?^${}()|[\]\\\\]/gu, "\\$&")}\\]`, "u").test(ruleText);
+  }
+
+  _resolveVehicleWeaponTargetingRangeContext(gear = {}, weaponState = {}, vehicleSystem = null, sourceActor = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const actingActor = sourceActor ?? this.actor;
+    const basePerceptiveResult = this._getPerceptiveRangeForWeapon(weaponState, NaN, {
+      sourceActor: actingActor
+    });
+    const basePerceptionRangeMeters = Math.max(0, Number(basePerceptiveResult?.effectiveMeters ?? 0));
+    const optimalRangeMeters = Math.max(0, toNonNegativeWhole(gear?.range?.max, 0));
+    const hasOperatorTag = this._hasVehicleWeaponTag(gear, "O");
+    const hasGunnerTag = this._hasVehicleWeaponTag(gear, "G");
+    const openTop = Boolean(source?.special?.openTop?.has);
+    const hasOverride = optimalRangeMeters > 0 && (!openTop || hasOperatorTag);
+    const blockedByOpenTop = Boolean(hasGunnerTag && !hasOperatorTag && openTop);
+    const effectivePerceptionRangeMeters = hasOverride ? optimalRangeMeters : basePerceptionRangeMeters;
+    const noteText = hasOverride
+      ? `Perceptive Range is treated as ${effectivePerceptionRangeMeters}m (weapon Optimal Range) for this attack.`
+      : (blockedByOpenTop
+          ? `Open-Top blocks the [G] targeting benefit. Using crew Perceptive Range ${basePerceptionRangeMeters}m.`
+          : `Using crew Perceptive Range ${basePerceptionRangeMeters}m for this attack.`);
+    return {
+      hasOperatorTag,
+      hasGunnerTag,
+      hasTaggedTargetingRule: hasOperatorTag || hasGunnerTag,
+      blockedByOpenTop,
+      hasOverride,
+      overrideSource: hasOverride ? (hasOperatorTag ? "operator" : "gunner") : "",
+      basePerceptionRangeMeters,
+      optimalRangeMeters,
+      effectivePerceptionRangeMeters,
+      noteText
+    };
+  }
+
+  _normalizeVehicleWeaponEmplacementAmmo(entry = {}, weaponItem = null, vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const normalizedEntry = this._buildVehicleWeaponEmplacementRecord(entry, String(entry?.id ?? "").trim() || foundry.utils.randomID());
+    const item = weaponItem ?? this.actor.items.get(String(normalizedEntry?.weaponItemId ?? "").trim());
+    const gear = item?.type === "gear" ? normalizeGearSystemData(item.system ?? {}, item.name ?? "") : null;
+    const ammoTrackingMode = this._getVehicleAmmoTrackingMode(source);
+    const autoloaderEnabled = this._isVehicleWeaponAutoloaderEnabled(source);
+    const ammoState = buildDefaultVehicleWeaponAmmoState(normalizedEntry?.ammo ?? {});
+    const weaponState = buildDefaultWeaponStateEntry(normalizedEntry?.weaponState ?? {});
+    let didChange = false;
+
+    if (ammoState.trackingMode !== ammoTrackingMode) {
+      ammoState.trackingMode = ammoTrackingMode;
+      didChange = true;
+    }
+
+    const isAmmoTrackable = Boolean(gear)
+      && String(gear?.weaponClass ?? "").trim().toLowerCase() !== "melee"
+      && String(gear?.equipmentType ?? "").trim().toLowerCase() !== "explosives-and-grenades"
+      && String(gear?.ammoMode ?? "").trim().toLowerCase() !== "grenade"
+      && toNonNegativeWhole(gear?.range?.magazine, 0) > 0;
+
+    if (!isAmmoTrackable || !item) {
+      normalizedEntry.ammo = ammoState;
+      normalizedEntry.weaponState = weaponState;
+      return {
+        entry: normalizedEntry,
+        didChange,
+        context: {
+          trackingMode: ammoTrackingMode,
+          usesTracking: false,
+          autoloaderEnabled,
+          isAmmoTrackable: false,
+          compatibilityKey: "",
+          magazines: Array.isArray(ammoState.magazines) ? ammoState.magazines : [],
+          loadedMagazineId: String(ammoState.loadedMagazineId ?? "").trim(),
+          loadedMagazine: null,
+          loadedAmmoCurrent: 0,
+          loadedAmmoMax: 0,
+          loadedAmmoDisplay: "—",
+          remainingMagazineCount: 0,
+          remainingMagazineSummary: "N/A",
+          ammoSummaryTitle: "This weapon does not use vehicle ammo tracking.",
+          containerLabel: "",
+          ammoType: "",
+          isEnergyWeapon: false,
+          showReloadButton: false,
+          hasReloadCandidate: false
+        }
+      };
+    }
+
+    const weaponId = String(item.id ?? normalizedEntry?.weaponItemId ?? "").trim();
+    const weaponName = String(item.name ?? "").trim();
+    const capacity = Math.max(0, toNonNegativeWhole(gear?.range?.magazine, 0));
+    const ammoType = getVehicleWeaponAmmoType(gear);
+    const containerType = getVehicleWeaponAmmoContainerType(gear);
+    const containerLabel = getVehicleWeaponAmmoContainerLabel(gear);
+    const compatibilityKey = buildVehicleWeaponAmmoCompatibilityKey(weaponId, gear, weaponName, ammoType);
+    const storedMagazines = Array.isArray(ammoState.magazines) ? ammoState.magazines : [];
+    let magazines = storedMagazines
+      .map((magazine, magazineIndex) => normalizeVehicleWeaponMagazineEntry(magazine, {
+        max: capacity,
+        current: capacity,
+        loadOrder: magazineIndex,
+        type: String(magazine?.type ?? ammoType).trim() || ammoType,
+        compatibilityKey,
+        containerType,
+        label: String(magazine?.label ?? "").trim() || `${containerLabel} ${magazineIndex + 1}`,
+        weaponId
+      }))
+      .sort(sortVehicleWeaponMagazineEntries);
+
+    const requiresReset = ammoTrackingMode === "standard" && (!magazines.length || magazines.some((magazine) => magazine.max !== capacity));
+
+    if (requiresReset) {
+      magazines = Array.from({ length: MYTHIC_VEHICLE_DEFAULT_MAGAZINE_COUNT }, (_entry, index) => buildVehicleWeaponMagazineEntry(weaponId, gear, weaponName, {
+        loadOrder: index,
+        type: ammoType,
+        compatibilityKey,
+        containerType,
+        label: `${containerLabel} ${index + 1}`
+      }));
+    } else {
+      magazines = magazines.map((magazine, magazineIndex) => normalizeVehicleWeaponMagazineEntry({
+        ...magazine,
+        weaponId,
+        compatibilityKey,
+        containerType,
+        type: String(magazine?.type ?? ammoType).trim() || ammoType,
+        label: String(magazine?.label ?? "").trim() || `${containerLabel} ${magazineIndex + 1}`
+      }, {
+        max: capacity,
+        current: capacity,
+        loadOrder: magazineIndex,
+        type: String(magazine?.type ?? ammoType).trim() || ammoType,
+        compatibilityKey,
+        containerType,
+        label: String(magazine?.label ?? "").trim() || `${containerLabel} ${magazineIndex + 1}`,
+        weaponId
+      })).sort(sortVehicleWeaponMagazineEntries);
+    }
+
+    const hasMagazineChanges = JSON.stringify(magazines) !== JSON.stringify(storedMagazines);
+    if (requiresReset || hasMagazineChanges) {
+      ammoState.magazines = magazines;
+      didChange = true;
+    }
+
+    let loadedMagazineId = String(ammoState.loadedMagazineId ?? weaponState.activeEnergyCellId ?? weaponState.activeMagazineId ?? "").trim();
+    if (magazines.length && !magazines.some((magazine) => magazine.id === loadedMagazineId)) {
+      loadedMagazineId = String(magazines.find((magazine) => magazine.current > 0)?.id ?? magazines[0]?.id ?? "").trim();
+      didChange = true;
+    }
+
+    const loadedMagazine = magazines.find((magazine) => magazine.id === loadedMagazineId) ?? null;
+    if (String(ammoState.loadedMagazineId ?? "").trim() !== loadedMagazineId) {
+      ammoState.loadedMagazineId = loadedMagazineId;
+      didChange = true;
+    }
+
+    const isEnergyWeapon = isEnergyCellAmmoMode(gear?.ammoMode);
+    const expectedMagazineCurrent = ammoTrackingMode === "standard"
+      ? Math.max(0, toNonNegativeWhole(loadedMagazine?.current, 0))
+      : capacity;
+    const expectedActiveMagazineId = !isEnergyWeapon ? loadedMagazineId : "";
+    const expectedActiveEnergyCellId = isEnergyWeapon ? loadedMagazineId : "";
+    if (weaponState.magazineCurrent !== expectedMagazineCurrent) {
+      weaponState.magazineCurrent = expectedMagazineCurrent;
+      didChange = true;
+    }
+    if (String(weaponState.activeMagazineId ?? "").trim() !== expectedActiveMagazineId) {
+      weaponState.activeMagazineId = expectedActiveMagazineId;
+      didChange = true;
+    }
+    if (String(weaponState.activeEnergyCellId ?? "").trim() !== expectedActiveEnergyCellId) {
+      weaponState.activeEnergyCellId = expectedActiveEnergyCellId;
+      didChange = true;
+    }
+
+    normalizedEntry.ammo = ammoState;
+    normalizedEntry.weaponState = weaponState;
+
+    const remainingMagazineCount = ammoTrackingMode === "standard"
+      ? magazines.filter((magazine) => magazine.id !== loadedMagazineId && magazine.current > 0 && String(magazine.compatibilityKey ?? "").trim() === compatibilityKey).length
+      : Number.POSITIVE_INFINITY;
+    const hasReloadCandidate = ammoTrackingMode === "standard"
+      ? magazines.some((magazine) => magazine.id !== loadedMagazineId && magazine.current > 0 && String(magazine.compatibilityKey ?? "").trim() === compatibilityKey)
+      : false;
+
+    return {
+      entry: normalizedEntry,
+      didChange,
+      context: {
+        trackingMode: ammoTrackingMode,
+        usesTracking: ammoTrackingMode === "standard",
+        autoloaderEnabled,
+        isAmmoTrackable: true,
+        compatibilityKey,
+        magazines,
+        loadedMagazineId,
+        loadedMagazine,
+        loadedAmmoCurrent: ammoTrackingMode === "standard" ? Math.max(0, toNonNegativeWhole(loadedMagazine?.current, 0)) : capacity,
+        loadedAmmoMax: ammoTrackingMode === "standard" ? Math.max(0, toNonNegativeWhole(loadedMagazine?.max, capacity)) : capacity,
+        loadedAmmoDisplay: ammoTrackingMode === "standard"
+          ? `${Math.max(0, toNonNegativeWhole(loadedMagazine?.current, 0))}/${Math.max(0, toNonNegativeWhole(loadedMagazine?.max, capacity))}`
+          : "∞",
+        remainingMagazineCount,
+        remainingMagazineSummary: ammoTrackingMode === "standard"
+          ? `${remainingMagazineCount} spare`
+          : "∞ spare",
+        ammoSummaryTitle: ammoTrackingMode === "standard"
+          ? `${containerLabel}: ${Math.max(0, toNonNegativeWhole(loadedMagazine?.current, 0))}/${Math.max(0, toNonNegativeWhole(loadedMagazine?.max, capacity))}; ${remainingMagazineCount} spare.`
+          : "Ammo tracking disabled for this vehicle.",
+        containerLabel,
+        ammoType,
+        isEnergyWeapon,
+        showReloadButton: ammoTrackingMode === "standard",
+        hasReloadCandidate
+      }
+    };
+  }
+
+  _getVehicleWeaponAmmoContext(entry = {}, weaponItem = null, vehicleSystem = null) {
+    return this._normalizeVehicleWeaponEmplacementAmmo(entry, weaponItem, vehicleSystem).context;
+  }
+
+  _getNextVehicleWeaponAutoloaderMagazine(ammoContext = null, options = {}) {
+    const context = (ammoContext && typeof ammoContext === "object") ? ammoContext : {};
+    const includeCurrent = options.includeCurrent === true;
+    const compatibilityKey = String(context.compatibilityKey ?? "").trim();
+    const candidates = (Array.isArray(context.magazines) ? context.magazines : [])
+      .filter((magazine) => {
+        if (!magazine || typeof magazine !== "object") return false;
+        if (toNonNegativeWhole(magazine.current, 0) <= 0) return false;
+        if (!includeCurrent && String(magazine.id ?? "").trim() === String(context.loadedMagazineId ?? "").trim()) return false;
+        return !compatibilityKey || String(magazine.compatibilityKey ?? "").trim() === compatibilityKey;
+      })
+      .sort(sortVehicleWeaponMagazineEntries);
+    return candidates[0] ?? null;
+  }
+
+  async _createVehicleWeaponSystemChatMessage(content = "") {
+    const html = String(content ?? "").trim();
+    if (!html) return;
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content: html,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _reloadVehicleWeaponEmplacement({ item, emplacementId = "", vehicleSystem = null, reason = "manual" } = {}) {
+    const normalizedEmplacementId = String(emplacementId ?? "").trim();
+    if (!normalizedEmplacementId || !item || item.type !== "gear") return { reloaded: false, reason: "invalid" };
+
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor.system ?? {});
+    const matchedEmplacement = (Array.isArray(source?.weaponEmplacements) ? source.weaponEmplacements : [])
+      .find((entry) => String(entry?.id ?? "").trim() === normalizedEmplacementId) ?? null;
+    if (!matchedEmplacement) return { reloaded: false, reason: "missing" };
+
+    const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const normalized = this._normalizeVehicleWeaponEmplacementAmmo(matchedEmplacement, item, source);
+    const ammoContext = normalized.context;
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+
+    if (!ammoContext.isAmmoTrackable || !ammoContext.usesTracking) {
+      if (reason === "manual") {
+        ui.notifications?.info(`${item.name} does not currently require vehicle ammo tracking.`);
+      }
+      return { reloaded: false, reason: "tracking-disabled", ammoCurrent: ammoContext.loadedAmmoCurrent };
+    }
+
+    if (!ammoContext.autoloaderEnabled) {
+      await this._createVehicleWeaponSystemChatMessage(
+        `<p><strong>${esc(this.actor.name)}</strong> cannot autoload <strong>${esc(item.name)}</strong>. ${esc(this._getVehicleWeaponReloadTimingText(gear))}</p>`
+      );
+      return { reloaded: false, reason: "autoloader-disabled", ammoCurrent: ammoContext.loadedAmmoCurrent };
+    }
+
+    const nextMagazine = this._getNextVehicleWeaponAutoloaderMagazine(ammoContext);
+    if (!nextMagazine) {
+      await this._createVehicleWeaponSystemChatMessage(
+        `<p><strong>${esc(this.actor.name)}</strong> has no compatible spare ${esc(String(ammoContext.containerLabel ?? "Magazine").toLowerCase())} for <strong>${esc(item.name)}</strong>. ${esc(this._getVehicleWeaponReloadTimingText(gear))}</p>`
+      );
+      return { reloaded: false, reason: "no-spare", ammoCurrent: ammoContext.loadedAmmoCurrent };
+    }
+
+    const nextEntry = normalized.entry;
+    nextEntry.ammo.loadedMagazineId = String(nextMagazine.id ?? "").trim();
+    nextEntry.weaponState.magazineCurrent = Math.max(0, toNonNegativeWhole(nextMagazine.current, 0));
+    if (ammoContext.isEnergyWeapon) {
+      nextEntry.weaponState.activeEnergyCellId = String(nextMagazine.id ?? "").trim();
+      nextEntry.weaponState.activeMagazineId = "";
+    } else {
+      nextEntry.weaponState.activeMagazineId = String(nextMagazine.id ?? "").trim();
+      nextEntry.weaponState.activeEnergyCellId = "";
+    }
+
+    await this._updateVehicleWeaponEmplacementById(normalizedEmplacementId, (entry) => {
+      entry.weaponState = foundry.utils.deepClone(nextEntry.weaponState);
+      entry.ammo = foundry.utils.deepClone(nextEntry.ammo);
+    });
+
+    const reloadVerb = reason === "empty" ? "automatically reloads" : "reloads";
+    const reasonSuffix = reason === "empty" ? " after the current magazine runs dry" : "";
+    await this._createVehicleWeaponSystemChatMessage(
+      `<p><strong>${esc(this.actor.name)}</strong> ${reloadVerb} <strong>${esc(item.name)}</strong>${esc(reasonSuffix)} via autoloader. ${esc(String(nextMagazine.label ?? `${ammoContext.containerLabel} next`).trim())} is now loaded (${esc(String(Math.max(0, toNonNegativeWhole(nextMagazine.current, 0))))}/${esc(String(Math.max(0, toNonNegativeWhole(nextMagazine.max, 0))))}). Count this as <strong>1 Full Action / 2 Half Actions</strong> in play.</p>`
+    );
+
+    return {
+      reloaded: true,
+      reason,
+      loadedMagazineId: String(nextMagazine.id ?? "").trim(),
+      ammoCurrent: Math.max(0, toNonNegativeWhole(nextMagazine.current, 0))
+    };
+  }
+
+  async _consumeVehicleWeaponAmmo({ item, emplacementId = "", ammoToConsume = 0, vehicleSystem = null } = {}) {
+    const normalizedEmplacementId = String(emplacementId ?? "").trim();
+    const roundsToConsume = Math.max(0, toNonNegativeWhole(ammoToConsume, 0));
+    if (!normalizedEmplacementId || !item || item.type !== "gear") {
+      return { ammoCurrent: 0, usesTracking: false, autoReloaded: false };
+    }
+
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor.system ?? {});
+    const matchedEmplacement = (Array.isArray(source?.weaponEmplacements) ? source.weaponEmplacements : [])
+      .find((entry) => String(entry?.id ?? "").trim() === normalizedEmplacementId) ?? null;
+    if (!matchedEmplacement) {
+      return { ammoCurrent: 0, usesTracking: false, autoReloaded: false };
+    }
+
+    const normalized = this._normalizeVehicleWeaponEmplacementAmmo(matchedEmplacement, item, source);
+    const ammoContext = normalized.context;
+    if (!ammoContext.isAmmoTrackable || !ammoContext.usesTracking || roundsToConsume <= 0) {
+      return {
+        ammoCurrent: ammoContext.loadedAmmoCurrent,
+        usesTracking: ammoContext.usesTracking,
+        autoReloaded: false
+      };
+    }
+
+    const nextEntry = normalized.entry;
+    const loadedMagazineId = String(ammoContext.loadedMagazineId ?? "").trim();
+    const magazineIndex = nextEntry.ammo.magazines.findIndex((magazine) => String(magazine?.id ?? "").trim() === loadedMagazineId);
+    if (magazineIndex < 0) {
+      return {
+        ammoCurrent: ammoContext.loadedAmmoCurrent,
+        usesTracking: ammoContext.usesTracking,
+        autoReloaded: false
+      };
+    }
+
+    const currentMagazine = nextEntry.ammo.magazines[magazineIndex];
+    const newCurrent = Math.max(0, toNonNegativeWhole(currentMagazine?.current, 0) - roundsToConsume);
+    nextEntry.ammo.magazines[magazineIndex] = {
+      ...currentMagazine,
+      current: newCurrent
+    };
+    nextEntry.weaponState.magazineCurrent = newCurrent;
+
+    await this._updateVehicleWeaponEmplacementById(normalizedEmplacementId, (entry) => {
+      entry.weaponState = foundry.utils.deepClone(nextEntry.weaponState);
+      entry.ammo = foundry.utils.deepClone(nextEntry.ammo);
+    });
+
+    if (newCurrent > 0) {
+      return {
+        ammoCurrent: newCurrent,
+        usesTracking: true,
+        autoReloaded: false
+      };
+    }
+
+    const reloadResult = await this._reloadVehicleWeaponEmplacement({
+      item,
+      emplacementId: normalizedEmplacementId,
+      vehicleSystem: normalizeVehicleSystemData(this.actor.system ?? {}),
+      reason: "empty"
+    });
+
+    return {
+      ammoCurrent: reloadResult.reloaded ? Math.max(0, toNonNegativeWhole(reloadResult.ammoCurrent, 0)) : newCurrent,
+      usesTracking: true,
+      autoReloaded: reloadResult.reloaded === true
+    };
+  }
+
   _buildVehicleWeaponEmplacementRecord(entry = {}, fallbackId = "") {
     const requestedRole = String(entry?.controllerRole ?? "").trim().toLowerCase();
     const controllerRole = ["operator", "gunner", "passenger"].includes(requestedRole)
@@ -3204,9 +3847,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const neuralLinkOperatorSeatKey = /^operators:\d+$/u.test(requestedNeuralLinkOperatorSeatKey)
       ? requestedNeuralLinkOperatorSeatKey
       : "";
-    const sourceWeaponState = (entry?.weaponState && typeof entry.weaponState === "object" && !Array.isArray(entry.weaponState))
-      ? entry.weaponState
-      : {};
+    const weaponState = buildDefaultWeaponStateEntry(entry?.weaponState ?? {});
+    const ammo = buildDefaultVehicleWeaponAmmoState(entry?.ammo ?? {});
     return {
       id: String(entry?.id ?? fallbackId ?? foundry.utils.randomID()).trim() || fallbackId || foundry.utils.randomID(),
       weaponItemId: String(entry?.weaponItemId ?? "").trim(),
@@ -3216,15 +3858,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       linkedCount: linked ? Math.max(2, toNonNegativeWhole(entry?.linkedCount, 2)) : 1,
       useNeuralLink: entry?.useNeuralLink === true,
       neuralLinkOperatorSeatKey,
-      weaponState: {
-        fireMode: String(sourceWeaponState.fireMode ?? "").trim().toLowerCase(),
-        toHitModifier: Number.isFinite(Number(sourceWeaponState.toHitModifier)) ? Math.round(Number(sourceWeaponState.toHitModifier)) : 0,
-        damageModifier: Number.isFinite(Number(sourceWeaponState.damageModifier)) ? Math.round(Number(sourceWeaponState.damageModifier)) : 0,
-        chargeLevel: toNonNegativeWhole(sourceWeaponState.chargeLevel, 0),
-        rechargeRemaining: toNonNegativeWhole(sourceWeaponState.rechargeRemaining, 0),
-        variantIndex: toNonNegativeWhole(sourceWeaponState.variantIndex, 0),
-        scopeMode: String(sourceWeaponState.scopeMode ?? "none").trim().toLowerCase() || "none"
-      }
+      weaponState,
+      ammo
     };
   }
 
@@ -3509,6 +4144,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
+    for (let index = 0; index < nextEmplacements.length; index += 1) {
+      const weaponId = String(nextEmplacements[index]?.weaponItemId ?? "").trim();
+      const weaponEntry = weaponId ? (weaponGearById.get(weaponId) ?? null) : null;
+      const ammoNormalization = this._normalizeVehicleWeaponEmplacementAmmo(nextEmplacements[index], weaponEntry?.item ?? null, source);
+      nextEmplacements[index] = ammoNormalization.entry;
+      if (ammoNormalization.didChange) {
+        needsMigration = true;
+      }
+    }
+
     return {
       emplacements: nextEmplacements,
       gearItems,
@@ -3599,6 +4244,42 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         : [];
       const controllerLabel = controllerDefinition?.label ?? "Controller";
       const weaponEntry = entry.weaponItemId ? emplacementState.weaponGearById.get(entry.weaponItemId) ?? null : null;
+      const weaponGear = weaponEntry?.gear ?? {};
+      const weaponRange = (weaponGear?.range && typeof weaponGear.range === "object") ? weaponGear.range : {};
+      const weaponDamage = (weaponGear?.damage && typeof weaponGear.damage === "object") ? weaponGear.damage : {};
+      const weaponState = (entry?.weaponState && typeof entry.weaponState === "object")
+        ? entry.weaponState
+        : {};
+      const ammoContext = weaponEntry?.item
+        ? this._getVehicleWeaponAmmoContext(entry, weaponEntry.item, source)
+        : null;
+      const canEditMagazines = Boolean(ammoContext?.usesTracking && ammoContext?.isAmmoTrackable);
+      const loadedMagazineId = String(ammoContext?.loadedMagazineId ?? "").trim();
+      const magazines = Array.isArray(ammoContext?.magazines)
+        ? ammoContext.magazines.map((magazine, magazineIndex) => ({
+          id: String(magazine?.id ?? "").trim(),
+          type: String(magazine?.type ?? ammoContext?.ammoType ?? "Standard").trim() || "Standard",
+          current: Math.max(0, toNonNegativeWhole(magazine?.current, 0)),
+          max: Math.max(0, toNonNegativeWhole(magazine?.max, 0)),
+          loadOrder: toNonNegativeWhole(magazine?.loadOrder, magazineIndex),
+          isLoaded: String(magazine?.id ?? "").trim() === loadedMagazineId
+        })).sort((a, b) => Number(a.loadOrder ?? 0) - Number(b.loadOrder ?? 0))
+        : [];
+      const ammoFallbackText = ammoContext?.isAmmoTrackable === true
+        ? "No magazines configured. Add one to start tracking reloads."
+        : "This weapon uses loose ammo or manual tracking.";
+      const fireModes = Array.isArray(weaponGear?.fireModes) ? weaponGear.fireModes : [];
+      const fireModeText = fireModes.map((mode) => String(mode ?? "").trim().toLowerCase());
+      const hasSingleMode = fireModeText.some((mode) => mode.includes("single") || mode.includes("semi"));
+      const hasHalfMode = fireModeText.some((mode) => mode.includes("half") || mode.includes("burst"));
+      const hasFullMode = fireModeText.some((mode) => mode.includes("full") || mode.includes("auto"));
+      const controllerSeatLabel = (() => {
+        if (!controllerRole || controllerIndex <= 0) return "Unassigned";
+        const crewRows = Array.isArray(source?.crew?.[`${controllerRole}s`]) ? source.crew[`${controllerRole}s`] : [];
+        const crewEntry = crewRows[controllerIndex - 1] ?? {};
+        const display = String(crewEntry?.display ?? "").trim() || "Unassigned";
+        return `${controllerLabel} ${controllerIndex}: ${display}`;
+      })();
       return {
         id: entry.id,
         label: `Emplacement ${index + 1}`,
@@ -3606,9 +4287,27 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         weaponName: weaponEntry?.name ?? "",
         weaponNickname: String(weaponEntry?.gear?.nickname ?? "").trim(),
         weaponDisplayName: String(weaponEntry?.gear?.nickname ?? "").trim() || String(weaponEntry?.name ?? "").trim(),
+        weaponFullName: String(weaponEntry?.name ?? "").trim(),
         weaponImg: weaponEntry?.img ?? "",
         weaponTypeLabel: weaponEntry?.typeLabel ?? "",
         hasWeapon: Boolean(weaponEntry),
+        controllerSeatLabel,
+        rangeMin: Math.max(0, toNonNegativeWhole(weaponRange.close, 0)),
+        rangeMax: Math.max(0, toNonNegativeWhole(weaponRange.max, 0)),
+        displaySc: Number.isFinite(Number(weaponGear?.baseToHitModifier)) ? Math.round(Number(weaponGear.baseToHitModifier)) : 0,
+        toHitModifier: Number.isFinite(Number(weaponState?.toHitModifier)) ? Math.round(Number(weaponState.toHitModifier)) : 0,
+        damageModifier: Number.isFinite(Number(weaponState?.damageModifier)) ? Math.round(Number(weaponState.damageModifier)) : 0,
+        loadedAmmoDisplay: String(ammoContext?.loadedAmmoDisplay ?? "—").trim() || "—",
+        remainingMagazineSummary: String(ammoContext?.remainingMagazineSummary ?? "N/A").trim() || "N/A",
+        ammoSummaryTitle: String(ammoContext?.ammoSummaryTitle ?? "").trim(),
+        magazines,
+        canEditMagazines,
+        ammoFallbackText,
+        showReloadButton: ammoContext?.showReloadButton === true,
+        displayDamage: Number.isFinite(Number(weaponDamage?.baseDamage)) ? Math.round(Number(weaponDamage.baseDamage)) : 0,
+        showSingleMode: hasSingleMode || (!hasHalfMode && !hasFullMode),
+        showHalfMode: hasHalfMode,
+        showFullMode: hasFullMode,
         controllerRole,
         controllerSlotKey: controllerRole && controllerIndex > 0 ? `${controllerRole}:${controllerIndex}` : "",
         controllerRoleOptions: buildRoleOptions(controllerRole),
@@ -3619,7 +4318,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ? `No ${controllerLabel.toLowerCase()} slots defined`
           : "Select role first",
         linked: Boolean(entry.linked),
-        linkedCount: Math.max(2, toNonNegativeWhole(entry.linkedCount, 2)),
+        linkedCount: Math.max(1, toNonNegativeWhole(entry.linkedCount, entry.linked ? 2 : 1)),
         showLinkedCount: Boolean(entry.linked),
         useNeuralLink: entry?.useNeuralLink === true,
         neuralLinkOperatorSeatKey: String(entry?.neuralLinkOperatorSeatKey ?? "").trim(),
@@ -3813,10 +4512,79 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this._updateVehicleWeaponEmplacements(nextEmplacements);
   }
 
-  async _updateVehicleWeaponEmplacements(emplacements = []) {
+  async _updateVehicleWeaponEmplacements(emplacements = [], options = {}) {
+    if (options.rememberScroll !== false) {
+      this._rememberSheetScrollPosition();
+    }
     await this.actor.update({
       "system.weaponEmplacements": this._serializeVehicleWeaponEmplacements(emplacements)
-    });
+    }, options.updateOptions ?? {});
+  }
+
+  _getVehicleWeaponMagazineEditContext(entry = {}, vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor.system ?? {});
+    const weaponItemId = String(entry?.weaponItemId ?? "").trim();
+    if (!weaponItemId) return null;
+    const item = this.actor.items.get(weaponItemId);
+    if (!item || item.type !== "gear") return null;
+
+    const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const capacity = Math.max(0, toNonNegativeWhole(gear?.range?.magazine, 0));
+    const isAmmoTrackable = String(gear?.weaponClass ?? "").trim().toLowerCase() !== "melee"
+      && String(gear?.equipmentType ?? "").trim().toLowerCase() !== "explosives-and-grenades"
+      && String(gear?.ammoMode ?? "").trim().toLowerCase() !== "grenade"
+      && capacity > 0;
+
+    if (!isAmmoTrackable) return null;
+
+    const weaponName = String(item?.name ?? "").trim();
+    const ammoType = getVehicleWeaponAmmoType(gear);
+    const containerType = getVehicleWeaponAmmoContainerType(gear);
+    const containerLabel = getVehicleWeaponAmmoContainerLabel(gear);
+    const compatibilityKey = buildVehicleWeaponAmmoCompatibilityKey(weaponItemId, gear, weaponName, ammoType);
+
+    return {
+      source,
+      item,
+      gear,
+      weaponItemId,
+      weaponName,
+      capacity,
+      ammoType,
+      containerType,
+      containerLabel,
+      compatibilityKey
+    };
+  }
+
+  _getVehicleWeaponEditableMagazineState(entry = {}, vehicleSystem = null) {
+    const editContext = this._getVehicleWeaponMagazineEditContext(entry, vehicleSystem);
+    if (!editContext) return null;
+
+    const ammoState = buildDefaultVehicleWeaponAmmoState(entry?.ammo ?? {});
+    const magazines = (Array.isArray(ammoState.magazines) ? ammoState.magazines : [])
+      .map((magazine, magazineIndex) => normalizeVehicleWeaponMagazineEntry(magazine, {
+        max: editContext.capacity,
+        current: editContext.capacity,
+        loadOrder: magazineIndex,
+        type: String(magazine?.type ?? editContext.ammoType).trim() || editContext.ammoType,
+        compatibilityKey: editContext.compatibilityKey,
+        containerType: editContext.containerType,
+        label: String(magazine?.label ?? "").trim() || `${editContext.containerLabel} ${magazineIndex + 1}`,
+        weaponId: editContext.weaponItemId
+      }))
+      .sort(sortVehicleWeaponMagazineEntries)
+      .map((magazine, index) => ({
+        ...magazine,
+        loadOrder: index,
+        label: String(magazine?.label ?? "").trim() || `${editContext.containerLabel} ${index + 1}`
+      }));
+
+    return {
+      editContext,
+      ammoState,
+      magazines
+    };
   }
 
   _getVehicleLoadoutDropTarget(event) {
@@ -3923,6 +4691,55 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this._updateVehicleWeaponEmplacements(nextEmplacements);
   }
 
+  async _onDuplicateVehicleWeaponEmplacement(event) {
+    event.preventDefault();
+    if (!this.isEditable || !this._isVehicleActor()) return;
+
+    const emplacementId = String(event.currentTarget?.dataset?.emplacementId ?? "").trim();
+    if (!emplacementId) return;
+
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    const nextEmplacements = this._serializeVehicleWeaponEmplacements(vehicleSystem.weaponEmplacements ?? []);
+    const sourceEmplacement = nextEmplacements.find((entry) => String(entry?.id ?? "").trim() === emplacementId) ?? null;
+    if (!sourceEmplacement) return;
+
+    const sourceWeaponId = String(sourceEmplacement?.weaponItemId ?? "").trim();
+    if (!sourceWeaponId) {
+      ui.notifications?.warn("Assign a weapon before duplicating this slot.");
+      return;
+    }
+
+    const sourceItem = this.actor.items.get(sourceWeaponId);
+    if (!sourceItem || sourceItem.type !== "gear") {
+      ui.notifications?.warn("The source weapon could not be found.");
+      return;
+    }
+
+    const newEmplacementId = foundry.utils.randomID();
+    const sourceGear = normalizeGearSystemData(sourceItem.system ?? {}, sourceItem.name ?? "");
+    const newItemData = sourceItem.toObject();
+    delete newItemData._id;
+    newItemData.system = this._buildVehicleMountedGearSystemData(sourceGear, newItemData.name ?? sourceItem.name ?? "", newEmplacementId);
+
+    const created = await this.actor.createEmbeddedDocuments("Item", [newItemData]);
+    const duplicatedWeaponId = String(created?.[0]?.id ?? "").trim();
+    if (!duplicatedWeaponId) {
+      ui.notifications?.warn("Could not duplicate that weapon.");
+      return;
+    }
+
+    const duplicatedEmplacement = this._buildVehicleWeaponEmplacementRecord({
+      ...sourceEmplacement,
+      id: newEmplacementId,
+      weaponItemId: duplicatedWeaponId,
+      ammo: foundry.utils.deepClone(sourceEmplacement?.ammo ?? {}),
+      weaponState: foundry.utils.deepClone(sourceEmplacement?.weaponState ?? {})
+    }, newEmplacementId);
+
+    nextEmplacements.push(duplicatedEmplacement);
+    await this._updateVehicleWeaponEmplacements(nextEmplacements);
+  }
+
   async _onVehicleWeaponEmplacementFieldChange(event) {
     event.preventDefault();
     if (!this.isEditable || !this._isVehicleActor()) return;
@@ -3966,8 +4783,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         break;
       }
       case "linkedCount": {
-        nextEntry.linked = true;
-        nextEntry.linkedCount = Math.max(2, toNonNegativeWhole(event.currentTarget?.value, nextEntry.linkedCount || 2));
+        const nextLinkedCount = Math.max(1, toNonNegativeWhole(event.currentTarget?.value, nextEntry.linkedCount || 1));
+        nextEntry.linkedCount = nextLinkedCount;
+        nextEntry.linked = nextLinkedCount > 1;
         break;
       }
       default:
@@ -4003,6 +4821,100 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     nextEmplacements[emplacementIndex] = nextEntry;
     await this._updateVehicleWeaponEmplacements(nextEmplacements);
+  }
+
+  async _onAddVehicleWeaponMagazine(event) {
+    event.preventDefault();
+    if (!this.isEditable || !this._isVehicleActor()) return;
+
+    const emplacementId = String(event.currentTarget?.dataset?.emplacementId ?? "").trim();
+    if (!emplacementId) return;
+
+    await this._updateVehicleWeaponEmplacementById(emplacementId, (nextEntry, _emplacements, vehicleSystem) => {
+      const state = this._getVehicleWeaponEditableMagazineState(nextEntry, vehicleSystem);
+      if (!state) return;
+
+      const { editContext, ammoState } = state;
+      const magazines = [...state.magazines];
+      const nextIndex = magazines.length;
+      magazines.push(buildVehicleWeaponMagazineEntry(editContext.weaponItemId, editContext.gear, editContext.weaponName, {
+        loadOrder: nextIndex,
+        type: editContext.ammoType,
+        compatibilityKey: editContext.compatibilityKey,
+        containerType: editContext.containerType,
+        label: `${editContext.containerLabel} ${nextIndex + 1}`
+      }));
+
+      ammoState.magazines = magazines;
+      if (!String(ammoState.loadedMagazineId ?? "").trim()) {
+        ammoState.loadedMagazineId = String(magazines[0]?.id ?? "").trim();
+      }
+      nextEntry.ammo = ammoState;
+    });
+  }
+
+  async _onRemoveVehicleWeaponMagazine(event) {
+    event.preventDefault();
+    if (!this.isEditable || !this._isVehicleActor()) return;
+
+    const emplacementId = String(event.currentTarget?.dataset?.emplacementId ?? "").trim();
+    const magazineId = String(event.currentTarget?.dataset?.magazineId ?? "").trim();
+    if (!emplacementId || !magazineId) return;
+
+    await this._updateVehicleWeaponEmplacementById(emplacementId, (nextEntry, _emplacements, vehicleSystem) => {
+      const state = this._getVehicleWeaponEditableMagazineState(nextEntry, vehicleSystem);
+      if (!state) return;
+
+      const { ammoState } = state;
+      const magazines = state.magazines
+        .filter((magazine) => String(magazine?.id ?? "").trim() !== magazineId)
+        .map((magazine, index) => ({
+          ...magazine,
+          loadOrder: index
+        }));
+
+      ammoState.magazines = magazines;
+      if (!magazines.some((magazine) => String(magazine?.id ?? "").trim() === String(ammoState.loadedMagazineId ?? "").trim())) {
+        ammoState.loadedMagazineId = String(magazines[0]?.id ?? "").trim();
+      }
+      nextEntry.ammo = ammoState;
+    });
+  }
+
+  async _onVehicleWeaponMagazineFieldChange(event) {
+    event.preventDefault();
+    if (!this.isEditable || !this._isVehicleActor()) return;
+
+    const emplacementId = String(event.currentTarget?.dataset?.emplacementId ?? "").trim();
+    const magazineId = String(event.currentTarget?.dataset?.magazineId ?? "").trim();
+    const field = String(event.currentTarget?.dataset?.field ?? "").trim().toLowerCase();
+    if (!emplacementId || !magazineId || !field) return;
+
+    await this._updateVehicleWeaponEmplacementById(emplacementId, (nextEntry, _emplacements, vehicleSystem) => {
+      const state = this._getVehicleWeaponEditableMagazineState(nextEntry, vehicleSystem);
+      if (!state) return;
+
+      const { editContext, ammoState } = state;
+      const magazines = state.magazines.map((magazine) => ({ ...magazine }));
+      const targetIndex = magazines.findIndex((magazine) => String(magazine?.id ?? "").trim() === magazineId);
+      if (targetIndex < 0) return;
+
+      if (field === "type") {
+        magazines[targetIndex].type = String(event.currentTarget?.value ?? "").trim() || editContext.ammoType;
+      } else if (field === "current") {
+        const max = Math.max(0, toNonNegativeWhole(magazines[targetIndex]?.max, editContext.capacity));
+        const value = Math.max(0, toNonNegativeWhole(event.currentTarget?.value, magazines[targetIndex]?.current));
+        magazines[targetIndex].current = Math.min(max, value);
+      } else {
+        return;
+      }
+
+      magazines.forEach((magazine, index) => {
+        magazine.loadOrder = index;
+      });
+      ammoState.magazines = magazines;
+      nextEntry.ammo = ammoState;
+    });
   }
 
   async _dropGearIntoVehicleCargo(item) {
@@ -9584,9 +10496,29 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             void this._onRemoveVehicleWeaponEmplacement(event);
           });
         });
+        root.querySelectorAll(".vehicle-emplacement-duplicate-btn[data-emplacement-id]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onDuplicateVehicleWeaponEmplacement(event);
+          });
+        });
         root.querySelectorAll(".vehicle-emplacement-field[data-emplacement-id][data-field]").forEach((input) => {
           input.addEventListener("change", (event) => {
             void this._onVehicleWeaponEmplacementFieldChange(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-magazine-add-btn[data-emplacement-id]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onAddVehicleWeaponMagazine(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-magazine-remove-btn[data-emplacement-id][data-magazine-id]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onRemoveVehicleWeaponMagazine(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-magazine-field[data-emplacement-id][data-magazine-id][data-field]").forEach((input) => {
+          input.addEventListener("change", (event) => {
+            void this._onVehicleWeaponMagazineFieldChange(event);
           });
         });
         root.querySelectorAll(".vehicle-loadout-drop-zone[data-vehicle-loadout-drop]").forEach((zone) => {
@@ -10271,6 +11203,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".hth-attack-btn[data-attack]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onPostHandToHandAttack(event);
+      });
+    });
+
+    root.querySelectorAll(".far-sight-activate-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onActivateFarSight(event);
       });
     });
 
@@ -19212,6 +20150,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return;
 
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    const vehicleEmplacementId = String(event.currentTarget?.dataset?.vehicleEmplacementId ?? "").trim();
     if (!itemId) return;
 
     const item = this.actor.items.get(itemId);
@@ -19220,6 +20159,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
     const isMelee = gear.weaponClass === "melee";
     if (isMelee) return;
+
+    if (vehicleEmplacementId && this._isVehicleActor()) {
+      await this._reloadVehicleWeaponEmplacement({
+        item,
+        emplacementId: vehicleEmplacementId,
+        vehicleSystem: normalizeVehicleSystemData(this.actor.system ?? {}),
+        reason: "manual"
+      });
+      return;
+    }
 
     const ammoMode = isEnergyCellAmmoMode(gear.ammoMode)
       ? String(gear.ammoMode ?? "").trim().toLowerCase()
@@ -19596,6 +20545,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const vehicleEmplacement = isVehicleWeaponAttack
       ? (vehicleEmplacements.find((entry) => String(entry?.id ?? "").trim() === vehicleEmplacementId) ?? null)
       : null;
+    const linkedWeaponCount = (isVehicleWeaponAttack && vehicleEmplacement?.linked)
+      ? Math.max(2, toNonNegativeWhole(vehicleEmplacement?.linkedCount, 2))
+      : 1;
     const activeVehicleUser = isVehicleWeaponAttack
       ? this._resolveVehicleWeaponActiveUser(vehicleEmplacement ?? {}, vehicleSystem, vehicleEmplacements)
       : null;
@@ -19613,6 +20565,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!pacifistTestPassed) return;
 
     const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const vehicleAmmoContext = isVehicleWeaponAttack
+      ? this._getVehicleWeaponAmmoContext(vehicleEmplacement ?? {}, item, vehicleSystem)
+      : null;
     const isInfusionRadiusWeapon = this._isInfusionRadiusWeapon(item);
     if (isInfusionRadiusWeapon) {
       if (!this._isInfusedHuragokActor()) {
@@ -19704,6 +20659,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const isEnergyWeapon = !isMelee && !isInfusionRadiusWeapon && isEnergyCellAmmoMode(ammoMode);
     const ammoConfig = getAmmoConfig();
     const tracksBasicAmmo = !isMelee && !isInfusionRadiusWeapon && !isGrenadeWeapon && !ammoConfig.ignoreBasicAmmoCounts;
+    const usesVehicleAmmoTracking = Boolean(isVehicleWeaponAttack && vehicleAmmoContext?.usesTracking);
     const ammoName = String(gear.ammoName ?? "").trim();
     const magazineMax = toNonNegativeWhole(gear.range?.magazine, 0);
     const weaponEnergyCells = isEnergyWeapon && weaponOwnerActor.system?.equipment?.energyCells && typeof weaponOwnerActor.system.equipment.energyCells === "object"
@@ -19715,10 +20671,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ?? null)
       : null;
     const resolvedActiveEnergyCellId = String(activeEnergyCell?.id ?? "").trim();
-    const ammoCurrent = isEnergyWeapon
-      ? toNonNegativeWhole(activeEnergyCell?.current, 0)
-      : toNonNegativeWhole(state?.magazineCurrent, 0);
-    const totalTrackedAmmoBefore = tracksBasicAmmo ? this._getTrackedAmmoTotalByName(ammoName) : 0;
+    const ammoCurrent = isVehicleWeaponAttack
+      ? Math.max(0, toNonNegativeWhole(vehicleAmmoContext?.loadedAmmoCurrent, magazineMax))
+      : (isEnergyWeapon
+          ? toNonNegativeWhole(activeEnergyCell?.current, 0)
+          : toNonNegativeWhole(state?.magazineCurrent, 0));
+    const totalTrackedAmmoBefore = !isVehicleWeaponAttack && tracksBasicAmmo ? this._getTrackedAmmoTotalByName(ammoName) : 0;
     const isChargeMode = modeProfile.kind === "charge" || modeProfile.kind === "drawback";
     const isChargeFireAction = actionType === "chargeFire";
     if (isChargeFireAction && !isChargeMode) {
@@ -19732,6 +20690,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : 0;
     const storedChargeLevel = toNonNegativeWhole(state?.chargeLevel, 0);
     const activeChargeLevel = chargeMaxLevel > 0 ? Math.min(storedChargeLevel, chargeMaxLevel) : 0;
+    if (isVehicleWeaponAttack && isChargeMode && activeChargeLevel <= 0) {
+      ui.notifications?.warn("Charge mode weapon must be charged before firing.");
+      return;
+    }
     const chargeDamageBonus = activeChargeLevel * chargeDamagePerLevel;
     const isFullChargeShot = isChargeMode && chargeMaxLevel > 0 && activeChargeLevel >= chargeMaxLevel;
     const trainingStatus = this._evaluateWeaponTrainingStatus(gear, item.name ?? "", attackActor);
@@ -19756,9 +20718,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const weaponDisplayName = (Array.isArray(gear.nicknames) && gear.nicknames.length)
       ? String(gear.nicknames[0] ?? "").trim() || item.name
       : item.name;
+    const attackScene = canvas?.scene ?? null;
     const attackerToken = canvas?.tokens?.placeables?.find((token) => token?.actor?.id === attackActor.id) ?? null;
-    const distanceMeters = (attackerToken && targetToken && canvas?.grid?.measureDistance)
-      ? Number(canvas.grid.measureDistance(attackerToken.center, targetToken.center))
+    const distanceMeters = (attackScene && attackerToken && targetToken)
+      ? measureSceneDistanceMeters(attackScene, attackerToken.center, targetToken.center)
       : NaN;
     const trackedCombat = isActorActivelyInCombat(attackActor) ? game.combat : null;
 
@@ -19843,6 +20806,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const characteristicRuntime = await this._getLiveCharacteristicRuntime(attackActor);
     const meleeAttackWarfareModifier = Number(characteristicRuntime?.modifiers?.wfm ?? 0);
+    const vehicleTargetingContext = isVehicleWeaponAttack
+      ? this._resolveVehicleWeaponTargetingRangeContext(gear, state, vehicleSystem, attackActor)
+      : null;
 
     let rawRollIterations = (actionType === "execution" || actionType === "buttstroke" || actionType === "pump-reaction" || actionType === "chargeFire")
       ? 1
@@ -19882,18 +20848,37 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const attackMods = await this._promptAttackModifiers(weaponDisplayName, gear);
+    const attackMods = await this._promptAttackModifiers(weaponDisplayName, gear, {
+      actor: attackActor,
+      sourceActor: isVehicleWeaponAttack ? weaponOwnerActor : attackActor,
+      explicitSourceToken: this.token ?? null,
+      targetsSnapshot: targets,
+      sceneId: canvas?.scene?.id ?? game.scenes?.active?.id ?? "",
+      vehicleTargetingContext
+    });
     if (attackMods === null) return;
 
     const promptRangeMeters = attackMods.rangeMeters === null || attackMods.rangeMeters === undefined
       ? NaN
       : Number(attackMods.rangeMeters);
+    const rangeResolution = attackMods.rangeResolution && typeof attackMods.rangeResolution === "object"
+      ? attackMods.rangeResolution
+      : null;
+    const effectiveRangeRecord = rangeResolution?.effectiveRange && typeof rangeResolution.effectiveRange === "object"
+      ? rangeResolution.effectiveRange
+      : null;
     const calledShotPenalty = Number(attackMods.calledShotPenalty ?? 0);
     const calledShotData = attackMods.calledShot && typeof attackMods.calledShot === "object"
       ? attackMods.calledShot
       : null;
-    const hasPromptedRange = Number.isFinite(promptRangeMeters) && promptRangeMeters >= 0;
-    const resolvedRangeMeters = hasPromptedRange ? promptRangeMeters : distanceMeters;
+    const hasResolvedRange = Number.isFinite(promptRangeMeters) && promptRangeMeters >= 0;
+    const resolvedRangeMeters = hasResolvedRange ? promptRangeMeters : NaN;
+    const perceptiveSourceActor = attackActor;
+    const perceptiveResult = this._getPerceptiveRangeForWeapon(state, resolvedRangeMeters, {
+      sourceActor: perceptiveSourceActor,
+      effectiveMetersOverride: vehicleTargetingContext?.hasOverride ? vehicleTargetingContext.effectivePerceptionRangeMeters : null,
+      effectiveMetersOverrideLabel: vehicleTargetingContext?.hasOverride ? "vehicle-optimal-range" : ""
+    });
     const rangeCloseMeters = toNonNegativeWhole(gear.range?.close, 0);
     const rangeMaxMeters = toNonNegativeWhole(gear.range?.max, 0);
     const grenadeThrowProfile = isGrenadeWeapon
@@ -20021,7 +21006,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    if (isGrenadeWeapon && hasPromptedRange && grenadeThrowProfile && resolvedRangeMeters > grenadeThrowProfile.computedMax) {
+    if (isGrenadeWeapon && hasResolvedRange && grenadeThrowProfile && resolvedRangeMeters > grenadeThrowProfile.computedMax) {
       ui.notifications.warn(`Target range ${Math.floor(resolvedRangeMeters)}m exceeds max throw range ${Math.floor(grenadeThrowProfile.computedMax)}m.`);
       return;
     }
@@ -20033,7 +21018,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     }
 
-    if (!isMelee && !isGrenadeWeapon && hasPromptedRange && promptRangeMeters <= 3) {
+    if (!isMelee && !isGrenadeWeapon && hasResolvedRange && resolvedRangeMeters <= 3) {
       const movedSinceLastTurn = await foundry.applications.api.DialogV2.wait({
         window: { title: "Point-Blank Check" },
         content: "<p>Has the target moved a minimum of a half action move since your previous turn?</p>",
@@ -20055,8 +21040,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
-    if (!isMelee && hasPromptedRange && !rangeResult.canDealDamage && !isGrenadeWeapon) {
+    if (!isMelee && hasResolvedRange && !rangeResult.canDealDamage && !isGrenadeWeapon) {
       ui.notifications.warn("Target is beyond extreme range. The shot cannot deal damage.");
+      return;
+    }
+
+    if (!isMelee && !isGrenadeWeapon && hasResolvedRange && perceptiveResult.impossible) {
+      const impossibleMessage = `Attack impossible: target is beyond perceptive limits (${Math.floor(perceptiveResult.effectiveMeters * 3)}m max, target ${Math.floor(Math.max(0, Number(resolvedRangeMeters || 0)))}m).`;
+      ui.notifications.warn(impossibleMessage);
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+        content: `<div class="mythic-attack-card"><div class="mythic-attack-header"><strong>${foundry.utils.escapeHTML(this.actor.name)}</strong> cannot attack: target is beyond perceptive range.</div><div class="mythic-stat-label">${foundry.utils.escapeHTML(impossibleMessage)}</div></div>`,
+        type: CONST.CHAT_MESSAGE_STYLES.OTHER
+      });
       return;
     }
 
@@ -20118,13 +21114,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
     if (!isMelee && !isInfusionRadiusWeapon && !isGrenadeWeapon && actionType === "execution") ammoPerIteration = 1;
+    if (linkedWeaponCount > 1) {
+      ammoPerIteration *= linkedWeaponCount;
+    }
 
     let executedIterations = rollIterations;
+    const usesFiniteAmmo = isVehicleWeaponAttack ? usesVehicleAmmoTracking : (isEnergyWeapon || tracksBasicAmmo);
     if (ammoPerIteration > 0) {
       const byMagazine = Math.floor(ammoCurrent / ammoPerIteration);
-      if (isEnergyWeapon) {
-        executedIterations = Math.max(0, Math.min(rollIterations, byMagazine));
-      } else if (tracksBasicAmmo) {
+      if (usesFiniteAmmo) {
         executedIterations = Math.max(0, Math.min(rollIterations, byMagazine));
       }
     }
@@ -20150,7 +21148,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     }
 
-    if (isEnergyWeapon) {
+    if (isVehicleWeaponAttack) {
+      if (ammoToConsume > 0) {
+        const vehicleAmmoResult = await this._consumeVehicleWeaponAmmo({
+          item,
+          emplacementId: vehicleEmplacementId,
+          ammoToConsume,
+          vehicleSystem
+        });
+        newAmmoCurrent = Math.max(0, toNonNegativeWhole(vehicleAmmoResult?.ammoCurrent, newAmmoCurrent));
+      }
+    } else if (isEnergyWeapon) {
       const updateData = {};
       if (ammoToConsume > 0 && resolvedActiveEnergyCellId) {
         const energyCells = foundry.utils.deepClone(weaponOwnerActor.system?.equipment?.energyCells ?? {});
@@ -20165,33 +21173,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           };
           energyCells[itemId] = cells;
           updateData["system.equipment.energyCells"] = energyCells;
-          if (!isVehicleWeaponAttack) {
-            updateData[`system.equipment.weaponState.${itemId}.activeEnergyCellId`] = resolvedActiveEnergyCellId;
-            updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = nextCurrent;
-          }
+          updateData[`system.equipment.weaponState.${itemId}.activeEnergyCellId`] = resolvedActiveEnergyCellId;
+          updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = nextCurrent;
           newAmmoCurrent = nextCurrent;
         }
       }
       if (Object.keys(updateData).length) {
         await weaponOwnerActor.update(updateData);
-        if (isVehicleWeaponAttack) {
-          await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
-            const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
-              ? foundry.utils.deepClone(entry.weaponState)
-              : {};
-            nextWeaponState.activeEnergyCellId = resolvedActiveEnergyCellId;
-            nextWeaponState.magazineCurrent = newAmmoCurrent;
-            entry.weaponState = nextWeaponState;
-          });
-        }
       }
     } else if (tracksBasicAmmo) {
       const updateData = {};
       if (ammoToConsume > 0) {
         const newMagCurrent = Math.max(0, ammoCurrent - ammoToConsume);
-        if (!isVehicleWeaponAttack) {
-          updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = newMagCurrent;
-        }
+        updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = newMagCurrent;
         // Sync the active container's stored .current so unloaded magazines retain their count.
         const activeMagId = String(state?.activeMagazineId ?? "").trim();
         if (activeMagId) {
@@ -20213,15 +21207,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (Object.keys(updateData).length) {
         await weaponOwnerActor.update(updateData);
       }
-      if (isVehicleWeaponAttack && ammoToConsume > 0) {
-        await this._updateVehicleWeaponEmplacementById(vehicleEmplacementId, (entry) => {
-          const nextWeaponState = (entry.weaponState && typeof entry.weaponState === "object")
-            ? foundry.utils.deepClone(entry.weaponState)
-            : {};
-          nextWeaponState.magazineCurrent = newAmmoCurrent;
-          entry.weaponState = nextWeaponState;
-        });
-      }
     }
 
     // Determine attack characteristic from the live, canonical score/mod snapshot.
@@ -20235,6 +21220,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       + baseToHitMod
       + toHitMod
       + rangeResult.toHitMod
+      + perceptiveResult.toHitModifier
       + targetSwitchPenalty
       + factionTrainingPenalty
       + weaponTrainingPenalty
@@ -20485,7 +21471,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (isGrenadeWeapon && !isCritFail && grenadeThrowRawDistanceMeters < 0.5) {
         isSuccess = false;
       }
-      if (isGrenadeWeapon && !isGrenadeThrowAction && hasPromptedRange && !isCritFail && grenadeThrowDistanceMeters < Math.floor(resolvedRangeMeters)) {
+      if (isGrenadeWeapon && !isGrenadeThrowAction && hasResolvedRange && !isCritFail && grenadeThrowDistanceMeters < Math.floor(resolvedRangeMeters)) {
         isSuccess = false;
       }
       const standardEffectiveTarget = actionType === "execution"
@@ -20539,6 +21525,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         else if (modeProfile.kind === "burst") hitCount = Math.max(1, modeProfile.count);
         else if (isSustainedFire) hitCount = sustainedSelectedAttacks;
         else hitCount = 1;
+        if (linkedWeaponCount > 1) {
+          hitCount *= linkedWeaponCount;
+        }
       }
 
       const damageInstances = [];
@@ -20611,44 +21600,23 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       attackRows.push(row);
 
       if (row.isSuccess && row.damageInstances.length) {
-        if (modeProfile.kind === "burst") {
-          const [first] = row.damageInstances;
+        for (const entry of row.damageInstances) {
           evasionRows.push({
             attackIndex: row.index,
-            repeatCount: row.damageInstances.length,
-            damageInstances: row.damageInstances,
-            damageTotal: first.damageTotal,
-            damagePierce: first.damagePierce,
+            repeatCount: 1,
+            damageTotal: entry.damageTotal,
+            damagePierce: entry.damagePierce,
             hitLoc: row.hitLoc,
-            hasSpecialDamage: row.damageInstances.some((entry) => entry.hasSpecialDamage),
-            isHardlight: row.damageInstances.some((entry) => entry.isHardlight),
-            isKinetic: row.damageInstances.some((entry) => entry.isKinetic),
-            isHeadshot: row.damageInstances.some((entry) => entry.isHeadshot),
-            isPenetrating: row.damageInstances.some((entry) => entry.isPenetrating),
-            hasBlastOrKill: row.damageInstances.some((entry) => entry.hasBlastOrKill),
-            appliesShieldPierce: row.damageInstances.some((entry) => entry.appliesShieldPierce),
-            explosiveShieldPierce: row.damageInstances.some((entry) => entry.explosiveShieldPierce),
-            ignoresShields: row.damageInstances.some((entry) => entry.ignoresShields)
+            hasSpecialDamage: entry.hasSpecialDamage,
+            isHardlight: entry.isHardlight,
+            isKinetic: entry.isKinetic,
+            isHeadshot: entry.isHeadshot,
+            isPenetrating: entry.isPenetrating,
+            hasBlastOrKill: entry.hasBlastOrKill,
+            appliesShieldPierce: entry.appliesShieldPierce,
+            explosiveShieldPierce: entry.explosiveShieldPierce,
+            ignoresShields: entry.ignoresShields ?? false
           });
-        } else {
-          for (const entry of row.damageInstances) {
-            evasionRows.push({
-              attackIndex: row.index,
-              repeatCount: 1,
-              damageTotal: entry.damageTotal,
-              damagePierce: entry.damagePierce,
-              hitLoc: row.hitLoc,
-              hasSpecialDamage: entry.hasSpecialDamage,
-              isHardlight: entry.isHardlight,
-              isKinetic: entry.isKinetic,
-              isHeadshot: entry.isHeadshot,
-              isPenetrating: entry.isPenetrating,
-              hasBlastOrKill: entry.hasBlastOrKill,
-              appliesShieldPierce: entry.appliesShieldPierce,
-              explosiveShieldPierce: entry.explosiveShieldPierce,
-              ignoresShields: entry.ignoresShields ?? false
-            });
-          }
         }
       }
     }
@@ -20760,6 +21728,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (baseToHitMod !== 0) modParts.push(`Base ${signMod(baseToHitMod)}`);
     if (toHitMod !== 0) modParts.push(`Wpn ${signMod(toHitMod)}`);
     if (rangeResult.toHitMod !== 0) modParts.push(`Range ${rangeResult.band} ${signMod(rangeResult.toHitMod)}`);
+    if (isVehicleWeaponAttack && Number(vehicleTargetingContext?.effectivePerceptionRangeMeters ?? 0) > 0) {
+      modParts.push(vehicleTargetingContext?.hasOverride
+        ? `Targeting ${Math.floor(Number(vehicleTargetingContext.effectivePerceptionRangeMeters))}m`
+        : `PER ${Math.floor(Number(vehicleTargetingContext.effectivePerceptionRangeMeters))}m`);
+    }
+    if (perceptiveResult.toHitModifier !== 0) modParts.push(`Perceptive ${perceptiveResult.rangeBand.band} ${signMod(perceptiveResult.toHitModifier)}`);
     if (isGrenadeWeapon && grenadeThrowProfile) {
       modParts.push(`Default Throw ${Math.round(grenadeThrowProfile.computedMax)}m`);
       if (grenadeThrowProfile.throwStrengthBonus > 0) modParts.push(`Servo-Assisted +${grenadeThrowProfile.throwStrengthBonus} STR`);
@@ -20768,6 +21742,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (factionTrainingPenalty !== 0) modParts.push(`Faction Training ${signMod(factionTrainingPenalty)}`);
     if (weaponTrainingPenalty !== 0) modParts.push(`Weapon Training ${signMod(weaponTrainingPenalty)}`);
     if (isChargeMode) modParts.push(`Charge ${activeChargeLevel}/${chargeMaxLevel} (${signMod(chargeDamageBonus)} dmg)`);
+    if (linkedWeaponCount > 1) modParts.push(`Linked x${linkedWeaponCount}`);
     if (baseDamageStrengthBonus !== 0) modParts.push(`Damage STR ${signMod(baseDamageStrengthBonus)}`);
     if (pierceStrengthBonus !== 0) modParts.push(`Pierce STR ${signMod(pierceStrengthBonus)}`);
     if (isInfusionRadiusWeapon && infusionIntMod !== 0) modParts.push(`INT Mod ${signMod(infusionIntMod)} dmg`);
@@ -20852,12 +21827,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         })()
         : "";
 
+      const perceptiveDetail = !isGrenadeWeapon && Number.isFinite(Number(perceptiveResult?.rangeBand?.distanceMeters))
+        ? `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Perceptive band: <strong>${esc(perceptiveResult.rangeBand.band)}</strong> at ${Math.floor(Number(perceptiveResult.rangeBand.distanceMeters ?? 0))}m (${signMod(Number(perceptiveResult.toHitModifier ?? 0)) || "+0"} to hit). Aim ${perceptiveResult.aimAllowed ? "allowed" : "blocked"}.</div>`
+        : "";
       const attackRollTitle = row.attackRollTooltip || esc(`Attack roll: ${row.rawRoll} [1d100]`);
 
       return `<div class="mythic-attack-line">
         <div class="mythic-attack-mainline">A${row.index}: ${actionType === "execution" ? "AUTO" : `<span class="mythic-roll-inline" title="${attackRollTitle}">${row.rawRoll}</span> vs <span class="mythic-roll-target" title="Effective target">${row.effectiveTarget}</span>`} <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span></div>
         ${grenadeThrowDetail}
         ${calledShotDetail}
+        ${perceptiveDetail}
         ${grenadeMissDetail}
         ${successDetail}
       </div>`;
@@ -20928,6 +21907,27 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toHitMod,
       rangeBand: isGrenadeThrowAction ? "Throw Test" : rangeResult.band,
       rangeMod: isGrenadeThrowAction ? 0 : rangeResult.toHitMod,
+      rangeSource: String(effectiveRangeRecord?.source ?? attackMods.rangeSource ?? ""),
+      rangeMode: String(effectiveRangeRecord?.rangeMode ?? attackMods.rangeMode ?? ""),
+      rangeRawMeters: Number.isFinite(Number(effectiveRangeRecord?.rawMeters)) ? Number(effectiveRangeRecord.rawMeters) : null,
+      rangeHorizontalMeters: Number.isFinite(Number(effectiveRangeRecord?.horizontalMeters)) ? Number(effectiveRangeRecord.horizontalMeters) : null,
+      rangeVerticalMeters: Number.isFinite(Number(effectiveRangeRecord?.verticalMeters)) ? Number(effectiveRangeRecord.verticalMeters) : null,
+      rangeAutoResolved: Boolean(rangeResolution?.autoRange?.resolved),
+      rangeFoundResolved: Boolean(rangeResolution?.foundRange?.resolved),
+      rangeAutoReason: String(rangeResolution?.autoRange?.reason ?? ""),
+      vehicleTargetingRangeMeters: Number(vehicleTargetingContext?.effectivePerceptionRangeMeters ?? 0),
+      vehicleTargetingRangeBaseMeters: Number(vehicleTargetingContext?.basePerceptionRangeMeters ?? 0),
+      vehicleTargetingRangeOverridden: vehicleTargetingContext?.hasOverride === true,
+      vehicleTargetingRangeBlockedByOpenTop: vehicleTargetingContext?.blockedByOpenTop === true,
+      perceptiveBand: perceptiveResult.rangeBand.band,
+      perceptiveRangeMeters: Number(perceptiveResult.effectiveMeters ?? 0),
+      perceptiveRangeDerivedMeters: Number(perceptiveResult.derivedEffectiveMeters ?? 0),
+      perceptiveRangeMultiplier: Number(perceptiveResult.multiplierBreakdown?.multiplierBeforeOptics ?? 0),
+      perceptiveRangeToHitMod: Number(perceptiveResult.toHitModifier ?? 0),
+      perceptiveAimAllowed: Boolean(perceptiveResult.aimAllowed),
+      perceptiveImpossible: Boolean(perceptiveResult.impossible),
+      perceptiveRangeOverridden: Boolean(perceptiveResult.effectiveMetersOverridden),
+      perceptiveRangeOverrideLabel: String(perceptiveResult.effectiveMetersOverrideLabel ?? ""),
       targetSwitchPenalty,
       factionTrainingPenalty,
       weaponTrainingPenalty,
@@ -20956,6 +21956,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       appliesShieldPierce,
       explosiveShieldPierce,
       ignoresShields: attackRows.some((row) => row.damageInstances?.some((entry) => entry.ignoresShields)),
+      linkedWeapons: linkedWeaponCount,
       skipEvasion: actionType === "execution",
       evasionRows: actionType === "execution" ? [] : evasionRows,
       targetTokenId: targetToken?.id ?? null,
@@ -21504,6 +22505,106 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  _getActorLightingCondition() {
+    return normalizePerceptiveLighting(this.actor.system?.perceptiveRange?.lightingCondition ?? "normal");
+  }
+
+  _getPerceptiveRangeForWeapon(weaponState = {}, targetDistanceMeters = NaN, options = {}) {
+    const opticsMagnification = options.opticsMagnification ?? String(weaponState?.scopeMode ?? "none");
+    const sourceActor = options.sourceActor ?? this.actor;
+    const sourceLighting = normalizePerceptiveLighting(sourceActor?.system?.perceptiveRange?.lightingCondition ?? "normal");
+    const lightingCondition = options.lightingCondition ?? sourceLighting;
+    return calculatePerceptiveRange({
+      actor: sourceActor,
+      systemData: sourceActor?.system ?? this.actor.system,
+      lightingCondition,
+      opticsMagnification,
+      targetDistanceMeters,
+      effectiveMetersOverride: options.effectiveMetersOverride,
+      effectiveMetersOverrideLabel: options.effectiveMetersOverrideLabel
+    });
+  }
+
+  _resolveVehicleWeaponActingActor(gear = {}) {
+    if (String(this.actor?.type ?? "") !== "vehicle") return this.actor;
+    const mount = (gear?.vehicleMount && typeof gear.vehicleMount === "object") ? gear.vehicleMount : {};
+    const role = String(mount.controllerRole ?? "").trim().toLowerCase();
+    const idx = Math.max(0, Number(mount.controllerPosition ?? 0));
+    if (!role || idx <= 0) return this.actor;
+
+    const crewPathByRole = {
+      operator: "operators",
+      gunner: "gunners",
+      passenger: "complement"
+    };
+    const crewPath = crewPathByRole[role];
+    if (!crewPath) return this.actor;
+
+    const crewRows = Array.isArray(this.actor.system?.crew?.[crewPath]) ? this.actor.system.crew[crewPath] : [];
+    const row = crewRows[idx - 1] ?? null;
+    const actorId = String(row?.id ?? "").trim();
+    if (!actorId) return this.actor;
+
+    const resolved = game.actors?.get(actorId) ?? null;
+    return resolved ?? this.actor;
+  }
+
+  async _onActivateFarSight(event) {
+    event.preventDefault();
+    const hasFarSight = actorHasAbilityByName(this.actor, "far-sight") || actorHasAbilityByName(this.actor, "far sight");
+    if (!hasFarSight) return;
+
+    const combat = game.combat;
+    const inCombat = Boolean(combat?.combatants?.some((entry) => entry?.actor?.id === this.actor.id));
+    const state = getActorFarSightState(this.actor);
+
+    if (!inCombat) {
+      if (state.active) {
+        await setActorFarSightState(this.actor, {
+          active: false,
+          activatedCombatId: "",
+          activatedRound: 0,
+          activatedTurn: 0,
+          cooldownTurnsRemaining: 0,
+          lastProcessedTurnKey: ""
+        });
+        ui.notifications?.info("Far-Sight disabled. You cannot use it again for 30 seconds.");
+        this._rememberSheetScrollPosition();
+        this.render(false);
+        return;
+      }
+      await setActorFarSightState(this.actor, {
+        active: true,
+        activatedCombatId: "",
+        activatedRound: 0,
+        activatedTurn: 0,
+        cooldownTurnsRemaining: 0,
+        lastProcessedTurnKey: ""
+      });
+      ui.notifications?.info("Far-Sight activated (outside combat).");
+      this._rememberSheetScrollPosition();
+      this.render(false);
+      return;
+    }
+
+    if (state.cooldownTurnsRemaining > 0) {
+      ui.notifications?.warn(`Far-Sight is on cooldown for ${state.cooldownTurnsRemaining} more turn(s).`);
+      return;
+    }
+
+    await setActorFarSightState(this.actor, {
+      active: true,
+      activatedCombatId: String(combat.id ?? ""),
+      activatedRound: Math.max(0, Number(combat.round ?? 0)),
+      activatedTurn: Math.max(0, Number(combat.turn ?? 0)),
+      cooldownTurnsRemaining: 0,
+      lastProcessedTurnKey: ""
+    });
+    ui.notifications?.info("Far-Sight activated until the beginning of your next turn.");
+    this._rememberSheetScrollPosition();
+    this.render(false);
+  }
+
   async _promptMiscModifier(label) {
     return foundry.applications.api.DialogV2.wait({
       window: {
@@ -21538,197 +22639,22 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
-  async _promptAttackModifiers(weaponName, gear = null) {
-    const esc = foundry.utils.escapeHTML;
-    const isMelee = gear?.weaponClass === "melee";
-    const isGrenadeWeapon = String(gear?.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades"
-      || String(gear?.ammoMode ?? "").trim().toLowerCase() === "grenade";
-    const closeRange = toNonNegativeWhole(gear?.range?.close, 0);
-    const maxRange = toNonNegativeWhole(gear?.range?.max, 0);
-    const showRangeField = !isMelee && !isGrenadeWeapon && maxRange > 0;
-    const showCalledShot = !isGrenadeWeapon;
-    const abilityNames = new Set(this.actor.items
-      .filter((item) => item.type === "ability")
-      .map((item) => this._normalizeNameForMatch(item.name))
-      .filter(Boolean));
-    const hasClearTarget = abilityNames.has("clear target");
-    const hasPrecisionStrike = abilityNames.has("precision strike");
-
-    const calledShotZoneDefs = [
-      { value: "none", label: "No" },
-      { value: "head", label: "Head", zone: "Head", drKey: "head", kind: "location" },
-      { value: "larm", label: "Left Arm", zone: "Left Arm", drKey: "lArm", kind: "location" },
-      { value: "rarm", label: "Right Arm", zone: "Right Arm", drKey: "rArm", kind: "location" },
-      { value: "lleg", label: "Left Leg", zone: "Left Leg", drKey: "lLeg", kind: "location" },
-      { value: "rleg", label: "Right Leg", zone: "Right Leg", drKey: "rLeg", kind: "location" },
-      { value: "chest", label: "Chest", zone: "Chest", drKey: "chest", kind: "location" },
-      { value: "weapon-standard", label: "Weapon (Standard)", kind: "weapon", weaponClass: "standard" },
-      { value: "weapon-large-heavy", label: "Weapon (Large/Heavy)", kind: "weapon", weaponClass: "large-heavy" }
-    ];
-    const calledShotSubZonesByZone = (() => {
-      const subzones = new Map();
-      const tableEntries = Object.values(MYTHIC_HIT_LOCATION_TABLE ?? {});
-      for (const entry of tableEntries) {
-        const zone = String(entry?.zone ?? "").trim();
-        const subZone = String(entry?.subZone ?? "").trim();
-        if (!zone || !subZone) continue;
-        if (!subzones.has(zone)) subzones.set(zone, new Set());
-        subzones.get(zone).add(subZone);
+  async _promptAttackModifiers(weaponName, gear = null, options = {}) {
+    return promptAttackModifiersDialog({
+      actor: options?.actor ?? this.actor,
+      weaponName,
+      gear,
+      vehicleTargetingContext: (options?.vehicleTargetingContext && typeof options.vehicleTargetingContext === "object")
+        ? options.vehicleTargetingContext
+        : null,
+      rangeContext: {
+        sourceActor: options?.sourceActor ?? options?.actor ?? this.actor,
+        explicitSourceToken: options?.explicitSourceToken ?? this.token ?? null,
+        targetsSnapshot: Array.isArray(options?.targetsSnapshot)
+          ? options.targetsSnapshot.filter(Boolean)
+          : [...(game.user?.targets ?? [])].filter(Boolean),
+        sceneId: String(options?.sceneId ?? canvas?.scene?.id ?? game.scenes?.active?.id ?? "").trim()
       }
-      const result = {};
-      for (const zoneDef of calledShotZoneDefs) {
-        if (zoneDef.kind !== "location") continue;
-        result[zoneDef.zone] = [...(subzones.get(zoneDef.zone) ?? [])].sort((a, b) => a.localeCompare(b));
-      }
-      return result;
-    })();
-    const calledShotZoneOptionMarkup = calledShotZoneDefs
-      .map((entry) => `<option value="${esc(String(entry.value ?? ""))}">${esc(String(entry.label ?? entry.value ?? ""))}</option>`)
-      .join("");
-    const calledShotSubOptionMarkup = ["<option value=\"\">No</option>", ...calledShotZoneDefs
-      .filter((entry) => entry.kind === "location")
-      .flatMap((entry) => {
-        const zoneValue = String(entry.value ?? "").trim();
-        const zoneLabel = String(entry.zone ?? "").trim();
-        const values = calledShotSubZonesByZone[zoneLabel] ?? [];
-        return values.map((subZone) => {
-          const optionValue = `${zoneValue}::${subZone}`;
-          return `<option value="${esc(optionValue)}" data-zone="${esc(zoneValue)}">${esc(`${subZone} (${zoneLabel})`)}</option>`;
-        });
-      })].join("");
-
-    return foundry.applications.api.DialogV2.wait({
-      window: {
-        title: `Attack Modifiers - ${esc(String(weaponName ?? "Weapon"))}`
-      },
-      content: `
-        <style>
-          .attack-mod-form input[type="number"],
-          .attack-mod-form input[type="text"] {
-            width: 8ch;
-          }
-        </style>
-        <form class="attack-mod-form">
-          <div class="form-group">
-            <label for="mythic-atk-tohit">To Hit</label>
-            <input id="mythic-atk-tohit" type="number" step="1" value="0" />
-            <p class="hint">Bonus/penalty to attack roll.</p>
-          </div>
-          <div class="form-group">
-            <label for="mythic-atk-damage">Damage</label>
-            <input id="mythic-atk-damage" type="text" value="" placeholder="5, -3, 1d10" />
-            <p class="hint">Flat or dice expression.</p>
-          </div>
-          <div class="form-group">
-            <label for="mythic-atk-pierce">Pierce</label>
-            <input id="mythic-atk-pierce" type="number" step="1" value="0" />
-            <p class="hint">Bonus/penalty to pierce.</p>
-          </div>
-          ${showCalledShot ? `
-          <div class="form-group">
-            <label for="mythic-atk-called-zone">Called Shot</label>
-            <select id="mythic-atk-called-zone" onchange="
-              const zone = String(this.value || 'none');
-              const sub = document.getElementById('mythic-atk-called-sub');
-              if (!sub) return;
-              const disableSub = zone === 'none' || zone.startsWith('weapon-');
-              for (const opt of sub.options) {
-                const parentZone = String(opt.dataset.zone || '');
-                opt.hidden = Boolean(parentZone) && parentZone !== zone;
-              }
-              sub.disabled = disableSub;
-              const selected = sub.options[sub.selectedIndex];
-              if (disableSub || (selected && selected.hidden)) sub.value = '';
-            ">
-              ${calledShotZoneOptionMarkup}
-            </select>
-            <p class="hint">Body location -30, sublocation -60. Weapon shots: -40 standard, -20 large/heavy.</p>
-          </div>
-          <div class="form-group">
-            <label for="mythic-atk-called-sub">Called Shot Sublocation</label>
-            <select id="mythic-atk-called-sub" disabled>
-              ${calledShotSubOptionMarkup}
-            </select>
-            <p class="hint">Pick a matching sublocation for the selected location. Clear Target halves ranged penalties, Precision Strike halves melee penalties.</p>
-          </div>
-          ` : ""}
-          ${showRangeField ? `
-          <div class="form-group">
-            <label for="mythic-atk-range">Range (m)</label>
-            <input id="mythic-atk-range" type="number" step="1" value="0" min="0" />
-            <p class="hint">Optimal Range: ${closeRange}m - ${maxRange}m</p>
-          </div>
-          ` : ""}
-        </form>
-      `,
-      buttons: [
-        {
-          action: "roll",
-          label: "Roll Attack",
-          callback: () => {
-            const toHitRaw = Number(document.getElementById("mythic-atk-tohit")?.value ?? 0);
-            const damageRaw = String(document.getElementById("mythic-atk-damage")?.value ?? "").trim();
-            const pierceRaw = Number(document.getElementById("mythic-atk-pierce")?.value ?? 0);
-            const calledShotZoneRaw = String(document.getElementById("mythic-atk-called-zone")?.value ?? "none").trim().toLowerCase();
-            const calledShotSubRaw = String(document.getElementById("mythic-atk-called-sub")?.value ?? "").trim();
-            const rangeRaw = showRangeField
-              ? Number(document.getElementById("mythic-atk-range")?.value ?? NaN)
-              : NaN;
-
-            const selectedCalledZone = calledShotZoneDefs.find((entry) => String(entry.value ?? "").toLowerCase() === calledShotZoneRaw) ?? calledShotZoneDefs[0];
-            let calledShotPenalty = 0;
-            let calledShot = null;
-
-            if (selectedCalledZone?.value !== "none") {
-              const reductionFactor = (isMelee && hasPrecisionStrike) || (!isMelee && hasClearTarget)
-                ? 0.5
-                : 1;
-
-              if (selectedCalledZone.kind === "weapon") {
-                const basePenalty = selectedCalledZone.weaponClass === "large-heavy" ? -20 : -40;
-                calledShotPenalty = Math.round(basePenalty * reductionFactor);
-                calledShot = {
-                  kind: "weapon",
-                  targetClass: selectedCalledZone.weaponClass,
-                  label: selectedCalledZone.label,
-                  basePenalty,
-                  penalty: calledShotPenalty
-                };
-              } else {
-                const [subZoneParent = "", subZoneName = ""] = calledShotSubRaw.split("::").map((entry) => String(entry ?? "").trim());
-                const hasMatchingSublocation = subZoneParent === selectedCalledZone.value && subZoneName;
-                const basePenalty = hasMatchingSublocation ? -60 : -30;
-                calledShotPenalty = Math.round(basePenalty * reductionFactor);
-                calledShot = {
-                  kind: "location",
-                  zone: selectedCalledZone.zone,
-                  subZone: hasMatchingSublocation ? subZoneName : selectedCalledZone.zone,
-                  drKey: selectedCalledZone.drKey,
-                  isSublocation: Boolean(hasMatchingSublocation),
-                  basePenalty,
-                  penalty: calledShotPenalty
-                };
-              }
-            }
-
-            return {
-              toHitMod: Number.isFinite(toHitRaw) ? Math.round(toHitRaw) : 0,
-              damageMod: damageRaw || "0",
-              pierceMod: Number.isFinite(pierceRaw) ? Math.round(pierceRaw) : 0,
-              calledShotPenalty,
-              calledShot,
-              rangeMeters: Number.isFinite(rangeRaw) && rangeRaw >= 0 ? rangeRaw : null
-            };
-          }
-        },
-        {
-          action: "cancel",
-          label: "Cancel",
-          callback: () => null
-        }
-      ],
-      rejectClose: false,
-      modal: true
     });
   }
 
@@ -22424,4 +23350,3 @@ Object.assign(MythicActorSheet.prototype, creationPathChoiceMethods);
 Object.assign(MythicActorSheet.prototype, creationPathAssignmentMethods);
 Object.assign(MythicActorSheet.prototype, creationPathDropMethods);
 Object.assign(MythicActorSheet.prototype, creationPathLifestyleMethods);
-

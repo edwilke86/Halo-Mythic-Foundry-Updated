@@ -1123,6 +1123,10 @@
   width: 110px;
 }
 
+.mythic-character-sheet .mythic-sight-control-row {
+  margin: 8px 0;
+}
+
 .mythic-character-sheet .gravity-input-row input[type="number"] {
   width: 56px;
 }
@@ -4878,16 +4882,17 @@
 
 .mythic-vehicle-fallback-sheet .vehicle-emplacement-list {
   display: grid;
-  gap: 12px;
+  gap: 6px;
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-emplacement-card {
   display: grid;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 6px;
+  padding: 8px 10px;
   border: 1px solid rgba(139, 180, 226, 0.2);
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(18, 27, 42, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(112, 170, 229, 0.08), 0 0 10px rgba(7, 15, 26, 0.4);
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-emplacement-card.is-empty {
@@ -4902,6 +4907,35 @@
   align-items: flex-start;
 }
 
+.mythic-vehicle-fallback-sheet .vehicle-weapon-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-row-primary {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-row-ammo {
+  border-top: 1px solid rgba(139, 180, 226, 0.14);
+  padding-top: 6px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-title-row {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
 .mythic-vehicle-fallback-sheet .vehicle-emplacement-title-block {
   min-width: 0;
   display: grid;
@@ -4910,7 +4944,7 @@
 
 .mythic-vehicle-fallback-sheet .vehicle-emplacement-label {
   font-family: Orbitron, sans-serif;
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(170, 205, 244, 0.82);
@@ -4918,6 +4952,213 @@
 
 .mythic-vehicle-fallback-sheet .vehicle-emplacement-name-cell {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-name-cell .mythic-equipment-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-edit-btn {
+  margin-left: 4px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-controls-inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-inline-field {
+  display: grid;
+  gap: 2px;
+  min-width: 112px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-inline-field .vehicle-loadout-select {
+  min-height: 24px;
+  font-size: 11px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-inline-linked {
+  min-width: 96px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-inline-linked .vehicle-loadout-number-input {
+  width: 100%;
+  min-height: 24px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-duplicate-btn {
+  min-height: 24px;
+  min-width: 24px;
+  padding: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-magazine-inline-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-magazine-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 2px 4px;
+  border: 1px solid rgba(151, 193, 239, 0.2);
+  border-radius: 6px;
+  background: rgba(9, 19, 31, 0.56);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-magazine-chip.is-loaded {
+  border-color: rgba(129, 205, 255, 0.62);
+  background: rgba(14, 33, 54, 0.72);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-magazine-field {
+  min-height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  background: rgba(4, 13, 22, 0.68);
+  color: var(--mythic-text);
+  font-size: 11px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-magazine-type {
+  width: 78px;
+  padding: 2px 5px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-magazine-count {
+  width: 52px;
+  padding: 2px 5px;
+  text-align: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-magazine-max {
+  font-size: 10px;
+  color: rgba(188, 212, 238, 0.8);
+  min-width: 34px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-magazine-add-btn {
+  min-height: 24px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-magazine-remove-btn {
+  min-height: 22px;
+  min-width: 22px;
+  padding: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-emplacement-ammo-fallback {
+  font-size: 11px;
+  color: rgba(198, 221, 244, 0.82);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-controller-row {
+  font-size: 11px;
+  color: rgba(198, 221, 244, 0.82);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-stats-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, auto));
+  gap: 8px;
+  align-items: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-stats-row > span,
+.mythic-vehicle-fallback-sheet .vehicle-weapon-stats-row > label {
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-state-input {
+  width: 52px;
+  min-height: 24px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-ammo-summary {
+  color: rgba(226, 236, 249, 0.9);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-ammo-meta {
+  color: rgba(177, 205, 238, 0.76);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-neural-link {
+  justify-self: end;
+  color: rgba(220, 235, 250, 0.9);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-fire-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-fire-modes .action-btn {
+  min-height: 24px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-reload-btn {
+  margin-left: auto;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-details {
+  border-top: 1px solid rgba(139, 180, 226, 0.16);
+  padding-top: 6px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-details > summary {
+  cursor: pointer;
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(170, 205, 244, 0.84);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-systems-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: end;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-systems-field {
+  display: grid;
+  gap: 4px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-systems-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  color: rgba(224, 236, 249, 0.9);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-details[open] > summary {
+  margin-bottom: 8px;
 }
 
 .mythic-vehicle-fallback-sheet .vehicle-emplacement-actions {
@@ -4955,8 +5196,8 @@
 
 .mythic-vehicle-fallback-sheet .vehicle-emplacement-config-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   align-items: end;
 }
 
@@ -5027,12 +5268,21 @@
   }
 
   .mythic-vehicle-fallback-sheet .vehicle-emplacement-card-header,
-  .mythic-vehicle-fallback-sheet .vehicle-emplacement-config-grid {
+  .mythic-vehicle-fallback-sheet .vehicle-emplacement-config-grid,
+  .mythic-vehicle-fallback-sheet .vehicle-weapon-stats-row {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .mythic-vehicle-fallback-sheet .vehicle-emplacement-card-header {
     display: grid;
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-emplacement-row-primary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-emplacement-controls-inline {
+    justify-content: flex-start;
   }
 
   .mythic-vehicle-fallback-sheet .vehicle-notes-panel,
@@ -10187,4 +10437,21 @@ input.gear-item-nickname::placeholder {
   .mythic-sheet-theme-root .mythic-sheet-gradient-stop {
     grid-template-columns: 1fr;
   }
+}
+
+.mythic-character-sheet .far-sight-activate-btn {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.3rem 0.5rem;
+  font-size: clamp(0.72rem, 0.85vw, 0.88rem);
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.far-sight-activate-btn.is-disabled {
+  opacity: 0.55;
+  filter: grayscale(1);
+  cursor: not-allowed;
 }

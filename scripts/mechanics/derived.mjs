@@ -8,6 +8,7 @@ import {
   hasOutlierPurchase, applySbaolekgoloSizing,
   computeMeleeReach, computeToHitModifierVsSize, computeMeleeDamageBonus
 } from './size.mjs';
+import { calculatePerceptiveRange } from './perceptive-range.mjs';
 
 function roundToOne(n) { return Math.round(Number(n ?? 0) * 10) / 10; }
 
@@ -165,13 +166,32 @@ export function computeCharacterDerivedValues(systemData = {}) {
     onlyFlightMode: isHuragok
   });
 
-  const perception = toNonNegativeNumber(characteristics.per, 0);
+  const normalPerceptive = calculatePerceptiveRange({
+    systemData,
+    lightingCondition: "normal",
+    opticsMagnification: 1,
+    includeFarSight: false
+  });
+  const brightPerceptive = calculatePerceptiveRange({
+    systemData,
+    lightingCondition: "bright",
+    opticsMagnification: 1,
+    includeFarSight: false
+  });
+  const darknessPerceptive = calculatePerceptiveRange({
+    systemData,
+    lightingCondition: "darkness",
+    opticsMagnification: 1,
+    includeFarSight: false
+  });
   const perceptiveRange = {
-    standard:            perception * 2,
-    brightOrLowLight:    perception,
-    blindingOrDarkness:  Math.floor(perception / 2),
-    penalty20Max:        perception * 4,
-    penalty60Max:        perception * 6
+    standard: normalPerceptive.effectiveMeters,
+    brightOrLowLight: brightPerceptive.effectiveMeters,
+    blindingOrDarkness: darknessPerceptive.effectiveMeters,
+    penalty20Max: normalPerceptive.effectiveMeters * 2,
+    penalty60Max: normalPerceptive.effectiveMeters * 3,
+    hasVigil: normalPerceptive.hasVigil,
+    multiplier: normalPerceptive.multiplierBreakdown.multiplierBeforeOptics
   };
 
   const soldierTypeName = String(systemData?.header?.soldierType ?? "").trim().toLowerCase();

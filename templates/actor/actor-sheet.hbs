@@ -166,6 +166,7 @@
 
         <section class="panel vehicle-summary-weapons-panel">
           <h2>Weapons</h2>
+          <p class="mythic-known-bug-badge"><strong>BUG:</strong> Vehicle weapon ammo deduction is still buggy and may not work properly.</p>
 
           {{#if mythicVehicleOverview.weapons.hasCards}}
             <div class="vehicle-summary-weapons-table">
@@ -217,15 +218,15 @@
           {{#if mythicVehicleLoadout.emplacements.length}}
           <div class="vehicle-emplacement-list">
             {{#each mythicVehicleLoadout.emplacements as |emplacement|}}
-            <div class="vehicle-emplacement-card vehicle-loadout-drop-zone {{#unless emplacement.hasWeapon}}is-empty{{/unless}}" data-vehicle-loadout-drop="emplacement" data-emplacement-id="{{emplacement.id}}">
-              <div class="vehicle-emplacement-card-header">
-                <div class="vehicle-emplacement-title-block">
+            <div class="vehicle-emplacement-card vehicle-weapon-card vehicle-loadout-drop-zone {{#unless emplacement.hasWeapon}}is-empty{{/unless}}" data-vehicle-loadout-drop="emplacement" data-emplacement-id="{{emplacement.id}}">
+              <div class="vehicle-emplacement-row vehicle-emplacement-row-primary">
+                <div class="vehicle-weapon-title-row">
                   <span class="vehicle-emplacement-label">{{emplacement.label}}</span>
                   {{#if emplacement.hasWeapon}}
                   <div class="mythic-equipment-name-cell vehicle-emplacement-name-cell">
-                    <img class="mythic-equipment-icon" src="{{emplacement.weaponImg}}" alt="{{emplacement.weaponName}}" />
-                    <span class="mythic-equipment-name">{{emplacement.weaponName}}</span>
-                    <span class="mythic-equipment-meta">{{emplacement.weaponTypeLabel}}</span>
+                    <img class="mythic-equipment-icon" src="{{emplacement.weaponImg}}" alt="{{emplacement.weaponFullName}}" />
+                    <span class="mythic-equipment-name">{{emplacement.weaponDisplayName}}</span>
+                    <button type="button" class="action-btn gear-open-btn vehicle-weapon-edit-btn" data-item-id="{{emplacement.weaponId}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
                   </div>
                   {{else}}
                   <div class="vehicle-emplacement-empty-state">
@@ -234,52 +235,54 @@
                   </div>
                   {{/if}}
                 </div>
-                <span class="mythic-equipment-actions-inline vehicle-emplacement-actions">
-                  {{#if emplacement.hasWeapon}}
-                  <button type="button" class="action-btn gear-open-btn" data-item-id="{{emplacement.weaponId}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+
+                <div class="vehicle-emplacement-controls-inline">
+                  <label class="vehicle-emplacement-inline-field">
+                    <span class="vehicle-mounted-weapon-field-label">Role</span>
+                    <select class="vehicle-loadout-select vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="controllerRole">
+                      {{selectOptions emplacement.controllerRoleOptions selected=emplacement.controllerRole}}
+                    </select>
+                  </label>
+
+                  {{#if emplacement.showControllerPositionField}}
+                  <label class="vehicle-emplacement-inline-field">
+                    <span class="vehicle-mounted-weapon-field-label">Position</span>
+                    <select class="vehicle-loadout-select vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="controllerIndex">
+                      {{selectOptions emplacement.controllerPositionOptions selected=emplacement.controllerIndex}}
+                    </select>
+                  </label>
                   {{/if}}
-                  <button type="button" class="action-btn vehicle-emplacement-remove-btn mythic-row-remove" data-emplacement-id="{{emplacement.id}}" title="Delete emplacement" aria-label="Delete emplacement"><i class="fas fa-trash"></i></button>
-                </span>
+
+                  <label class="vehicle-emplacement-inline-field vehicle-emplacement-inline-linked">
+                    <span class="vehicle-mounted-weapon-field-label">Linked Weapons</span>
+                    <input type="number" min="1" step="1" class="vehicle-loadout-number-input vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="linkedCount" value="{{emplacement.linkedCount}}" />
+                  </label>
+                </div>
+
+                <button type="button" class="action-btn vehicle-emplacement-duplicate-btn" data-emplacement-id="{{emplacement.id}}" title="Duplicate slot and weapon" aria-label="Duplicate slot and weapon"><i class="fas fa-clone"></i></button>
+                <button type="button" class="action-btn vehicle-emplacement-remove-btn mythic-row-remove" data-emplacement-id="{{emplacement.id}}" title="Delete emplacement" aria-label="Delete emplacement"><i class="fas fa-trash"></i></button>
               </div>
 
-              <div class="vehicle-emplacement-drop-hint">
+              <div class="vehicle-emplacement-row vehicle-emplacement-row-ammo">
                 {{#if emplacement.hasWeapon}}
-                Drop another weapon here to replace the mounted weapon. Delete removes the emplacement and its current weapon.
+                  {{#if emplacement.canEditMagazines}}
+                  <div class="vehicle-magazine-inline-list" title="{{emplacement.ammoSummaryTitle}}">
+                    {{#each emplacement.magazines as |magazine|}}
+                    <div class="vehicle-magazine-chip {{#if magazine.isLoaded}}is-loaded{{/if}}">
+                      <input type="text" class="vehicle-magazine-field vehicle-magazine-type" data-emplacement-id="{{../id}}" data-magazine-id="{{magazine.id}}" data-field="type" value="{{magazine.type}}" placeholder="Type" />
+                      <input type="number" min="0" step="1" class="vehicle-magazine-field vehicle-magazine-count" data-emplacement-id="{{../id}}" data-magazine-id="{{magazine.id}}" data-field="current" value="{{magazine.current}}" title="Rounds remaining" />
+                      <span class="vehicle-magazine-max">/ {{magazine.max}}</span>
+                      <button type="button" class="action-btn vehicle-magazine-remove-btn" data-emplacement-id="{{../id}}" data-magazine-id="{{magazine.id}}" title="Remove magazine" aria-label="Remove magazine"><i class="fas fa-xmark"></i></button>
+                    </div>
+                    {{/each}}
+                    <button type="button" class="action-btn vehicle-magazine-add-btn" data-emplacement-id="{{emplacement.id}}">+ Add Magazine</button>
+                    {{#if emplacement.showReloadButton}}<button type="button" class="action-btn weapon-reload-btn vehicle-weapon-reload-btn" data-item-id="{{emplacement.weaponId}}" data-vehicle-emplacement-id="{{emplacement.id}}">Reload</button>{{/if}}
+                  </div>
+                  {{else}}
+                  <div class="vehicle-emplacement-ammo-fallback" title="{{emplacement.ammoSummaryTitle}}">{{emplacement.ammoFallbackText}}</div>
+                  {{/if}}
                 {{else}}
-                Drop a weapon here to assign it to this emplacement.
-                {{/if}}
-              </div>
-
-              <div class="vehicle-emplacement-config-grid">
-                <label class="vehicle-emplacement-field-block">
-                  <span class="vehicle-mounted-weapon-field-label">Controller Role</span>
-                  <select class="vehicle-loadout-select vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="controllerRole">
-                    {{selectOptions emplacement.controllerRoleOptions selected=emplacement.controllerRole}}
-                  </select>
-                </label>
-
-                {{#if emplacement.showControllerPositionField}}
-                <label class="vehicle-emplacement-field-block">
-                  <span class="vehicle-mounted-weapon-field-label">Controller Position</span>
-                  <select class="vehicle-loadout-select vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="controllerIndex">
-                    {{selectOptions emplacement.controllerPositionOptions selected=emplacement.controllerIndex}}
-                  </select>
-                </label>
-                {{/if}}
-
-                <label class="vehicle-emplacement-field-block vehicle-emplacement-linked-toggle">
-                  <span class="vehicle-mounted-weapon-field-label">Linked</span>
-                  <span class="vehicle-emplacement-linked-check">
-                    <input type="checkbox" class="vehicle-loadout-checkbox vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="linked" {{#if emplacement.linked}}checked{{/if}} />
-                    <span>Enabled</span>
-                  </span>
-                </label>
-
-                {{#if emplacement.showLinkedCount}}
-                <label class="vehicle-emplacement-field-block">
-                  <span class="vehicle-mounted-weapon-field-label">Linked Count</span>
-                  <input type="number" min="2" step="1" class="gear-quantity-input vehicle-loadout-number-input vehicle-emplacement-field" data-emplacement-id="{{emplacement.id}}" data-field="linkedCount" value="{{emplacement.linkedCount}}" />
-                </label>
+                <div class="vehicle-emplacement-ammo-fallback">Assign a weapon to manage magazines.</div>
                 {{/if}}
               </div>
             </div>
@@ -449,6 +452,24 @@
               <div class="compact-field"><div class="field-label">Passengers</div><input class="small-input" type="number" min="0" step="1" name="system.crew.capacity.passengers" value="{{mythicVehicleSystem.crew.capacity.passengers}}" /></div>
             </div>
             <p class="vehicle-loadout-note">Crew & Complement creates numbered slots from these counts.</p>
+          </div>
+
+          <div class="panel vehicle-weapon-systems-panel">
+            <h3>Weapon Systems</h3>
+            <div class="vehicle-weapon-systems-grid">
+              <label class="vehicle-weapon-systems-field">
+                <span class="field-label">Ammo Tracking</span>
+                <select class="small-input" name="system.vehicle.ammoTrackingMode">
+                  {{selectOptions mythicVehicleAmmoTrackingOptions selected=mythicVehicleSystem.vehicle.ammoTrackingMode}}
+                </select>
+              </label>
+              <label class="vehicle-weapon-systems-toggle" for="vehicle-{{actor.id}}-autoloader-enabled">
+                <input type="hidden" name="system.vehicle.autoloader.enabled" value="false" />
+                <input id="vehicle-{{actor.id}}-autoloader-enabled" type="checkbox" name="system.vehicle.autoloader.enabled" value="true" {{#if mythicVehicleSystem.vehicle.autoloader.enabled}}checked{{/if}} />
+                <span>Autoloader Enabled</span>
+              </label>
+            </div>
+            <p class="vehicle-loadout-note">Standard tracks 5 magazines or batteries per mounted weapon. Autoloader swaps immediately in the UI and chat; table timing stays manual.</p>
           </div>
         </div>
 

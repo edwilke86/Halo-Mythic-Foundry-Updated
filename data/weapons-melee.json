@@ -99,6 +99,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -147,6 +149,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 4
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-m1-combat-knife",
@@ -261,6 +272,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -309,6 +322,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 5
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-m11-combat-knife",
@@ -421,6 +443,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -469,6 +493,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 6
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-model-52-navy-knife",
@@ -583,6 +616,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -631,6 +666,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 7
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-mk-88-ratio-combat-knife",
@@ -743,6 +787,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -791,6 +837,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 8
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-military-combat-kukri",
@@ -903,6 +958,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -951,6 +1008,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 9
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-mp-machete",
@@ -1063,6 +1129,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -1111,6 +1179,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 10
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-pattern-2-composite-sword",
@@ -1224,6 +1301,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -1272,6 +1351,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 11
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-multi-purpose-tomahawk",
@@ -1383,6 +1471,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -1431,6 +1521,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 12
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-police-baton",
@@ -1542,6 +1641,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -1590,6 +1691,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 13
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-military-shovel",
@@ -1701,6 +1811,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -1749,6 +1861,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 14
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-military-shovel-pierce",
@@ -1859,6 +1980,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -1907,6 +2030,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 15
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-sledge-hammer",
@@ -2018,6 +2150,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -2066,6 +2200,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 16
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-brass-knuckles",
@@ -2183,6 +2326,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -2231,6 +2376,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 17
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-humbler-stun-device",
@@ -2341,6 +2495,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -2389,6 +2545,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 18
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-pepper-spray",
@@ -2504,6 +2669,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -2552,6 +2719,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 19
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-taser-gun",
@@ -2664,6 +2840,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -2712,6 +2890,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 20
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-anti-ballistics-riot-shield",
@@ -2822,6 +3009,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -2870,6 +3059,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 21
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-spartan-shield",
@@ -2981,6 +3179,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -3029,6 +3229,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 24
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-cable-cutters",
@@ -3140,6 +3349,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -3188,6 +3399,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 25
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-heavy-duty-bolt-cutters",
@@ -3300,6 +3520,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -3348,6 +3570,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 26
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-standard-curveblade",
@@ -3460,6 +3691,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -3508,6 +3741,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 27
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-sangheili-curveblade",
@@ -3620,6 +3862,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -3668,6 +3912,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 28
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-jiralhanae-combat-knife",
@@ -3784,6 +4037,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -3832,6 +4087,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 29
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-qikost-pattern-burnblade",
@@ -3947,6 +4211,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -3995,6 +4261,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 30
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-chiss-teh-pattern-painglass-saber",
@@ -4107,6 +4382,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -4155,6 +4432,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 31
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-twin-scythe",
@@ -4266,6 +4552,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -4314,6 +4602,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 32
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-trikala-pattern-spear",
@@ -4429,6 +4726,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -4477,6 +4776,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 33
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-en-gore-pattern-energy-cutlass",
@@ -4591,6 +4899,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -4639,6 +4949,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 34
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-akelus-workshop-gravity-hammer",
@@ -4750,6 +5069,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -4798,6 +5119,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 35
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-pelotos-pattern-energy-dagger",
@@ -4909,6 +5239,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -4957,6 +5289,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 36
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-domotos-pattern-energy-sword",
@@ -5067,6 +5408,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -5115,6 +5458,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 37
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-vii-bold-pattern-energy-stave",
@@ -5225,6 +5577,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -5273,6 +5627,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 38
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-vii-bold-pattern-energy-stave-metal-pole",
@@ -5383,6 +5746,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -5431,6 +5796,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 39
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-thebetem-pattern-energy-lance",
@@ -5541,6 +5915,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -5589,6 +5965,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 40
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-thebetem-pattern-energy-lance-metal-pole",
@@ -5700,6 +6085,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -5748,6 +6135,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 41
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-liss-pattern-energy-garrote",
@@ -5859,6 +6255,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -5907,6 +6305,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 42
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-mistrom-pattern-point-defense-gauntlet",
@@ -6018,6 +6425,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -6066,6 +6475,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 43
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-murmifo-pattern-wrist-point-defense-gauntlet",
@@ -6177,6 +6595,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -6225,6 +6645,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 44
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-b-nall-pattern-sangheili-point-defense-gauntlet",
@@ -6337,6 +6766,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -6385,6 +6816,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 45
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-ratent-pattern-hunter-heavy-metal-shield",
@@ -6496,6 +6936,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -6544,6 +6986,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 46
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-covenant-paegaas-workshop-combat-shield",
@@ -6655,6 +7106,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -6703,6 +7156,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 47
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-banished-akelas-workshop-combat-knife",
@@ -6813,6 +7275,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -6861,6 +7325,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 48
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-banished-akelas-workshop-combat-scythe",
@@ -6972,6 +7445,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -7020,6 +7495,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 49
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-banished-halbashi-workshop-plasma-gloves",
@@ -7131,6 +7615,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -7179,6 +7665,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 50
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-banished-paegaas-workshop-gauntlet-retractable-blade",
@@ -7293,6 +7788,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -7341,6 +7838,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 51
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-banished-halbashi-workshop-gravity-hammer",
@@ -7455,6 +7961,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -7503,6 +8011,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 52
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-banished-halbashi-workshop-gravity-axe",
@@ -7617,6 +8134,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -7665,6 +8184,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 53
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-banished-sepulo-tez-workshop-gravity-mace",
@@ -7775,6 +8303,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -7823,6 +8353,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 54
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-banished-paegaas-workshop-tower-shield",
@@ -7936,6 +8475,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -7984,6 +8525,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 55
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-forerunner-misericordia",
@@ -8097,6 +8647,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -8145,6 +8697,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 56
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-forerunner-hardlight-blade",
@@ -8258,6 +8819,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -8306,6 +8869,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 57
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-forerunner-xanxa-staff",
@@ -8419,6 +8991,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -8467,6 +9041,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 58
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-forerunner-hardlight-stave",
@@ -8580,6 +9163,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -8628,6 +9213,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 59
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-forerunner-riftblade",
@@ -8744,6 +9338,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -8792,6 +9388,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 60
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-forerunner-gravity-wrench",
@@ -8904,6 +9509,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -8952,6 +9559,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 61
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-flood-flood-claw-appendage",
@@ -9064,6 +9680,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -9112,6 +9730,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 62
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-flood-flood-blade-appendage",
@@ -9223,6 +9850,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -9271,6 +9900,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 63
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-flood-flood-bludgeon-appendage",
@@ -9382,6 +10020,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -9430,6 +10070,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 64
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-flood-flood-flesh-cudgel-appendage",
@@ -9541,6 +10190,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -9589,6 +10240,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 65
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-flood-flood-flesh-lash",
@@ -9699,6 +10359,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -9747,6 +10409,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 66
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-universal-unarmed-elbow-strike",
@@ -9857,6 +10528,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -9905,6 +10578,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 67
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-universal-unarmed-head-butt",
@@ -10015,6 +10697,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -10063,6 +10747,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 68
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-universal-unarmed-kick-attack",
@@ -10173,6 +10866,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -10221,6 +10916,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 69
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-universal-unarmed-knee-blow",
@@ -10331,6 +11035,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -10379,6 +11085,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 70
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-universal-unarmed-punch-attack",
@@ -10489,6 +11204,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -10537,6 +11254,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 72
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-mark-iii-cyclops-jackhammer",
@@ -10647,6 +11373,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -10695,6 +11423,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 73
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-unsc-mark-iii-cyclops-torque-amplified-gauntlets",
@@ -10807,6 +11544,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -10855,6 +11594,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 375
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-ceramic-dagger",
@@ -10967,6 +11715,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -11015,6 +11765,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 376
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-dark-dagger",
@@ -11129,6 +11888,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -11177,6 +11938,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 377
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-heat-dagger",
@@ -11291,6 +12061,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -11339,6 +12111,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 378
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-karyst",
@@ -11453,6 +12234,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -11501,6 +12284,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 379
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-rumblejack",
@@ -11613,6 +12405,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -11661,6 +12455,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 380
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive",
@@ -11775,6 +12578,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -11823,6 +12628,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 381
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-cerata",
@@ -11937,6 +12751,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -11985,6 +12801,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 382
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-xoris",
@@ -12095,6 +12920,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -12143,6 +12970,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 383
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-kestrel",
@@ -12253,6 +13089,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -12301,6 +13139,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 384
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-haliakr",
@@ -12411,6 +13258,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -12459,6 +13308,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 385
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-fragor",
@@ -12567,6 +13425,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -12615,6 +13475,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 386
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-wolf-sledge",
@@ -12723,6 +13592,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -12771,6 +13642,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 387
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-kuva-shilder",
@@ -12879,6 +13759,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -12927,6 +13809,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 388
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-volnus",
@@ -13035,6 +13926,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -13083,6 +13976,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 389
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sampotes",
@@ -13193,6 +14095,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -13241,6 +14145,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 390
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-galatine",
@@ -13349,6 +14262,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -13397,6 +14312,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 391
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-gram",
@@ -13505,6 +14429,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -13553,6 +14479,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 392
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-masseter",
@@ -13661,6 +14596,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -13709,6 +14646,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 393
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-paracesis",
@@ -13817,6 +14763,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -13865,6 +14813,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 394
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-scindo",
@@ -13979,6 +14936,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -14027,6 +14986,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 395
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-corufell",
@@ -14135,6 +15103,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -14183,6 +15153,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 396
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-hespar",
@@ -14295,6 +15274,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -14343,6 +15324,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 397
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-machete",
@@ -14453,6 +15443,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -14501,6 +15493,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 398
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-kama",
@@ -14615,6 +15616,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -14663,6 +15666,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 399
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-kreska",
@@ -14773,6 +15785,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -14821,6 +15835,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 400
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-nami-solo",
@@ -14935,6 +15958,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -14983,6 +16008,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 401
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-prova",
@@ -15095,6 +16129,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -15143,6 +16179,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 402
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-shaku",
@@ -15257,6 +16302,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -15305,6 +16352,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 403
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-pulmonars",
@@ -15419,6 +16475,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -15467,6 +16525,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 404
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-ninkondi",
@@ -15577,6 +16644,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -15625,6 +16694,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 405
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-guandao",
@@ -15735,6 +16813,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -15783,6 +16863,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 406
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-tonbo",
@@ -15893,6 +16982,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -15941,6 +17032,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 407
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-cassowar",
@@ -16049,6 +17149,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -16097,6 +17199,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 408
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sydon",
@@ -16207,6 +17318,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -16255,6 +17368,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 409
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-tipedo",
@@ -16367,6 +17489,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -16415,6 +17539,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 410
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-destreza",
@@ -16525,6 +17658,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -16573,6 +17708,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 411
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-endura",
@@ -16685,6 +17829,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -16733,6 +17879,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 412
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-anku",
@@ -16843,6 +17998,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -16891,6 +18048,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 413
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-hate",
@@ -17001,6 +18167,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -17049,6 +18217,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 414
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-ether-reaper",
@@ -17163,6 +18340,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -17211,6 +18390,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 415
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-caustacyst",
@@ -17321,6 +18509,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -17369,6 +18559,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 416
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-harmony",
@@ -17485,6 +18684,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -17533,6 +18734,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 417
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-amphis",
@@ -17643,6 +18853,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -17691,6 +18903,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 418
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-bo",
@@ -17801,6 +19022,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -17849,6 +19072,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 419
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-broken-scepter",
@@ -17961,6 +19193,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -18009,6 +19243,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 420
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-broken-war",
@@ -18119,6 +19362,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -18167,6 +19412,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 421
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-cronus",
@@ -18277,6 +19531,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -18325,6 +19581,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 422
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-dark-sword",
@@ -18439,6 +19704,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -18487,6 +19754,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 423
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-heat-sword",
@@ -18601,6 +19877,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -18649,6 +19927,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 424
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-plasma-sword",
@@ -18759,6 +20046,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -18807,6 +20096,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 425
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-skana",
@@ -18919,6 +20217,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -18967,6 +20267,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 426
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-ether-sword",
@@ -19081,6 +20390,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -19129,6 +20440,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 427
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-coda-mire",
@@ -19241,6 +20561,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -19289,6 +20611,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 428
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-nikana",
@@ -19399,6 +20730,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -19447,6 +20780,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 429
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-nikana-tantou",
@@ -19557,6 +20899,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -19605,6 +20949,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 430
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-syam",
@@ -19715,6 +21068,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -19763,6 +21118,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 431
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-syam-tantou",
@@ -19875,6 +21239,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -19923,6 +21289,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 432
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-boltace",
@@ -20033,6 +21408,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -20081,6 +21458,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 433
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-kronen",
@@ -20195,6 +21581,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -20243,6 +21631,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 434
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-ohma",
@@ -20353,6 +21750,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -20401,6 +21800,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 435
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-praedos",
@@ -20513,6 +21921,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -20561,6 +21971,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 436
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-azothane",
@@ -20671,6 +22090,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -20719,6 +22140,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 437
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-pennant",
@@ -20829,6 +22259,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -20877,6 +22309,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 438
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-tatsu",
@@ -20993,6 +22434,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -21041,6 +22484,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 439
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-arum-spinosa",
@@ -21151,6 +22603,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -21199,6 +22653,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 440
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-gunsen",
@@ -21309,6 +22772,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -21357,6 +22822,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 441
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-vericres",
@@ -21469,6 +22943,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -21517,6 +22993,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 442
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-atterax",
@@ -21631,6 +23116,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -21679,6 +23166,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 443
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-galvacord",
@@ -21789,6 +23285,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -21837,6 +23335,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 444
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-scoliac",
@@ -21947,6 +23454,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -21995,6 +23504,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 445
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-lacera",
@@ -22106,6 +23624,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -22154,6 +23674,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 447
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-arc-spear",
@@ -22267,6 +23796,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -22315,6 +23846,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 448
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-shock-blade",
@@ -22428,6 +23968,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -22476,6 +24018,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 449
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-shock-dagger",
@@ -22592,6 +24143,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -22640,6 +24193,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 451
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-electrostaff",
@@ -22756,6 +24318,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -22804,6 +24368,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 452
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-electro-baton",
@@ -22920,6 +24493,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -22968,6 +24543,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 453
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-electro-bisento",
@@ -23082,6 +24666,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -23130,6 +24716,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 455
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-1",
@@ -23244,6 +24839,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -23292,6 +24889,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 456
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-2",
@@ -23406,6 +25012,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -23454,6 +25062,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 457
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-3",
@@ -23568,6 +25185,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -23616,6 +25235,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 458
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-4",
@@ -23730,6 +25358,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -23778,6 +25408,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 459
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-5",
@@ -23892,6 +25531,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -23940,6 +25581,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 460
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-6",
@@ -24054,6 +25704,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -24102,6 +25754,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 461
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-7",
@@ -24216,6 +25877,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -24264,6 +25927,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 462
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-8",
@@ -24378,6 +26050,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -24426,6 +26100,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 463
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-9",
@@ -24540,6 +26223,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -24588,6 +26273,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 464
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-glaive-10",
@@ -24701,6 +26395,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -24749,6 +26445,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 466
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-1",
@@ -24862,6 +26567,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -24910,6 +26617,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 467
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-2",
@@ -25023,6 +26739,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -25071,6 +26789,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 468
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-3",
@@ -25184,6 +26911,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -25232,6 +26961,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 469
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-4",
@@ -25345,6 +27083,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -25393,6 +27133,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 470
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-5",
@@ -25506,6 +27255,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -25554,6 +27305,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 471
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-6",
@@ -25667,6 +27427,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -25715,6 +27477,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 472
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-7",
@@ -25828,6 +27599,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -25876,6 +27649,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 473
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-8",
@@ -25989,6 +27771,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -26037,6 +27821,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 474
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-9",
@@ -26150,6 +27943,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -26198,6 +27993,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 475
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-sword-10",
@@ -26310,6 +28114,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -26358,6 +28164,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 477
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-wood-sword",
@@ -26470,6 +28285,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -26518,6 +28335,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 478
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-stone",
@@ -26630,6 +28456,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -26678,6 +28506,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 479
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-copper",
@@ -26790,6 +28627,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -26838,6 +28677,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 480
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-iron",
@@ -26950,6 +28798,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -26998,6 +28848,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 481
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-gold",
@@ -27110,6 +28969,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -27158,6 +29019,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 482
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-diamond",
@@ -27270,6 +29140,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -27318,6 +29190,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 483
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-netherite",
@@ -27429,6 +29310,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -27477,6 +29360,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 485
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-wood-pickaxe",
@@ -27588,6 +29480,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -27636,6 +29530,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 486
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-stone",
@@ -27747,6 +29650,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -27795,6 +29700,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 487
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-copper",
@@ -27906,6 +29820,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -27954,6 +29870,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 488
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-iron",
@@ -28065,6 +29990,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -28113,6 +30040,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 489
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-gold",
@@ -28224,6 +30160,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -28272,6 +30210,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 490
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-diamond",
@@ -28383,6 +30330,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -28431,6 +30380,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 491
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-netherite",
@@ -28542,6 +30500,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -28590,6 +30550,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 493
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-wood-mace",
@@ -28701,6 +30670,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -28749,6 +30720,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 494
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-stone",
@@ -28860,6 +30840,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -28908,6 +30890,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 495
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-copper",
@@ -29019,6 +31010,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -29067,6 +31060,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 496
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-iron",
@@ -29178,6 +31180,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -29226,6 +31230,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 497
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-gold",
@@ -29337,6 +31350,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -29385,6 +31400,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 498
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-diamond",
@@ -29496,6 +31520,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -29544,6 +31570,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 499
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-netherite",
@@ -29654,6 +31689,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -29702,6 +31739,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 501
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-wood-test",
@@ -29812,6 +31858,8 @@
       "builtInItemIds": [],
       "powerArmorTraitIds": [],
       "photoReactivePanelsBonus": 0,
+      "timedDetonation": false,
+      "timerDelayRounds": 1,
       "characteristicMods": {
         "base": {
           "str": 0,
@@ -29860,6 +31908,15 @@
       "sourceReference": {
         "table": "melee-weapons",
         "rowNumber": 502
+      },
+      "vehicleMount": {
+        "isMounted": false,
+        "emplacementId": "",
+        "groupId": "",
+        "controllerRole": "",
+        "controllerPosition": 0,
+        "linked": false,
+        "linkedCount": 1
       },
       "sync": {
         "canonicalId": "gear:melee-stone",

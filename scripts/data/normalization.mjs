@@ -26,6 +26,7 @@ import { normalizeSheetAppearanceData } from '../utils/sheet-appearance.mjs';
 import { getCanonicalTrainingData, normalizeTrainingData } from '../mechanics/training.mjs';
 import { buildSkillRankDefaults } from '../mechanics/skills.mjs';
 import { computeCharacterDerivedValues } from '../mechanics/derived.mjs';
+import { normalizePerceptiveLighting } from '../mechanics/perceptive-range.mjs';
 import { getCanonicalCharacterSystemData, getCanonicalBestiarySystemData, getCanonicalVehicleSystemData } from './canonical.mjs';
 import { normalizeSkillEntry, normalizeSkillsData } from './normalization-skills.mjs';
 import {
@@ -923,6 +924,8 @@ export function normalizeCharacterSystemData(systemData) {
 
   const gravRaw = Number(merged.gravity ?? 1.0);
   merged.gravity = Number.isFinite(gravRaw) ? Math.max(0, Math.min(4, Math.round(gravRaw * 10) / 10)) : 1.0;
+  merged.perceptiveRange ??= {};
+  merged.perceptiveRange.lightingCondition = normalizePerceptiveLighting(merged.perceptiveRange?.lightingCondition ?? "normal");
 
   merged.equipment ??= {};
   merged.equipment.credits = toNonNegativeWhole(merged.equipment.credits, 0);
@@ -1896,7 +1899,20 @@ export function normalizeVehicleSystemData(systemData) {
   merged.cargo.total = toNonNegativeNumber(merged.cargo?.total, 0);
   merged.cargo.notes = String(merged.cargo?.notes ?? "");
 
-  merged.weaponEmplacements = (Array.isArray(merged.weaponEmplacements) ? merged.weaponEmplacements : [])
+  merged.vehicle ??= {};
+  merged.vehicle.ammoTrackingMode = ["none", "standard"].includes(String(merged.vehicle?.ammoTrackingMode ?? "").trim().toLowerCase())
+    ? String(merged.vehicle.ammoTrackingMode).trim().toLowerCase()
+    : "standard";
+  merged.vehicle.autoloader ??= {};
+  merged.vehicle.autoloader.enabled = coerceVehicleCheckboxBoolean(merged.vehicle.autoloader?.enabled, true);
+
+  const rawWeaponEmplacements = merged.weaponEmplacements;
+  const weaponEmplacementsArray = Array.isArray(rawWeaponEmplacements)
+    ? rawWeaponEmplacements
+    : (rawWeaponEmplacements && typeof rawWeaponEmplacements === "object")
+      ? Object.values(rawWeaponEmplacements).filter((entry) => entry && typeof entry === "object")
+      : [];
+  merged.weaponEmplacements = weaponEmplacementsArray
     .map((entry, index) => {
       const requestedRole = String(entry?.controllerRole ?? "").trim().toLowerCase();
       const controllerRole = ["operator", "gunner", "passenger"].includes(requestedRole)
@@ -1910,6 +1926,31 @@ export function normalizeVehicleSystemData(systemData) {
       const sourceWeaponState = (entry?.weaponState && typeof entry.weaponState === "object" && !Array.isArray(entry.weaponState))
         ? entry.weaponState
         : {};
+      const sourceAmmo = (entry?.ammo && typeof entry.ammo === "object" && !Array.isArray(entry.ammo))
+        ? entry.ammo
+        : {};
+      const rawSourceMagazines = sourceAmmo.magazines;
+      const sourceMagazineArray = Array.isArray(rawSourceMagazines)
+        ? rawSourceMagazines
+        : (rawSourceMagazines && typeof rawSourceMagazines === "object")
+          ? Object.values(rawSourceMagazines).filter((entry) => entry && typeof entry === "object")
+          : [];
+      const normalizedMagazines = sourceMagazineArray.map((magazine, magazineIndex) => {
+        const mag = (magazine && typeof magazine === "object") ? magazine : {};
+        const max = toNonNegativeWhole(mag.max, 0);
+        return {
+          id: String(mag.id ?? foundry.utils.randomID()).trim() || foundry.utils.randomID(),
+          type: String(mag.type ?? "Standard").trim() || "Standard",
+          current: Math.max(0, Math.min(toNonNegativeWhole(mag.current, max), max)),
+          max,
+          loadOrder: toNonNegativeWhole(mag.loadOrder, magazineIndex),
+          createdAt: String(mag.createdAt ?? "").trim(),
+          compatibilityKey: String(mag.compatibilityKey ?? "").trim(),
+          containerType: String(mag.containerType ?? "").trim(),
+          label: String(mag.label ?? "").trim(),
+          weaponId: String(mag.weaponId ?? entry?.weaponItemId ?? "").trim()
+        };
+      });
       return {
         id: String(entry?.id ?? `legacy-emplacement-${index + 1}`).trim() || `legacy-emplacement-${index + 1}`,
         weaponItemId: String(entry?.weaponItemId ?? "").trim(),
@@ -1923,10 +1964,22 @@ export function normalizeVehicleSystemData(systemData) {
           fireMode: String(sourceWeaponState.fireMode ?? "").trim().toLowerCase(),
           toHitModifier: Number.isFinite(Number(sourceWeaponState.toHitModifier)) ? Math.round(Number(sourceWeaponState.toHitModifier)) : 0,
           damageModifier: Number.isFinite(Number(sourceWeaponState.damageModifier)) ? Math.round(Number(sourceWeaponState.damageModifier)) : 0,
+          magazineCurrent: toNonNegativeWhole(sourceWeaponState.magazineCurrent, 0),
+          magazineTrackingMode: String(sourceWeaponState.magazineTrackingMode ?? "abstract").trim().toLowerCase() || "abstract",
+          activeMagazineId: String(sourceWeaponState.activeMagazineId ?? "").trim(),
+          activeEnergyCellId: String(sourceWeaponState.activeEnergyCellId ?? "").trim(),
+          chamberRoundCount: toNonNegativeWhole(sourceWeaponState.chamberRoundCount, 0),
           chargeLevel: toNonNegativeWhole(sourceWeaponState.chargeLevel, 0),
           rechargeRemaining: toNonNegativeWhole(sourceWeaponState.rechargeRemaining, 0),
           variantIndex: toNonNegativeWhole(sourceWeaponState.variantIndex, 0),
           scopeMode: String(sourceWeaponState.scopeMode ?? "none").trim().toLowerCase() || "none"
+        },
+        ammo: {
+          trackingMode: ["none", "standard"].includes(String(sourceAmmo.trackingMode ?? "").trim().toLowerCase())
+            ? String(sourceAmmo.trackingMode).trim().toLowerCase()
+            : "standard",
+          magazines: normalizedMagazines,
+          loadedMagazineId: String(sourceAmmo.loadedMagazineId ?? "").trim()
         }
       };
     });

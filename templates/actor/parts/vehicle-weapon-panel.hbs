@@ -1,20 +1,29 @@
-<article class="mythic-ready-weapon-card vehicle-summary-weapon-card{{#unless canAttack}} is-disabled{{/unless}}{{#if isExpanded}} is-expanded{{/if}}">
+<article class="mythic-ready-weapon-card vehicle-summary-weapon-card vehicle-weapon-card{{#unless canAttack}} is-disabled{{/unless}}{{#if isExpanded}} is-expanded{{/if}}">
   <div class="vehicle-weapon-strip-row vehicle-weapon-strip-primary">
     <div class="vehicle-weapon-strip-ident">
       <span class="vehicle-weapon-slot-badge">{{slotCode}}</span>
       <div class="vehicle-weapon-strip-title-block">
         <div class="vehicle-weapon-strip-title-row">
-          <div class="vehicle-weapon-strip-title" title="{{name}}">{{displayName}}</div>
-          <div class="vehicle-weapon-strip-controller" title="{{controllingUserLabel}}">&middot; {{compactControllerLabel}}</div>
+          <div class="vehicle-weapon-strip-title" title="{{name}}">{{name}}</div>
+          <button type="button" class="action-btn gear-open-btn vehicle-weapon-strip-edit-btn" data-item-id="{{id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
           {{#if hasTrainingWarning}}<span class="vehicle-weapon-strip-warning" title="{{trainingWarningText}}">!</span>{{/if}}
         </div>
+        <div class="vehicle-weapon-strip-controller" title="{{controllingUserLabel}}">{{controllingUserLabel}}</div>
       </div>
-      <button type="button" class="action-btn gear-open-btn vehicle-weapon-strip-edit-btn" data-item-id="{{id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
     </div>
 
     <div class="vehicle-weapon-strip-mode" title="{{selectedFireModeLabel}}">{{fireModeSummary}}</div>
 
     <div class="vehicle-weapon-strip-attacks">
+      {{#if hasChargeModeSelected}}
+        <button
+          type="button"
+          class="action-btn weapon-charge-btn vehicle-weapon-strip-attack-btn"
+          data-item-id="{{id}}"
+          data-vehicle-emplacement-id="{{emplacementId}}"
+          title="Charge {{chargeLevel}}/{{chargeMaxLevel}}"
+          {{#unless canAttack}}disabled{{/unless}}>Charge {{chargeLevel}}/{{chargeMaxLevel}}</button>
+      {{/if}}
       {{#each collapsedActionButtons as |button|}}
         <button
           type="button"
@@ -24,14 +33,45 @@
           data-action="{{button.action}}"
           {{#if button.grenadeAction}}data-grenade-action="{{button.grenadeAction}}"{{/if}}
           title="{{button.title}}"
-          {{#unless ../canAttack}}disabled{{/unless}}>{{button.label}}</button>
+          {{#unless ../canAttack}}disabled{{/unless}}{{#if ../requiresChargeBeforeFire}} disabled{{/if}}>{{button.label}}</button>
       {{/each}}
+      {{#if showReloadButton}}
+        <button
+          type="button"
+          class="action-btn weapon-reload-btn vehicle-weapon-strip-attack-btn vehicle-weapon-strip-reload-btn"
+          data-item-id="{{id}}"
+          data-vehicle-emplacement-id="{{emplacementId}}"
+          title="Reload">Reload</button>
+      {{/if}}
     </div>
 
+    <button
+      type="button"
+      class="vehicle-overview-toggle vehicle-weapon-strip-expand-btn"
+      data-target-path="{{togglePath}}"
+      aria-expanded="{{#if isExpanded}}true{{else}}false{{/if}}"
+      title="{{#if isExpanded}}Collapse details{{else}}Expand details{{/if}}">{{#if isExpanded}}-{{else}}+{{/if}}</button>
+  </div>
+
+  <div class="vehicle-weapon-strip-row vehicle-weapon-strip-secondary">
+    <div class="vehicle-weapon-strip-info" title="Range">{{rangeSummary}}</div>
+
+    <div class="vehicle-weapon-strip-info vehicle-weapon-strip-ammo" title="{{ammoSummaryTitle}}">Ammo {{loadedAmmoDisplay}} &middot; {{remainingMagazineSummary}}</div>
+
+    <label class="vehicle-weapon-strip-field" title="To Hit Modifier">
+      <span>HIT</span>
+      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" data-field="toHitModifier" value="{{toHitModifier}}" />
+    </label>
+
+    <label class="vehicle-weapon-strip-field" title="Damage Modifier">
+      <span>DMG</span>
+      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" data-field="damageModifier" value="{{damageModifier}}" />
+    </label>
+
     {{#if showNeuralLinkToggle}}
-      <div class="vehicle-weapon-strip-nl">
+      <div class="vehicle-weapon-strip-nl vehicle-weapon-strip-nl-inline">
         <label class="vehicle-weapon-strip-nl-toggle" title="Use Neural Link">
-          <span>NL</span>
+          <span>Neural Link</span>
           <input
             type="checkbox"
             class="vehicle-weapon-neural-link-toggle"
@@ -47,49 +87,6 @@
         {{/if}}
       </div>
     {{/if}}
-
-    <button
-      type="button"
-      class="vehicle-overview-toggle vehicle-weapon-strip-expand-btn"
-      data-target-path="{{togglePath}}"
-      aria-expanded="{{#if isExpanded}}true{{else}}false{{/if}}"
-      title="{{#if isExpanded}}Collapse details{{else}}Expand details{{/if}}">{{#if isExpanded}}-{{else}}+{{/if}}</button>
-  </div>
-
-  <div class="vehicle-weapon-strip-row vehicle-weapon-strip-secondary">
-    <div class="vehicle-weapon-strip-info" title="Range">{{rangeSummary}}</div>
-
-    {{#unless isMelee}}
-      {{#unless isGrenadeWeapon}}
-        <label class="vehicle-weapon-strip-field" title="Scope">
-          <span>Sc</span>
-          <select class="weapon-state-input vehicle-weapon-strip-select" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" data-field="scopeMode">
-            {{selectOptions scopeOptions selected=scopeMode}}
-          </select>
-        </label>
-      {{else}}
-        <div class="vehicle-weapon-strip-info">Sc -</div>
-      {{/unless}}
-    {{else}}
-      <div class="vehicle-weapon-strip-info">Sc -</div>
-    {{/unless}}
-
-    <label class="vehicle-weapon-strip-field" title="To Hit Modifier">
-      <span>Hit</span>
-      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" data-field="toHitModifier" value="{{toHitModifier}}" />
-    </label>
-
-    <label class="vehicle-weapon-strip-field" title="Damage Modifier">
-      <span>Dmg</span>
-      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" data-field="damageModifier" value="{{damageModifier}}" />
-    </label>
-
-    <div class="vehicle-weapon-strip-badges" aria-label="Weapon rules">
-      {{#each compactBadges as |badge|}}
-        <span class="vehicle-weapon-strip-badge{{#if (eq badge.kind "rule")}} is-rule{{/if}}" title="{{badge.fullLabel}}">{{badge.shortLabel}}</span>
-      {{/each}}
-      {{#if compactBadgeOverflow}}<span class="vehicle-weapon-strip-badge vehicle-weapon-strip-badge-overflow" title="Additional rules">+{{compactBadgeOverflow}}</span>{{/if}}
-    </div>
   </div>
 
   {{#if isExpanded}}
@@ -101,82 +98,17 @@
         <div class="vehicle-weapon-strip-expanded-note">{{disableReason}}</div>
       {{/if}}
 
-      {{#if showStandardFireModes}}
-        <div class="vehicle-weapon-strip-expanded-block">
-          <div class="vehicle-weapon-strip-expanded-label">Fire Mode</div>
-          <div class="mythic-ready-weapon-modes vehicle-weapon-strip-expanded-controls">
-            {{#each fireModes as |mode|}}
-              <button
-                type="button"
-                class="action-btn weapon-fire-mode-btn {{#if mode.isSelected}}is-active{{/if}}"
-                data-item-id="{{../id}}"
-                data-vehicle-emplacement-id="{{../emplacementId}}"
-                data-fire-mode="{{mode.value}}">{{mode.label}}</button>
-            {{/each}}
-          </div>
-        </div>
-      {{/if}}
-
-      {{#if showVariantSelector}}
-        <div class="vehicle-weapon-strip-expanded-block">
-          <div class="vehicle-weapon-strip-expanded-label">Attack Variant</div>
-          <div class="mythic-ready-weapon-modes mythic-variant-selector vehicle-weapon-strip-expanded-controls" aria-label="Attack variant">
-            {{#each variantOptions as |opt|}}
-              <button
-                type="button"
-                class="action-btn weapon-variant-btn {{#if opt.isSelected}}is-active{{/if}}"
-                data-item-id="{{../id}}"
-                data-vehicle-emplacement-id="{{../emplacementId}}"
-                data-variant-index="{{opt.index}}"
-                aria-pressed="{{#if opt.isSelected}}true{{else}}false{{/if}}"
-                title="Switch to {{opt.label}}">{{opt.label}}</button>
-            {{/each}}
-          </div>
-        </div>
-      {{/if}}
-
-      {{#if hasChargeModeSelected}}
-        <div class="mythic-ready-weapon-charge-row vehicle-weapon-strip-charge-row">
-          <div class="mythic-charge-meter" title="Charge Level">
-            {{#each chargePips as |pip|}}
-              <span class="mythic-charge-pip {{#if pip.filled}}is-filled{{/if}}" aria-hidden="true"></span>
-            {{/each}}
-          </div>
-          <div class="mythic-charge-label">Charge {{chargeLevel}}/{{chargeMaxLevel}} (+{{chargeDamageBonusPreview}} dmg)</div>
-          <button type="button" class="action-btn weapon-charge-btn" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}">Charge</button>
-          <button type="button" class="action-btn weapon-clear-charge-btn" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}">Clear</button>
-        </div>
-      {{/if}}
-
       <div class="vehicle-weapon-strip-expanded-summary">
         <span><strong>{{displayWeaponClass}}</strong></span>
         {{#if isMelee}}
           <span><strong>Reach:</strong> {{reach}} m</span>
         {{else}}
-          <span><strong>Range:</strong> {{rangeClose}} / {{rangeMax}} m</span>
+          <span><strong>Range:</strong> {{rangeClose}} - {{rangeMax}} m</span>
         {{/if}}
         <span><strong>Damage:</strong> {{damageDiceLabel}} + {{displayDamageBase}}</span>
         <span><strong>Pierce:</strong> {{displayDamagePierce}}</span>
         {{#if currentAttackName}}<span><strong>Attack:</strong> {{currentAttackName}}</span>{{/if}}
       </div>
-
-      {{#if hasExpandedActionButtons}}
-        <div class="vehicle-weapon-strip-expanded-block">
-          <div class="vehicle-weapon-strip-expanded-label">Additional Actions</div>
-          <div class="vehicle-weapon-strip-expanded-controls vehicle-weapon-strip-extra-actions">
-            {{#each expandedActionButtons as |button|}}
-              <button
-                type="button"
-                class="action-btn weapon-attack-btn{{#if button.cssClass}} {{button.cssClass}}{{/if}}"
-                data-item-id="{{../id}}"
-                data-vehicle-emplacement-id="{{../emplacementId}}"
-                data-action="{{button.action}}"
-                title="{{button.title}}"
-                {{#unless ../canAttack}}disabled{{/unless}}>{{button.label}}</button>
-            {{/each}}
-          </div>
-        </div>
-      {{/if}}
 
       {{#if hasSpecialRulesText}}
         <div class="vehicle-weapon-strip-expanded-rules">

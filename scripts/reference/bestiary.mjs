@@ -4,6 +4,7 @@ import {
 } from "../config.mjs";
 
 import { splitCsvText, findHeaderRowIndex, buildHeaderMap } from "../utils/csv-parser.mjs";
+import { parseReferenceNumber } from "./ref-utils.mjs";
 import { normalizeBestiarySystemData } from "../data/normalization.mjs";
 import { getCanonicalBestiarySystemData } from "../data/canonical.mjs";
 import { toSlug } from "../utils/helpers.mjs";
@@ -21,12 +22,12 @@ function getCell(row, headerMap, key) {
 }
 
 function parseNumericOrZero(value) {
-  const numeric = Number(value);
+  const numeric = parseReferenceNumber(value);
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
 function parseWholeOrZero(value) {
-  const numeric = Number(value);
+  const numeric = parseReferenceNumber(value);
   return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
 }
 

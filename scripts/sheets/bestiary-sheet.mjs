@@ -2378,6 +2378,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
   }
 
   _createCharacterAttackBridgeContext() {
+    const tokenDoc = this.token ?? null;
     const bridge = Object.create(MythicActorSheet.prototype);
     Object.defineProperties(bridge, {
       actor: {
@@ -2406,6 +2407,12 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
       },
       element: {
         value: this.element,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      token: {
+        value: tokenDoc,
         writable: true,
         configurable: true,
         enumerable: true

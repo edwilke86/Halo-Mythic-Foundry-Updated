@@ -36,12 +36,18 @@ import {
 } from "../mechanics/xp.mjs";
 
 import { isGoodFortuneModeEnabled } from "../mechanics/derived.mjs";
-import { computeAttackDOS } from "../mechanics/combat.mjs";
+import { computeAttackDOS, resolveHitLocationForMode } from "../mechanics/combat.mjs";
 import { applyCombatTurnStart } from "../mechanics/action-economy.mjs";
 import { advanceFarSightForCombatTurn, clearActorFarSightState } from "../mechanics/perceptive-range.mjs";
 
 import { getMythicTokenDefaultsForCharacter } from "../core/token-defaults.mjs";
 import { promptAttackModifiersDialog } from "../ui/attack-modifiers-dialog.mjs";
+import { bindVehicleSplatterChatControls } from "../core/chat-splatter.mjs";
+import {
+  getAvailablePresets as getBestiaryArmorAvailablePresets,
+  prepareBestiaryArmorSystemForSpawn,
+  applyDeterministicBestiaryArmorForSpawn
+} from "../mechanics/bestiary-armor-service.mjs";
 
 import {
   isHuragokCharacterSystem,
@@ -3733,6 +3739,9 @@ export function registerMythicDocumentAndChatHooks({
   mythicRollEvadeIntoCover,
   mythicApplyGrenadeBlastDamage,
   mythicApplyGrenadeKillDamage,
+  mythicRollVehicleSplatterEvasion,
+  mythicRollVehicleSplatterFollowup,
+  mythicApplyVehicleSplatterDamage,
   mythicFearRollShockTest,
   mythicFearRollPtsdTest,
   mythicFearRollFollowup,
@@ -4057,9 +4066,11 @@ export function registerMythicDocumentAndChatHooks({
     }
   });
 
-  Hooks.on("createActor", async (actor, _options, _userId) => {
+  Hooks.on("createActor", async (actor, options = {}, _userId) => {
     try {
       if (!actor) return;
+      // Compendium actors are normalized before creation; async follow-up updates can race pack relocking.
+      if (actor.pack || options?.pack || options?.mythicSkipCreateDefaults) return;
       if (!actor.isOwner) return;
       if (actor.type === "character") {
         const updates = {};
@@ -4412,7 +4423,11 @@ export function registerMythicDocumentAndChatHooks({
     if (actor.type !== "bestiary") return;
 
     const skipPromptFlagPath = "flags.Halo-Mythic-Foundry-Updated.skipBestiaryRankPrompt";
+    const skipArmorPromptFlagPath = "flags.Halo-Mythic-Foundry-Updated.skipBestiaryArmorPrompt";
     const skipRankPrompt = Boolean(foundry.utils.getProperty(createData, skipPromptFlagPath));
+    const skipArmorPrompt = Boolean(foundry.utils.getProperty(createData, skipArmorPromptFlagPath));
+    const availableArmorPresets = getBestiaryArmorAvailablePresets(actor);
+    const canPromptArmor = game.user?.isGM && availableArmorPresets.length > 1;
     let targetRank = getBestiaryRankValue(foundry.utils.getProperty(actor, "system.bestiary.rank") ?? 1);
     const isSingleDifficulty = Boolean(foundry.utils.getProperty(actor, "system.bestiary.singleDifficulty"));
     const controlMode = String(
@@ -4432,6 +4447,7 @@ export function registerMythicDocumentAndChatHooks({
 
         const recreatedData = foundry.utils.deepClone(pendingCreateData);
         foundry.utils.setProperty(recreatedData, skipPromptFlagPath, true);
+        foundry.utils.setProperty(recreatedData, skipArmorPromptFlagPath, true);
 
         const promptedSystem = buildBestiaryTokenSystemWithRank(actor.system ?? {}, selectedRank);
         const promptedHeight = getMiddleBandRoll(promptedSystem?.bestiary?.heightRangeCm?.min, promptedSystem?.bestiary?.heightRangeCm?.max);
@@ -4445,7 +4461,10 @@ export function registerMythicDocumentAndChatHooks({
           foundry.utils.setProperty(promptedSystem, "biography.physical.weight", `${promptedWeight} kg`);
         }
 
-        const normalizedPromptedSystem = normalizeBestiarySystemData(promptedSystem);
+        const armorPrepared = await prepareBestiaryArmorSystemForSpawn(actor, promptedSystem, {
+          allowShiftBypass: true
+        });
+        const normalizedPromptedSystem = normalizeBestiarySystemData(armorPrepared.system);
         const promptedTokenDefaults = getMythicTokenDefaultsForCharacter(normalizedPromptedSystem);
         foundry.utils.setProperty(recreatedData, "bar1.attribute", promptedTokenDefaults.bar1.attribute);
         foundry.utils.setProperty(recreatedData, "bar2.attribute", promptedTokenDefaults.bar2.attribute);
@@ -4459,6 +4478,57 @@ export function registerMythicDocumentAndChatHooks({
           await actor.update({ system: normalizedPromptedSystem });
         }
 
+        if (scene?.createEmbeddedDocuments) {
+          await scene.createEmbeddedDocuments("Token", [recreatedData]);
+        }
+      })();
+
+      return false;
+    } else if (!skipArmorPrompt && canPromptArmor) {
+      if (!game.user?.isGM) return false;
+      const scene = tokenDocument.parent;
+      const pendingCreateData = foundry.utils.deepClone(createData ?? {});
+
+      void (async () => {
+        let derivedRank = targetRank;
+        if (!isSingleDifficulty) {
+          const configuredRank = game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY);
+          derivedRank = getBestiaryRankValue(configuredRank ?? derivedRank);
+        }
+        const recreatedData = foundry.utils.deepClone(pendingCreateData);
+        foundry.utils.setProperty(recreatedData, skipPromptFlagPath, true);
+        foundry.utils.setProperty(recreatedData, skipArmorPromptFlagPath, true);
+
+        let promptedSystem = buildBestiaryTokenSystemWithRank(actor.system ?? {}, derivedRank);
+        const promptedHeight = getMiddleBandRoll(promptedSystem?.bestiary?.heightRangeCm?.min, promptedSystem?.bestiary?.heightRangeCm?.max);
+        const promptedWeight = getMiddleBandRoll(promptedSystem?.bestiary?.weightRangeKg?.min, promptedSystem?.bestiary?.weightRangeKg?.max);
+        if (promptedHeight !== null) {
+          foundry.utils.setProperty(promptedSystem, "biography.physical.heightCm", promptedHeight);
+          foundry.utils.setProperty(promptedSystem, "biography.physical.height", `${promptedHeight} cm`);
+        }
+        if (promptedWeight !== null) {
+          foundry.utils.setProperty(promptedSystem, "biography.physical.weightKg", promptedWeight);
+          foundry.utils.setProperty(promptedSystem, "biography.physical.weight", `${promptedWeight} kg`);
+        }
+
+        const armorPrepared = await prepareBestiaryArmorSystemForSpawn(actor, promptedSystem, {
+          allowShiftBypass: true
+        });
+        if (!armorPrepared?.system) return;
+
+        const normalizedPromptedSystem = normalizeBestiarySystemData(armorPrepared.system);
+        const promptedTokenDefaults = getMythicTokenDefaultsForCharacter(normalizedPromptedSystem);
+        foundry.utils.setProperty(recreatedData, "bar1.attribute", promptedTokenDefaults.bar1.attribute);
+        foundry.utils.setProperty(recreatedData, "bar2.attribute", promptedTokenDefaults.bar2.attribute);
+        foundry.utils.setProperty(recreatedData, "displayBars", promptedTokenDefaults.displayBars);
+        foundry.utils.setProperty(recreatedData, "flags.Halo-Mythic-Foundry-Updated.bestiaryRank", derivedRank);
+        foundry.utils.setProperty(recreatedData, "delta.system", normalizedPromptedSystem);
+        foundry.utils.setProperty(recreatedData, "delta.type", "bestiary");
+
+        const actorLink = Boolean(foundry.utils.getProperty(recreatedData, "actorLink") ?? actor.prototypeToken?.actorLink);
+        if (actorLink) {
+          await actor.update({ system: normalizedPromptedSystem });
+        }
         if (scene?.createEmbeddedDocuments) {
           await scene.createEmbeddedDocuments("Token", [recreatedData]);
         }
@@ -4480,8 +4550,12 @@ export function registerMythicDocumentAndChatHooks({
     if (skipRankPrompt) {
       foundry.utils.setProperty(createData, skipPromptFlagPath, false);
     }
+    if (skipArmorPrompt) {
+      foundry.utils.setProperty(createData, skipArmorPromptFlagPath, false);
+    }
 
-    const tokenSystem = buildBestiaryTokenSystemWithRank(actor.system ?? {}, targetRank);
+    const sourceSystem = foundry.utils.getProperty(createData, "delta.system") ?? actor.system ?? {};
+    let tokenSystem = buildBestiaryTokenSystemWithRank(sourceSystem, targetRank);
     const randomHeight = getMiddleBandRoll(tokenSystem?.bestiary?.heightRangeCm?.min, tokenSystem?.bestiary?.heightRangeCm?.max);
     const randomWeight = getMiddleBandRoll(tokenSystem?.bestiary?.weightRangeKg?.min, tokenSystem?.bestiary?.weightRangeKg?.max);
     if (randomHeight !== null) {
@@ -4493,6 +4567,10 @@ export function registerMythicDocumentAndChatHooks({
       foundry.utils.setProperty(tokenSystem, "biography.physical.weight", `${randomWeight} kg`);
     }
 
+    const preferredArmorPresetId = String(foundry.utils.getProperty(createData, "delta.system.bestiary.armorProfile.appliedPresetId") ?? "").trim();
+    tokenSystem = applyDeterministicBestiaryArmorForSpawn(actor, tokenSystem, {
+      preferredPresetId: preferredArmorPresetId
+    });
     const normalizedTokenSystem = normalizeBestiarySystemData(tokenSystem);
     const tokenDefaults = getMythicTokenDefaultsForCharacter(normalizedTokenSystem);
     const tokenUpdates = {};
@@ -4550,6 +4628,12 @@ export function registerMythicDocumentAndChatHooks({
   Hooks.on("renderChatMessageHTML", async (message, htmlElement) => {
     const cardEl = htmlElement;
 
+    bindVehicleSplatterChatControls(message, cardEl, {
+      rollEvasion: mythicRollVehicleSplatterEvasion,
+      rollFollowup: mythicRollVehicleSplatterFollowup,
+      applyDamage: mythicApplyVehicleSplatterDamage
+    });
+
     const attackData = message.getFlag("Halo-Mythic-Foundry-Updated", "attackData");
     const isGrenadeExplosionMessage = Boolean(message.getFlag("Halo-Mythic-Foundry-Updated", "grenadeExplosion"))
       || Boolean(message.getFlag("Halo-Mythic-Foundry-Updated", "grenadeExplosionControls"));
@@ -4563,54 +4647,148 @@ export function registerMythicDocumentAndChatHooks({
       return;
     }
 
-    if (attackData && game.user.isGM && attackData.isSuccess && !attackData.skipEvasion && !attackData.isTimedDetonation) {
+    if (attackData && game.user.isGM && attackData.isSuccess && !attackData.isTimedDetonation) {
+      const atkTargetMode = String(attackData?.targetMode ?? "character");
+      const isVehicleTarget = atkTargetMode === "vehicle" || atkTargetMode === "walker";
       const msgId = message.id;
-      const panel = document.createElement("div");
-      panel.classList.add("mythic-gm-attack-panel");
-      const hasTarget = !!attackData.targetTokenId;
-      const targetedRadio = hasTarget
-        ? `<label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="targeted" checked> Targeted Token(s)</label>`
-        : "";
-      const selectedChecked = hasTarget ? "" : " checked";
-      panel.innerHTML = `
-      <div class="mythic-gm-panel-title">GM Controls</div>
-      <div class="mythic-gm-target-row">
-        ${targetedRadio}
-        <label><input type="radio" name="mythic-tgt-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="selected"${selectedChecked}> Selected Token(s)</label>
-      </div>
-      <button type="button" class="action-btn mythic-evasion-btn">Roll Evasion</button>
-    `;
-      panel.querySelector(".mythic-evasion-btn").addEventListener("click", async () => {
-        const targetMode = panel.querySelector(".mythic-tgt-radio:checked")?.value ?? "targeted";
-        if (typeof mythicRollEvasion === "function") {
-          await mythicRollEvasion(msgId, targetMode, attackData);
+      const esc = foundry.utils.escapeHTML;
+
+      if (isVehicleTarget) {
+        // Vehicle / walker — show manual resolution panel (no Evasion / Apply Damage)
+        const hitLocRows = Array.isArray(attackData.hitLocRows) ? attackData.hitLocRows : [];
+        const panel = document.createElement("div");
+        panel.classList.add("mythic-vehicle-manual-panel");
+        const rowsHtml = hitLocRows.map((r) => {
+          const critMark = (r.rawRoll === 1) ? ` <span class="mythic-crit-mark" title="Critical Hit">&#9733;</span>` : "";
+          const zoneName = esc(String(r.hitLoc?.zone ?? "—"));
+          const subZone = (atkTargetMode === "walker" && r.hitLoc?.subZone)
+            ? ` / ${esc(r.hitLoc.subZone)}`
+            : "";
+          return `<div class="mythic-vehicle-hit-row">A${r.index}: <strong>${zoneName}${subZone}</strong>${critMark}</div>`;
+        }).join("");
+        panel.innerHTML = `
+          <div class="mythic-gm-panel-title">${esc(atkTargetMode === "walker" ? "Walker" : "Vehicle")} Hit Locations</div>
+          <div class="mythic-vehicle-hit-loc">${rowsHtml || "<em>No successful hits</em>"}</div>
+          <div class="mythic-vehicle-manual-note">Resolve damage manually — evasion and auto-apply are disabled for vehicle targets.</div>
+        `;
+        cardEl.appendChild(panel);
+
+        // If no target was set at roll time, also show override controls
+        if (!attackData.targetTokenId) {
+          const overridePanel = document.createElement("div");
+          overridePanel.classList.add("mythic-vehicle-override-controls");
+          const isWalkerChecked = atkTargetMode === "walker" ? " checked" : "";
+          const isVehicleChecked = (atkTargetMode === "vehicle" || atkTargetMode === "walker") ? " checked" : "";
+          overridePanel.innerHTML = `
+            <span class="mythic-override-label">Target Type</span>
+            <label><input type="checkbox" class="mythic-override-vehicle-chk"${isVehicleChecked}> Vehicle</label>
+            <label><input type="checkbox" class="mythic-override-walker-chk"${isWalkerChecked}> Walker</label>
+          `;
+          const vehChk = overridePanel.querySelector(".mythic-override-vehicle-chk");
+          const walkChk = overridePanel.querySelector(".mythic-override-walker-chk");
+          const applyOverride = async () => {
+            const isWalk = walkChk?.checked;
+            const isVeh = vehChk?.checked;
+            if (isWalk && vehChk) vehChk.checked = true;
+            const newMode = isWalk ? "walker" : (isVeh ? "vehicle" : "character");
+            const newRows = (attackData.hitLocRows ?? []).map((r) => {
+              const newHitLoc = resolveHitLocationForMode(r.rawRoll, newMode);
+              return { ...r, targetMode: newMode, hitLoc: newHitLoc };
+            });
+            await message.setFlag("Halo-Mythic-Foundry-Updated", "attackData", {
+              ...attackData,
+              targetMode: newMode,
+              hitLocRows: newRows
+            });
+          };
+          vehChk?.addEventListener("change", async () => {
+            if (!vehChk.checked && walkChk) walkChk.checked = false;
+            await applyOverride();
+          });
+          walkChk?.addEventListener("change", applyOverride);
+          cardEl.appendChild(overridePanel);
         }
-      });
-      cardEl.appendChild(panel);
-    } else if (attackData && game.user.isGM && attackData.isSuccess && attackData.skipEvasion && !attackData.isTimedDetonation && !message.getFlag("Halo-Mythic-Foundry-Updated", "grenadeExplosionControls")) {
-      const msgId = message.id;
-      const panel = document.createElement("div");
-      panel.classList.add("mythic-gm-attack-panel");
-      const hasTarget = !!attackData.targetTokenId;
-      const targetedRadio = hasTarget
-        ? `<label><input type="radio" name="mythic-auto-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="targeted" checked> Targeted Token(s)</label>`
-        : "";
-      const selectedChecked = hasTarget ? "" : " checked";
-      panel.innerHTML = `
-      <div class="mythic-gm-panel-title">GM Controls</div>
-      <div class="mythic-gm-target-row">
-        ${targetedRadio}
-        <label><input type="radio" name="mythic-auto-${foundry.utils.escapeHTML(msgId)}" class="mythic-tgt-radio" value="selected"${selectedChecked}> Selected Token(s)</label>
-      </div>
-      <button type="button" class="action-btn mythic-apply-auto-dmg-btn">Apply Damage</button>
-    `;
-      panel.querySelector(".mythic-apply-auto-dmg-btn").addEventListener("click", async () => {
-        const targetMode = panel.querySelector(".mythic-tgt-radio:checked")?.value ?? "targeted";
-        if (typeof mythicApplyDirectAttackDamage === "function") {
-          await mythicApplyDirectAttackDamage(msgId, targetMode, attackData);
+      } else if (!attackData.skipEvasion) {
+        const panel = document.createElement("div");
+        panel.classList.add("mythic-gm-attack-panel");
+        const hasTarget = !!attackData.targetTokenId;
+        const targetedRadio = hasTarget
+          ? `<label><input type="radio" name="mythic-tgt-${esc(msgId)}" class="mythic-tgt-radio" value="targeted" checked> Targeted Token(s)</label>`
+          : "";
+        const selectedChecked = hasTarget ? "" : " checked";
+        panel.innerHTML = `
+        <div class="mythic-gm-panel-title">GM Controls</div>
+        <div class="mythic-gm-target-row">
+          ${targetedRadio}
+          <label><input type="radio" name="mythic-tgt-${esc(msgId)}" class="mythic-tgt-radio" value="selected"${selectedChecked}> Selected Token(s)</label>
+        </div>
+        <button type="button" class="action-btn mythic-evasion-btn">Roll Evasion</button>
+      `;
+        panel.querySelector(".mythic-evasion-btn").addEventListener("click", async () => {
+          const targetMode = panel.querySelector(".mythic-tgt-radio:checked")?.value ?? "targeted";
+          if (typeof mythicRollEvasion === "function") {
+            await mythicRollEvasion(msgId, targetMode, attackData);
+          }
+        });
+        cardEl.appendChild(panel);
+
+        // No-target override controls for character attacks without a target
+        if (!attackData.targetTokenId) {
+          const overridePanel = document.createElement("div");
+          overridePanel.classList.add("mythic-vehicle-override-controls");
+          overridePanel.innerHTML = `
+            <span class="mythic-override-label">Target Type Override</span>
+            <label><input type="checkbox" class="mythic-override-vehicle-chk"> Vehicle</label>
+            <label><input type="checkbox" class="mythic-override-walker-chk"> Walker</label>
+          `;
+          const vehChk = overridePanel.querySelector(".mythic-override-vehicle-chk");
+          const walkChk = overridePanel.querySelector(".mythic-override-walker-chk");
+          const applyOverride = async () => {
+            const isWalk = walkChk?.checked;
+            const isVeh = vehChk?.checked;
+            if (isWalk && vehChk) vehChk.checked = true;
+            const newMode = isWalk ? "walker" : (isVeh ? "vehicle" : "character");
+            const newRows = (attackData.hitLocRows ?? []).map((r) => {
+              const newHitLoc = resolveHitLocationForMode(r.rawRoll, newMode);
+              return { ...r, targetMode: newMode, hitLoc: newHitLoc };
+            });
+            await message.setFlag("Halo-Mythic-Foundry-Updated", "attackData", {
+              ...attackData,
+              targetMode: newMode,
+              hitLocRows: newRows
+            });
+          };
+          vehChk?.addEventListener("change", async () => {
+            if (!vehChk.checked && walkChk) walkChk.checked = false;
+            await applyOverride();
+          });
+          walkChk?.addEventListener("change", applyOverride);
+          cardEl.appendChild(overridePanel);
         }
-      });
-      cardEl.appendChild(panel);
+      } else if (!message.getFlag("Halo-Mythic-Foundry-Updated", "grenadeExplosionControls")) {
+        const panel = document.createElement("div");
+        panel.classList.add("mythic-gm-attack-panel");
+        const hasTarget = !!attackData.targetTokenId;
+        const targetedRadio = hasTarget
+          ? `<label><input type="radio" name="mythic-auto-${esc(msgId)}" class="mythic-tgt-radio" value="targeted" checked> Targeted Token(s)</label>`
+          : "";
+        const selectedChecked = hasTarget ? "" : " checked";
+        panel.innerHTML = `
+        <div class="mythic-gm-panel-title">GM Controls</div>
+        <div class="mythic-gm-target-row">
+          ${targetedRadio}
+          <label><input type="radio" name="mythic-auto-${esc(msgId)}" class="mythic-tgt-radio" value="selected"${selectedChecked}> Selected Token(s)</label>
+        </div>
+        <button type="button" class="action-btn mythic-apply-auto-dmg-btn">Apply Damage</button>
+      `;
+        panel.querySelector(".mythic-apply-auto-dmg-btn").addEventListener("click", async () => {
+          const targetMode = panel.querySelector(".mythic-tgt-radio:checked")?.value ?? "targeted";
+          if (typeof mythicApplyDirectAttackDamage === "function") {
+            await mythicApplyDirectAttackDamage(msgId, targetMode, attackData);
+          }
+        });
+        cardEl.appendChild(panel);
+      }
     }
 
     const grenadeControl = getGrenadeControlFlag(message);

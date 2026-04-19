@@ -401,6 +401,7 @@ export const MYTHIC_WORLD_MIGRATION_VERSION = 6;
 export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION = 2;
 export const MYTHIC_WEAPON_JSON_MIGRATION_VERSION = 1;
 export const MYTHIC_ARMOR_JSON_MIGRATION_VERSION = 1;
+export const MYTHIC_VEHICLE_CSV_MIGRATION_VERSION = 2;
 
 // --- Setting Keys ---
 export const MYTHIC_WORLD_MIGRATION_SETTING_KEY = "worldMigrationVersion";
@@ -408,6 +409,7 @@ export const MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY = "covenantPlasmaPi
 export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY = "compendiumCanonicalMigrationVersion";
 export const MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY = "weaponJsonMigrationVersion";
 export const MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY = "armorJsonMigrationVersion";
+export const MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY = "vehicleCsvMigrationVersion";
 export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY = "useAmmoWeightOptionalRule";
 export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY = "ammoWeightOptionalRuleMigrationVersion";
 export const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
@@ -620,6 +622,8 @@ export const MYTHIC_REFERENCE_MELEE_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-U
 export const MYTHIC_REFERENCE_ARMOR_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Armor.csv";
 export const MYTHIC_REFERENCE_EQUIPMENT_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - CR costing items.csv";
 export const MYTHIC_REFERENCE_BESTIARY_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Bestiary.csv";
+export const MYTHIC_REFERENCE_VEHICLES_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Vehicles.csv";
+export const MYTHIC_REFERENCE_VEHICLE_WEAPON_OVERRIDES_JSON = "systems/Halo-Mythic-Foundry-Updated/data/reference/vehicle-weapon-link-overrides.json";
 export const MYTHIC_REFERENCE_SOLDIER_TYPES_JSON = "systems/Halo-Mythic-Foundry-Updated/data/soldier-types.json";
 export const MYTHIC_EQUIPMENT_PACK_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/equipment-packs-human.json";
 export const MYTHIC_AMMO_TYPE_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/ammos.json";
@@ -631,6 +635,25 @@ export const MYTHIC_TOKEN_RULER_COLORS = Object.freeze({
   charge: 0xb38f00,
   run: 0xc65a00,
   sprint: 0xc62828
+});
+
+// --- Token HUD UI ---
+export const MYTHIC_TOKEN_HUD_UI_CONFIG = Object.freeze({
+  compactSpacing: true,
+  animatedHud: true,
+  edgeAwareRepositioning: true,
+  contextualDistanceReadout: true,
+  highlightOnOpen: true,
+  controlSizePx: 38,
+  baseGapPx: 12,
+  viewportMarginPx: 14,
+  minScale: 0.36,
+  maxScale: Number.POSITIVE_INFINITY,
+  smallTokenThreshold: 72,
+  largeTokenThreshold: 220,
+  openAnimationMs: 120,
+  closeAnimationMs: 80,
+  preferredPlacementOrder: Object.freeze(["right", "left", "top", "bottom"])
 });
 
 // --- Trait Text to Stat Mapping ---

@@ -64,6 +64,546 @@
   --color-border-light-primary: var(--mythic-table-bg);
 }
 
+/* Foundry v13 ruler labels are HTML in #hud #measurement, not PIXI text. */
+#measurement .waypoint-label.mythic-ruler-label {
+  background: linear-gradient(180deg, rgba(9, 16, 28, 0.88), rgba(4, 10, 18, 0.82)) !important;
+  border: 1px solid rgba(155, 205, 255, 0.22);
+  border-radius: 14px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.24rem 0.56rem;
+}
+
+#measurement .waypoint-label.mythic-ruler-label .total-measurement,
+#measurement .waypoint-label.mythic-ruler-label .delta-measurement {
+  color: #ffffff !important;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  paint-order: stroke fill;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
+  -webkit-text-stroke: calc(3px / var(--ui-scale, 1)) #000000;
+}
+
+#measurement .waypoint-label.mythic-ruler-label .delta-measurement {
+  opacity: 0.86;
+}
+
+/* Token HUD: compact, attached, and edge-aware without changing the underlying actions. */
+#token-hud.mythic-token-hud {
+  --mythic-token-hud-opacity: 0.75;
+  --mythic-token-hud-surface-alpha: 0.8;
+  overflow: visible;
+  pointer-events: none;
+  opacity: var(--mythic-token-hud-opacity, 0.90);
+  z-index: 72;
+}
+
+#token-hud.mythic-token-hud::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 16px;
+  border: 1px solid rgba(123, 199, 255, 0.6);
+  box-shadow:
+    0 0 0 1px rgba(10, 23, 38, 0.7),
+    0 0 16px rgba(75, 165, 255, 0.18),
+    inset 0 0 24px rgba(110, 190, 255, 0.08);
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+#token-hud.mythic-token-hud[data-hud-highlight="false"]::before {
+  display: none;
+}
+
+#token-hud.mythic-token-hud .mythic-token-hud-pointer {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(158, 208, 255, 0.18);
+  background: linear-gradient(180deg, rgba(18, 28, 43, 0.86), rgba(8, 14, 24, 0.8));
+  box-shadow:
+    0 0 14px rgba(82, 165, 255, 0.18),
+    0 10px 16px rgba(0, 0, 0, 0.22);
+  transform: scale(var(--mythic-token-hud-scale, 1)) rotate(45deg);
+  transform-origin: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#token-hud.mythic-token-hud .mythic-token-hud-cluster,
+#token-hud.mythic-token-hud .mythic-token-hud-cluster * {
+  pointer-events: auto;
+}
+
+#token-hud.mythic-token-hud .mythic-token-hud-cluster {
+  position: absolute;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-items: center;
+  gap: calc(var(--mythic-token-hud-inner-gap, 6px) + 2px);
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(158, 208, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(17, 25, 39, 0.84), rgba(8, 14, 24, 0.8)),
+    rgba(8, 14, 24, 0.8);
+  box-shadow:
+    0 0 22px rgba(73, 159, 255, 0.14),
+    0 16px 28px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform: scale(var(--mythic-token-hud-scale, 1));
+  z-index: 3;
+}
+
+#token-hud.mythic-token-hud[data-hud-side="right"] .mythic-token-hud-cluster {
+  transform-origin: left top;
+}
+
+#token-hud.mythic-token-hud[data-hud-side="left"] .mythic-token-hud-cluster {
+  transform-origin: right center;
+}
+
+#token-hud.mythic-token-hud[data-hud-side="top"] .mythic-token-hud-cluster {
+  transform-origin: center bottom;
+}
+
+#token-hud.mythic-token-hud[data-hud-side="bottom"] .mythic-token-hud-cluster {
+  transform-origin: center top;
+}
+
+#token-hud.mythic-token-hud .col {
+  position: static;
+  inset: auto;
+  height: auto;
+  width: max-content;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--mythic-token-hud-inner-gap, 6px);
+}
+
+#token-hud.mythic-token-hud .col.middle {
+  min-width: 0;
+  gap: calc(var(--mythic-token-hud-inner-gap, 6px) - 1px);
+}
+
+#token-hud.mythic-token-hud[data-hud-has-readout="false"] .col.middle {
+  display: none;
+}
+
+#token-hud.mythic-token-hud .attribute {
+  position: static;
+  min-height: var(--mythic-token-hud-control-size, 38px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: auto;
+  min-width: 0;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(158, 208, 255, 0.18);
+  background: rgba(20, 31, 47, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(36, 75, 112, 0.18);
+}
+
+#token-hud.mythic-token-hud .attribute:empty {
+  display: none;
+}
+
+#token-hud.mythic-token-hud .attribute.elevation {
+  color: #f5fbff;
+  min-width: auto;
+  padding-inline: 12px;
+  gap: 0;
+}
+
+#token-hud.mythic-token-hud .attribute.elevation input {
+  width: 4ch;
+  flex: 0 1 4ch;
+}
+
+#token-hud.mythic-token-hud .attribute.elevation i {
+  display: none;
+}
+
+#token-hud.mythic-token-hud .attribute.bar1 {
+  border-color: rgba(124, 208, 0, 0.42);
+  background: rgba(41, 60, 12, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(214, 255, 170, 0.08),
+    0 0 16px rgba(124, 208, 0, 0.18);
+}
+
+#token-hud.mythic-token-hud .attribute.bar2 {
+  border-color: rgba(101, 157, 181, 0.42);
+  background: rgba(20, 51, 65, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(214, 242, 255, 0.08),
+    0 0 16px rgba(94, 182, 225, 0.18);
+}
+
+#token-hud.mythic-token-hud .col.middle .attribute {
+  width: var(--mythic-token-hud-readout-width, 62px);
+  min-width: var(--mythic-token-hud-readout-width, 62px);
+  max-width: var(--mythic-token-hud-readout-width, 62px);
+  justify-content: center;
+}
+
+#token-hud.mythic-token-hud .attribute input {
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #f8fbff;
+  font-size: 0.92rem;
+  font-weight: 750;
+  line-height: 1;
+  text-align: center;
+  box-shadow: none;
+}
+
+#token-hud.mythic-token-hud .attribute i {
+  position: static;
+  inset: auto;
+  margin: 0;
+  transform: none;
+  flex: 0 0 auto;
+  color: rgba(216, 236, 255, 0.92);
+  font-size: 0.9rem;
+}
+
+#token-hud.mythic-token-hud button.control-icon,
+#token-hud.mythic-token-hud .control-icon {
+  width: var(--mythic-token-hud-control-size, 38px);
+  height: var(--mythic-token-hud-control-size, 38px);
+  margin: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(158, 208, 255, 0.18);
+  background: linear-gradient(180deg, rgba(26, 37, 53, 0.84), rgba(12, 18, 29, 0.8));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 18px rgba(0, 0, 0, 0.24),
+    0 0 12px rgba(56, 118, 178, 0.1);
+}
+
+#token-hud.mythic-token-hud button.control-icon:hover,
+#token-hud.mythic-token-hud .control-icon:hover {
+  border-color: rgba(175, 222, 255, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 16px rgba(88, 169, 255, 0.22),
+    0 8px 18px rgba(0, 0, 0, 0.24);
+  transform: translateY(-1px);
+}
+
+#token-hud.mythic-token-hud button.control-icon.active,
+#token-hud.mythic-token-hud .control-icon.active {
+  border-color: rgba(175, 222, 255, 0.62);
+  box-shadow:
+    inset 0 0 0 1px rgba(190, 229, 255, 0.18),
+    0 0 0 1px rgba(86, 149, 214, 0.35),
+    0 0 18px rgba(94, 182, 255, 0.24),
+    0 10px 22px rgba(5, 10, 18, 0.32);
+}
+
+#token-hud.mythic-token-hud button.control-icon img,
+#token-hud.mythic-token-hud .control-icon img {
+  width: 18px;
+  height: 18px;
+  opacity: 0.92;
+}
+
+#token-hud.mythic-token-hud[data-hud-actor-type="vehicle"] .col.middle {
+  align-items: stretch;
+}
+
+#token-hud.mythic-token-hud .col.middle.mythic-vehicle-breakpoint-middle {
+  width: auto;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-hud {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-toolbar {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+#token-hud.mythic-token-hud button.mythic-vehicle-breakpoint-toggle {
+  width: 44px;
+  min-width: 44px;
+  height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 3px 4px;
+  border-radius: 13px;
+}
+
+#token-hud.mythic-token-hud button.mythic-vehicle-breakpoint-toggle i {
+  font-size: 0.95rem;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-toggle-label {
+  max-width: 100%;
+  color: rgba(227, 240, 255, 0.92);
+  font-size: 0.43rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+#token-hud.mythic-token-hud button.mythic-vehicle-breakpoint-toggle.is-disabled {
+  opacity: 0.38;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 6px 14px rgba(0, 0, 0, 0.16);
+  cursor: default;
+}
+
+#token-hud.mythic-token-hud button.mythic-vehicle-breakpoint-toggle.is-disabled:hover {
+  transform: none;
+  border-color: rgba(158, 208, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 6px 14px rgba(0, 0, 0, 0.16);
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-panel {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 15px;
+  border: 1px solid rgba(158, 208, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(14, 21, 33, 0.96), rgba(7, 12, 20, 0.94)),
+    rgba(7, 12, 20, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 24px rgba(0, 0, 0, 0.32);
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-panel-title,
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-panel-count,
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-row-label,
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-row-max {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-panel-title {
+  color: #eef7ff;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-panel-count {
+  color: rgba(173, 205, 233, 0.86);
+  font-size: 0.5rem;
+  font-weight: 700;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-column-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(72px, max-content);
+  gap: 8px;
+  min-width: 0;
+  max-width: min(420px, calc(100vw - 180px));
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-column {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-row {
+  display: grid;
+  gap: 3px;
+  min-width: 72px;
+  padding: 7px 6px 6px;
+  border-radius: 11px;
+  border: 1px solid rgba(116, 169, 217, 0.16);
+  background: rgba(22, 34, 50, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-row.is-critical {
+  border-color: rgba(255, 121, 94, 0.42);
+  background: rgba(68, 21, 19, 0.76);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 211, 201, 0.08),
+    0 0 14px rgba(187, 58, 34, 0.12);
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-row-label {
+  color: rgba(233, 243, 255, 0.94);
+  font-size: 0.53rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-input {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  margin: 0;
+  padding: 0 4px;
+  border: 1px solid rgba(158, 208, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(9, 15, 24, 0.92);
+  box-shadow: none;
+  color: #f8fbff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-input:focus {
+  border-color: rgba(181, 224, 255, 0.62);
+  box-shadow: 0 0 0 1px rgba(99, 174, 239, 0.32);
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-input[readonly] {
+  opacity: 0.72;
+  cursor: default;
+}
+
+#token-hud.mythic-token-hud .mythic-vehicle-breakpoint-row-max {
+  color: rgba(162, 194, 222, 0.82);
+  font-size: 0.45rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+#token-hud.mythic-token-hud[data-hud-size="small"] button.mythic-vehicle-breakpoint-toggle {
+  width: 40px;
+  min-width: 40px;
+  height: 44px;
+}
+
+#token-hud.mythic-token-hud[data-hud-size="small"] .mythic-vehicle-breakpoint-panel {
+  padding: 8px;
+}
+
+#token-hud.mythic-token-hud[data-hud-size="small"] .mythic-vehicle-breakpoint-column-list {
+  max-width: min(360px, calc(100vw - 160px));
+}
+
+#token-hud.mythic-token-hud .palette {
+  position: static;
+  display: none;
+  visibility: hidden;
+  margin: 2px 0 0;
+  border-radius: 14px;
+  border: 1px solid rgba(158, 208, 255, 0.14);
+  background: rgba(10, 16, 25, 0.94);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+#token-hud.mythic-token-hud [data-action="togglePalette"].active + .palette.status-effects {
+  display: grid;
+  visibility: visible;
+}
+
+#token-hud.mythic-token-hud [data-action="togglePalette"].active + .palette.movement-actions {
+  display: flex;
+  visibility: visible;
+}
+
+#token-hud.mythic-token-hud .status-effects {
+  --effect-columns: 5;
+  --effect-size: 22px;
+  padding: 6px;
+  gap: 4px;
+}
+
+#token-hud.mythic-token-hud .status-effects .effect-control {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  opacity: 0.72;
+}
+
+#token-hud.mythic-token-hud .status-effects .effect-control:hover,
+#token-hud.mythic-token-hud .status-effects .effect-control.active,
+#token-hud.mythic-token-hud .status-effects .effect-control.overlay {
+  opacity: 1;
+}
+
+#token-hud.mythic-token-hud .movement-actions {
+  min-width: 150px;
+  padding: 6px;
+  gap: 4px;
+}
+
+#token-hud.mythic-token-hud .movement-actions .movement-action-control {
+  border-radius: 10px;
+  padding: 5px 6px;
+}
+
+#token-hud.mythic-token-hud.is-opening .mythic-token-hud-cluster,
+#token-hud.mythic-token-hud.is-opening::before {
+  animation: mythic-token-hud-open 120ms cubic-bezier(0.18, 0.85, 0.28, 1) both;
+}
+
+#token-hud.mythic-token-hud.is-closing .mythic-token-hud-cluster,
+#token-hud.mythic-token-hud.is-closing::before {
+  opacity: 0;
+  transition: opacity 80ms ease, transform 80ms ease;
+}
+
+#token-hud.mythic-token-hud.is-closing .mythic-token-hud-cluster {
+  transform: scale(calc(var(--mythic-token-hud-scale, 1) * 0.96));
+}
+
+@keyframes mythic-token-hud-open {
+  from {
+    opacity: 0;
+    transform: scale(calc(var(--mythic-token-hud-scale, 1) * 0.96));
+  }
+  to {
+    opacity: 1;
+    transform: scale(var(--mythic-token-hud-scale, 1));
+  }
+}
+
 /* Outer window — faction background applied via JS; overflow:hidden clips to border-radius. */
 .mythic-system.sheet.actor:not(.minimized) {
   border: none !important;
@@ -1007,6 +1547,14 @@
   font-size: 18px;
   text-align: center;
   font-family: 'Saira Semi Condensed', sans-serif;
+}
+
+.mythic-character-sheet .mythic-mini-block input[type="number"]:disabled {
+  opacity: 1;
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  -webkit-text-fill-color: var(--mythic-text);
+  cursor: default;
 }
 
 /* ---- Movement / stat display strip ---- */
@@ -2081,6 +2629,10 @@
 
 .mythic-character-sheet .mythic-phase4-field-grid.compact {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mythic-character-sheet .mythic-phase4-field-grid.compact.mythic-mythic-stat-mod-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .mythic-character-sheet .mythic-phase4-stat {
@@ -4096,6 +4648,15 @@
   gap: 8px;
 }
 
+.mythic-ability-item-sheet .ability-section-label {
+  font-family: Orbitron, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8aa0c0;
+  margin: 6px 0 2px 0;
+}
+
 .mythic-ability-item-sheet .soldier-type-drop-zone {
   min-height: 44px;
   border: 1px dashed rgba(255,255,255,0.5);
@@ -5149,6 +5710,12 @@
   gap: 4px;
 }
 
+.mythic-vehicle-fallback-sheet .vehicle-weapon-systems-field select.small-input {
+  width: 120px;
+  text-align: left;
+  padding-left: 8px;
+}
+
 .mythic-vehicle-fallback-sheet .vehicle-weapon-systems-toggle {
   display: inline-flex;
   align-items: center;
@@ -5685,6 +6252,73 @@
 .mythic-bestiary-shell textarea {
   min-height: 72px;
   resize: vertical;
+}
+
+.mythic-armor-preset-window {
+  min-width: 420px;
+}
+
+.mythic-armor-preset-window .window-content {
+  padding: 16px 18px 18px;
+}
+
+.mythic-armor-preset-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 380px;
+}
+
+.mythic-armor-preset-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  line-height: 1.25;
+}
+
+.mythic-armor-preset-heading strong {
+  color: var(--mythic-text, #f0ece4);
+  font-size: 1rem;
+}
+
+.mythic-armor-preset-heading span {
+  color: rgba(240, 236, 228, 0.78);
+  font-weight: 700;
+}
+
+.mythic-armor-preset-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 10px;
+}
+
+.mythic-armor-preset-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid rgba(240, 236, 228, 0.25);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mythic-text, #f0ece4);
+  cursor: pointer;
+}
+
+.mythic-armor-preset-option:hover {
+  border-color: rgba(240, 236, 228, 0.55);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mythic-armor-preset-option input {
+  margin: 0;
+}
+
+.mythic-armor-preset-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 /* Main tab uses PC-sheet components; remap their palette to Bestiary dark-blue theme. */
@@ -7242,35 +7876,48 @@ input.gear-item-nickname::placeholder {
     0 0 12px rgba(115, 181, 255, 0.62);
 }
 
-.mythic-character-sheet .mythic-toggle-row input[type="checkbox"],
-.mythic-character-sheet .mythic-equipment-toggle input[type="checkbox"] {
+.mythic-character-sheet input[type="checkbox"],
+.mythic-ability-item-sheet input[type="checkbox"],
+.mythic-upbringing-item-sheet input[type="checkbox"],
+.mythic-education-item-sheet input[type="checkbox"],
+.mythic-lifestyle-item-sheet input[type="checkbox"] {
   -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
   border: 1px solid #5d769a;
-  border-radius: 4px;
+  border-radius: 3px;
   background: #172534;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
   cursor: pointer;
   position: relative;
+  margin: 0;
 }
 
-.mythic-character-sheet .mythic-toggle-row input[type="checkbox"]:checked,
-.mythic-character-sheet .mythic-equipment-toggle input[type="checkbox"]:checked {
+.mythic-character-sheet input[type="checkbox"]:checked,
+.mythic-ability-item-sheet input[type="checkbox"]:checked,
+.mythic-upbringing-item-sheet input[type="checkbox"]:checked,
+.mythic-education-item-sheet input[type="checkbox"]:checked,
+.mythic-lifestyle-item-sheet input[type="checkbox"]:checked {
   background: #1f3a57;
   border-color: #92cbff;
   box-shadow: 0 0 7px rgba(130, 200, 255, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
-.mythic-character-sheet .mythic-toggle-row input[type="checkbox"]:checked::after,
-.mythic-character-sheet .mythic-equipment-toggle input[type="checkbox"]:checked::after {
+.mythic-character-sheet input[type="checkbox"]:checked::after,
+.mythic-ability-item-sheet input[type="checkbox"]:checked::after,
+.mythic-upbringing-item-sheet input[type="checkbox"]:checked::after,
+.mythic-education-item-sheet input[type="checkbox"]:checked::after,
+.mythic-lifestyle-item-sheet input[type="checkbox"]:checked::after {
   content: "";
   position: absolute;
-  left: 5px;
-  top: 2px;
-  width: 5px;
-  height: 10px;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
   border: solid #eaf4ff;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);

@@ -15,6 +15,7 @@ const MYTHIC_BESTIARY_SYSTEM_COLLECTIONS = Object.freeze({
   forerunner: "Halo-Mythic-Foundry-Updated.mythic-bestiary-forerunner",
   flood: "Halo-Mythic-Foundry-Updated.mythic-bestiary-flood"
 });
+const MYTHIC_COVENANT_CIVILIAN_BESTIARY_FOLDER_NAME = "Civilians";
 
 function getCell(row, headerMap, key) {
   const index = headerMap[String(key ?? "").toLowerCase()];
@@ -244,6 +245,49 @@ async function buildCanonicalMap(pack) {
   return map;
 }
 
+function getCollectionContents(collectionLike) {
+  if (!collectionLike) return [];
+  if (Array.isArray(collectionLike)) return collectionLike;
+  if (Array.isArray(collectionLike.contents)) return collectionLike.contents;
+  if (typeof collectionLike.values === "function") return Array.from(collectionLike.values());
+  return [];
+}
+
+function getDocumentFolderId(document) {
+  return String(document?.folder?.id ?? document?.folder ?? document?._source?.folder ?? "").trim();
+}
+
+function findBestiaryPackFolder(pack, folderName, folderType = "Actor") {
+  const normalizedName = String(folderName ?? "").trim();
+  const normalizedType = String(folderType ?? "").trim();
+  if (!normalizedName || !normalizedType) return null;
+
+  return getCollectionContents(pack?.folders).find((folder) => (
+    String(folder?.name ?? "").trim() === normalizedName
+    && String(folder?.type ?? "").trim() === normalizedType
+  )) ?? null;
+}
+
+async function getOrCreateBestiaryPackFolder(pack, folderName, folderType = "Actor", dryRun = false) {
+  const existing = findBestiaryPackFolder(pack, folderName, folderType);
+  if (existing) return { folder: existing, created: false };
+  if (dryRun) return { folder: null, created: true };
+
+  const created = await Folder.create({
+    name: folderName,
+    type: folderType
+  }, { pack: pack.collection });
+  return { folder: created, created: true };
+}
+
+function isCovenantCivilianBestiaryActor(actorData) {
+  const descriptor = getBestiaryCompendiumDescriptor(actorData);
+  if (descriptor?.key !== "covenant") return false;
+
+  const actorName = String(actorData?.name ?? actorData?.system?.header?.soldierType ?? "").trim();
+  return /^civilian\b/iu.test(actorName);
+}
+
 async function withPackUnlocked(pack, dryRun, fn) {
   const wasLocked = Boolean(pack?.locked);
   let unlocked = false;
@@ -309,6 +353,8 @@ export async function refreshBestiaryCompendiums(options = {}) {
 
   let created = 0;
   let updated = 0;
+  let createdFolders = 0;
+  let folderAssigned = 0;
   const byPack = {};
 
   for (const { descriptor, actors } of grouped.values()) {
@@ -321,6 +367,20 @@ export async function refreshBestiaryCompendiums(options = {}) {
     }
 
     const result = await withPackUnlocked(pack, dryRun, async () => {
+      let covenantCivilianFolderId = "";
+      let packCreatedFolders = 0;
+      let packFolderAssigned = 0;
+      if (descriptor.key === "covenant" && actors.some(isCovenantCivilianBestiaryActor)) {
+        const folderResult = await getOrCreateBestiaryPackFolder(
+          pack,
+          MYTHIC_COVENANT_CIVILIAN_BESTIARY_FOLDER_NAME,
+          "Actor",
+          dryRun
+        );
+        if (folderResult.created) packCreatedFolders += 1;
+        covenantCivilianFolderId = String(folderResult.folder?.id ?? "").trim();
+      }
+
       const canonicalMap = await buildCanonicalMap(pack);
       const createBatch = [];
       let packCreated = 0;
@@ -336,45 +396,63 @@ export async function refreshBestiaryCompendiums(options = {}) {
 
         const nextSystem = normalizeBestiarySystemData(actorData.system ?? {});
         nextSystem.sync.sourceCollection = descriptor.name;
+        const targetFolderId = descriptor.key === "covenant" && isCovenantCivilianBestiaryActor(actorData)
+          ? covenantCivilianFolderId
+          : "";
 
         const existing = canonicalMap.get(canonicalId);
         if (!existing) {
           if (!dryRun) {
-            createBatch.push({
+            const createData = {
               ...actorData,
               system: nextSystem
-            });
+            };
+            if (targetFolderId) createData.folder = targetFolderId;
+            createBatch.push(createData);
           }
           packCreated += 1;
+          if (targetFolderId || dryRun) packFolderAssigned += 1;
           continue;
         }
 
         const diff = foundry.utils.diffObject(existing.system ?? {}, nextSystem);
         const nameChanged = String(existing.name ?? "") !== String(actorData.name ?? "");
+        const folderChanged = Boolean(targetFolderId) && getDocumentFolderId(existing) !== targetFolderId;
 
-        if (foundry.utils.isEmpty(diff) && !nameChanged) {
+        if (foundry.utils.isEmpty(diff) && !nameChanged && !folderChanged) {
           packSkipped += 1;
           continue;
         }
 
         if (!dryRun) {
-          await existing.update({
+          const updateData = {
             name: actorData.name,
             system: nextSystem
-          }, { diff: false, recursive: false });
+          };
+          if (targetFolderId) updateData.folder = targetFolderId;
+          await existing.update(updateData, { diff: false, recursive: false });
         }
         packUpdated += 1;
+        if (folderChanged || (dryRun && targetFolderId)) packFolderAssigned += 1;
       }
 
       if (!dryRun && createBatch.length > 0) {
         await Actor.createDocuments(createBatch, { pack: pack.collection });
       }
 
-      return { created: packCreated, updated: packUpdated, skipped: packSkipped };
+      return {
+        created: packCreated,
+        updated: packUpdated,
+        skipped: packSkipped,
+        createdFolders: packCreatedFolders,
+        folderAssigned: packFolderAssigned
+      };
     });
 
     created += result.created;
     updated += result.updated;
+    createdFolders += result.createdFolders;
+    folderAssigned += result.folderAssigned;
     skipped += result.skipped;
     byPack[descriptor.name] = result;
   }
@@ -383,5 +461,5 @@ export async function refreshBestiaryCompendiums(options = {}) {
     ui.notifications?.info(`Bestiary compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
   }
 
-  return { created, updated, skipped, dryRun, byPack };
+  return { created, updated, skipped, createdFolders, folderAssigned, dryRun, byPack };
 }

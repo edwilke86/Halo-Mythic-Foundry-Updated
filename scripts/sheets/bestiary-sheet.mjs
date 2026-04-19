@@ -271,6 +271,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     context.mythicColumns = mythicKeys.map((key) => ({ key, label: String(key).toUpperCase() }));
     context.mythicBaseValues = mythicKeys.map((key) => toNonNegativeWhole(system?.bestiary?.mythicBase?.[key], 0));
     context.mythicBrValues = mythicKeys.map(() => mythicBonus);
+    context.mythicMiscValues = mythicKeys.map((key) => Math.trunc(Number(system?.bestiary?.mythicMisc?.[key] ?? 0) || 0));
     context.mythicTotalValues = mythicKeys.map((key) => toNonNegativeWhole(system?.mythic?.characteristics?.[key], 0));
 
     context.equipmentList = Array.isArray(system?.bestiary?.equipmentList) ? system.bestiary.equipmentList : [];

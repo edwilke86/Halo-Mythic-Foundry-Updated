@@ -2,6 +2,7 @@
 // Extracted from system.mjs — the soldier type item sheet.
 
 import { normalizeSoldierTypeSystemData } from "../data/normalization.mjs";
+import { MYTHIC_ADVANCEMENT_TIERS, MYTHIC_CHARACTERISTIC_KEYS } from "../config.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -103,6 +104,24 @@ export class MythicSoldierTypeSheet extends HandlebarsApplicationMixin(ItemSheet
     context.skillChoicesJson = JSON.stringify(sys.skillChoices ?? [], null, 2);
     context.specPacksJson = JSON.stringify(sys.specPacks ?? [], null, 2);
     context.equipmentPacksJson = JSON.stringify(sys.equipmentPacks ?? [], null, 2);
+
+    const charLabels = { str: "STR", tou: "TOU", agi: "AGI", wfm: "WFM", wfr: "WFR", int: "INT", per: "PER", crg: "CRG", cha: "CHA", ldr: "LDR" };
+    const allCharAdv = MYTHIC_CHARACTERISTIC_KEYS.map(key => {
+      const current = sys.characteristicAdvancements?.[key] ?? 0;
+      return {
+        key,
+        label: charLabels[key] ?? key.toUpperCase(),
+        name: `system.characteristicAdvancements.${key}`,
+        options: MYTHIC_ADVANCEMENT_TIERS.map(tier => ({
+          value: tier.value,
+          label: tier.value > 0 ? `${tier.label} (+${tier.value})` : tier.label,
+          selected: tier.value === current
+        }))
+      };
+    });
+    context.charAdvRow1 = allCharAdv.slice(0, 5);
+    context.charAdvRow2 = allCharAdv.slice(5);
+
     return context;
   }
 

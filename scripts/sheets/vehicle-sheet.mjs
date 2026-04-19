@@ -1,5 +1,6 @@
 import { normalizeGearSystemData, normalizeVehicleSystemData } from "../data/normalization.mjs";
 import { toNonNegativeWhole } from "../utils/helpers.mjs";
+import { MYTHIC_SIZE_CATEGORIES } from "../config.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -39,6 +40,14 @@ const PROPULSION_OPTIONS = Object.freeze([
   { value: "treads", label: "Treads" },
   { value: "wheels", label: "Wheels" }
 ]);
+const WALKER_LOCATION_DEFINITIONS = Object.freeze([
+  { key: "head", shortLabel: "Head", breakpointType: "engine" },
+  { key: "chest", shortLabel: "Chest", breakpointType: "cockpit" },
+  { key: "leftArm", shortLabel: "L Arm", breakpointType: "mobility" },
+  { key: "rightArm", shortLabel: "R Arm", breakpointType: "mobility" },
+  { key: "leftLeg", shortLabel: "L Leg", breakpointType: "mobility" },
+  { key: "rightLeg", shortLabel: "R Leg", breakpointType: "mobility" }
+]);
 
 function getPropulsionMaxOptions(propulsionType = "wheels") {
   const normalized = String(propulsionType ?? "").trim().toLowerCase();
@@ -48,6 +57,50 @@ function getPropulsionMaxOptions(propulsionType = "wheels") {
   if (normalized === "legs") return ["2", "3", "4", "5", "6"];
   if (normalized === "thrusters") return Array.from({ length: 20 }, (_, index) => String(index + 1));
   return ["3", "4", "6", "8"];
+}
+
+function getWalkerMeleeContext(vehicleSystem = {}) {
+  const melee = vehicleSystem?.walker?.melee ?? {};
+  const physical = vehicleSystem?.walker?.derived?.physical ?? {};
+  const strengthModifier = toNonNegativeWhole(physical?.strengthModifier, Math.floor(toNonNegativeWhole(vehicleSystem?.characteristics?.str, 0) / 10));
+  const stompModifier = toNonNegativeWhole(physical?.stomp, 0);
+  const armCount = Math.max(0, toNonNegativeWhole(vehicleSystem?.walker?.armCount, 2));
+  const normalizeDiceSize = (value) => {
+    const requestedSize = toNonNegativeWhole(value, 10);
+    return requestedSize === 5 ? 5 : 10;
+  };
+  const resolvePunchModifier = (mode = "strength") => {
+    const normalized = String(mode ?? "strength").trim().toLowerCase();
+    if (normalized === "strength-x2") return { mode: normalized, value: strengthModifier * 2 };
+    if (normalized === "none") return { mode: normalized, value: 0 };
+    return { mode: "strength", value: strengthModifier };
+  };
+  const punchModifier = resolvePunchModifier(melee?.punch?.modifier);
+  return {
+    hasPunch: armCount > 0,
+    modifierOptions: [
+      { value: "none", label: "None" },
+      { value: "strength", label: "STR" },
+      { value: "strength-x2", label: "STR x2" }
+    ],
+    dieSizeOptions: [
+      { value: 5, label: "d5" },
+      { value: 10, label: "d10" }
+    ],
+    punch: {
+      diceCount: Math.min(99, toNonNegativeWhole(melee?.punch?.diceCount, 3)),
+      diceSize: normalizeDiceSize(melee?.punch?.diceSize),
+      modifier: punchModifier.mode,
+      modifierValue: punchModifier.value
+    },
+    stomp: {
+      diceCount: Math.min(99, toNonNegativeWhole(melee?.stomp?.diceCount, 4)),
+      diceSize: normalizeDiceSize(melee?.stomp?.diceSize),
+      modifier: "stomp",
+      modifierValue: stompModifier,
+      specialRules: ["Slow", "Kinetic"]
+    }
+  };
 }
 
 function normalizeVehicleItems(items = []) {
@@ -95,6 +148,31 @@ export class MythicVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2)
       const currentMax = String(context.mythicVehicleSystem?.propulsion?.max ?? "").trim();
       context.mythicVehicleSystem.propulsion.max = propulsionMaxOptions.includes(currentMax) ? currentMax : propulsionMaxOptions[0];
     }
+    context.mythicVehicleIsWalker = Boolean(context.mythicVehicleSystem?.isWalker);
+    context.mythicVehicleSizeCategoryOptions = MYTHIC_SIZE_CATEGORIES.map((category) => ({
+      value: String(category.label ?? "").trim(),
+      label: String(category.label ?? "").trim()
+    })).filter((entry) => entry.value);
+    context.mythicVehicleWalker = {
+      melee: getWalkerMeleeContext(context.mythicVehicleSystem),
+      locations: WALKER_LOCATION_DEFINITIONS.map((definition) => {
+        const location = context.mythicVehicleSystem?.walker?.locations?.[definition.key] ?? {};
+        const destroyed = Boolean(location?.destroyed);
+        const disabled = Boolean(location?.disabled);
+        return {
+          ...definition,
+          armor: toNonNegativeWhole(location?.armor, 0),
+          destroyed,
+          disabled,
+          stateLabel: destroyed ? "Destroyed" : (disabled ? "Disabled" : "Operational"),
+          stateClass: destroyed ? "is-destroyed" : (disabled ? "is-disabled" : "is-operational"),
+          armorName: `system.walker.locations.${definition.key}.armor`,
+          destroyedName: `system.walker.locations.${definition.key}.destroyed`,
+          disabledName: `system.walker.locations.${definition.key}.disabled`,
+          breakpointTypeName: `system.walker.locations.${definition.key}.breakpointType`
+        };
+      })
+    };
     context.editable = this.isEditable;
     return context;
   }

@@ -84,15 +84,15 @@
               <div class="mythic-mini-strip">
                 <div class="mythic-mini-block">
                   <div class="mythic-mini-label">STR</div>
-                  <input type="number" min="0" name="system.mythic.characteristics.str" value="{{mythicDerived.mythicCharacteristics.str}}" readonly />
+                  <input type="number" min="0" name="system.mythic.characteristics.str" value="{{mythicDerived.mythicCharacteristics.str}}" disabled title="Derived from base + BR bonuses + misc additive modifiers (Setup tab)." />
                 </div>
                 <div class="mythic-mini-block">
                   <div class="mythic-mini-label">TOU</div>
-                  <input type="number" min="0" name="system.mythic.characteristics.tou" value="{{mythicDerived.mythicCharacteristics.tou}}" readonly />
+                  <input type="number" min="0" name="system.mythic.characteristics.tou" value="{{mythicDerived.mythicCharacteristics.tou}}" disabled title="Derived from base + BR bonuses + misc additive modifiers (Setup tab)." />
                 </div>
                 <div class="mythic-mini-block">
                   <div class="mythic-mini-label">AGI</div>
-                  <input type="number" min="0" name="system.mythic.characteristics.agi" value="{{mythicDerived.mythicCharacteristics.agi}}" readonly />
+                  <input type="number" min="0" name="system.mythic.characteristics.agi" value="{{mythicDerived.mythicCharacteristics.agi}}" disabled title="Derived from base + BR bonuses + misc additive modifiers (Setup tab)." />
                 </div>
               </div>
             </details>
@@ -762,6 +762,12 @@
                     <td>BR Modifier</td>
                     {{#each mythicBrValues as |value|}}
                       <td><input type="number" value="{{value}}" disabled /></td>
+                    {{/each}}
+                  </tr>
+                  <tr>
+                    <td>Misc (Additive)</td>
+                    {{#each mythicColumns as |col index|}}
+                      <td><input type="number" step="1" name="system.bestiary.mythicMisc.{{col.key}}" value="{{lookup ../mythicMiscValues index}}" /></td>
                     {{/each}}
                   </tr>
                   <tr>

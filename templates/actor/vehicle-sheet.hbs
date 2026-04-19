@@ -26,6 +26,27 @@
             </div>
           </div>
 
+          {{#if mythicVehicleIsWalker}}
+          <div class="panel armor-panel vehicle-walker-locations-panel">
+            <h3>Walker Locations</h3>
+            <div class="vehicle-walker-mode-banner">Walker Mode</div>
+            <div class="vehicle-walker-location-grid">
+              {{#each mythicVehicleWalker.locations as |location|}}
+              <div class="vehicle-walker-location-card {{location.stateClass}}">
+                <input type="hidden" name="{{location.breakpointTypeName}}" value="{{location.breakpointType}}" />
+                <div class="vehicle-walker-location-head">
+                  <strong>{{location.shortLabel}}</strong>
+                  <span>{{location.breakpointType}}</span>
+                </div>
+                <label>
+                  Armor
+                  <input class="small-input" type="number" name="{{location.armorName}}" value="{{location.armor}}" />
+                </label>
+              </div>
+              {{/each}}
+            </div>
+          </div>
+          {{else}}
           <div class="panel armor-panel">
             <h3>Armor</h3>
             <div class="compact-row">
@@ -36,6 +57,7 @@
               <div class="compact-field"><div class="field-label">Bottom</div><input class="small-input" type="number" name="system.armor.bottom.value" value="{{mythicVehicleSystem.armor.bottom.value}}" /></div>
             </div>
           </div>
+          {{/if}}
 
           <div class="panel shields-panel">
             <h3>Shields</h3>
@@ -46,6 +68,20 @@
             </div>
           </div>
 
+          {{#if mythicVehicleIsWalker}}
+          <div class="panel movement-panel vehicle-walker-characteristics-panel">
+            <h3>Characteristics</h3>
+            <div class="compact-row">
+              <div class="compact-field"><div class="field-label">Strength</div><input class="small-input" type="number" name="system.characteristics.str" value="{{mythicVehicleSystem.characteristics.str}}" /></div>
+              <div class="compact-field"><div class="field-label">Agility</div><input class="small-input" type="number" name="system.characteristics.agi" value="{{mythicVehicleSystem.characteristics.agi}}" /></div>
+              <div class="compact-field"><div class="field-label">Jump</div><input class="small-input" type="number" min="0" step="0.1" name="system.movement.walker.jump" value="{{mythicVehicleSystem.movement.walker.jump}}" /></div>
+              <div class="vehicle-walker-flex-break" aria-hidden="true"></div>
+              <div class="compact-field"><div class="field-label">Mythic STR</div><input class="small-input" type="number" name="system.characteristics.mythicStr" value="{{mythicVehicleSystem.characteristics.mythicStr}}" /></div>
+              <div class="compact-field"><div class="field-label">Mythic AGI</div><input class="small-input" type="number" name="system.characteristics.mythicAgi" value="{{mythicVehicleSystem.characteristics.mythicAgi}}" /></div>
+              <div class="compact-field"><div class="field-label">Leap</div><input class="small-input" type="number" min="0" step="0.1" name="system.movement.walker.leap" value="{{mythicVehicleSystem.movement.walker.leap}}" /></div>
+            </div>
+          </div>
+          {{else}}
           <div class="panel movement-panel">
             <h3>Movement</h3>
             <div class="compact-row">
@@ -55,6 +91,39 @@
               <div class="compact-field"><div class="field-label">Maneuver</div><input class="small-input" type="number" name="system.movement.maneuver.total" value="{{mythicVehicleSystem.movement.maneuver.total}}" /></div>
             </div>
           </div>
+          {{/if}}
+
+          {{#if mythicVehicleIsWalker}}
+          <div class="panel vehicle-walker-melee-panel">
+            <h3>Walker Melee</h3>
+            <div class="vehicle-walker-melee-setup">
+              {{#if mythicVehicleWalker.melee.hasPunch}}
+              <div class="vehicle-walker-melee-block">
+                <div class="vehicle-walker-melee-block-label">Punch</div>
+                <div class="vehicle-walker-melee-formula-row">
+                  <input class="small-input" type="number" min="0" max="99" step="1" name="system.walker.melee.punch.diceCount" value="{{mythicVehicleWalker.melee.punch.diceCount}}" />
+                  <select class="small-input" name="system.walker.melee.punch.diceSize">
+                    {{selectOptions mythicVehicleWalker.melee.dieSizeOptions selected=mythicVehicleWalker.melee.punch.diceSize}}
+                  </select>
+                  <select class="vehicle-walker-melee-modifier-select" name="system.walker.melee.punch.modifier">
+                    {{selectOptions mythicVehicleWalker.melee.modifierOptions selected=mythicVehicleWalker.melee.punch.modifier}}
+                  </select>
+                </div>
+              </div>
+              {{/if}}
+              <div class="vehicle-walker-melee-block">
+                <div class="vehicle-walker-melee-block-label">Stomp</div>
+                <div class="vehicle-walker-melee-formula-row">
+                  <input class="small-input" type="number" min="0" max="99" step="1" name="system.walker.melee.stomp.diceCount" value="{{mythicVehicleWalker.melee.stomp.diceCount}}" />
+                  <select class="small-input" name="system.walker.melee.stomp.diceSize">
+                    {{selectOptions mythicVehicleWalker.melee.dieSizeOptions selected=mythicVehicleWalker.melee.stomp.diceSize}}
+                  </select>
+                  <input class="small-input" type="number" value="{{mythicVehicleWalker.melee.stomp.modifierValue}}" readonly />
+                </div>
+              </div>
+            </div>
+          </div>
+          {{/if}}
 
           <div class="panel propulsion-panel">
             <h3>Propulsion</h3>
@@ -76,6 +145,12 @@
               {{else}}
               <input type="hidden" name="system.propulsion.max" value="" />
               {{/if}}
+              {{#if mythicVehicleIsWalker}}
+              <div class="compact-field">
+                <div class="field-label">Arms</div>
+                <input class="small-input" type="number" min="0" max="20" step="1" name="system.walker.armCount" value="{{mythicVehicleSystem.walker.armCount}}" />
+              </div>
+              {{/if}}
             </div>
           </div>
 
@@ -86,6 +161,18 @@
                 <input class="small-input" type="number" name="system.sizePoints" value="{{mythicVehicleSystem.sizePoints}}" min="0" max="99" step="1" style="width:56px;" />
               </div>
               <div class="compact-field"><div class="field-label">Weapon</div><input class="small-input" type="number" name="system.weaponPoints" value="{{mythicVehicleSystem.weaponPoints}}" /></div>
+              {{#if mythicVehicleIsWalker}}
+              <div class="compact-field">
+                <div class="field-label">Size Category</div>
+                <select class="vehicle-size-category-select" name="system.walker.sizeCategory">
+                  {{selectOptions mythicVehicleSizeCategoryOptions selected=mythicVehicleSystem.walker.sizeCategory}}
+                </select>
+              </div>
+              <div class="compact-field">
+                <div class="field-label">Reach</div>
+                <input class="small-input" type="number" name="system.walker.reach" value="{{mythicVehicleSystem.walker.reach}}" min="0" max="99" step="1" />
+              </div>
+              {{/if}}
             </div>
           </div>
 

@@ -191,7 +191,7 @@
     },
     {
       "name": "ammo-types",
-      "label": "40 Ammo - Types",
+      "label": "Ammo",
       "path": "packs/ammo-types",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",

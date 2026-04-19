@@ -107,8 +107,16 @@ import {
   getFireModeToHitBonus,
   computeRangeModifier,
   computeAttackDOS,
-  resolveHitLocation
+  resolveHitLocation,
+  resolveHitLocationForMode,
+  VEHICLE_HIT_SECTION_DEFS,
+  WALKER_ZONE_DEFS
 } from "../mechanics/combat.mjs";
+import {
+  calculateVehicleSplatter,
+  calculateVehicleWreck,
+  formatVehicleHazardNumber
+} from "../mechanics/vehicle-hazards.mjs";
 import { consumeActorHalfActions, isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
 
 import {
@@ -143,6 +151,7 @@ import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
 import { openEffectReferenceDialog } from "../ui/effect-reference-dialog.mjs";
 import { promptAttackModifiersDialog } from "../ui/attack-modifiers-dialog.mjs";
 import { mythicStartFearTest } from "../core/chat-fear.mjs";
+import { mythicPostVehicleSplatter } from "../core/chat-splatter.mjs";
 import {
   buildInitiativeChatCard,
   buildUniversalTestChatCard
@@ -229,6 +238,52 @@ const MYTHIC_VEHICLE_MOBILITY_PENALTY_TABLES = Object.freeze({
     8: Object.freeze({ 0: 0, 1: 10, 2: 20, 3: 30, 4: 45, 5: 60, 6: 85, 7: 99, 8: 100 })
   })
 });
+const MYTHIC_VEHICLE_WALKER_LOCATIONS = Object.freeze([
+  { key: "head", label: "Head", shortLabel: "Head", breakpointType: "engine" },
+  { key: "chest", label: "Chest", shortLabel: "Chest", breakpointType: "cockpit" },
+  { key: "leftArm", label: "Left Arm", shortLabel: "L Arm", breakpointType: "mobility" },
+  { key: "rightArm", label: "Right Arm", shortLabel: "R Arm", breakpointType: "mobility" },
+  { key: "leftLeg", label: "Left Leg", shortLabel: "L Leg", breakpointType: "mobility" },
+  { key: "rightLeg", label: "Right Leg", shortLabel: "R Leg", breakpointType: "mobility" }
+]);
+const MYTHIC_VEHICLE_WALKER_LOCATION_KEYS = Object.freeze(MYTHIC_VEHICLE_WALKER_LOCATIONS.map((entry) => entry.key));
+
+// Derive initial target mode from a token document. Returns "vehicle", "walker", or "character".
+function _deriveTargetModeFromToken(tokenLike = null) {
+  const actor = tokenLike?.actor ?? tokenLike?.document?.actor ?? null;
+  if (!actor) return "character";
+  const actorType = String(actor?.type ?? "").trim().toLowerCase();
+  if (actorType !== "vehicle") return "character";
+  const moveType = String(actor?.system?.movement?.type ?? "").trim().toLowerCase();
+  if (moveType === "walker" || moveType === "biped" || moveType === "quadruped") return "walker";
+  return "vehicle";
+}
+
+// Build hit-location HTML fragment for a resolved hitLoc object.
+function _buildHitLocHtml(hitLoc, targetMode, esc) {
+  if (!hitLoc) return `<em>-</em>`;
+  const mode = String(targetMode ?? "character");
+  if (mode === "vehicle") {
+    return `<strong class="mythic-subloc">${esc(hitLoc.zone ?? "")}</strong>`;
+  }
+  if (mode === "walker") {
+    return `<strong class="mythic-subloc">${esc(hitLoc.subZone ?? hitLoc.zone ?? "")}</strong> <span class="mythic-zone-label">(Walker)</span>`;
+  }
+  return `<strong class="mythic-subloc">${esc(hitLoc.subZone ?? "")}</strong> <span class="mythic-zone-label">(${esc(hitLoc.zone ?? "")})</span>`;
+}
+
+// If the hit landed on the Weapon section but the vehicle has no weapons, fall back to Hull.
+function _applyVehicleHitFallback(hitLoc, targetActor) {
+  if (!hitLoc || hitLoc.sectionKey !== "weapon") return hitLoc;
+  const hasWeaponSlots = Array.isArray(targetActor?.system?.weapons)
+    ? targetActor.system.weapons.length > 0
+    : targetActor?.system?.weapons && Object.keys(targetActor.system.weapons).length > 0;
+  if (hasWeaponSlots) return hitLoc;
+  // Fall through to Hull
+  return { ...hitLoc, zone: "Hull", sectionKey: "hull" };
+}
+const MYTHIC_VEHICLE_WALKER_ARM_TRACKER_PREFIX = "walker-arm-";
+const MYTHIC_VEHICLE_WALKER_MAX_ARM_COUNT = 20;
 const MYTHIC_CREW_CHARACTERISTIC_LABELS = Object.freeze({
   str: "STR",
   tou: "TOU",
@@ -1460,6 +1515,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _ballisticGroupExpanded = {};
   _tabSelectArmed = false;
   _tabSelectTimestamp = 0;
+  _energyCellBackfillSignature = "";
 
   async _prepareContext(options) {
     await this._backfillEnergyCellsForExistingWeapons();
@@ -1512,8 +1568,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const kind = definition.crewKey;
         const capacity = toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.[definition.capacityKey], 0);
         const sourceRows = Array.isArray(normalizedVehicleSystem?.crew?.[kind]) ? normalizedVehicleSystem.crew[kind] : [];
-        const rows = [];
-        for (let i = 0; i < capacity; i++) {
+        const rows = await Promise.all(Array.from({ length: capacity }, async (_unused, i) => {
           const entry = sourceRows[i] ?? {
             idx: i,
             id: "",
@@ -1537,7 +1592,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ).trim();
           const stats = hasResolvedOccupant ? resolution.stats : null;
           const weaponDisplay = String(crewWeaponBySlot.get(slotKey) ?? "").trim();
-          rows.push({
+          return {
             idx: i,
             id: String(resolution.canonicalReference ?? resolution.reference ?? "").trim(),
             referenceValue: String(resolution.reference ?? "").trim(),
@@ -1575,18 +1630,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             canExpand: hasResolvedOccupant && Boolean(stats),
             isTokenAssignment: hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token,
             isCharacterException: hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor
-          });
-
+          };
+        }));
+        for (const row of rows) {
           crewSummary.totalCapacity += 1;
-          if (hasReference) crewSummary.filledCount += 1;
-          if (hasResolvedOccupant) crewSummary.validCount += 1;
-          if (hasReference && !hasResolvedOccupant) crewSummary.invalidCount += 1;
-          if (hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token) {
-            crewSummary.tokenCount += 1;
-          }
-          if (hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor) {
-            crewSummary.characterCount += 1;
-          }
+          if (row.hasReference) crewSummary.filledCount += 1;
+          if (row.hasResolvedOccupant) crewSummary.validCount += 1;
+          if (row.isInvalid) crewSummary.invalidCount += 1;
+          if (row.isTokenAssignment) crewSummary.tokenCount += 1;
+          if (row.isCharacterException) crewSummary.characterCount += 1;
         }
 
         const title = kind === "complement" ? "Passengers" : `${definition.label}s`;
@@ -1632,7 +1684,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       context.mythicVehicleCrewGroups = crewGroups.filter((group) => group.capacity > 0);
       context.mythicVehicleCrewSummary = crewSummary;
       const propulsionType = String(displayVehicleSystem?.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
-      const isWalkerVehicle = propulsionType === "legs";
+      const isWalkerVehicle = Boolean(displayVehicleSystem?.isWalker);
       const propulsionMaxOptions = this._getVehiclePropulsionMaxSelectOptions(propulsionType);
       if (!propulsionMaxOptions.length) {
         displayVehicleSystem.propulsion.max = "";
@@ -1662,11 +1714,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         { value: "none", label: "None" },
         { value: "standard", label: "Standard" }
       ];
+      context.mythicVehicleSizeCategoryOptions = MYTHIC_SIZE_CATEGORIES.map((category) => ({
+        value: String(category.label ?? "").trim(),
+        label: String(category.label ?? "").trim()
+      })).filter((entry) => entry.value);
       context.mythicPropulsionTypeOptions = this._getVehiclePropulsionTypeOptions();
       context.mythicPropulsionMaxOptions = propulsionMaxOptions;
       context.mythicShowPropulsionMaxField = propulsionMaxOptions.length > 0;
       context.mythicVehicleIsWalker = isWalkerVehicle;
       context.mythicVehicleMobility = vehicleMobilityContext;
+      const vehicleSeatMap = this._getVehicleCrewSeatMap(displayVehicleSystem);
+      const vehicleWalkerOperatorRuntimes = await Promise.all(Array.from(vehicleSeatMap.values())
+        .filter((seat) => String(seat?.crewKey ?? "").trim().toLowerCase() === "operators" && seat?.actorDoc)
+        .map(async (seat) => this._getLiveCharacteristicRuntime(seat.actorDoc)));
+      context.mythicVehicleWalker = this._buildVehicleWalkerContext(displayVehicleSystem, vehicleMobilityContext, vehicleWalkerOperatorRuntimes);
       context.mythicVehicleDisplayWeight = vehicleWeightDisplay;
       context.mythicVehicleDisplayWeightStep = vehicleWeightUnit === "kg" ? "0.1" : "0.001";
       context.mythicVehicleWeightUnitOptions = [
@@ -1786,13 +1847,28 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicIsHuragok = this._isHuragokActor(effectiveSystem);
     context.mythicCombat = this._getCombatViewData(effectiveSystem, characteristicModifiers);
     context.mythicCcAdv = this._getCharacterCreationAdvancementViewData();
-    context.mythicAdvancements = await this._getAdvancementViewData(normalizedSystem, creationPathOutcome);
+    const [
+      advancementView,
+      equipmentView,
+      medicalEffectsView,
+      trainingView,
+      soldierTypeAdvancementScaffoldView,
+      headerView
+    ] = await Promise.all([
+      this._getAdvancementViewData(normalizedSystem, creationPathOutcome),
+      this._getEquipmentViewData(effectiveSystem, derived),
+      this._getMedicalEffectsViewData(normalizedSystem),
+      this._getTrainingViewData(normalizedSystem?.training, normalizedSystem),
+      this._getSoldierTypeAdvancementScaffoldViewData(normalizedSystem),
+      this._getHeaderViewData(normalizedSystem)
+    ]);
+    context.mythicAdvancements = advancementView;
     context.mythicOutliers = this._getOutliersViewData(normalizedSystem, context.mythicCcAdv);
     context.mythicCustomOutliers = this._getCustomOutliersViewData(normalizedSystem);
     context.mythicCreationFinalizeSummary = this._getCreationFinalizeSummaryViewData(normalizedSystem, context.mythicAdvancements, context.mythicOutliers);
-    context.mythicEquipment = await this._getEquipmentViewData(effectiveSystem, derived);
+    context.mythicEquipment = equipmentView;
     context.mythicGammaCompany = this._getGammaCompanyViewData(normalizedSystem);
-    context.mythicMedicalEffects = await this._getMedicalEffectsViewData(normalizedSystem);
+    context.mythicMedicalEffects = medicalEffectsView;
     const worldGravity = getWorldGravity();
     context.mythicGravityValue = String(worldGravity !== null ? worldGravity : (normalizedSystem?.gravity ?? 1.0));
     context.mythicIsGM = Boolean(game?.user?.isGM);
@@ -1829,9 +1905,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ];
     context.mythicAbilities = this._getAbilitiesViewData();
     context.mythicTraits = this._getTraitsViewData();
-    context.mythicTraining = await this._getTrainingViewData(normalizedSystem?.training, normalizedSystem);
+    context.mythicTraining = trainingView;
     context.mythicSoldierTypeScaffold = this._getSoldierTypeScaffoldViewData();
-    context.mythicSoldierTypeAdvancementScaffold = await this._getSoldierTypeAdvancementScaffoldViewData(normalizedSystem);
+    context.mythicSoldierTypeAdvancementScaffold = soldierTypeAdvancementScaffoldView;
     context.mythicHasBlurAbility = this.actor.items.some((i) => i.type === "ability" && String(i.name ?? "").toLowerCase() === "blur");
     context.mythicCharBuilder = charBuilderView;
     // Augment char builder with penalty-aware rows so templates can show effective values.
@@ -1842,7 +1918,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     );
     context.mythicCharBuilder = { ...context.mythicCharBuilder, penaltiesRow: cbPenaltiesRow, effectiveTotals: cbEffectiveTotals };
     context.mythicEffectiveCharacteristics = effectiveSystem.characteristics;
-    context.mythicHeader = await this._getHeaderViewData(normalizedSystem);
+    context.mythicHeader = headerView;
     context.mythicSpecialization = this._getSpecializationViewData(normalizedSystem);
 
     const linkedVehicleActorId = String(normalizedSystem?.vehicles?.currentVehicleActorId ?? "").trim();
@@ -1867,8 +1943,63 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return context;
   }
 
+  _getEnergyCellBackfillSignature() {
+    if (!this.actor || this.actor.type !== "character") return "";
+    const gearParts = [];
+    for (const item of (this.actor.items ?? [])) {
+      if (item?.type !== "gear") continue;
+      const system = item.system ?? {};
+      const range = system.range ?? {};
+      gearParts.push([
+        item.id,
+        item.name,
+        system.itemClass,
+        system.weaponClass,
+        system.ammoMode,
+        system.batteryCapacity,
+        range.magazine,
+        system.weaponType,
+        system.training,
+        system.batteryType,
+        item._stats?.modifiedTime ?? ""
+      ].map((entry) => String(entry ?? "")).join(":"));
+    }
+    gearParts.sort();
+
+    const equipment = this.actor.system?.equipment ?? {};
+    const energyCellParts = Object.entries(equipment.energyCells ?? {})
+      .sort(([left], [right]) => String(left).localeCompare(String(right)))
+      .map(([weaponId, cells]) => {
+        const cellParts = (Array.isArray(cells) ? cells : [])
+          .map((cell) => [
+            cell?.id,
+            cell?.weaponId,
+            cell?.ammoMode,
+            cell?.capacity,
+            cell?.current,
+            cell?.batteryType,
+            cell?.compatibilitySignature
+          ].map((entry) => String(entry ?? "")).join(":"))
+          .sort()
+          .join(",");
+        return `${weaponId}=[${cellParts}]`;
+      });
+    const weaponStateParts = Object.entries(equipment.weaponState ?? {})
+      .sort(([left], [right]) => String(left).localeCompare(String(right)))
+      .map(([weaponId, state]) => `${weaponId}:${String(state?.activeEnergyCellId ?? "")}`);
+
+    return [
+      String(this.actor.id ?? ""),
+      gearParts.join("|"),
+      energyCellParts.join("|"),
+      weaponStateParts.join("|")
+    ].join("::");
+  }
+
   async _backfillEnergyCellsForExistingWeapons() {
     if (!this.actor || this.actor.type !== "character") return;
+    const signature = this._getEnergyCellBackfillSignature();
+    if (signature && signature === this._energyCellBackfillSignature) return;
 
     const originalEnergyCells = foundry.utils.deepClone(this.actor.system?.equipment?.energyCells ?? {});
     const originalWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
@@ -1888,12 +2019,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const hasEnergyCellChanges = JSON.stringify(originalEnergyCells) !== JSON.stringify(nextEnergyCells);
     const hasWeaponStateChanges = JSON.stringify(originalWeaponState) !== JSON.stringify(nextWeaponState);
-    if (!hasEnergyCellChanges && !hasWeaponStateChanges) return;
+    if (!hasEnergyCellChanges && !hasWeaponStateChanges) {
+      this._energyCellBackfillSignature = signature;
+      return;
+    }
 
     await this.actor.update({
       "system.equipment.energyCells": nextEnergyCells,
       "system.equipment.weaponState": nextWeaponState
     });
+    this._energyCellBackfillSignature = this._getEnergyCellBackfillSignature();
   }
 
   _getVehiclePropulsionTypeOptions() {
@@ -1941,6 +2076,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _resolveVehicleMobilityPenaltyPercent(propulsionType = "", totalComponents = 0, destroyedCount = 0) {
     const type = String(propulsionType ?? "").trim().toLowerCase();
+    if (type === "legs") {
+      if (destroyedCount >= 2) return 100;
+      if (destroyedCount === 1) return 50;
+      return 0;
+    }
     if (!["wheels", "treads"].includes(type)) return 0;
     const total = Math.max(0, Number.parseInt(String(totalComponents ?? 0), 10) || 0);
     const destroyed = Math.max(0, Math.min(total, Number.parseInt(String(destroyedCount ?? 0), 10) || 0));
@@ -1958,10 +2098,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _buildVehicleMobilityDamageState(vehicleSystem = null, mobilityTrackers = []) {
     const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
     const propulsionType = String(source?.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
-    const totalComponents = Math.max(
+    const configuredComponents = Math.max(
       0,
       Number.parseInt(String(source?.propulsion?.max ?? ""), 10) || toNonNegativeWhole(source?.propulsion?.value, 0)
     );
+    const totalComponents = propulsionType === "legs" ? 2 : configuredComponents;
 
     const trackerRows = Array.isArray(mobilityTrackers) ? mobilityTrackers : [];
     const hasTrackerRows = trackerRows.length > 0;
@@ -1994,6 +2135,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           markDestroyedIndex(index);
         }
       }
+    }
+
+    if (propulsionType === "legs") {
+      const walkerLocations = source?.walker?.locations ?? {};
+      if (Boolean(walkerLocations?.leftLeg?.destroyed) || Boolean(walkerLocations?.leftLeg?.disabled)) markDestroyedIndex(1);
+      if (Boolean(walkerLocations?.rightLeg?.destroyed) || Boolean(walkerLocations?.rightLeg?.disabled)) markDestroyedIndex(2);
     }
 
     const destroyedIndices = Array.from(destroyedSet).sort((a, b) => a - b);
@@ -2140,6 +2287,239 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return `W${Math.max(1, Number(fallbackIndex) + 1)}`;
   }
 
+  _getVehicleWalkerArmCount(vehicleSystem = {}) {
+    return Math.min(
+      MYTHIC_VEHICLE_WALKER_MAX_ARM_COUNT,
+      toNonNegativeWhole(vehicleSystem?.walker?.armCount ?? vehicleSystem?.walker?.arms?.count, 2)
+    );
+  }
+
+  _getVehicleWalkerArmTrackerId(armNumber = 0) {
+    const resolvedNumber = toNonNegativeWhole(armNumber, 0);
+    return resolvedNumber > 0 ? `${MYTHIC_VEHICLE_WALKER_ARM_TRACKER_PREFIX}${resolvedNumber}` : "";
+  }
+
+  _getVehicleWalkerArmTrackerIdForLocation(location = "") {
+    const normalizedLocation = String(location ?? "").trim();
+    if (normalizedLocation === "leftArm") return this._getVehicleWalkerArmTrackerId(1);
+    if (normalizedLocation === "rightArm") return this._getVehicleWalkerArmTrackerId(2);
+    return /^walker-arm-\d+$/u.test(normalizedLocation) ? normalizedLocation : "";
+  }
+
+  _normalizeVehicleWalkerMountLocation(location = "") {
+    const requestedLocation = String(location ?? "").trim();
+    const lowered = requestedLocation.toLowerCase();
+    if (MYTHIC_VEHICLE_WALKER_LOCATION_KEYS.includes(requestedLocation)) return requestedLocation;
+    if (/^walker-arm-\d+$/u.test(requestedLocation)) return requestedLocation;
+    if (lowered === "torso" || lowered === "body") return "chest";
+    return "";
+  }
+
+  _getVehicleWalkerArmLabel(armNumber = 0, { short = false } = {}) {
+    const resolvedNumber = toNonNegativeWhole(armNumber, 0);
+    if (resolvedNumber === 1) return short ? "L Arm" : "Left Arm";
+    if (resolvedNumber === 2) return short ? "R Arm" : "Right Arm";
+    return resolvedNumber > 0 ? `Arm ${resolvedNumber}` : "Arm";
+  }
+
+  _getVehicleWalkerLocationLabel(location = "", vehicleSystem = null, { short = false } = {}) {
+    const normalizedLocation = String(location ?? "").trim();
+    const fixedLocation = MYTHIC_VEHICLE_WALKER_LOCATIONS.find((entry) => entry.key === normalizedLocation) ?? null;
+    if (fixedLocation) return short ? fixedLocation.shortLabel : fixedLocation.label;
+
+    const armMatch = /^walker-arm-(\d+)$/u.exec(normalizedLocation);
+    if (armMatch) return this._getVehicleWalkerArmLabel(Number.parseInt(armMatch[1], 10), { short });
+
+    return "Unassigned";
+  }
+
+  _isVehicleWalkerLocationUnavailable(vehicleSystem = {}, location = "") {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const walkerLocation = String(location ?? "").trim();
+    if (!source?.isWalker || !walkerLocation) return false;
+
+    const fixedLocationState = source?.walker?.locations?.[walkerLocation] ?? null;
+    if (fixedLocationState && (fixedLocationState.destroyed || fixedLocationState.disabled)) return true;
+
+    const armTrackerId = this._getVehicleWalkerArmTrackerIdForLocation(walkerLocation);
+    if (!armTrackerId) return false;
+
+    const armState = source?.walker?.arms?.byId?.[armTrackerId] ?? null;
+    if (armState && (armState.destroyed || armState.disabled)) return true;
+
+    const mobilityMax = this._getVehicleConfiguredOverviewBaseValue(source?.breakpoints?.mob ?? {});
+    const mobilityTracker = source?.overview?.breakpoints?.mobility?.byId?.[armTrackerId] ?? null;
+    const trackerCurrent = Number(mobilityTracker?.current ?? mobilityMax);
+    return mobilityMax > 0 && Number.isFinite(trackerCurrent) && trackerCurrent <= 0;
+  }
+
+  _getVehicleWalkerMeleeOperatorSeats(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const seatMap = this._getVehicleCrewSeatMap(source);
+    return Array.from(seatMap.values())
+      .filter((seat) => String(seat?.crewKey ?? "").trim().toLowerCase() === "operators" && seat?.actorDoc)
+      .sort((left, right) => Number(left?.slotNumber ?? 0) - Number(right?.slotNumber ?? 0));
+  }
+
+  _getVehicleWalkerMeleeAttackCounts(warfareMeleeModifier = 0, { slow = false } = {}) {
+    const wfmModifier = Math.max(0, Math.floor(Number(warfareMeleeModifier ?? 0) || 0));
+    const halfBase = Math.max(1, Math.floor(wfmModifier / 2));
+    const fullBase = halfBase * 2;
+    if (!slow) {
+      return {
+        single: 1,
+        half: halfBase,
+        full: fullBase
+      };
+    }
+    return {
+      single: 1,
+      half: Math.max(1, Math.floor(halfBase / 2)),
+      full: Math.max(1, Math.floor(fullBase / 2))
+    };
+  }
+
+  _buildVehicleWalkerMeleeContext(vehicleSystem = {}, derived = null, operatorRuntimes = []) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const melee = source?.walker?.melee ?? {};
+    const physical = derived?.physical ?? source?.walker?.derived?.physical ?? {};
+    const strengthModifier = toNonNegativeWhole(physical?.strengthModifier, Math.floor(toNonNegativeWhole(source?.characteristics?.str, 0) / 10));
+    const stompModifier = toNonNegativeWhole(physical?.stomp, 0);
+    const armCount = this._getVehicleWalkerArmCount(source);
+    const reach = Math.max(0, Math.min(99, toNonNegativeWhole(source?.walker?.reach, 0)));
+    const operatorSeats = this._getVehicleWalkerMeleeOperatorSeats(source);
+    const operatorCount = operatorSeats.length;
+    const onlyOperatorSeat = operatorCount === 1 ? operatorSeats[0] : null;
+    const sharedOperatorWfmModifier = operatorRuntimes.length > 0 && operatorRuntimes.every((runtime) => Number(runtime?.modifiers?.wfm ?? 0) === Number(operatorRuntimes[0]?.modifiers?.wfm ?? 0))
+      ? Number(operatorRuntimes[0]?.modifiers?.wfm ?? 0)
+      : null;
+    const onlyOperatorRuntime = operatorRuntimes.length === 1 ? operatorRuntimes[0] : null;
+    const previewWfmModifier = sharedOperatorWfmModifier !== null
+      ? sharedOperatorWfmModifier
+      : onlyOperatorRuntime?.modifiers?.wfm ?? null;
+    const controllingUserLabel = operatorCount > 1
+      ? `Operator: Any (${operatorCount})`
+      : operatorCount === 1
+        ? `Operator: ${String(onlyOperatorSeat?.display ?? onlyOperatorSeat?.seatLabel ?? "Assigned").trim() || "Assigned"}`
+        : "Operator: Unassigned";
+    const canAttack = operatorCount > 0;
+    const disableReason = canAttack ? "" : "Assign an operator.";
+    const modifierOptions = [
+      { value: "none", label: "None" },
+      { value: "strength", label: "STR" },
+      { value: "strength-x2", label: "STR x2" }
+    ];
+    const dieSizeOptions = [
+      { value: 5, label: "d5" },
+      { value: 10, label: "d10" }
+    ];
+    const normalizeDiceSize = (value) => {
+      const requestedSize = toNonNegativeWhole(value, 10);
+      return requestedSize === 5 ? 5 : 10;
+    };
+    const resolvePunchModifier = (mode = "strength") => {
+      const normalized = String(mode ?? "strength").trim().toLowerCase();
+      if (normalized === "strength-x2") return { mode: normalized, label: "STR x2", value: strengthModifier * 2 };
+      if (normalized === "none") return { mode: normalized, label: "None", value: 0 };
+      return { mode: "strength", label: "STR", value: strengthModifier };
+    };
+    const formatDamage = (diceCount = 0, diceSize = 10, modifierValue = 0) => {
+      const diceLabel = `${toNonNegativeWhole(diceCount, 0)}d${Math.max(1, toNonNegativeWhole(diceSize, 10))}`;
+      return modifierValue > 0 ? `${diceLabel} + ${modifierValue}` : diceLabel;
+    };
+    const formatModifier = (label = "", value = 0) => {
+      const resolvedLabel = String(label ?? "").trim();
+      const resolvedValue = toNonNegativeWhole(value, 0);
+      return resolvedValue > 0 ? `${resolvedLabel} +${resolvedValue}` : resolvedLabel;
+    };
+    const buildActionButtons = (isSlow = false) => {
+      const previewCounts = previewWfmModifier !== null
+        ? this._getVehicleWalkerMeleeAttackCounts(previewWfmModifier, { slow: isSlow })
+        : null;
+      return [
+        { action: "single", label: "Single", title: "Single Attack" },
+        {
+          action: "half",
+          label: previewCounts ? `Half - ${previewCounts.half}` : "Half",
+          title: previewCounts
+            ? `Half Action (${previewCounts.half})`
+            : "Half Action (choose operator on roll)"
+        },
+        {
+          action: "full",
+          label: previewCounts ? `Full - ${previewCounts.full}` : "Full",
+          title: previewCounts
+            ? `Full Action (${previewCounts.full})`
+            : "Full Action (choose operator on roll)"
+        }
+      ];
+    };
+    const punchDiceCount = Math.min(99, toNonNegativeWhole(melee?.punch?.diceCount, 3));
+    const punchDiceSize = normalizeDiceSize(melee?.punch?.diceSize);
+    const punchModifier = resolvePunchModifier(melee?.punch?.modifier);
+    const stompDiceCount = Math.min(99, toNonNegativeWhole(melee?.stomp?.diceCount, 4));
+    const stompDiceSize = normalizeDiceSize(melee?.stomp?.diceSize);
+    const hasPunch = armCount > 0;
+    const cards = [];
+
+    if (hasPunch) {
+      cards.push({
+        key: "punch",
+        slotCode: "PCH",
+        name: "Punch",
+        modeLabel: "Melee",
+        rangeSummary: `Reach ${reach} m`,
+        damageLabel: formatDamage(punchDiceCount, punchDiceSize, punchModifier.value),
+        modifierLabel: punchModifier.label,
+        modifierValue: punchModifier.value,
+        modifierText: formatModifier(punchModifier.label, punchModifier.value),
+        specialRules: [],
+        controllingUserLabel,
+        canAttack,
+        disableReason,
+        actionButtons: buildActionButtons(false)
+      });
+    }
+
+    cards.push({
+      key: "stomp",
+      slotCode: "STMP",
+      name: "Stomp",
+      modeLabel: "Melee",
+      rangeSummary: `Reach ${reach} m`,
+      damageLabel: formatDamage(stompDiceCount, stompDiceSize, stompModifier),
+      modifierLabel: "Stomp",
+      modifierValue: stompModifier,
+      modifierText: formatModifier("Stomp", stompModifier),
+      specialRules: ["Slow", "Kinetic"],
+      controllingUserLabel,
+      canAttack,
+      disableReason,
+      actionButtons: buildActionButtons(true)
+    });
+
+    return {
+      hasPunch,
+      hasCards: Boolean(source?.isWalker) && cards.length > 0,
+      modifierOptions,
+      dieSizeOptions,
+      punch: {
+        diceCount: punchDiceCount,
+        diceSize: punchDiceSize,
+        modifier: punchModifier.mode,
+        modifierValue: punchModifier.value
+      },
+      stomp: {
+        diceCount: stompDiceCount,
+        diceSize: stompDiceSize,
+        modifier: "stomp",
+        modifierValue: stompModifier,
+        specialRules: ["Slow", "Kinetic"]
+      },
+      cards
+    };
+  }
+
   _getVehicleOverviewMobilityComponentLabel(propulsionType = "wheels", plural = false) {
     const normalizedType = String(propulsionType ?? "").trim().toLowerCase();
     if (normalizedType === "treads") return plural ? "Treads" : "Tread";
@@ -2147,6 +2527,108 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (normalizedType === "thrusters") return plural ? "Thrusters" : "Thruster";
     if (normalizedType === "none") return plural ? "Components" : "Component";
     return plural ? "Wheels" : "Wheel";
+  }
+
+  _buildVehicleWalkerContext(vehicleSystem = null, mobilityContext = null, operatorRuntimes = []) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const locationsSource = source?.walker?.locations ?? {};
+    const armCount = this._getVehicleWalkerArmCount(source);
+    const locations = MYTHIC_VEHICLE_WALKER_LOCATIONS.map((definition) => {
+      const location = locationsSource?.[definition.key] ?? {};
+      const destroyed = Boolean(location?.destroyed);
+      const disabled = Boolean(location?.disabled);
+      return {
+        ...definition,
+        armor: toNonNegativeWhole(location?.armor, 0),
+        destroyed,
+        disabled,
+        stateLabel: destroyed ? "Destroyed" : (disabled ? "Disabled" : "Operational"),
+        stateClass: destroyed ? "is-destroyed" : (disabled ? "is-disabled" : "is-operational"),
+        armorName: `system.walker.locations.${definition.key}.armor`,
+        destroyedName: `system.walker.locations.${definition.key}.destroyed`,
+        disabledName: `system.walker.locations.${definition.key}.disabled`,
+        breakpointTypeName: `system.walker.locations.${definition.key}.breakpointType`
+      };
+    });
+    const derived = source?.walker?.derived ?? {};
+    const mobility = mobilityContext ?? this._buildVehicleMobilityContext(source);
+    const baseMovement = (derived?.movement && typeof derived.movement === "object") ? derived.movement : {};
+    const remainingPercent = Math.max(0, Math.min(100, toNonNegativeWhole(mobility?.mobilityRemainingPercent, 100)));
+    const movementMultiplier = remainingPercent / 100;
+    const scaleWholeMovement = (value) => Math.max(0, Math.round((toNonNegativeWhole(value, 0) * movementMultiplier)));
+    const scaleDistance = (value) => Math.round((Math.max(0, Number(value ?? 0) || 0) * movementMultiplier) * 10) / 10;
+    const movement = {
+      half: scaleWholeMovement(baseMovement?.half),
+      full: scaleWholeMovement(baseMovement?.full),
+      charge: scaleWholeMovement(baseMovement?.charge),
+      run: scaleWholeMovement(baseMovement?.run),
+      sprint: scaleWholeMovement(baseMovement?.sprint),
+      jump: scaleDistance(baseMovement?.jump),
+      leap: scaleDistance(baseMovement?.leap),
+      baseHalf: toNonNegativeWhole(baseMovement?.half, 0),
+      baseFull: toNonNegativeWhole(baseMovement?.full, 0),
+      baseCharge: toNonNegativeWhole(baseMovement?.charge, 0),
+      baseRun: toNonNegativeWhole(baseMovement?.run, 0),
+      baseSprint: toNonNegativeWhole(baseMovement?.sprint, 0),
+      baseJump: Math.max(0, Number(baseMovement?.jump ?? 0) || 0),
+      baseLeap: Math.max(0, Number(baseMovement?.leap ?? 0) || 0),
+      mobilityPenaltyPercent: toNonNegativeWhole(mobility?.mobilityPenaltyPercent, 0),
+      mobilityRemainingPercent: remainingPercent,
+      isImmobilized: Boolean(mobility?.isImmobilized)
+    };
+
+    const resolvePilot = () => {
+      const seatMap = this._getVehicleCrewSeatMap(source);
+      const pilotSeat = seatMap.get("operators:1") ?? null;
+      const actorDoc = pilotSeat?.actorDoc ?? null;
+      if (!actorDoc) return null;
+      const pilotSystem = actorDoc.system ?? {};
+      const pilotAgility = toNonNegativeWhole(pilotSystem?.characteristics?.agi, 0);
+      const skills = normalizeSkillsData(pilotSystem?.skills);
+      const evasionSkill = skills?.base?.evasion ?? null;
+      const tierBonus = evasionSkill ? getSkillTierBonus(evasionSkill.tier ?? "untrained", evasionSkill.category ?? "basic") : -20;
+      const modifier = evasionSkill ? (Number(evasionSkill.modifier ?? 0) || 0) : 0;
+      return { actorDoc, pilotAgility, tierBonus, modifier };
+    };
+
+    const pilot = resolvePilot();
+    const walkerAgility = toNonNegativeWhole(source?.characteristics?.agi, 0);
+    const baseEvasion = Math.min(pilot?.pilotAgility ?? walkerAgility, walkerAgility);
+    const evasionTotal = Math.max(0, Math.round(baseEvasion + (pilot?.tierBonus ?? -20) + (pilot?.modifier ?? 0)));
+    const armLocationOptions = Array.from({ length: armCount }, (_entry, index) => {
+      const armNumber = index + 1;
+      const value = armNumber === 1 ? "leftArm" : (armNumber === 2 ? "rightArm" : this._getVehicleWalkerArmTrackerId(armNumber));
+      return {
+        value,
+        label: this._getVehicleWalkerArmLabel(armNumber, { short: armNumber <= 2 })
+      };
+    });
+
+    return {
+      isWalker: Boolean(source?.isWalker),
+      armCount,
+      locations,
+      locationOptions: [
+        { value: "", label: "Unassigned" },
+        { value: "head", label: "Head" },
+        { value: "chest", label: "Chest / Body" },
+        ...armLocationOptions,
+        { value: "leftLeg", label: "L Leg" },
+        { value: "rightLeg", label: "R Leg" }
+      ],
+      movement,
+      evasion: {
+        total: evasionTotal,
+        baseAgility: baseEvasion,
+        pilotAgility: toNonNegativeWhole(pilot?.pilotAgility, 0),
+        walkerAgility,
+        tierBonus: Number(pilot?.tierBonus ?? -20) || -20,
+        modifier: Number(pilot?.modifier ?? 0) || 0
+      },
+      physical: derived?.physical ?? {},
+      melee: this._buildVehicleWalkerMeleeContext(source, derived, operatorRuntimes),
+      terrainNote: "Walkers halve penalties from Difficult and Dangerous terrain."
+    };
   }
 
   _resolveStrengthContributionForRuntime(mode = "", characteristicRuntime = null) {
@@ -2951,23 +3433,45 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : [];
 
     const propulsionType = String(source?.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
-    const mobilityCount = Math.max(
+    const configuredMobilityCount = Math.max(
       0,
       Number.parseInt(String(source?.propulsion?.max ?? ""), 10) || toNonNegativeWhole(source?.propulsion?.value, 0)
     );
-    const mobilityComponentLabel = this._getVehicleOverviewMobilityComponentLabel(propulsionType, false);
-    const mobilityTrackers = Array.from({ length: mobilityCount }, (_entry, index) => {
-      const trackerId = `mobility-${index + 1}`;
+    const walkerArmCount = this._getVehicleWalkerArmCount(source);
+    const mobilityTrackerDefinitions = propulsionType === "legs"
+      ? [
+        { id: "mobility-1", label: "L Leg", fullLabel: "Left Leg" },
+        { id: "mobility-2", label: "R Leg", fullLabel: "Right Leg" },
+        ...Array.from({ length: walkerArmCount }, (_entry, index) => {
+          const armNumber = index + 1;
+          return {
+            id: this._getVehicleWalkerArmTrackerId(armNumber),
+            label: this._getVehicleWalkerArmLabel(armNumber, { short: armNumber <= 2 }),
+            fullLabel: this._getVehicleWalkerArmLabel(armNumber)
+          };
+        })
+      ]
+      : Array.from({ length: configuredMobilityCount }, (_entry, index) => {
+        const trackerId = `mobility-${index + 1}`;
+        const mobilityComponentLabel = this._getVehicleOverviewMobilityComponentLabel(propulsionType, false);
+        return {
+          id: trackerId,
+          label: String(index + 1),
+          fullLabel: `${mobilityComponentLabel} ${index + 1}`
+        };
+      });
+    const mobilityTrackers = mobilityTrackerDefinitions.map((definition) => {
       return makeTracker({
-        id: trackerId,
-        label: String(index + 1),
-        fullLabel: `${mobilityComponentLabel} ${index + 1}`,
-        current: overview?.breakpoints?.mobility?.byId?.[trackerId]?.current,
+        id: definition.id,
+        label: definition.label,
+        fullLabel: definition.fullLabel,
+        current: overview?.breakpoints?.mobility?.byId?.[definition.id]?.current,
         max: mobilityMax,
-        inputName: `system.overview.breakpoints.mobility.byId.${trackerId}.current`,
+        inputName: `system.overview.breakpoints.mobility.byId.${definition.id}.current`,
         min: 0
       });
     });
+    const mobilityCount = mobilityTrackers.length;
 
     const armorRows = ["front", "back", "side", "top", "bottom"].map((key) => {
       const label = key.charAt(0).toUpperCase() + key.slice(1);
@@ -3074,9 +3578,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rows: mobilityTrackers,
       bands: buildTrackerBands(mobilityTrackers, 8),
       hasRows: mobilityTrackers.length > 0,
-      descriptionText: mobilityCount > 0
-        ? `${this._getVehicleOverviewMobilityComponentLabel(propulsionType, true)} x${mobilityCount}`
-        : "No propulsion components configured.",
+      descriptionText: propulsionType === "legs"
+        ? `Legs x2, Arms x${walkerArmCount}`
+        : (mobilityCount > 0
+          ? `${this._getVehicleOverviewMobilityComponentLabel(propulsionType, true)} x${mobilityCount}`
+          : "No propulsion components configured."),
       summaryPrimary: mobilitySummary.primary,
       summarySecondary: mobilitySummary.secondary,
       emptyText: "No propulsion components are configured."
@@ -3233,6 +3739,466 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       await this.actor.update(updateData);
     }
+  }
+
+  _getVehicleHazardDialogForm(dialogId = "", dialog = null) {
+    const selector = `[data-mythic-vehicle-hazard-dialog="${String(dialogId ?? "")}"]`;
+    const dialogElement = dialog?.element instanceof HTMLElement
+      ? dialog.element
+      : (dialog?.element?.[0] instanceof HTMLElement ? dialog.element[0] : null);
+    return dialogElement?.querySelector(selector) ?? document.querySelector(selector);
+  }
+
+  _getVehicleHazardDialogValue(dialogId = "", fieldName = "", fallback = "", dialog = null) {
+    const dialogRoot = this._getVehicleHazardDialogForm(dialogId, dialog);
+    const field = dialogRoot?.querySelector(`[name="${String(fieldName ?? "")}"]`);
+    if (field && "value" in field) return field.value;
+    return fallback;
+  }
+
+  _getVehicleHazardDialogDefaults(vehicleSystem = null) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+    const mobility = this._buildVehicleMobilityContext(source);
+    return {
+      speed: Math.max(0, toNonNegativeWhole(mobility?.currentSpeed ?? source?.movement?.speed?.value, 0)),
+      weightTonnes: Math.max(0, Number(source?.dimensions?.weight ?? 0) || 0),
+      openTop: Boolean(source?.special?.openTop?.has)
+    };
+  }
+
+  async _rollVehicleHazardFormula(formula = "0", rolls = [], label = "Damage roll") {
+    const resolvedFormula = String(formula ?? "").trim() || "0";
+    if (resolvedFormula === "0") {
+      return {
+        formula: "0",
+        total: 0,
+        tooltip: foundry.utils.escapeHTML(`${label}: 0 [0]`),
+        roll: null
+      };
+    }
+
+    const roll = await (new Roll(resolvedFormula)).evaluate();
+    rolls.push(roll);
+    const total = Number(roll?.total ?? 0) || 0;
+    return {
+      formula: String(roll?.formula ?? resolvedFormula),
+      total,
+      tooltip: buildRollTooltipHtml(label, roll, total, resolvedFormula),
+      roll
+    };
+  }
+
+  _formatVehicleHazardRollResult(result = null) {
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const formula = String(result?.formula ?? "0").trim() || "0";
+    const total = Number(result?.total ?? 0) || 0;
+    const tooltip = String(result?.tooltip ?? esc(`Roll: ${formatVehicleHazardNumber(total)} [${formula}]`));
+    return `<span class="mythic-roll-inline" title="${tooltip}">${esc(formatVehicleHazardNumber(total))}</span> <span class="mythic-vehicle-hazard-formula">[${esc(formula)}]</span>`;
+  }
+
+  async _promptVehicleWreckDialog(vehicleSystem = null) {
+    const defaults = this._getVehicleHazardDialogDefaults(vehicleSystem);
+    const dialogId = foundry.utils.randomID();
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const defaultWeight = formatVehicleHazardNumber(defaults.weightTonnes, 3);
+
+    return foundry.applications.api.DialogV2.wait({
+      window: { title: "Vehicle Wreck" },
+      content: `
+        <div class="mythic-vehicle-hazard-dialog" data-mythic-vehicle-hazard-dialog="${esc(dialogId)}">
+          <div class="form-group">
+            <label for="mythic-wreck-speed-${esc(dialogId)}">Vehicle Speed (MpT)</label>
+            <input id="mythic-wreck-speed-${esc(dialogId)}" name="vehicleSpeed" type="number" min="0" step="1" value="${esc(String(defaults.speed))}" />
+          </div>
+          <div class="form-group">
+            <label for="mythic-wreck-collision-${esc(dialogId)}">Collision Type</label>
+            <select id="mythic-wreck-collision-${esc(dialogId)}" name="collisionType">
+              <option value="normal" selected>Normal Collision</option>
+              <option value="head-on">Head-On Collision</option>
+            </select>
+          </div>
+          <div class="form-group" data-head-on-speed-row hidden>
+            <label for="mythic-wreck-second-speed-${esc(dialogId)}">Second Vehicle Speed (MpT)</label>
+            <input id="mythic-wreck-second-speed-${esc(dialogId)}" name="secondVehicleSpeed" type="number" min="0" step="1" value="0" disabled />
+          </div>
+          <div class="form-group">
+            <label for="mythic-wreck-weight-${esc(dialogId)}">Vehicle Weight (metric tonnes)</label>
+            <input id="mythic-wreck-weight-${esc(dialogId)}" name="vehicleWeightTonnes" type="number" min="0" step="0.001" value="${esc(defaultWeight)}" />
+          </div>
+          <div class="form-group">
+            <label for="mythic-wreck-pilot-result-${esc(dialogId)}">Pilot Test Result</label>
+            <select id="mythic-wreck-pilot-result-${esc(dialogId)}" name="pilotTestResult">
+              <option value="failed" selected>Failed</option>
+              <option value="success">Success</option>
+            </select>
+          </div>
+          <div class="form-group" data-pilot-dos-row hidden>
+            <label for="mythic-wreck-dos-${esc(dialogId)}">Degrees of Success</label>
+            <input id="mythic-wreck-dos-${esc(dialogId)}" name="degreesOfSuccess" type="number" min="0" step="1" value="0" disabled />
+          </div>
+          <div class="form-group">
+            <label for="mythic-wreck-restraints-${esc(dialogId)}">Crew Restraints</label>
+            <select id="mythic-wreck-restraints-${esc(dialogId)}" name="crewRestrained">
+              <option value="yes" selected>Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div class="mythic-vehicle-hazard-dialog-preview" data-wreck-preview></div>
+        </div>
+      `,
+      render: (_event, dialog) => {
+        const form = this._getVehicleHazardDialogForm(dialogId, dialog);
+        if (!(form instanceof HTMLElement)) return;
+        const collisionSelect = form.querySelector('[name="collisionType"]');
+        const secondSpeedInput = form.querySelector('[name="secondVehicleSpeed"]');
+        const headOnRow = form.querySelector("[data-head-on-speed-row]");
+        const pilotSelect = form.querySelector('[name="pilotTestResult"]');
+        const degreesInput = form.querySelector('[name="degreesOfSuccess"]');
+        const degreesRow = form.querySelector("[data-pilot-dos-row]");
+        const preview = form.querySelector("[data-wreck-preview]");
+        const refresh = () => {
+          const isHeadOn = String(collisionSelect?.value ?? "normal") === "head-on";
+          if (headOnRow instanceof HTMLElement) headOnRow.hidden = !isHeadOn;
+          if (secondSpeedInput instanceof HTMLInputElement) secondSpeedInput.disabled = !isHeadOn;
+          const isPilotSuccess = String(pilotSelect?.value ?? "failed") === "success";
+          if (degreesRow instanceof HTMLElement) degreesRow.hidden = !isPilotSuccess;
+          if (degreesInput instanceof HTMLInputElement) degreesInput.disabled = !isPilotSuccess;
+          const profile = calculateVehicleWreck({
+            vehicleSpeed: this._getVehicleHazardDialogValue(dialogId, "vehicleSpeed", "0", dialog),
+            secondVehicleSpeed: this._getVehicleHazardDialogValue(dialogId, "secondVehicleSpeed", "0", dialog),
+            collisionType: this._getVehicleHazardDialogValue(dialogId, "collisionType", "normal", dialog),
+            vehicleWeightTonnes: this._getVehicleHazardDialogValue(dialogId, "vehicleWeightTonnes", "0", dialog),
+            pilotTestResult: this._getVehicleHazardDialogValue(dialogId, "pilotTestResult", "failed", dialog),
+            degreesOfSuccess: this._getVehicleHazardDialogValue(dialogId, "degreesOfSuccess", "0", dialog),
+            crewRestrained: this._getVehicleHazardDialogValue(dialogId, "crewRestrained", "yes", dialog) === "yes",
+            openTop: defaults.openTop
+          });
+          if (preview instanceof HTMLElement) {
+            preview.innerHTML = `Wrecking: <strong>${profile.baseWreckDice}d10</strong> &middot; Rolling: <strong>${profile.totalRolls}</strong> roll(s), <strong>${profile.rollingDamageDice}d10/${profile.rollingDamageDice}d5</strong>`;
+          }
+        };
+        form.querySelectorAll("input, select").forEach((input) => {
+          input.addEventListener("input", refresh);
+          input.addEventListener("change", refresh);
+        });
+        refresh();
+      },
+      buttons: [
+        {
+          action: "roll",
+          label: "Roll Wreck",
+          callback: (_event, _button, dialog) => {
+            const form = this._getVehicleHazardDialogForm(dialogId, dialog);
+            if (!(form instanceof HTMLElement)) return null;
+            return {
+              vehicleSpeed: this._getVehicleHazardDialogValue(dialogId, "vehicleSpeed", "0", dialog),
+              secondVehicleSpeed: this._getVehicleHazardDialogValue(dialogId, "secondVehicleSpeed", "0", dialog),
+              collisionType: this._getVehicleHazardDialogValue(dialogId, "collisionType", "normal", dialog),
+              vehicleWeightTonnes: this._getVehicleHazardDialogValue(dialogId, "vehicleWeightTonnes", "0", dialog),
+              pilotTestResult: this._getVehicleHazardDialogValue(dialogId, "pilotTestResult", "failed", dialog),
+              degreesOfSuccess: this._getVehicleHazardDialogValue(dialogId, "degreesOfSuccess", "0", dialog),
+              crewRestrained: this._getVehicleHazardDialogValue(dialogId, "crewRestrained", "yes", dialog) === "yes",
+              openTop: defaults.openTop
+            };
+          }
+        },
+        { action: "cancel", label: "Cancel", callback: () => null }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  }
+
+  async _promptVehicleSplatterDialog(vehicleSystem = null) {
+    const defaults = this._getVehicleHazardDialogDefaults(vehicleSystem);
+    const dialogId = foundry.utils.randomID();
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const defaultWeight = formatVehicleHazardNumber(defaults.weightTonnes, 3);
+
+    return foundry.applications.api.DialogV2.wait({
+      window: { title: "Vehicle Splatter" },
+      content: `
+        <div class="mythic-vehicle-hazard-dialog" data-mythic-vehicle-hazard-dialog="${esc(dialogId)}">
+          <div class="form-group">
+            <label for="mythic-splatter-speed-${esc(dialogId)}">Vehicle Speed (MpT)</label>
+            <input id="mythic-splatter-speed-${esc(dialogId)}" name="vehicleSpeed" type="number" min="0" step="1" value="${esc(String(defaults.speed))}" />
+          </div>
+          <div class="form-group">
+            <label for="mythic-splatter-weight-${esc(dialogId)}">Vehicle Weight (metric tonnes)</label>
+            <input id="mythic-splatter-weight-${esc(dialogId)}" name="vehicleWeightTonnes" type="number" min="0" step="0.001" value="${esc(defaultWeight)}" />
+          </div>
+          <div class="form-group">
+            <label for="mythic-splatter-test-${esc(dialogId)}">Target Agility or Strength Test</label>
+            <select id="mythic-splatter-test-${esc(dialogId)}" name="testResult">
+              <option value="passed" selected>Passed</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
+          <div class="form-group" data-dof-row hidden>
+            <label for="mythic-splatter-dof-${esc(dialogId)}">Degrees of Failure</label>
+            <input id="mythic-splatter-dof-${esc(dialogId)}" name="degreesOfFailure" type="number" min="0" step="1" value="0" disabled />
+          </div>
+          <div class="mythic-vehicle-hazard-dialog-preview" data-splatter-preview></div>
+        </div>
+      `,
+      render: (_event, dialog) => {
+        const form = this._getVehicleHazardDialogForm(dialogId, dialog);
+        if (!(form instanceof HTMLElement)) return;
+        const testSelect = form.querySelector('[name="testResult"]');
+        const degreesInput = form.querySelector('[name="degreesOfFailure"]');
+        const degreesRow = form.querySelector("[data-dof-row]");
+        const preview = form.querySelector("[data-splatter-preview]");
+        const refresh = () => {
+          const isFailed = String(testSelect?.value ?? "passed") === "failed";
+          if (degreesRow instanceof HTMLElement) degreesRow.hidden = !isFailed;
+          if (degreesInput instanceof HTMLInputElement) degreesInput.disabled = !isFailed;
+          const profile = calculateVehicleSplatter({
+            vehicleSpeed: this._getVehicleHazardDialogValue(dialogId, "vehicleSpeed", "0", dialog),
+            vehicleWeightTonnes: this._getVehicleHazardDialogValue(dialogId, "vehicleWeightTonnes", "0", dialog),
+            testResult: this._getVehicleHazardDialogValue(dialogId, "testResult", "passed", dialog),
+            degreesOfFailure: this._getVehicleHazardDialogValue(dialogId, "degreesOfFailure", "0", dialog)
+          });
+          if (preview instanceof HTMLElement) {
+            const extraText = profile.additionalDamageKind === "dice"
+              ? ` + ${profile.additionalDamageDice}d10`
+              : (profile.additionalDamageKind === "weighted" ? " + 1d10 + (1d10 × weight)" : "");
+            preview.innerHTML = `Base: <strong>${profile.baseDamageDice}d10</strong>${extraText} &middot; Hit Locations: <strong>${profile.hitLocationCount}</strong>`;
+          }
+        };
+        form.querySelectorAll("input, select").forEach((input) => {
+          input.addEventListener("input", refresh);
+          input.addEventListener("change", refresh);
+        });
+        refresh();
+      },
+      buttons: [
+        {
+          action: "roll",
+          label: "Roll Splatter",
+          callback: (_event, _button, dialog) => {
+            const form = this._getVehicleHazardDialogForm(dialogId, dialog);
+            if (!(form instanceof HTMLElement)) return null;
+            return {
+              vehicleSpeed: this._getVehicleHazardDialogValue(dialogId, "vehicleSpeed", "0", dialog),
+              vehicleWeightTonnes: this._getVehicleHazardDialogValue(dialogId, "vehicleWeightTonnes", "0", dialog),
+              testResult: this._getVehicleHazardDialogValue(dialogId, "testResult", "passed", dialog),
+              degreesOfFailure: this._getVehicleHazardDialogValue(dialogId, "degreesOfFailure", "0", dialog)
+            };
+          }
+        },
+        { action: "cancel", label: "Cancel", callback: () => null }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  }
+
+  _buildVehicleWreckChatCard({ profile, baseWreckDamage, rollingRows = [] } = {}) {
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const row = (label, value) => `<div class="mythic-vehicle-hazard-row"><strong>${esc(label)}</strong><span>${value}</span></div>`;
+    const section = (title, body) => `
+      <section class="mythic-vehicle-hazard-section">
+        <h4>${esc(title)}</h4>
+        ${body}
+      </section>
+    `;
+    const vehicleDamageTotal = rollingRows.reduce((sum, entry) => sum + (Number(entry?.vehicleDamage?.total ?? 0) || 0), 0);
+    const characterRawTotal = rollingRows.reduce((sum, entry) => sum + (Number(entry?.characterRawTotal ?? 0) || 0), 0);
+    const characterFinalTotal = rollingRows.reduce((sum, entry) => sum + (Number(entry?.characterFinalTotal ?? 0) || 0), 0);
+    const collisionSpeedText = profile?.collisionType === "head-on"
+      ? `${profile.vehicleSpeed} + ${profile.secondVehicleSpeed} = ${profile.collisionSpeed} MpT`
+      : `${profile.collisionSpeed} MpT`;
+    const pilotText = profile?.pilotSucceeded
+      ? `Success: 1 + DOS ${profile.degreesOfSuccess} = ${profile.pilotReduction} roll(s)`
+      : "Failed: 0 roll reduction";
+    const rollingTable = rollingRows.length
+      ? `
+        <table class="mythic-vehicle-hazard-table">
+          <thead>
+            <tr><th>Roll</th><th>Vehicle Damage</th><th>Character Damage</th></tr>
+          </thead>
+          <tbody>
+            ${rollingRows.map((entry) => `
+              <tr>
+                <td>${entry.index}</td>
+                <td>${this._formatVehicleHazardRollResult(entry.vehicleDamage)}</td>
+                <td>
+                  ${this._formatVehicleHazardRollResult(entry.characterDamage)}
+                  ${profile?.crewRestrained ? `<span class="mythic-vehicle-hazard-formula">→ ${esc(formatVehicleHazardNumber(entry.characterFinalTotal))} restrained</span>` : ""}
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `
+      : `<div class="mythic-vehicle-hazard-empty">No rolling damage rolls were generated.</div>`;
+    const restraintText = profile?.crewRestrained
+      ? "Yes — character damage is halved per roll, rounding down."
+      : "No — full character damage applies.";
+    const ejectionWarning = !profile?.crewRestrained && profile?.openTop
+      ? row("Open-Top Warning", "Unrestrained crew in an Open-Top vehicle have a 10% ejection chance per roll. Roll this manually if needed.")
+      : "";
+    const specialFlag = profile?.requiresSpecialDamage
+      ? section("Special Damage", `<div class="mythic-vehicle-hazard-alert">Special Damage Required (roll hit locations).</div>`)
+      : "";
+
+    return `
+      <article class="mythic-chat-card mythic-vehicle-hazard-card mythic-vehicle-wreck-card">
+        <header class="mythic-chat-header">
+          <span class="mythic-chat-title">💥 VEHICLE WRECK</span>
+        </header>
+        <div class="mythic-chat-subheader">${esc(this.actor?.name ?? "Vehicle")}</div>
+        <div class="mythic-vehicle-hazard-body">
+          ${section("Speed / Collision Type", [
+            row("Collision Type", esc(profile?.collisionTypeLabel ?? "Normal Collision")),
+            row("Collision Speed", esc(collisionSpeedText)),
+            row("Vehicle Weight", `${esc(formatVehicleHazardNumber(profile?.vehicleWeightTonnes, 3))} metric tonnes`)
+          ].join(""))}
+          ${section("Total Rolls Calculation", [
+            row("Base Rolls", `floor(${profile?.collisionSpeed ?? 0} / 20) = ${profile?.baseRolls ?? 0}`),
+            row("Weight Reduction", `floor(${esc(formatVehicleHazardNumber(profile?.vehicleWeightTonnes, 3))} / 2) = ${profile?.weightReduction ?? 0}`),
+            row("After Weight", `${profile?.baseRolls ?? 0} - ${profile?.weightReduction ?? 0} = ${profile?.afterWeightReduction ?? 0}; minimum 1 → ${profile?.afterWeightMinimum ?? 1}`),
+            row("Pilot Reduction", esc(pilotText)),
+            row("Total Rolls", `max(1, ${profile?.afterWeightMinimum ?? 1} - ${profile?.pilotReduction ?? 0}) = ${profile?.totalRolls ?? 1}`)
+          ].join(""))}
+          ${section("Wrecking Damage Roll", [
+            row("Formula", `${profile?.baseWreckDice ?? 0}d10`),
+            row("Vehicle Damage", this._formatVehicleHazardRollResult(baseWreckDamage))
+          ].join(""))}
+          ${section("Rolling Damage Breakdown", [
+            row("Damage Dice Per Roll", `ceil((${profile?.totalRolls ?? 1} / 2) / 2) = ${profile?.rollingDamageDice ?? 1}`),
+            row("Rolling Vehicle Total", esc(formatVehicleHazardNumber(vehicleDamageTotal))),
+            rollingTable
+          ].join(""))}
+          ${section("Character Damage", [
+            row("Armor", "Character damage ignores armor."),
+            row("Crew Restraints", esc(restraintText)),
+            row("Character Total", `${esc(formatVehicleHazardNumber(characterRawTotal))} raw → ${esc(formatVehicleHazardNumber(characterFinalTotal))} final`),
+            ejectionWarning,
+            row("Application", "No HP, Wound, or Breakpoint values were changed automatically.")
+          ].join(""))}
+          ${specialFlag}
+        </div>
+      </article>
+    `;
+  }
+
+  _buildVehicleSplatterChatCard({ profile, baseDamage, additionalDamage = null, totalDamage = 0 } = {}) {
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const row = (label, value) => `<div class="mythic-vehicle-hazard-row"><strong>${esc(label)}</strong><span>${value}</span></div>`;
+    const section = (title, body) => `
+      <section class="mythic-vehicle-hazard-section">
+        <h4>${esc(title)}</h4>
+        ${body}
+      </section>
+    `;
+    const testText = profile?.testPassed ? "Passed" : `Failed (${profile?.degreesOfFailure ?? 0} DOF)`;
+    const additionalText = additionalDamage
+      ? this._formatVehicleHazardRollResult(additionalDamage)
+      : "None";
+    const outcomeDetail = (() => {
+      if (profile?.testPassed) return "Target thrown aside. No additional damage.";
+      if (profile?.outcomeKey === "pinned") return "Target is pinned under or against the vehicle.";
+      if (profile?.outcomeKey === "thrown-over") return "Target is thrown over the vehicle.";
+      return "Target is run over by the vehicle.";
+    })();
+    const strengthRequirement = profile?.outcomeKey === "pinned"
+      ? section("Strength Test Requirement", row("Break Free", `Strength Test required at ${profile.strengthPenalty} (${profile.strengthPenalty} = -10 × floor(${profile.vehicleSpeed} / 20)).`))
+      : "";
+
+    return `
+      <article class="mythic-chat-card mythic-vehicle-hazard-card mythic-vehicle-splatter-card">
+        <header class="mythic-chat-header">
+          <span class="mythic-chat-title">🩸 VEHICLE SPLATTER</span>
+        </header>
+        <div class="mythic-chat-subheader">${esc(this.actor?.name ?? "Vehicle")}</div>
+        <div class="mythic-vehicle-hazard-body">
+          ${section("Speed / Weight", [
+            row("Vehicle Speed", `${profile?.vehicleSpeed ?? 0} MpT`),
+            row("Vehicle Weight", `${esc(formatVehicleHazardNumber(profile?.vehicleWeightTonnes, 3))} metric tonnes`),
+            row("Damage Dice", `1 + floor(${profile?.vehicleSpeed ?? 0} / 20) = ${profile?.baseDamageDice ?? 1}d10`)
+          ].join(""))}
+          ${section("Base Damage Roll", [
+            row("Damage", this._formatVehicleHazardRollResult(baseDamage)),
+            row("Armor", "Uses the target's lowest armor."),
+            row("Special Damage", "Deals Special Damage.")
+          ].join(""))}
+          ${section("Hit Locations", [
+            row("Locations", `ceil(${profile?.baseDamageDice ?? 1} / 2) = ${profile?.hitLocationCount ?? 1}`),
+            row("Instruction", "Roll hit location(s) manually: 1 location per 2d10 base splatter damage.")
+          ].join(""))}
+          ${section("Outcome", [
+            row("Target Test", esc(testText)),
+            row(profile?.outcomeLabel ?? "Outcome", esc(outcomeDetail))
+          ].join(""))}
+          ${section("Additional Damage", [
+            row("Roll", additionalText),
+            row("Total Damage", `${esc(formatVehicleHazardNumber(baseDamage?.total ?? 0))} base + ${esc(formatVehicleHazardNumber(additionalDamage?.total ?? 0))} additional = ${esc(formatVehicleHazardNumber(totalDamage))}`),
+            row("Application", "No HP or Wound values were changed automatically.")
+          ].join(""))}
+          ${strengthRequirement}
+        </div>
+      </article>
+    `;
+  }
+
+  async _onVehicleWreck(event) {
+    event.preventDefault();
+    if (!this._isVehicleActor()) return;
+
+    const vehicleSystem = normalizeVehicleSystemData(this.actor?.system ?? {});
+    const inputs = await this._promptVehicleWreckDialog(vehicleSystem);
+    if (!inputs) return;
+
+    const profile = calculateVehicleWreck(inputs);
+    const rolls = [];
+    const baseWreckDamage = await this._rollVehicleHazardFormula(
+      profile.baseWreckDice > 0 ? `${profile.baseWreckDice}d10` : "0",
+      rolls,
+      "Wrecking damage"
+    );
+    const rollingRows = [];
+    for (let rollIndex = 0; rollIndex < profile.totalRolls; rollIndex += 1) {
+      const vehicleDamage = await this._rollVehicleHazardFormula(`${profile.rollingDamageDice}d10`, rolls, `Rolling vehicle damage ${rollIndex + 1}`);
+      const characterDamage = await this._rollVehicleHazardFormula(`${profile.rollingDamageDice}d5`, rolls, `Rolling character damage ${rollIndex + 1}`);
+      const characterRawTotal = Number(characterDamage?.total ?? 0) || 0;
+      const characterFinalTotal = profile.crewRestrained ? Math.floor(characterRawTotal / 2) : characterRawTotal;
+      rollingRows.push({
+        index: rollIndex + 1,
+        vehicleDamage,
+        characterDamage,
+        characterRawTotal,
+        characterFinalTotal
+      });
+    }
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content: this._buildVehicleWreckChatCard({ profile, baseWreckDamage, rollingRows }),
+      rolls,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+      flags: {
+        "Halo-Mythic-Foundry-Updated": {
+          vehicleHazard: {
+            type: "wreck",
+            profile: foundry.utils.deepClone(profile)
+          }
+        }
+      }
+    });
+  }
+
+  async _onVehicleSplatter(event) {
+    event.preventDefault();
+    if (!this._isVehicleActor()) return;
+
+    const vehicleSystem = normalizeVehicleSystemData(this.actor?.system ?? {});
+    const defaults = this._getVehicleHazardDialogDefaults(vehicleSystem);
+    await mythicPostVehicleSplatter({
+      actor: this.actor,
+      vehicleSpeed: defaults.speed,
+      vehicleWeightTonnes: defaults.weightTonnes
+    });
   }
 
   async _onVehicleFullRepair(event) {
@@ -3849,9 +4815,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : "";
     const weaponState = buildDefaultWeaponStateEntry(entry?.weaponState ?? {});
     const ammo = buildDefaultVehicleWeaponAmmoState(entry?.ammo ?? {});
+    const location = this._normalizeVehicleWalkerMountLocation(entry?.location);
     return {
       id: String(entry?.id ?? fallbackId ?? foundry.utils.randomID()).trim() || fallbackId || foundry.utils.randomID(),
       weaponItemId: String(entry?.weaponItemId ?? "").trim(),
+      location,
+      unavailable: Boolean(entry?.unavailable),
       controllerRole,
       controllerIndex: controllerRole ? toNonNegativeWhole(entry?.controllerIndex ?? entry?.controllerPosition, 0) : 0,
       linked,
@@ -3891,7 +4860,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.vehicleMount.controllerRole": "",
       "system.vehicleMount.controllerPosition": 0,
       "system.vehicleMount.linked": false,
-      "system.vehicleMount.linkedCount": 1
+      "system.vehicleMount.linkedCount": 1,
+      "system.vehicleMount.location": ""
     };
   }
 
@@ -3904,7 +4874,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.vehicleMount.controllerRole": "",
       "system.vehicleMount.controllerPosition": 0,
       "system.vehicleMount.linked": false,
-      "system.vehicleMount.linkedCount": 1
+      "system.vehicleMount.linkedCount": 1,
+      "system.vehicleMount.location": ""
     };
   }
 
@@ -3919,7 +4890,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         controllerRole: "",
         controllerPosition: 0,
         linked: false,
-        linkedCount: 1
+        linkedCount: 1,
+        location: ""
       }
     }, itemName);
   }
@@ -3935,7 +4907,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         controllerRole: "",
         controllerPosition: 0,
         linked: false,
-        linkedCount: 1
+        linkedCount: 1,
+        location: ""
       }
     }, itemName);
   }
@@ -4250,6 +5223,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const weaponState = (entry?.weaponState && typeof entry.weaponState === "object")
         ? entry.weaponState
         : {};
+      const walkerLocation = String(entry?.location ?? "").trim();
+      const isWalkerLocationUnavailable = this._isVehicleWalkerLocationUnavailable(source, walkerLocation);
       const ammoContext = weaponEntry?.item
         ? this._getVehicleWeaponAmmoContext(entry, weaponEntry.item, source)
         : null;
@@ -4320,6 +5295,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         linked: Boolean(entry.linked),
         linkedCount: Math.max(1, toNonNegativeWhole(entry.linkedCount, entry.linked ? 2 : 1)),
         showLinkedCount: Boolean(entry.linked),
+        location: walkerLocation,
+        locationLabel: this._getVehicleWalkerLocationLabel(walkerLocation, source, { short: true }),
+        locationOptions: this._buildVehicleWalkerContext(source).locationOptions,
+        isWalkerLocationUnavailable,
         useNeuralLink: entry?.useNeuralLink === true,
         neuralLinkOperatorSeatKey: String(entry?.neuralLinkOperatorSeatKey ?? "").trim(),
         weaponState: foundry.utils.deepClone(entry?.weaponState ?? {})
@@ -4444,6 +5423,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const controllerSeat = controllerSeatKey ? seatMap.get(controllerSeatKey) ?? null : null;
     const weaponTrackerCurrent = Number(source?.overview?.breakpoints?.weapons?.byId?.[normalizedEmplacementId]?.current ?? 0);
     const weaponDisabled = normalizedEmplacementId && weaponTrackerCurrent <= 0;
+    const walkerLocation = String(emplacement?.location ?? "").trim();
+    const walkerLocationDisabled = this._isVehicleWalkerLocationUnavailable(source, walkerLocation);
     const engineAimingDisabled = Boolean(source?.doomed?.doomedEngineAimingDisabled ?? source?.breakpoints?.hull?.doom?.doomedEngineAimingDisabled);
 
     let activeUserActor = null;
@@ -4454,6 +5435,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (weaponDisabled) {
       disableReason = "Weapon offline.";
+    } else if (walkerLocationDisabled) {
+      const locationLabel = this._getVehicleWalkerLocationLabel(walkerLocation, source);
+      disableReason = `${locationLabel} disabled.`;
     } else if (engineAimingDisabled) {
       disableReason = "Engine-powered weapons can no longer turn and aim.";
     } else if (useNeuralLink) {
@@ -4786,6 +5770,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const nextLinkedCount = Math.max(1, toNonNegativeWhole(event.currentTarget?.value, nextEntry.linkedCount || 1));
         nextEntry.linkedCount = nextLinkedCount;
         nextEntry.linked = nextLinkedCount > 1;
+        break;
+      }
+      case "location": {
+        nextEntry.location = this._normalizeVehicleWalkerMountLocation(event.currentTarget?.value);
         break;
       }
       default:
@@ -9980,6 +10968,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       );
       const normalizedVehicleSystem = normalizeVehicleSystemData(mergedVehicleSystem);
       foundry.utils.setProperty(submitData, "system.overview", foundry.utils.deepClone(normalizedVehicleSystem.overview));
+      foundry.utils.setProperty(submitData, "system.isWalker", Boolean(normalizedVehicleSystem.isWalker));
+      foundry.utils.setProperty(submitData, "system.walker", foundry.utils.deepClone(normalizedVehicleSystem.walker));
+      foundry.utils.setProperty(submitData, "system.weaponEmplacements", foundry.utils.deepClone(normalizedVehicleSystem.weaponEmplacements));
     }
 
     const submittedHeightCm = Number(foundry.utils.getProperty(submitData, "system.biography.physical.heightCm"));
@@ -10605,11 +11596,31 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           });
         });
       }
-      root.querySelectorAll(".vehicle-overview-toggle[data-target-path]").forEach((button) => {
+      root.querySelectorAll('[data-action="splatter"]').forEach((button) => {
         button.addEventListener("click", (event) => {
-          void this._onToggleVehicleOverviewSection(event);
+          void this._onVehicleSplatter(event);
         });
       });
+      root.querySelectorAll('[data-action="wreck"]').forEach((button) => {
+        button.addEventListener("click", (event) => {
+          void this._onVehicleWreck(event);
+        });
+      });
+        root.querySelectorAll('[data-action="walker-evasion"]').forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onWalkerEvasionRoll(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-walker-melee-attack-btn[data-walker-attack][data-action]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onVehicleWalkerMeleeAttack(event);
+          });
+        });
+        root.querySelectorAll(".vehicle-overview-toggle[data-target-path]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            void this._onToggleVehicleOverviewSection(event);
+          });
+        });
       root.querySelectorAll(".vehicle-overview-detonate-btn").forEach((button) => {
         button.addEventListener("click", (event) => {
           void this._onVehicleOverviewDetonate(event);
@@ -10706,7 +11717,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     tabs.bind(root);
 
     if (!hasOpenedActorSheet) {
-      void this.actor.setFlag("Halo-Mythic-Foundry-Updated", MYTHIC_ACTOR_SHEET_OPENED_FLAG_KEY, true);
+      void this.actor.update({
+        [`flags.Halo-Mythic-Foundry-Updated.${MYTHIC_ACTOR_SHEET_OPENED_FLAG_KEY}`]: true
+      }, { render: false });
     }
 
     const scrollable = this._getActivePrimaryScrollable(root);
@@ -20848,15 +21861,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
+    const initialTargetMode = _deriveTargetModeFromToken(targets?.[0] ?? null);
     const attackMods = await this._promptAttackModifiers(weaponDisplayName, gear, {
       actor: attackActor,
       sourceActor: isVehicleWeaponAttack ? weaponOwnerActor : attackActor,
       explicitSourceToken: this.token ?? null,
       targetsSnapshot: targets,
       sceneId: canvas?.scene?.id ?? game.scenes?.active?.id ?? "",
-      vehicleTargetingContext
+      vehicleTargetingContext,
+      targetMode: initialTargetMode
     });
     if (attackMods === null) return;
+    const finalTargetMode = String(attackMods.targetMode ?? "character");
 
     const promptRangeMeters = attackMods.rangeMeters === null || attackMods.rangeMeters === undefined
       ? NaN
@@ -21480,20 +22496,47 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const standardDosValue = actionType === "execution"
         ? dosValue
         : computeAttackDOS(standardEffectiveTarget, rawRoll);
-      const defaultHitLoc = actionType === "execution"
+      const defaultHitLocRaw = actionType === "execution"
         ? { zone: "Execution", subZone: "Point Blank", drKey: "chest", locRoll: null }
-        : resolveHitLocation(rawRoll);
-      const calledShotLocation = (calledShotData?.kind === "location" && calledShotData?.drKey)
-        ? {
-            zone: String(calledShotData.zone ?? "").trim() || defaultHitLoc.zone,
-            subZone: String(calledShotData.subZone ?? "").trim() || String(calledShotData.zone ?? "").trim() || defaultHitLoc.subZone,
-            drKey: String(calledShotData.drKey ?? "").trim() || defaultHitLoc.drKey,
+        : resolveHitLocationForMode(rawRoll, finalTargetMode);
+      const defaultHitLoc = (finalTargetMode === "vehicle" && defaultHitLocRaw)
+        ? _applyVehicleHitFallback(defaultHitLocRaw, targets?.[0]?.actor ?? targets?.[0]?.document?.actor ?? null)
+        : defaultHitLocRaw;
+      const calledShotLocation = (() => {
+        if (!calledShotData?.drKey) return null;
+        const kind = String(calledShotData.kind ?? "");
+        if (kind === "location") {
+          return {
+            zone: String(calledShotData.zone ?? "").trim() || defaultHitLoc?.zone,
+            subZone: String(calledShotData.subZone ?? "").trim() || String(calledShotData.zone ?? "").trim() || defaultHitLoc?.subZone,
+            drKey: String(calledShotData.drKey ?? "").trim() || defaultHitLoc?.drKey,
             locRoll: null
-          }
-        : null;
+          };
+        }
+        if (kind === "vehicle-section") {
+          return {
+            zone: String(calledShotData.zone ?? "").trim(),
+            sectionKey: String(calledShotData.sectionKey ?? "hull"),
+            drKey: String(calledShotData.drKey ?? "hull"),
+            locRoll: null
+          };
+        }
+        if (kind === "walker-zone") {
+          return {
+            zone: String(calledShotData.zone ?? "").trim(),
+            subZone: String(calledShotData.subZone ?? calledShotData.zone ?? "").trim(),
+            sectionKey: String(calledShotData.sectionKey ?? "chest"),
+            drKey: String(calledShotData.drKey ?? "chest"),
+            locRoll: null
+          };
+        }
+        return null;
+      })();
       const calledShotTargetLabel = (() => {
         if (!calledShotData) return "";
         if (calledShotData.kind === "weapon") return String(calledShotData.label ?? "Weapon").trim() || "Weapon";
+        if (calledShotData.kind === "vehicle-section") return String(calledShotData.zone ?? "").trim() || "Section";
+        if (calledShotData.kind === "walker-zone") return String(calledShotData.zone ?? "").trim() || "Zone";
         const zone = String(calledShotData.zone ?? "").trim();
         const subZone = String(calledShotData.subZone ?? "").trim();
         if (calledShotData.isSublocation && zone && subZone) return `${zone} -> ${subZone}`;
@@ -21594,6 +22637,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         grenadeThrowMultiplier,
         grenadeThrowDistanceMeters,
         hitLoc,
+        targetMode: finalTargetMode,
         damageInstances,
         wouldDamage
       };
@@ -21773,9 +22817,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           const hitLines = row.damageInstances.map((entry, idx) => {
             const grenadeBlast = Number(entry.damageTotal ?? 0);
             const grenadeKill = grenadeBlast * 2;
-            const locHtml = row.hitLoc
-              ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
-              : `<em>-</em>`;
+            const locHtml = _buildHitLocHtml(row.hitLoc, finalTargetMode, esc);
             const damageTitle = entry.rollTooltip || esc(`Damage roll: ${entry.damageTotal} [${entry.damageFormula}]`);
             const specialBadge = entry.hasSpecialDamage ? ' <span class="mythic-special-dmg" title="Special Damage Applies">&#9888;</span>' : "";
             const shieldBadge = entry.ignoresShields ? ' <span class="mythic-special-dmg" title="Ignores Shields">&#9762;</span>' : "";
@@ -21845,9 +22887,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const failedRows = attackRows.filter((row) => !row.isClick && (!row.isSuccess || row.isCritFail));
     const failureDetails = !isGrenadeWeapon && failedRows.length
       ? `<details class="mythic-miss-details"><summary>Reveal damage details for failures</summary>${failedRows.map((row) => {
-        const locHtml = row.hitLoc
-          ? `<strong class="mythic-subloc">${esc(row.hitLoc.subZone)}</strong> <span class="mythic-zone-label">(${esc(row.hitLoc.zone)})</span>`
-          : `<em>-</em>`;
+        const locHtml = _buildHitLocHtml(row.hitLoc, finalTargetMode, esc);
         const would = row.wouldDamage?.[0] ?? null;
         const wouldTitle = would?.rollTooltip || (would ? esc(`Would deal: ${would.damageTotal} [${would.damageFormula}]`) : "");
         return `<div class="mythic-attack-subline">A${row.index}: would hit ${locHtml}${would ? ` for <span class="mythic-roll-inline" title="${wouldTitle}">${would.damageTotal}</span> [${esc(would.damageFormula)}], Pierce ${would.damagePierce}` : ""}</div>`;
@@ -21987,7 +23027,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       throwStrengthPower: Number(grenadeThrowProfile?.strengthPower ?? 0),
       throwWeightKg: Number(grenadeThrowProfile?.throwWeightKg ?? 0),
       timerDelayRounds: toNonNegativeWhole(gear.timerDelayRounds, 1),
-      sceneId: canvas?.scene?.id ?? null
+      sceneId: canvas?.scene?.id ?? null,
+      targetMode: finalTargetMode,
+      hitLocRows: attackRows.filter((row) => !row.isClick).map((row) => ({
+        index: row.index,
+        rawRoll: row.rawRoll,
+        locRoll: row.hitLoc?.locRoll ?? null,
+        targetMode: finalTargetMode,
+        calledShotIntent: calledShotData ? { kind: String(calledShotData.kind ?? ""), zone: String(calledShotData.zone ?? ""), sectionKey: String(calledShotData.sectionKey ?? ""), penalty: Number(calledShotData.penalty ?? 0) } : null,
+        hitLoc: row.hitLoc ? foundry.utils.deepClone(row.hitLoc) : null
+      }))
     };
 
     // If this is a grenade throw action, consume one grenade now
@@ -22640,10 +23689,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async _promptAttackModifiers(weaponName, gear = null, options = {}) {
+    const rawMode = String(options?.targetMode ?? "character").trim().toLowerCase();
+    const targetMode = ["vehicle", "walker"].includes(rawMode) ? rawMode : "character";
     return promptAttackModifiersDialog({
       actor: options?.actor ?? this.actor,
       weaponName,
       gear,
+      targetMode,
       vehicleTargetingContext: (options?.vehicleTargetingContext && typeof options.vehicleTargetingContext === "object")
         ? options.vehicleTargetingContext
         : null,
@@ -22770,6 +23822,661 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
       content,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _runUniversalTestWithSpeaker({
+    speakerActor,
+    label,
+    targetValue,
+    invalidTargetWarning,
+    successLabel = "Success",
+    failureLabel = "Failure",
+    successDegreeLabel = "DOS",
+    failureDegreeLabel = "DOF"
+  }) {
+    if (!speakerActor) return;
+    if (!Number.isFinite(targetValue) || targetValue <= 0) {
+      ui.notifications.warn(invalidTargetWarning);
+      return;
+    }
+
+    const miscModifier = await this._promptMiscModifier(label);
+    if (miscModifier === null) return;
+
+    const effectiveTarget = targetValue + miscModifier;
+    const roll = await (new Roll("1d100")).evaluate();
+    const rolled = Number(roll.total);
+    const success = rolled <= effectiveTarget;
+    const content = buildUniversalTestChatCard({
+      label,
+      targetValue: effectiveTarget,
+      rolled,
+      success,
+      successLabel,
+      failureLabel,
+      successDegreeLabel,
+      failureDegreeLabel,
+      miscModifier
+    });
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: speakerActor }),
+      content,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+  }
+
+  async _promptVehicleWalkerMeleeOperator(operatorSeats = [], attackName = "Walker attack") {
+    const seats = Array.isArray(operatorSeats) ? operatorSeats.filter((seat) => seat?.actorDoc) : [];
+    if (seats.length <= 1) return seats[0] ?? null;
+
+    const esc = foundry.utils.escapeHTML;
+    const options = seats.map((seat, index) => {
+      const value = String(seat?.seatKey ?? "").trim();
+      const label = String(seat?.display ?? seat?.seatLabel ?? `Operator ${index + 1}`).trim() || `Operator ${index + 1}`;
+      return `<option value="${esc(value)}">${esc(label)}</option>`;
+    }).join("");
+
+    const selectedSeatKey = await foundry.applications.api.DialogV2.wait({
+      window: { title: `${attackName} Operator` },
+      content: `
+        <form>
+          <div class="form-group">
+            <label for="mythic-walker-melee-operator">Operator</label>
+            <select id="mythic-walker-melee-operator">${options}</select>
+            <p class="hint">Any assigned operator may operate walker melee attacks.</p>
+          </div>
+        </form>
+      `,
+      buttons: [
+        {
+          action: "attack",
+          label: "Continue",
+          callback: () => String(document.getElementById("mythic-walker-melee-operator")?.value ?? "").trim()
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+
+    if (!selectedSeatKey) return null;
+    return seats.find((seat) => String(seat?.seatKey ?? "").trim() === selectedSeatKey) ?? null;
+  }
+
+  async _onVehicleWalkerMeleeAttack(event) {
+    event.preventDefault();
+    if (!this._isVehicleActor()) return;
+
+    const attackKey = String(event.currentTarget?.dataset?.walkerAttack ?? "").trim().toLowerCase();
+    const actionTypeRaw = String(event.currentTarget?.dataset?.action ?? "single").trim().toLowerCase();
+    const actionType = ["single", "half", "full"].includes(actionTypeRaw) ? actionTypeRaw : "single";
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    if (!vehicleSystem?.isWalker) {
+      ui.notifications?.warn("Walker mode is not enabled for this vehicle.");
+      return;
+    }
+
+    const meleeContext = this._buildVehicleWalkerMeleeContext(vehicleSystem, vehicleSystem?.walker?.derived ?? null);
+    const attackProfile = (Array.isArray(meleeContext?.cards) ? meleeContext.cards : [])
+      .find((card) => String(card?.key ?? "").trim().toLowerCase() === attackKey);
+    if (!attackProfile) {
+      ui.notifications?.warn("That walker melee attack is not available.");
+      return;
+    }
+
+    const operatorSeat = await this._promptVehicleWalkerMeleeOperator(
+      this._getVehicleWalkerMeleeOperatorSeats(vehicleSystem),
+      attackProfile.name
+    );
+    const attackActor = operatorSeat?.actorDoc ?? null;
+    if (!attackActor) {
+      ui.notifications?.warn("Assign an operator to use walker melee attacks.");
+      return;
+    }
+
+    const pacifistTestPassed = await this._checkPacifistTrait(attackActor);
+    if (!pacifistTestPassed) return;
+
+    const isStomp = attackKey === "stomp";
+    const specialRules = isStomp ? ["Slow", "Kinetic"] : [];
+    const isKinetic = isStomp;
+    const reach = Math.max(0, Math.min(99, toNonNegativeWhole(vehicleSystem?.walker?.reach, 0)));
+    const syntheticGear = {
+      weaponClass: "melee",
+      equipmentType: "melee-weapon",
+      range: { close: reach, max: reach },
+      baseToHitModifier: 0,
+      weaponTagKeys: [],
+      weaponSpecialRuleKeys: isStomp ? ["slow", "kinetic"] : [],
+      specialRules: specialRules.join(", "),
+      damage: { pierce: 0 }
+    };
+
+    const targets = [...(game.user.targets ?? [])].filter(Boolean);
+    const targetToken = targets[0] ?? null;
+    const targetName = targetToken?.document?.name ?? targetToken?.name ?? null;
+    const targetTokenIds = targets.map((token) => String(token.id ?? "")).filter(Boolean);
+    const targetActorIds = targets.map((token) => String(token.actor?.id ?? "")).filter(Boolean);
+    const weaponDisplayName = `${this.actor.name} ${attackProfile.name}`;
+    const attackMods = await this._promptAttackModifiers(weaponDisplayName, syntheticGear, {
+      actor: attackActor,
+      sourceActor: this.actor,
+      explicitSourceToken: this.token ?? null,
+      targetsSnapshot: targets,
+      sceneId: canvas?.scene?.id ?? game.scenes?.active?.id ?? "",
+      targetMode: "walker"
+    });
+    if (attackMods === null) return;
+    const finalTargetMode = "walker";
+
+    const characteristicRuntime = await this._getLiveCharacteristicRuntime(attackActor);
+    const baseStat = toNonNegativeWhole(characteristicRuntime?.scores?.wfm, 0);
+    const warfareMeleeModifier = Number(characteristicRuntime?.modifiers?.wfm ?? 0);
+    const attackCounts = this._getVehicleWalkerMeleeAttackCounts(warfareMeleeModifier, { slow: isStomp });
+    const rollIterations = actionType === "full"
+      ? attackCounts.full
+      : actionType === "half"
+        ? attackCounts.half
+        : attackCounts.single;
+    if (rollIterations <= 0) {
+      ui.notifications?.warn(`${attackProfile.name} cannot be used as a ${actionType} action.`);
+      return;
+    }
+
+    const promptedDamageMod = (() => {
+      const raw = String(attackMods.damageMod ?? "0").trim();
+      if (!raw || raw === "0") return { kind: "flat", value: 0 };
+      const num = Number(raw);
+      if (Number.isFinite(num)) return { kind: "flat", value: Math.round(num) };
+      if (/^\d+d\d+$/iu.test(raw)) return { kind: "dice", raw };
+      return { kind: "flat", value: 0 };
+    })();
+
+    const calledShotPenalty = Number(attackMods.calledShotPenalty ?? 0);
+    const calledShotData = attackMods.calledShot && typeof attackMods.calledShot === "object"
+      ? attackMods.calledShot
+      : null;
+    const promptRangeMeters = attackMods.rangeMeters === null || attackMods.rangeMeters === undefined
+      ? NaN
+      : Number(attackMods.rangeMeters);
+    const resolvedRangeMeters = Number.isFinite(promptRangeMeters) && promptRangeMeters >= 0 ? promptRangeMeters : NaN;
+    const rangeResult = computeRangeModifier(resolvedRangeMeters, reach, reach, true);
+
+    const trackedCombat = isActorActivelyInCombat(attackActor) ? game.combat : null;
+    let targetSwitchPenalty = 0;
+    if (trackedCombat) {
+      const combatId = String(trackedCombat.id ?? "");
+      const round = Math.max(0, Number(trackedCombat.round ?? 0));
+      const currentTargetId = String(targetToken?.id ?? "");
+      const tracker = attackActor.system?.combat?.targetSwitch ?? {};
+      const isSameRound = String(tracker?.combatId ?? "") === combatId && Number(tracker?.round ?? -1) === round;
+      let switchCount = isSameRound ? Math.max(0, Number(tracker?.switchCount ?? 0)) : 0;
+      const lastTargetId = isSameRound ? String(tracker?.lastTargetId ?? "") : "";
+      if (currentTargetId && lastTargetId && currentTargetId !== lastTargetId) switchCount += 1;
+      targetSwitchPenalty = switchCount * -10;
+      await attackActor.update({
+        "system.combat.targetSwitch": {
+          combatId,
+          round,
+          lastTargetId: currentTargetId || lastTargetId,
+          switchCount
+        }
+      });
+    }
+
+    const effectiveTarget = baseStat
+      + Number(rangeResult.toHitMod ?? 0)
+      + targetSwitchPenalty
+      + Number(attackMods.toHitMod ?? 0)
+      + calledShotPenalty;
+
+    const diceCount = attackKey === "punch"
+      ? toNonNegativeWhole(meleeContext?.punch?.diceCount, 3)
+      : toNonNegativeWhole(meleeContext?.stomp?.diceCount, 4);
+    const diceSize = attackKey === "punch"
+      ? (toNonNegativeWhole(meleeContext?.punch?.diceSize, 10) === 5 ? 5 : 10)
+      : (toNonNegativeWhole(meleeContext?.stomp?.diceSize, 10) === 5 ? 5 : 10);
+    const baseFlat = Math.max(0, Math.round(Number(attackProfile?.modifierValue ?? 0) || 0));
+    const flatDamage = baseFlat + (promptedDamageMod.kind === "flat" ? Number(promptedDamageMod.value ?? 0) : 0);
+    const diceFormula = diceCount > 0 ? `${diceCount}d${diceSize}` : "";
+    const formatSigned = (value) => value > 0 ? ` + ${value}` : value < 0 ? ` - ${Math.abs(value)}` : "";
+    const damageFormulaDisplay = `${diceFormula || "0"}${promptedDamageMod.kind === "dice" ? ` + ${promptedDamageMod.raw}` : ""}${formatSigned(flatDamage)}`;
+    const effectivePierce = 0;
+
+    const allRolls = [];
+    const attackRows = [];
+    const evasionRows = [];
+    const countFaceResults = (roll, faces, resultValue) => {
+      if (!roll?.dice?.length) return 0;
+      return roll.dice
+        .filter((die) => Number(die?.faces ?? 0) === faces)
+        .reduce((sum, die) => sum + die.results.filter((entry) => Number(entry?.result ?? 0) === resultValue).length, 0);
+    };
+
+    const evaluateDamage = async () => {
+      let baseRollTotal = 0;
+      let baseRoll = null;
+      if (diceFormula) {
+        baseRoll = await new Roll(diceFormula).evaluate();
+        allRolls.push(baseRoll);
+        baseRollTotal = Number(baseRoll.total ?? 0);
+      }
+
+      let miscRollTotal = 0;
+      let miscRoll = null;
+      if (promptedDamageMod.kind === "dice") {
+        miscRoll = await new Roll(promptedDamageMod.raw).evaluate();
+        allRolls.push(miscRoll);
+        miscRollTotal = Number(miscRoll.total ?? 0);
+      }
+
+      const total = baseRollTotal + miscRollTotal + flatDamage;
+      const tooltipParts = [];
+      if (baseRoll) tooltipParts.push(buildRollTooltipHtml("Damage roll", baseRoll, baseRollTotal, diceFormula));
+      if (miscRoll) tooltipParts.push(buildRollTooltipHtml("Misc damage roll", miscRoll, miscRollTotal, promptedDamageMod.raw));
+      if (!tooltipParts.length) tooltipParts.push(foundry.utils.escapeHTML(`Damage total: ${total} [flat modifiers only]`));
+
+      return {
+        total,
+        hasSpecialDamage: countFaceResults(baseRoll, 10, 10) > 0 || countFaceResults(baseRoll, 5, 5) > 0,
+        formula: damageFormulaDisplay,
+        rollTooltip: tooltipParts.join("")
+      };
+    };
+
+    for (let index = 0; index < rollIterations; index += 1) {
+      const attackRoll = await new Roll("1d100").evaluate();
+      allRolls.push(attackRoll);
+      const rawRoll = Number(attackRoll.total ?? 1);
+      const isCritFail = rawRoll === 100;
+      const dosValue = computeAttackDOS(effectiveTarget, rawRoll);
+      let resolvedDosValue = dosValue;
+      let isSuccess = !isCritFail && dosValue >= 0;
+      const standardEffectiveTarget = effectiveTarget - calledShotPenalty;
+      const standardDosValue = computeAttackDOS(standardEffectiveTarget, rawRoll);
+      const defaultHitLoc = resolveHitLocationForMode(rawRoll, "walker") ?? { zone: "Chest", subZone: "Chest", drKey: "chest", locRoll: null };
+      const calledShotLocation = (() => {
+        if (!calledShotData?.drKey) return null;
+        const kind = String(calledShotData.kind ?? "");
+        if (kind === "location") {
+          return {
+            zone: String(calledShotData.zone ?? "").trim() || defaultHitLoc.zone,
+            subZone: String(calledShotData.subZone ?? "").trim() || String(calledShotData.zone ?? "").trim() || defaultHitLoc.subZone,
+            drKey: String(calledShotData.drKey ?? "").trim() || defaultHitLoc.drKey,
+            locRoll: null
+          };
+        }
+        if (kind === "walker-zone") {
+          return {
+            zone: String(calledShotData.zone ?? "").trim(),
+            subZone: String(calledShotData.subZone ?? calledShotData.zone ?? "").trim(),
+            sectionKey: String(calledShotData.sectionKey ?? "chest"),
+            drKey: String(calledShotData.drKey ?? "chest"),
+            locRoll: null
+          };
+        }
+        return null;
+      })();
+      const calledShotTargetLabel = (() => {
+        if (!calledShotData) return "";
+        if (calledShotData.kind === "weapon") return String(calledShotData.label ?? "Weapon").trim() || "Weapon";
+        if (calledShotData.kind === "walker-zone") return String(calledShotData.zone ?? "").trim() || "Zone";
+        const zone = String(calledShotData.zone ?? "").trim();
+        const subZone = String(calledShotData.subZone ?? "").trim();
+        if (calledShotData.isSublocation && zone && subZone) return `${zone} -> ${subZone}`;
+        return zone || subZone || "Location";
+      })();
+      let hitLoc = defaultHitLoc;
+      let calledShotApplied = false;
+      let calledShotFallbackToNormal = false;
+      let calledShotWeaponOnly = false;
+
+      if (calledShotData) {
+        if (isSuccess && calledShotLocation) {
+          hitLoc = calledShotLocation;
+          calledShotApplied = true;
+        } else if (isSuccess && calledShotData.kind === "weapon") {
+          calledShotWeaponOnly = true;
+        } else if (!isSuccess && !isCritFail && standardDosValue >= 2) {
+          isSuccess = true;
+          resolvedDosValue = standardDosValue;
+          hitLoc = defaultHitLoc;
+          calledShotFallbackToNormal = true;
+        }
+      }
+
+      const damageInstances = [];
+      if (isSuccess && rangeResult.canDealDamage) {
+        const damage = await evaluateDamage();
+        damageInstances.push({
+          damageTotal: damage.total,
+          damagePierce: effectivePierce,
+          hasSpecialDamage: damage.hasSpecialDamage,
+          isHardlight: false,
+          isKinetic,
+          isHeadshot: false,
+          isPenetrating: false,
+          hasBlastOrKill: false,
+          appliesShieldPierce: false,
+          explosiveShieldPierce: false,
+          ignoresShields: false,
+          damageFormula: damage.formula,
+          rollTooltip: damage.rollTooltip,
+          hitLoc
+        });
+      }
+
+      let wouldDamage = [];
+      if (rangeResult.canDealDamage) {
+        if (damageInstances.length) {
+          wouldDamage = damageInstances;
+        } else {
+          const damage = await evaluateDamage();
+          wouldDamage = [{
+            damageTotal: damage.total,
+            damagePierce: effectivePierce,
+            hasSpecialDamage: damage.hasSpecialDamage,
+            isHardlight: false,
+            isKinetic,
+            isHeadshot: false,
+            isPenetrating: false,
+            hasBlastOrKill: false,
+            appliesShieldPierce: false,
+            explosiveShieldPierce: false,
+            ignoresShields: false,
+            damageFormula: damage.formula,
+            rollTooltip: damage.rollTooltip,
+            hitLoc
+          }];
+        }
+      }
+
+      const row = {
+        index: index + 1,
+        rawRoll,
+        attackRollTooltip: buildRollTooltipHtml("Attack roll", attackRoll, rawRoll, "1d100"),
+        effectiveTarget,
+        dosValue: resolvedDosValue,
+        isCritFail,
+        isSuccess,
+        calledShotInfo: calledShotData ? {
+          targetLabel: calledShotTargetLabel,
+          penalty: calledShotPenalty,
+          applied: calledShotApplied,
+          fallbackToNormal: calledShotFallbackToNormal,
+          weaponOnly: calledShotWeaponOnly
+        } : null,
+        hitLoc,
+        damageInstances,
+        wouldDamage
+      };
+      attackRows.push(row);
+
+      if (row.isSuccess && row.damageInstances.length) {
+        for (const entry of row.damageInstances) {
+          evasionRows.push({
+            attackIndex: row.index,
+            repeatCount: 1,
+            damageTotal: entry.damageTotal,
+            damagePierce: entry.damagePierce,
+            hitLoc: row.hitLoc,
+            hasSpecialDamage: entry.hasSpecialDamage,
+            isHardlight: false,
+            isKinetic,
+            isHeadshot: false,
+            isPenetrating: false,
+            hasBlastOrKill: false,
+            appliesShieldPierce: false,
+            explosiveShieldPierce: false,
+            ignoresShields: false
+          });
+        }
+      }
+    }
+
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const signMod = (value) => value > 0 ? `+${value}` : value < 0 ? String(value) : "";
+    const badgeHtml = specialRules.length
+      ? `<div class="mythic-attack-badge-row">${specialRules.map((rule) => `<span class="mythic-attack-badge is-rule" title="${esc(rule)}">${esc(rule)}</span>`).join("")}</div>`
+      : "";
+    const modParts = [];
+    if (rangeResult.toHitMod !== 0) modParts.push(`Range ${rangeResult.band} ${signMod(Number(rangeResult.toHitMod ?? 0))}`);
+    if (targetSwitchPenalty !== 0) modParts.push(`Target Switch ${signMod(targetSwitchPenalty)}`);
+    if (attackMods.toHitMod !== 0) modParts.push(`Misc Hit ${signMod(Number(attackMods.toHitMod ?? 0))}`);
+    if (calledShotPenalty !== 0) modParts.push(`Called Shot ${signMod(calledShotPenalty)}`);
+    if (promptedDamageMod.kind === "flat" && promptedDamageMod.value !== 0) modParts.push(`Misc Dmg ${signMod(Number(promptedDamageMod.value ?? 0))}`);
+    else if (promptedDamageMod.kind === "dice") modParts.push(`Misc Dmg +${promptedDamageMod.raw}`);
+    if (isStomp) modParts.push("Slow");
+    const modNote = modParts.length ? ` <span class="mythic-stat-mods">(${modParts.join(", ")})</span>` : "";
+    const displayActionLabel = actionType === "full"
+      ? `full action (${rollIterations} attacks)`
+      : actionType === "half"
+        ? `half action (${rollIterations} attacks)`
+        : "single attack";
+
+    const rowHtml = attackRows.map((row) => {
+      const absDisplay = Math.abs(row.dosValue).toFixed(1);
+      const verdict = row.isCritFail
+        ? "Critical Failure"
+        : row.isSuccess
+          ? `${absDisplay} DOS`
+          : `${absDisplay} DOF`;
+      const verdictClass = row.isCritFail ? "crit-fail" : row.isSuccess ? "success" : "failure";
+      const locHtml = _buildHitLocHtml(row.hitLoc, "walker", esc);
+      const successDetail = row.isSuccess && row.damageInstances.length
+        ? row.damageInstances.map((entry, damageIndex) => {
+          const damageTitle = entry.rollTooltip || esc(`Damage roll: ${entry.damageTotal} [${entry.damageFormula}]`);
+          const specialBadge = entry.hasSpecialDamage ? ' <span class="mythic-special-dmg" title="Special Damage Applies">&#9888;</span>' : "";
+          return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Hit ${damageIndex + 1}: <span class="mythic-roll-inline" title="${damageTitle}">${entry.damageTotal}</span> @ ${locHtml}${specialBadge}</div>`;
+        }).join("")
+        : "";
+      const calledShotDetail = row.calledShotInfo
+        ? (() => {
+          const info = row.calledShotInfo;
+          const penaltyText = Number.isFinite(Number(info.penalty)) ? ` (${signMod(Number(info.penalty))} to hit)` : "";
+          if (info.fallbackToNormal) return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Called Shot on <strong>${esc(info.targetLabel)}</strong>${penaltyText} failed; converted to normal hit (2+ DOS as standard attack).</div>`;
+          if (info.applied) return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Called Shot: <strong>${esc(info.targetLabel)}</strong>${penaltyText} applied.</div>`;
+          if (info.weaponOnly && row.isSuccess) return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Called Shot: <strong>${esc(info.targetLabel)}</strong>${penaltyText} succeeded (weapon-target effects pending; body location roll unchanged).</div>`;
+          return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Called Shot declared: <strong>${esc(info.targetLabel)}</strong>${penaltyText}.</div>`;
+        })()
+        : "";
+      return `<div class="mythic-attack-line">
+        <div class="mythic-attack-mainline">A${row.index}: <span class="mythic-roll-inline" title="${row.attackRollTooltip}">${row.rawRoll}</span> vs <span class="mythic-roll-target" title="Effective target">${row.effectiveTarget}</span> <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span></div>
+        ${calledShotDetail}
+        ${successDetail}
+      </div>`;
+    }).join("");
+
+    const failedRows = attackRows.filter((row) => !row.isSuccess || row.isCritFail);
+    const failureDetails = failedRows.length
+      ? `<details class="mythic-miss-details"><summary>Reveal damage details for failures</summary>${failedRows.map((row) => {
+        const locHtml = _buildHitLocHtml(row.hitLoc, "walker", esc);
+        const would = row.wouldDamage?.[0] ?? null;
+        const wouldTitle = would?.rollTooltip || (would ? esc(`Would deal: ${would.damageTotal} [${would.damageFormula}]`) : "");
+        return `<div class="mythic-attack-subline">A${row.index}: would hit ${locHtml}${would ? ` for <span class="mythic-roll-inline" title="${wouldTitle}">${would.damageTotal}</span> [${esc(would.damageFormula)}], Pierce 0` : ""}</div>`;
+      }).join("")}</details>`
+      : "";
+    const anySuccess = attackRows.some((row) => row.isSuccess && row.damageInstances.length);
+    const primaryDamageEntry = attackRows
+      .flatMap((row) => (row.damageInstances?.length ? row.damageInstances : (row.wouldDamage?.length ? row.wouldDamage : [])))
+      .find(Boolean) ?? null;
+    const cardFormulaFooter = anySuccess
+      ? `<div class="mythic-attack-formula-note">${esc(damageFormulaDisplay)}, Pierce 0</div>`
+      : "";
+    const attackHeaderHtml = targets.length === 1 && targetName
+      ? `<strong>${esc(attackActor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>`
+      : `<strong>${esc(attackActor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>`;
+    const content = `<div class="mythic-attack-card">
+  <div class="mythic-attack-header">
+      ${attackHeaderHtml}
+  </div>
+  <div class="mythic-stat-label">WFM ${baseStat}${modNote} &mdash; ${esc(displayActionLabel)}</div>
+  ${badgeHtml}
+  ${rowHtml}
+  ${failureDetails}
+  ${cardFormulaFooter}
+  <hr class="mythic-card-hr">
+</div>`;
+
+    const attackData = {
+      attackerId: attackActor.id,
+      attackerName: attackActor.name,
+      weaponOwnerActorId: this.actor.id,
+      weaponId: `walker-${attackKey}`,
+      weaponName: weaponDisplayName,
+      mode: "Melee",
+      actionType,
+      effectiveTarget,
+      statKey: "wfm",
+      baseStat,
+      fireModeBonus: 0,
+      toHitMod: 0,
+      rangeBand: rangeResult.band,
+      rangeMod: Number(rangeResult.toHitMod ?? 0),
+      rangeSource: "",
+      rangeMode: "",
+      rangeRawMeters: null,
+      rangeHorizontalMeters: null,
+      rangeVerticalMeters: null,
+      rangeAutoResolved: false,
+      rangeFoundResolved: false,
+      rangeAutoReason: "",
+      vehicleTargetingRangeMeters: 0,
+      vehicleTargetingRangeBaseMeters: 0,
+      vehicleTargetingRangeOverridden: false,
+      vehicleTargetingRangeBlockedByOpenTop: false,
+      perceptiveBand: "",
+      perceptiveRangeMeters: 0,
+      perceptiveRangeDerivedMeters: 0,
+      perceptiveRangeMultiplier: 0,
+      perceptiveRangeToHitMod: 0,
+      perceptiveAimAllowed: false,
+      perceptiveImpossible: false,
+      perceptiveRangeOverridden: false,
+      perceptiveRangeOverrideLabel: "",
+      targetSwitchPenalty,
+      factionTrainingPenalty: 0,
+      weaponTrainingPenalty: 0,
+      calledShotPenalty,
+      calledShot: calledShotData,
+      chargeLevel: 0,
+      chargeMaxLevel: 0,
+      chargeDamageBonus: 0,
+      isCritFail: attackRows.some((row) => row.isCritFail),
+      isSuccess: anySuccess,
+      dosValue: attackRows.length ? Math.max(...attackRows.map((row) => Number(row.dosValue ?? 0))) : 0,
+      hitLoc: attackRows.find((row) => row.isSuccess)?.hitLoc ?? null,
+      damageFormula: damageFormulaDisplay,
+      damageTotal: Number(primaryDamageEntry?.damageTotal ?? 0),
+      damagePierce: 0,
+      grenadeBlastDamage: 0,
+      grenadeKillDamage: 0,
+      grenadeBlastPierce: 0,
+      grenadeKillPierce: 0,
+      hasSpecialDamage: attackRows.some((row) => row.damageInstances?.some((entry) => entry.hasSpecialDamage)),
+      isHardlight: false,
+      isKinetic,
+      isHeadshot: false,
+      isPenetrating: false,
+      hasBlastOrKill: false,
+      appliesShieldPierce: false,
+      explosiveShieldPierce: false,
+      ignoresShields: false,
+      linkedWeapons: 1,
+      skipEvasion: false,
+      evasionRows,
+      targetTokenId: targetToken?.id ?? null,
+      targetActorId: targetToken?.actor?.id ?? null,
+      targetTokenIds,
+      targetActorIds,
+      ammoMode: "",
+      grenadeArmAction: "",
+      specialRules: specialRules.join(", "),
+      weaponSpecialRuleValues: {},
+      isGrenade: false,
+      isTimedDetonation: false,
+      grenadeScatterMultiplier: 1,
+      throwRangeMeters: 0,
+      throwScatterCapMeters: 0,
+      throwRangeCloseMeters: 0,
+      throwRangeMaxMeters: 0,
+      throwMultiplierAfterWeight: 0,
+      throwResolvedMultiplier: 0,
+      throwDropsAtThrower: false,
+      throwWeightPenalty: 0,
+      throwStrengthPower: 0,
+      throwWeightKg: 0,
+      timerDelayRounds: 0,
+      sceneId: canvas?.scene?.id ?? null,
+      targetMode: "walker",
+      hitLocRows: attackRows.map((row) => ({
+        index: row.index,
+        rawRoll: row.rawRoll,
+        locRoll: row.hitLoc?.locRoll ?? null,
+        targetMode: "walker",
+        calledShotIntent: calledShotData ? { kind: String(calledShotData.kind ?? ""), zone: String(calledShotData.zone ?? ""), sectionKey: String(calledShotData.sectionKey ?? ""), penalty: Number(calledShotData.penalty ?? 0) } : null,
+        hitLoc: row.hitLoc ? foundry.utils.deepClone(row.hitLoc) : null
+      }))
+    };
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: attackActor }),
+      content,
+      rolls: allRolls,
+      type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+      flags: { "Halo-Mythic-Foundry-Updated": { attackData } }
+    });
+
+    const actionEconomyCost = actionType === "full" ? 2 : actionType === "half" ? 1 : 0;
+    if (actionEconomyCost > 0) {
+      await consumeActorHalfActions(attackActor, {
+        halfActions: actionEconomyCost,
+        label: `${attackProfile.name} ${actionType} attack`,
+        source: "walker-melee-attack"
+      });
+    }
+  }
+
+  async _onWalkerEvasionRoll(event) {
+    event.preventDefault();
+    if (!this._isVehicleActor()) return;
+
+    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    if (!vehicleSystem?.isWalker) {
+      ui.notifications?.warn("Walker mode is not enabled for this vehicle.");
+      return;
+    }
+
+    const seatMap = this._getVehicleCrewSeatMap(vehicleSystem);
+    const pilotSeat = seatMap.get("operators:1") ?? null;
+    const pilotActor = pilotSeat?.actorDoc ?? null;
+    if (!pilotActor) {
+      ui.notifications?.warn("Assign an Operator (seat 1) to roll walker evasion.");
+      return;
+    }
+
+    const pilotSystem = pilotActor.system ?? {};
+    const pilotAgility = toNonNegativeWhole(pilotSystem?.characteristics?.agi, 0);
+    const walkerAgility = toNonNegativeWhole(vehicleSystem?.characteristics?.agi, 0);
+    const baseAgility = Math.min(pilotAgility, walkerAgility);
+
+    const skills = normalizeSkillsData(pilotSystem?.skills);
+    const evasionSkill = skills?.base?.evasion ?? null;
+    const tierBonus = getSkillTierBonus(evasionSkill?.tier ?? "untrained", evasionSkill?.category ?? "basic");
+    const modifier = Number(evasionSkill?.modifier ?? 0) || 0;
+    const targetValue = Math.max(0, Math.round(baseAgility + tierBonus + modifier));
+
+    await this._runUniversalTestWithSpeaker({
+      speakerActor: pilotActor,
+      label: "Evasion",
+      targetValue,
+      invalidTargetWarning: "Evasion target is not configured."
     });
   }
 

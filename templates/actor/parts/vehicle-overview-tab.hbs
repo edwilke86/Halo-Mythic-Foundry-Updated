@@ -131,7 +131,17 @@
 
   <div class="vehicle-overview-card-grid">
     <section class="vehicle-overview-card">
-      <div class="vehicle-overview-card-header">Armor</div>
+      <div class="vehicle-overview-card-header">{{#if mythicVehicleIsWalker}}Walker Armor{{else}}Armor{{/if}}</div>
+      {{#if mythicVehicleIsWalker}}
+      <div class="vehicle-overview-armor-table vehicle-overview-walker-armor-table">
+        {{#each mythicVehicleWalker.locations as |location|}}
+          <div class="vehicle-overview-armor-cell vehicle-overview-armor-head">{{location.shortLabel}}</div>
+        {{/each}}
+        {{#each mythicVehicleWalker.locations as |location|}}
+          <div class="vehicle-overview-armor-cell vehicle-overview-armor-value {{location.stateClass}}">{{location.armor}}</div>
+        {{/each}}
+      </div>
+      {{else}}
       <div class="vehicle-overview-armor-table">
         {{#each mythicVehicleOverview.armor.rows as |row|}}
           <div class="vehicle-overview-armor-cell vehicle-overview-armor-head">{{row.label}}</div>
@@ -140,6 +150,7 @@
           <div class="vehicle-overview-armor-cell vehicle-overview-armor-value{{#if row.isCritical}} is-critical{{else}}{{#if row.isReduced}} is-reduced{{/if}}{{/if}}">{{row.current}}</div>
         {{/each}}
       </div>
+      {{/if}}
     </section>
 
     <section class="vehicle-overview-card">

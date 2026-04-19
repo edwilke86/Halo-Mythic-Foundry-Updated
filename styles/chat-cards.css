@@ -132,6 +132,29 @@
   color: #dd8888;
 }
 
+.mythic-splatter-details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 2px 0 4px;
+  color: #d4dff0;
+}
+
+.mythic-splatter-details > summary::marker,
+.mythic-splatter-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mythic-splatter-card .mythic-stat-label {
+  margin-top: 4px;
+}
+
+.mythic-splatter-evasion-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: start;
+}
+
 /* Ammo note, reaction note */
 .mythic-ammo-note,
 .mythic-reaction-note {
@@ -517,6 +540,124 @@
   white-space: pre-wrap;
 }
 
+.chat-message .mythic-vehicle-hazard-card {
+  box-shadow: inset 0 0 0 1px rgba(255, 199, 116, 0.38);
+}
+
+.chat-message .mythic-vehicle-splatter-card {
+  box-shadow: inset 0 0 0 1px rgba(207, 49, 49, 0.48);
+}
+
+.chat-message .mythic-vehicle-hazard-body {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.chat-message .mythic-vehicle-hazard-section {
+  display: grid;
+  gap: 4px;
+  padding: 7px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.chat-message .mythic-vehicle-hazard-section h4 {
+  margin: 0 0 2px;
+  color: rgba(255, 232, 190, 0.96);
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.chat-message .mythic-vehicle-hazard-row {
+  display: grid;
+  grid-template-columns: 122px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.chat-message .mythic-vehicle-hazard-row strong {
+  color: rgba(255, 255, 255, 0.82);
+  font-family: Orbitron, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chat-message .mythic-vehicle-hazard-row span {
+  min-width: 0;
+}
+
+.chat-message .mythic-vehicle-hazard-table {
+  width: 100%;
+  margin-top: 3px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.chat-message .mythic-vehicle-hazard-table th,
+.chat-message .mythic-vehicle-hazard-table td {
+  padding: 3px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  text-align: left;
+  vertical-align: top;
+}
+
+.chat-message .mythic-vehicle-hazard-table th {
+  color: rgba(255, 232, 190, 0.92);
+  background: rgba(0, 0, 0, 0.22);
+  font-family: Orbitron, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.chat-message .mythic-vehicle-hazard-card .mythic-roll-inline {
+  display: inline-block;
+  min-width: 2ch;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 3px;
+  background: var(--mythic-input-bg);
+  color: var(--mythic-text);
+  font-family: Orbitron, sans-serif;
+  font-weight: 700;
+  text-align: center;
+  cursor: help;
+}
+
+.chat-message .mythic-vehicle-hazard-formula {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 11px;
+}
+
+.chat-message .mythic-vehicle-hazard-alert {
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 211, 91, 0.58);
+  background: rgba(116, 79, 12, 0.36);
+  color: rgba(255, 238, 184, 0.98);
+  font-weight: 700;
+}
+
+.chat-message .mythic-vehicle-hazard-empty {
+  color: rgba(255, 255, 255, 0.68);
+  font-style: italic;
+}
+
+.mythic-vehicle-hazard-dialog-preview {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(122, 170, 224, 0.32);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--mythic-text);
+  font-size: 12px;
+}
+
 .chat-message .mythic-chat-card.mythic-medical-expiry {
   box-shadow: inset 0 0 0 1px rgba(255, 173, 94, 0.65);
 }
@@ -553,4 +694,78 @@
   font-family: 'Saira Semi Condensed', sans-serif;
   font-weight: bold;
   padding: 0 4px;
+}
+
+/* --- Vehicle Hit-Location Manual Panel ----------------------------------- */
+
+.mythic-vehicle-manual-panel {
+  background: #18232e;
+  border: 1px solid #50708a;
+  border-radius: 3px;
+  padding: 6px 10px;
+  margin-top: 6px;
+  font-family: 'Saira Semi Condensed', 'Segoe UI', sans-serif;
+  font-size: 0.85em;
+}
+
+.mythic-vehicle-manual-panel .mythic-gm-panel-title {
+  font-family: 'Orbitron', 'Segoe UI', sans-serif;
+  font-size: 0.78em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a9bcc;
+  margin-bottom: 4px;
+}
+
+.mythic-vehicle-hit-loc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 4px;
+}
+
+.mythic-vehicle-hit-row {
+  color: #d0e8ff;
+  font-size: 0.9em;
+}
+
+.mythic-vehicle-hit-row strong {
+  color: #7ec8f5;
+}
+
+.mythic-vehicle-manual-note {
+  color: #8aabb8;
+  font-size: 0.8em;
+  font-style: italic;
+}
+
+/* No-target post-roll override controls */
+.mythic-vehicle-override-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 8px;
+  margin-top: 4px;
+  background: #131d27;
+  border: 1px solid #3a5070;
+  border-radius: 3px;
+  font-family: 'Saira Semi Condensed', 'Segoe UI', sans-serif;
+  font-size: 0.82em;
+  color: #8aabb8;
+}
+
+.mythic-override-label {
+  font-family: 'Orbitron', 'Segoe UI', sans-serif;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5a9bcc;
+  margin-right: 4px;
+}
+
+.mythic-crit-mark {
+  color: #f0c060;
+  font-size: 0.85em;
+  margin-left: 2px;
 }

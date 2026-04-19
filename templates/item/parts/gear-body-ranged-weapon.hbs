@@ -281,6 +281,22 @@
         {{/each}}
       </div>
     </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Break Points</p>
+      <div class="ability-grid-3">
+        <div class="ability-info-row ability-col">
+          <label for="ranged-bp-current">Current</label>
+          <input id="ranged-bp-current" type="number" step="1" name="system.breakPoints.current"
+            value="{{gear.breakPoints.current}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="ranged-bp-max">Max</label>
+          <input id="ranged-bp-max" type="number" step="1" name="system.breakPoints.max"
+            value="{{gear.breakPoints.max}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="tab" data-tab="special-rules" data-group="ranged-tabs">

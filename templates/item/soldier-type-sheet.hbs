@@ -82,6 +82,32 @@
       <div class="ability-info-row ability-col"></div>
     </div>
 
+    <div class="ability-section-label">Characteristic Advancements</div>
+    <div class="ability-grid-5">
+      {{#each charAdvRow1}}
+        <div class="ability-info-row ability-col">
+          <label>{{this.label}}</label>
+          <select name="{{this.name}}" {{#unless ../canEditFields}}disabled{{/unless}}>
+            {{#each this.options}}
+              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      {{/each}}
+    </div>
+    <div class="ability-grid-5">
+      {{#each charAdvRow2}}
+        <div class="ability-info-row ability-col">
+          <label>{{this.label}}</label>
+          <select name="{{this.name}}" {{#unless ../canEditFields}}disabled{{/unless}}>
+            {{#each this.options}}
+              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      {{/each}}
+    </div>
+
     <div class="ability-info-row ability-notes-row">
       <label>Granted Abilities (drop Ability items)</label>
       <div id="abilities-dropzone" class="soldier-type-drop-zone">{{#each abilitiesList}}<span class="drop-tag" data-value="{{this}}">{{this}} ×</span>{{/each}}</div>

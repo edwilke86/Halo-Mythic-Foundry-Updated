@@ -174,6 +174,19 @@ function getEnergyCellLabel(ammoMode = "", batterySubtype = "plasma") {
 }
 
 const MYTHIC_VEHICLE_ARMOR_LOCATION_KEYS = Object.freeze(["front", "back", "side", "top", "bottom"]);
+const MYTHIC_VEHICLE_WALKER_LOCATION_DEFINITIONS = Object.freeze([
+  { key: "head", label: "Head", shortLabel: "Head", breakpointType: "engine" },
+  { key: "chest", label: "Chest", shortLabel: "Chest", breakpointType: "cockpit" },
+  { key: "leftArm", label: "Left Arm", shortLabel: "L Arm", breakpointType: "mobility" },
+  { key: "rightArm", label: "Right Arm", shortLabel: "R Arm", breakpointType: "mobility" },
+  { key: "leftLeg", label: "Left Leg", shortLabel: "L Leg", breakpointType: "mobility" },
+  { key: "rightLeg", label: "Right Leg", shortLabel: "R Leg", breakpointType: "mobility" }
+]);
+const MYTHIC_VEHICLE_WALKER_LOCATION_KEYS = Object.freeze(MYTHIC_VEHICLE_WALKER_LOCATION_DEFINITIONS.map((entry) => entry.key));
+const MYTHIC_VEHICLE_WALKER_ARM_TRACKER_PREFIX = "walker-arm-";
+const MYTHIC_VEHICLE_WALKER_MAX_ARM_COUNT = 20;
+const MYTHIC_VEHICLE_WALKER_PUNCH_MODIFIERS = Object.freeze(["none", "strength", "strength-x2"]);
+const MYTHIC_VEHICLE_WALKER_MELEE_DICE_SIZES = Object.freeze([5, 10]);
 const MYTHIC_VEHICLE_HULL_NEGATIVE_FLOOR = -9999;
 const MYTHIC_VEHICLE_DOOMED_OCCUPANT_DAMAGE_MODES = Object.freeze([
   "none",
@@ -560,6 +573,169 @@ function normalizeVehiclePropulsionType(value = "wheels") {
   return "wheels";
 }
 
+function normalizeVehicleWalkerLocationState(location = {}, definition = {}) {
+  const source = (location && typeof location === "object") ? location : {};
+  return {
+    armor: toNonNegativeWhole(source?.armor ?? source?.value, 0),
+    breakpointType: String(definition?.breakpointType ?? source?.breakpointType ?? "").trim(),
+    destroyed: coerceVehicleCheckboxBoolean(source?.destroyed, false),
+    disabled: coerceVehicleCheckboxBoolean(source?.disabled, false),
+    notes: String(source?.notes ?? "")
+  };
+}
+
+function getVehicleWalkerArmCount(vehicleSystem = {}) {
+  return Math.min(
+    MYTHIC_VEHICLE_WALKER_MAX_ARM_COUNT,
+    toNonNegativeWhole(vehicleSystem?.walker?.armCount ?? vehicleSystem?.walker?.arms?.count, 2)
+  );
+}
+
+function getVehicleWalkerArmTrackerId(armNumber = 0) {
+  const resolvedNumber = toNonNegativeWhole(armNumber, 0);
+  return resolvedNumber > 0 ? `${MYTHIC_VEHICLE_WALKER_ARM_TRACKER_PREFIX}${resolvedNumber}` : "";
+}
+
+function getVehicleWalkerArmTrackerIdForLocation(location = "") {
+  const normalizedLocation = String(location ?? "").trim();
+  if (normalizedLocation === "leftArm") return getVehicleWalkerArmTrackerId(1);
+  if (normalizedLocation === "rightArm") return getVehicleWalkerArmTrackerId(2);
+  return /^walker-arm-\d+$/u.test(normalizedLocation) ? normalizedLocation : "";
+}
+
+function normalizeVehicleWalkerArmState(arm = {}) {
+  const source = (arm && typeof arm === "object") ? arm : {};
+  return {
+    breakpointType: "mobility",
+    destroyed: coerceVehicleCheckboxBoolean(source?.destroyed, false),
+    disabled: coerceVehicleCheckboxBoolean(source?.disabled, false),
+    notes: String(source?.notes ?? "")
+  };
+}
+
+function normalizeVehicleWalkerArmMap(armsById = {}, armCount = 2) {
+  const source = (armsById && typeof armsById === "object" && !Array.isArray(armsById)) ? armsById : {};
+  const normalized = Object.fromEntries(Object.entries(source)
+    .filter(([id]) => /^walker-arm-\d+$/u.test(String(id ?? "").trim()))
+    .map(([id, arm]) => [String(id).trim(), normalizeVehicleWalkerArmState(arm)]));
+  const safeArmCount = Math.min(MYTHIC_VEHICLE_WALKER_MAX_ARM_COUNT, toNonNegativeWhole(armCount, 2));
+  for (let index = 1; index <= safeArmCount; index += 1) {
+    const armId = getVehicleWalkerArmTrackerId(index);
+    normalized[armId] = normalizeVehicleWalkerArmState(source?.[armId]);
+  }
+  return normalized;
+}
+
+function normalizeVehicleWalkerMountLocation(value = "") {
+  const rawLocation = String(value ?? "").trim();
+  const lowered = rawLocation.toLowerCase();
+  if (MYTHIC_VEHICLE_WALKER_LOCATION_KEYS.includes(rawLocation)) return rawLocation;
+  if (/^walker-arm-\d+$/u.test(rawLocation)) return rawLocation;
+  if (lowered === "torso" || lowered === "body") return "chest";
+  return "";
+}
+
+function normalizeVehicleWalkerMeleeData(melee = {}) {
+  const source = (melee && typeof melee === "object" && !Array.isArray(melee)) ? melee : {};
+  const punchSource = (source.punch && typeof source.punch === "object" && !Array.isArray(source.punch)) ? source.punch : {};
+  const stompSource = (source.stomp && typeof source.stomp === "object" && !Array.isArray(source.stomp)) ? source.stomp : {};
+  const requestedPunchModifier = String(punchSource?.modifier ?? "strength").trim().toLowerCase();
+  const normalizeDiceSize = (value) => {
+    const requestedSize = toNonNegativeWhole(value, 10);
+    return MYTHIC_VEHICLE_WALKER_MELEE_DICE_SIZES.includes(requestedSize) ? requestedSize : 10;
+  };
+  return {
+    punch: {
+      diceCount: Math.min(99, toNonNegativeWhole(punchSource?.diceCount, 3)),
+      diceSize: normalizeDiceSize(punchSource?.diceSize),
+      modifier: MYTHIC_VEHICLE_WALKER_PUNCH_MODIFIERS.includes(requestedPunchModifier) ? requestedPunchModifier : "strength"
+    },
+    stomp: {
+      diceCount: Math.min(99, toNonNegativeWhole(stompSource?.diceCount, 4)),
+      diceSize: normalizeDiceSize(stompSource?.diceSize),
+      modifier: "stomp",
+      specialRules: ["Slow", "Kinetic"]
+    }
+  };
+}
+
+function isVehicleWalkerMountLocationUnavailable(vehicleSystem = {}, location = "") {
+  const walkerLocation = String(location ?? "").trim();
+  if (!vehicleSystem?.isWalker || !walkerLocation) return false;
+
+  const fixedLocationState = vehicleSystem?.walker?.locations?.[walkerLocation] ?? null;
+  if (fixedLocationState && (fixedLocationState.destroyed || fixedLocationState.disabled)) return true;
+
+  const armTrackerId = getVehicleWalkerArmTrackerIdForLocation(walkerLocation);
+  if (!armTrackerId) return false;
+
+  const armState = vehicleSystem?.walker?.arms?.byId?.[armTrackerId] ?? null;
+  if (armState && (armState.destroyed || armState.disabled)) return true;
+
+  const mobilityMax = getVehicleConfiguredBaseValue(vehicleSystem?.breakpoints?.mob ?? {});
+  const mobilityTracker = vehicleSystem?.overview?.breakpoints?.mobility?.byId?.[armTrackerId] ?? null;
+  const trackerCurrent = Number(mobilityTracker?.current ?? mobilityMax);
+  return mobilityMax > 0 && Number.isFinite(trackerCurrent) && trackerCurrent <= 0;
+}
+
+function roundToOneDecimal(value = 0) {
+  return Math.round(Number(value ?? 0) * 10) / 10;
+}
+
+function getVehicleWalkerDerivedStats(vehicleSystem = {}) {
+  const characteristics = vehicleSystem?.characteristics ?? {};
+  const strength = toNonNegativeWhole(characteristics?.str, 0);
+  const mythicStrength = toNonNegativeWhole(characteristics?.mythicStr, 0);
+  const walkerAgility = toNonNegativeWhole(characteristics?.agi, 0);
+  const mythicAgility = toNonNegativeWhole(characteristics?.mythicAgi, 0);
+  const pilotAgility = toNonNegativeWhole(
+    vehicleSystem?.walker?.derived?.evasion?.pilotAgility
+    ?? vehicleSystem?.crew?.operators?.[0]?.stats?.characteristics?.agi?.total
+    ?? vehicleSystem?.crew?.operators?.[0]?.stats?.agi
+    ?? walkerAgility,
+    walkerAgility
+  );
+  const pilotEvasionSkill = toNonNegativeWhole(vehicleSystem?.walker?.derived?.evasion?.pilotEvasionSkill, 0);
+  const evasionCharacteristic = Math.min(pilotAgility, walkerAgility);
+  const strengthModifier = Math.floor(strength / 10);
+  const agilityModifier = Math.floor(walkerAgility / 10);
+  const weightTonnes = Math.max(0, Number(vehicleSystem?.dimensions?.weight ?? 0) || 0);
+  const configuredJump = toNonNegativeNumber(vehicleSystem?.movement?.walker?.jump, 0);
+  const configuredLeap = toNonNegativeNumber(vehicleSystem?.movement?.walker?.leap, 0);
+  const movementBase = Math.max(0, agilityModifier + mythicAgility);
+  const calculatedJump = roundToOneDecimal(Math.max(0, strengthModifier / 4));
+  const calculatedLeap = roundToOneDecimal(Math.max(0, Math.max(strengthModifier / 2, agilityModifier / 2)));
+  const jump = configuredJump > 0 ? configuredJump : calculatedJump;
+  const leap = configuredLeap > 0 ? configuredLeap : calculatedLeap;
+
+  return {
+    movement: {
+      half: Math.floor(movementBase),
+      full: Math.floor(movementBase * 2),
+      charge: Math.floor(movementBase * 3),
+      run: Math.floor(movementBase * 6),
+      sprint: Math.floor(movementBase * 8),
+      jump,
+      leap
+    },
+    evasion: {
+      characteristic: evasionCharacteristic,
+      pilotAgility,
+      walkerAgility,
+      pilotEvasionSkill,
+      total: evasionCharacteristic + pilotEvasionSkill
+    },
+    physical: {
+      strength,
+      strengthModifier,
+      mythicStrength,
+      jump,
+      leap,
+      stomp: Math.floor(weightTonnes + strengthModifier + mythicStrength)
+    }
+  };
+}
+
 function getVehiclePropulsionMaxOptions(propulsionType = "wheels") {
   const type = normalizeVehiclePropulsionType(propulsionType);
   if (type === "none") return [];
@@ -619,6 +795,14 @@ function getVehicleOverviewOpticsTrackerIds(vehicleSystem = {}) {
 function getVehicleOverviewMobilityTrackerIds(vehicleSystem = {}) {
   const propulsionType = normalizeVehiclePropulsionType(vehicleSystem?.propulsion?.type);
   if (propulsionType === "none") return [];
+  if (propulsionType === "legs") {
+    const armCount = getVehicleWalkerArmCount(vehicleSystem);
+    return [
+      "mobility-1",
+      "mobility-2",
+      ...Array.from({ length: armCount }, (_entry, index) => getVehicleWalkerArmTrackerId(index + 1))
+    ];
+  }
 
   const configuredCount = Math.max(
     0,
@@ -641,6 +825,308 @@ function normalizeVehicleOverviewCustomBreakpoints(entries = []) {
       };
     })
     .filter((entry) => entry.id);
+}
+
+function buildVehicleTokenHudCrewShortSlotLabel(roleLabel = "Seat", slotNumber = 1) {
+  const normalizedRoleLabel = String(roleLabel ?? "Seat").trim() || "Seat";
+  const rolePrefix = normalizedRoleLabel.charAt(0).toUpperCase() || "S";
+  return `${rolePrefix}${Math.max(1, Number(slotNumber) || 1)}`;
+}
+
+function getVehicleTokenHudEmplacementSlotCode(emplacement = {}, fallbackIndex = 0) {
+  const controllerRole = String(emplacement?.controllerRole ?? "").trim().toLowerCase();
+  const controllerIndex = toNonNegativeWhole(emplacement?.controllerIndex, 0);
+  const roleLabel = controllerRole === "operator"
+    ? "Operator"
+    : (controllerRole === "gunner"
+      ? "Gunner"
+      : (controllerRole === "passenger" ? "Passenger" : ""));
+  if (roleLabel && controllerIndex > 0) {
+    return buildVehicleTokenHudCrewShortSlotLabel(roleLabel, controllerIndex);
+  }
+  return `W${Math.max(1, Number(fallbackIndex) + 1)}`;
+}
+
+function getVehicleTokenHudWalkerArmLabel(armNumber = 0, { short = false } = {}) {
+  const resolvedNumber = toNonNegativeWhole(armNumber, 0);
+  if (resolvedNumber === 1) return short ? "L Arm" : "Left Arm";
+  if (resolvedNumber === 2) return short ? "R Arm" : "Right Arm";
+  return resolvedNumber > 0 ? `Arm ${resolvedNumber}` : "Arm";
+}
+
+function getVehicleTokenHudMobilityComponentLabel(propulsionType = "wheels", plural = false) {
+  const type = normalizeVehiclePropulsionType(propulsionType);
+  if (type === "treads") return plural ? "Treads" : "Tread";
+  if (type === "thrusters") return plural ? "Thrusters" : "Thruster";
+  if (type === "legs") return plural ? "Legs" : "Leg";
+  if (type === "none") return plural ? "Components" : "Component";
+  return plural ? "Wheels" : "Wheel";
+}
+
+function abbreviateVehicleTokenHudCustomLabel(label = "", fallback = "C") {
+  const rawLabel = String(label ?? "").trim();
+  if (!rawLabel) return fallback;
+
+  const words = rawLabel
+    .replace(/[^A-Za-z0-9]+/gu, " ")
+    .trim()
+    .split(/\s+/u)
+    .filter(Boolean);
+  if (words.length > 1) {
+    const initials = words.map((word) => word.charAt(0).toUpperCase()).join("");
+    if (initials.length <= 5) return initials;
+  }
+
+  const compact = rawLabel.replace(/[^A-Za-z0-9]/gu, "").toUpperCase();
+  if (!compact) return fallback;
+  if (compact.length <= 5) return compact;
+  return compact.slice(0, 5);
+}
+
+function chunkVehicleTokenHudRows(rows = [], maxRows = 5) {
+  const sourceRows = Array.isArray(rows) ? rows.filter(Boolean) : [];
+  const safeMaxRows = Math.max(1, toNonNegativeWhole(maxRows, 5));
+  if (!sourceRows.length) return [];
+
+  const columns = [];
+  for (let index = 0; index < sourceRows.length; index += safeMaxRows) {
+    columns.push(sourceRows.slice(index, index + safeMaxRows));
+  }
+  return columns;
+}
+
+function buildVehicleTokenHudRow({
+  id,
+  label,
+  fullLabel,
+  current,
+  max,
+  inputName,
+  min = 0
+} = {}) {
+  const resolvedMax = clampWholeInRange(max, 0, { min: 0 });
+  const resolvedMin = Math.round(Number.isFinite(Number(min)) ? Number(min) : 0);
+  const resolvedCurrent = clampWholeInRange(current, resolvedMax, {
+    min: resolvedMin,
+    max: resolvedMax
+  });
+  const resolvedLabel = String(label ?? fullLabel ?? id ?? "").trim() || "SYS";
+  const resolvedFullLabel = String(fullLabel ?? label ?? id ?? resolvedLabel).trim() || resolvedLabel;
+
+  return {
+    id: String(id ?? resolvedLabel).trim() || resolvedLabel,
+    label: resolvedLabel,
+    fullLabel: resolvedFullLabel,
+    current: resolvedCurrent,
+    max: resolvedMax,
+    currentName: String(inputName ?? "").trim(),
+    clampMin: resolvedMin,
+    clampMax: resolvedMax,
+    isCritical: resolvedMax > 0 && resolvedCurrent <= 0
+  };
+}
+
+export function buildVehicleTokenHudBreakpointSections(vehicleSystem = {}) {
+  const source = (vehicleSystem && typeof vehicleSystem === "object" && !Array.isArray(vehicleSystem))
+    ? vehicleSystem
+    : normalizeVehicleSystemData(vehicleSystem ?? {});
+  const overview = (source?.overview && typeof source.overview === "object") ? source.overview : {};
+  const emplacements = Array.isArray(source?.weaponEmplacements) ? source.weaponEmplacements : [];
+  const operatorRows = Array.isArray(source?.crew?.operators) ? source.crew.operators : [];
+
+  const engineMax = getVehicleConfiguredBaseValue(source?.breakpoints?.eng ?? {});
+  const hullMax = getVehicleConfiguredBaseValue(source?.breakpoints?.hull ?? {});
+  const weaponMax = getVehicleConfiguredBaseValue(source?.breakpoints?.wep ?? {});
+  const opticsMax = getVehicleConfiguredBaseValue(source?.breakpoints?.op ?? {});
+  const mobilityMax = getVehicleConfiguredBaseValue(source?.breakpoints?.mob ?? {});
+
+  const engineHullRows = [
+    buildVehicleTokenHudRow({
+      id: "engine",
+      label: "ENG",
+      fullLabel: "Engine",
+      current: overview?.breakpoints?.engine?.current,
+      max: engineMax,
+      inputName: "system.overview.breakpoints.engine.current",
+      min: 0
+    }),
+    buildVehicleTokenHudRow({
+      id: "hull",
+      label: "HULL",
+      fullLabel: "Hull",
+      current: overview?.breakpoints?.hull?.current,
+      max: hullMax,
+      inputName: "system.overview.breakpoints.hull.current",
+      min: MYTHIC_VEHICLE_HULL_NEGATIVE_FLOOR
+    })
+  ];
+
+  const weaponRows = emplacements.map((emplacement, index) => {
+    const emplacementId = String(emplacement?.id ?? `weapon-${index + 1}`).trim() || `weapon-${index + 1}`;
+    const slotCode = getVehicleTokenHudEmplacementSlotCode(emplacement, index);
+    return buildVehicleTokenHudRow({
+      id: emplacementId,
+      label: slotCode,
+      fullLabel: `Weapon ${slotCode}`,
+      current: overview?.breakpoints?.weapons?.byId?.[emplacementId]?.current,
+      max: weaponMax,
+      inputName: `system.overview.breakpoints.weapons.byId.${emplacementId}.current`,
+      min: 0
+    });
+  });
+
+  const opticsEnabled = !Boolean(source?.breakpoints?.op?.noOptics);
+  const operatorCount = Math.max(operatorRows.length, toNonNegativeWhole(source?.crew?.capacity?.operators, 0));
+  const opticsRows = opticsEnabled
+    ? [
+      ...Array.from({ length: operatorCount }, (_entry, index) => {
+        const trackerId = `operator-${index + 1}`;
+        const slotCode = String(operatorRows[index]?.slotCode ?? buildVehicleTokenHudCrewShortSlotLabel("Operator", index + 1)).trim()
+          || buildVehicleTokenHudCrewShortSlotLabel("Operator", index + 1);
+        const seatLabel = String(operatorRows[index]?.seatLabel ?? `Operator ${index + 1}`).trim() || `Operator ${index + 1}`;
+        return buildVehicleTokenHudRow({
+          id: trackerId,
+          label: slotCode,
+          fullLabel: `${seatLabel} optics`,
+          current: overview?.breakpoints?.optics?.byId?.[trackerId]?.current,
+          max: opticsMax,
+          inputName: `system.overview.breakpoints.optics.byId.${trackerId}.current`,
+          min: 0
+        });
+      }),
+      ...emplacements.reduce((rows, emplacement, index) => {
+        if (String(emplacement?.controllerRole ?? "").trim().toLowerCase() === "operator") return rows;
+
+        const weaponId = String(emplacement?.id ?? `weapon-${index + 1}`).trim() || `weapon-${index + 1}`;
+        const slotCode = getVehicleTokenHudEmplacementSlotCode(emplacement, index);
+        const trackerId = `weapon-${weaponId}`;
+
+        rows.push(buildVehicleTokenHudRow({
+          id: trackerId,
+          label: slotCode,
+          fullLabel: `Weapon ${slotCode} optics`,
+          current: overview?.breakpoints?.optics?.byId?.[trackerId]?.current,
+          max: opticsMax,
+          inputName: `system.overview.breakpoints.optics.byId.${trackerId}.current`,
+          min: 0
+        }));
+
+        return rows;
+      }, [])
+    ]
+    : [];
+
+  const propulsionType = normalizeVehiclePropulsionType(source?.propulsion?.type);
+  const configuredMobilityCount = Math.max(
+    0,
+    Number.parseInt(String(source?.propulsion?.max ?? ""), 10) || toNonNegativeWhole(source?.propulsion?.value, 0)
+  );
+  const walkerArmCount = getVehicleWalkerArmCount(source);
+  const mobilityRows = propulsionType === "legs"
+    ? [
+      buildVehicleTokenHudRow({
+        id: "mobility-1",
+        label: "L Leg",
+        fullLabel: "Left Leg",
+        current: overview?.breakpoints?.mobility?.byId?.["mobility-1"]?.current,
+        max: mobilityMax,
+        inputName: "system.overview.breakpoints.mobility.byId.mobility-1.current",
+        min: 0
+      }),
+      buildVehicleTokenHudRow({
+        id: "mobility-2",
+        label: "R Leg",
+        fullLabel: "Right Leg",
+        current: overview?.breakpoints?.mobility?.byId?.["mobility-2"]?.current,
+        max: mobilityMax,
+        inputName: "system.overview.breakpoints.mobility.byId.mobility-2.current",
+        min: 0
+      }),
+      ...Array.from({ length: walkerArmCount }, (_entry, index) => {
+        const armNumber = index + 1;
+        const armId = getVehicleWalkerArmTrackerId(armNumber);
+        return buildVehicleTokenHudRow({
+          id: armId,
+          label: getVehicleTokenHudWalkerArmLabel(armNumber, { short: armNumber <= 2 }),
+          fullLabel: getVehicleTokenHudWalkerArmLabel(armNumber),
+          current: overview?.breakpoints?.mobility?.byId?.[armId]?.current,
+          max: mobilityMax,
+          inputName: `system.overview.breakpoints.mobility.byId.${armId}.current`,
+          min: 0
+        });
+      })
+    ]
+    : Array.from({ length: configuredMobilityCount }, (_entry, index) => {
+      const trackerId = `mobility-${index + 1}`;
+      const componentLabel = getVehicleTokenHudMobilityComponentLabel(propulsionType, false);
+      return buildVehicleTokenHudRow({
+        id: trackerId,
+        label: String(index + 1),
+        fullLabel: `${componentLabel} ${index + 1}`,
+        current: overview?.breakpoints?.mobility?.byId?.[trackerId]?.current,
+        max: mobilityMax,
+        inputName: `system.overview.breakpoints.mobility.byId.${trackerId}.current`,
+        min: 0
+      });
+    });
+
+  const customRows = (Array.isArray(overview?.breakpoints?.custom) ? overview.breakpoints.custom : []).map((entry, index) => {
+    const fallbackLabel = `C${index + 1}`;
+    const fullLabel = String(entry?.label ?? "").trim() || `Custom ${index + 1}`;
+    return buildVehicleTokenHudRow({
+      id: String(entry?.id ?? `custom-breakpoint-${index + 1}`).trim() || `custom-breakpoint-${index + 1}`,
+      label: abbreviateVehicleTokenHudCustomLabel(entry?.label, fallbackLabel),
+      fullLabel,
+      current: entry?.current,
+      max: entry?.max,
+      inputName: `system.overview.breakpoints.custom.${index}.current`,
+      min: 0
+    });
+  });
+
+  const sections = [
+    {
+      key: "engineHull",
+      buttonLabel: "ENG/HULL",
+      title: "Engine / Hull",
+      rows: engineHullRows
+    },
+    {
+      key: "optics",
+      buttonLabel: "OPTICS",
+      title: "Optics",
+      rows: opticsRows
+    },
+    {
+      key: "mobility",
+      buttonLabel: "MOB",
+      title: "Mobility",
+      rows: mobilityRows
+    },
+    {
+      key: "weapons",
+      buttonLabel: "WPN",
+      title: "Weapons",
+      rows: weaponRows
+    },
+    {
+      key: "custom",
+      buttonLabel: "CUSTOM",
+      title: "Custom",
+      rows: customRows
+    }
+  ];
+
+  return sections.map((section) => {
+    const rows = Array.isArray(section.rows) ? section.rows.filter(Boolean) : [];
+    return {
+      ...section,
+      rows,
+      rowCount: rows.length,
+      columns: chunkVehicleTokenHudRows(rows, 5),
+      isDisabled: rows.length < 1
+    };
+  });
 }
 
 function normalizeVehicleOverviewState(overview = {}, vehicleSystem = {}) {
@@ -688,15 +1174,25 @@ function normalizeVehicleOverviewState(overview = {}, vehicleSystem = {}) {
     max: hullMax
   });
 
-  const normalizeTrackerMap = (sourceMap = {}, ids = [], maxValue = 0) => {
+  const normalizeTrackerMap = (sourceMap = {}, ids = [], maxValue = 0, { preserveExtra = false } = {}) => {
     const mapSource = (sourceMap && typeof sourceMap === "object") ? sourceMap : {};
-    return Object.fromEntries(ids.map((id) => {
+    const normalized = preserveExtra
+      ? Object.fromEntries(Object.entries(mapSource).map(([id, tracker]) => {
+        const sourceTracker = (tracker && typeof tracker === "object") ? tracker : {};
+        const hasCurrent = sourceTracker?.current !== undefined && sourceTracker?.current !== null && sourceTracker?.current !== "";
+        return [id, {
+          current: clampWholeInRange(hasCurrent ? sourceTracker.current : maxValue, maxValue, { min: 0, max: maxValue })
+        }];
+      }))
+      : {};
+    for (const id of ids) {
       const tracker = (mapSource[id] && typeof mapSource[id] === "object") ? mapSource[id] : {};
       const hasCurrent = tracker?.current !== undefined && tracker?.current !== null && tracker?.current !== "";
-      return [id, {
+      normalized[id] = {
         current: clampWholeInRange(hasCurrent ? tracker.current : maxValue, maxValue, { min: 0, max: maxValue })
-      }];
-    }));
+      };
+    }
+    return normalized;
   };
 
   mergedOverview.breakpoints.weapons ??= {};
@@ -715,7 +1211,8 @@ function normalizeVehicleOverviewState(overview = {}, vehicleSystem = {}) {
   mergedOverview.breakpoints.mobility.byId = normalizeTrackerMap(
     mergedOverview.breakpoints.mobility?.byId,
     getVehicleOverviewMobilityTrackerIds(vehicleSystem),
-    mobilityMax
+    mobilityMax,
+    { preserveExtra: true }
   );
   mergedOverview.breakpoints.custom = normalizeVehicleOverviewCustomBreakpoints(mergedOverview.breakpoints?.custom);
 
@@ -813,6 +1310,11 @@ export function normalizeCharacterSystemData(systemData) {
   for (const key of ["str", "tou", "agi"]) {
     const value = Number(merged.mythic.characteristics?.[key] ?? 0);
     merged.mythic.characteristics[key] = Number.isFinite(value) ? Math.max(0, value) : 0;
+  }
+  merged.mythic.characteristicModifiers ??= {};
+  for (const key of ["str", "tou", "agi"]) {
+    const value = Number(merged.mythic.characteristicModifiers?.[key] ?? 0);
+    merged.mythic.characteristicModifiers[key] = Number.isFinite(value) ? Math.trunc(value) : 0;
   }
   const legacyCarryMultiplierRaw = Number(merged.mythic?.soldierTypeCarryMultiplier ?? 1);
   const legacyCarryMultiplier = Number.isFinite(legacyCarryMultiplierRaw) ? Math.max(0, legacyCarryMultiplierRaw) : 1;
@@ -1539,6 +2041,11 @@ export function normalizeBestiarySystemData(systemData) {
     const mythicValue = Number(merged.bestiary?.mythicBase?.[key] ?? 0);
     merged.bestiary.mythicBase[key] = Number.isFinite(mythicValue) ? Math.max(0, Math.floor(mythicValue)) : 0;
   }
+  merged.bestiary.mythicMisc ??= {};
+  for (const key of ["str", "tou", "agi"]) {
+    const miscValue = Number(merged.bestiary?.mythicMisc?.[key] ?? 0);
+    merged.bestiary.mythicMisc[key] = Number.isFinite(miscValue) ? Math.trunc(miscValue) : 0;
+  }
 
   const xpPayouts = merged.bestiary?.xpPayouts && typeof merged.bestiary.xpPayouts === "object"
     ? merged.bestiary.xpPayouts
@@ -1612,6 +2119,50 @@ export function normalizeBestiarySystemData(systemData) {
     .filter(Boolean);
 
   merged.bestiary.equippedArmorId = String(merged.bestiary?.equippedArmorId ?? "").trim();
+  const armorProfile = (merged.bestiary?.armorProfile && typeof merged.bestiary.armorProfile === "object" && !Array.isArray(merged.bestiary.armorProfile))
+    ? merged.bestiary.armorProfile
+    : {};
+  const armorSchema = (armorProfile?.schema && typeof armorProfile.schema === "object" && !Array.isArray(armorProfile.schema))
+    ? armorProfile.schema
+    : {};
+  const armorModifierDelta = (armorProfile?.modifierDelta && typeof armorProfile.modifierDelta === "object" && !Array.isArray(armorProfile.modifierDelta))
+    ? armorProfile.modifierDelta
+    : {};
+  const armorModifierDeltaMisc = (armorModifierDelta?.misc && typeof armorModifierDelta.misc === "object" && !Array.isArray(armorModifierDelta.misc))
+    ? armorModifierDelta.misc
+    : {};
+  const armorModifierDeltaMythic = (armorModifierDelta?.mythic && typeof armorModifierDelta.mythic === "object" && !Array.isArray(armorModifierDelta.mythic))
+    ? armorModifierDelta.mythic
+    : {};
+  merged.bestiary.armorProfile = {
+    family: String(armorProfile.family ?? "").trim(),
+    system: String(armorProfile.system ?? "none").trim() || "none",
+    defaultPresetId: String(armorProfile.defaultPresetId ?? "").trim(),
+    appliedPresetId: String(armorProfile.appliedPresetId ?? "").trim(),
+    appliedPresetLabel: String(armorProfile.appliedPresetLabel ?? "").trim(),
+    schema: {
+      armorSystem: String(armorSchema.armorSystem ?? armorProfile.system ?? "none").trim() || "none",
+      locations: Array.isArray(armorSchema.locations) ? armorSchema.locations.map((entry) => String(entry ?? "").trim()).filter(Boolean) : [],
+      hasShields: Boolean(armorSchema.hasShields),
+      unavailableLocations: Array.isArray(armorSchema.unavailableLocations) ? armorSchema.unavailableLocations.map((entry) => String(entry ?? "").trim()).filter(Boolean) : []
+    },
+    notes: Array.isArray(armorProfile.notes) ? armorProfile.notes.map((entry) => String(entry ?? "").trim()).filter(Boolean) : [],
+    metadata: (armorProfile.metadata && typeof armorProfile.metadata === "object" && !Array.isArray(armorProfile.metadata))
+      ? foundry.utils.deepClone(armorProfile.metadata)
+      : {},
+    modifierDelta: {
+      misc: {
+        str: Number(armorModifierDeltaMisc.str ?? 0) || 0,
+        tou: Number(armorModifierDeltaMisc.tou ?? 0) || 0,
+        agi: Number(armorModifierDeltaMisc.agi ?? 0) || 0
+      },
+      mythic: {
+        str: Number(armorModifierDeltaMythic.str ?? 0) || 0,
+        tou: Number(armorModifierDeltaMythic.tou ?? 0) || 0,
+        agi: Number(armorModifierDeltaMythic.agi ?? 0) || 0
+      }
+    }
+  };
 
   const weaponAmmoRaw = (merged.bestiary?.weaponAmmo && typeof merged.bestiary.weaponAmmo === "object" && !Array.isArray(merged.bestiary.weaponAmmo))
     ? merged.bestiary.weaponAmmo
@@ -1640,7 +2191,12 @@ export function normalizeBestiarySystemData(systemData) {
     ? getBestiaryMythicBonus(rank)
     : 0;
   for (const key of ["str", "tou", "agi"]) {
-    merged.mythic.characteristics[key] = Math.max(0, toNonNegativeWhole(merged.bestiary.mythicBase[key], 0) + mythicBonus);
+    merged.mythic.characteristics[key] = Math.max(
+      0,
+      toNonNegativeWhole(merged.bestiary.mythicBase[key], 0)
+        + mythicBonus
+        + Math.trunc(Number(merged.bestiary?.mythicMisc?.[key] ?? 0) || 0)
+    );
   }
 
   merged.header.buildSize = merged.bestiary.size;
@@ -1730,8 +2286,11 @@ export function normalizeVehicleSystemData(systemData) {
   merged.movement.maneuver.owner = String(merged.movement.maneuver?.owner ?? "");
 
   merged.movement.walker ??= {};
-  for (const key of ["half", "full", "charge", "run", "jump", "leap", "evasion", "parry"]) {
+  for (const key of ["half", "full", "charge", "run", "sprint", "evasion", "parry"]) {
     merged.movement.walker[key] = toNonNegativeWhole(merged.movement.walker?.[key], 0);
+  }
+  for (const key of ["jump", "leap"]) {
+    merged.movement.walker[key] = toNonNegativeNumber(merged.movement.walker?.[key], 0);
   }
   merged.movement.walker.owner = String(merged.movement.walker?.owner ?? "");
 
@@ -1890,6 +2449,28 @@ export function normalizeVehicleSystemData(systemData) {
   merged.propulsion.state ??= {};
   merged.propulsion.state.multiplier = toNonNegativeNumber(merged.propulsion.state?.multiplier, 1);
   merged.propulsion.state.toHit = Number(merged.propulsion.state?.toHit ?? 0) || 0;
+  merged.isWalker = merged.propulsion.type === "legs";
+  merged.walker ??= {};
+  merged.walker.armCount = getVehicleWalkerArmCount(merged);
+  const requestedWalkerSizeCategory = getCanonicalSizeCategoryLabel(merged.walker?.sizeCategory ?? merged.walker?.buildSize ?? "");
+  merged.walker.sizeCategory = requestedWalkerSizeCategory || "Normal";
+  merged.walker.reach = Math.max(0, Math.min(99, toNonNegativeWhole(merged.walker?.reach, 0)));
+  merged.walker.melee = normalizeVehicleWalkerMeleeData(merged.walker?.melee);
+  merged.walker.arms ??= {};
+  merged.walker.arms.byId = normalizeVehicleWalkerArmMap(merged.walker.arms?.byId, merged.walker.armCount);
+  merged.walker.locations ??= {};
+  for (const definition of MYTHIC_VEHICLE_WALKER_LOCATION_DEFINITIONS) {
+    merged.walker.locations[definition.key] = normalizeVehicleWalkerLocationState(
+      merged.walker.locations?.[definition.key],
+      definition
+    );
+  }
+  for (const key of Object.keys(merged.walker.locations)) {
+    if (!MYTHIC_VEHICLE_WALKER_LOCATION_KEYS.includes(key)) continue;
+    const definition = MYTHIC_VEHICLE_WALKER_LOCATION_DEFINITIONS.find((entry) => entry.key === key);
+    merged.walker.locations[key].breakpointType = definition?.breakpointType ?? merged.walker.locations[key].breakpointType;
+  }
+  merged.walker.derived = getVehicleWalkerDerivedStats(merged);
 
   merged.modifications ??= {};
   merged.modifications.mods = normalizeStringList(Array.isArray(merged.modifications?.mods) ? merged.modifications.mods : []);
@@ -1951,9 +2532,12 @@ export function normalizeVehicleSystemData(systemData) {
           weaponId: String(mag.weaponId ?? entry?.weaponItemId ?? "").trim()
         };
       });
+      const requestedLocation = normalizeVehicleWalkerMountLocation(entry?.location);
       return {
         id: String(entry?.id ?? `legacy-emplacement-${index + 1}`).trim() || `legacy-emplacement-${index + 1}`,
         weaponItemId: String(entry?.weaponItemId ?? "").trim(),
+        location: requestedLocation,
+        unavailable: isVehicleWalkerMountLocationUnavailable(merged, requestedLocation),
         controllerRole,
         controllerIndex: controllerRole ? toNonNegativeWhole(entry?.controllerIndex ?? entry?.controllerPosition, 0) : 0,
         linked,
@@ -1985,6 +2569,10 @@ export function normalizeVehicleSystemData(systemData) {
     });
 
   merged.overview = normalizeVehicleOverviewState(merged.overview, merged);
+  merged.weaponEmplacements = merged.weaponEmplacements.map((entry) => ({
+    ...entry,
+    unavailable: isVehicleWalkerMountLocationUnavailable(merged, entry?.location)
+  }));
 
   const hullMax = getVehicleConfiguredBaseValue(merged?.breakpoints?.hull ?? {});
   const hullCurrent = Math.round(Number(merged?.overview?.breakpoints?.hull?.current ?? hullMax) || 0);
@@ -2513,6 +3101,11 @@ export function normalizeGearSystemData(systemData, itemName = "") {
       value.weaponClass = "other";
       return;
     }
+    if (equipmentType === "ammunition") {
+      value.itemClass = "ammunition";
+      value.weaponClass = "other";
+      return;
+    }
     if (equipmentType === "explosives-and-grenades") {
       value.itemClass = "weapon";
       value.weaponClass = "ranged";
@@ -2589,6 +3182,10 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     weaponAbility3: "",
     breakPointsMin: 0,
     breakPointsMax: 0,
+    breakPoints: {
+      current: 0,
+      max: 0
+    },
     armor: 0,
     providesHandheldEnergyShield: false,
     shieldIntegrity: 0,
@@ -2848,6 +3445,13 @@ export function normalizeGearSystemData(systemData, itemName = "") {
   merged.weaponAbility3 = String(merged.weaponAbility3 ?? "").trim();
   merged.breakPointsMin = toNonNegativeWhole(merged.breakPointsMin, 0);
   merged.breakPointsMax = toNonNegativeWhole(merged.breakPointsMax, 0);
+  const rawBreakPoints = (merged.breakPoints && typeof merged.breakPoints === "object" && !Array.isArray(merged.breakPoints))
+    ? merged.breakPoints
+    : {};
+  merged.breakPoints = {
+    current: Number.isFinite(Number(rawBreakPoints.current)) ? Number(rawBreakPoints.current) : 0,
+    max: Number.isFinite(Number(rawBreakPoints.max)) ? Number(rawBreakPoints.max) : 0
+  };
   merged.armor = Number.isFinite(Number(merged.armor)) ? Number(merged.armor) : 0;
   merged.providesHandheldEnergyShield = Boolean(merged.providesHandheldEnergyShield);
   merged.shieldIntegrity = toNonNegativeWhole(merged.shieldIntegrity, 0);

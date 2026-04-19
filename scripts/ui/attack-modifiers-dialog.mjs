@@ -32,6 +32,29 @@ const CALLED_SHOT_SUBZONES_BY_ZONE = Object.freeze((() => {
   return result;
 })());
 
+// Called-shot options for non-walker vehicle targets.
+// Hull at 0 penalty; all other sections at -30 (location-level, not sublocation).
+const VEHICLE_CALLED_SHOT_DEFS = Object.freeze([
+  Object.freeze({ value: "none",         label: "No" }),
+  Object.freeze({ value: "hull",         label: "Hull (no penalty)", zone: "Hull",     sectionKey: "hull",     drKey: "hull", kind: "vehicle-section", basePenalty: 0 }),
+  Object.freeze({ value: "veh-weapon",   label: "Weapon",            zone: "Weapon",   sectionKey: "weapon",   drKey: "hull", kind: "vehicle-section", basePenalty: -30 }),
+  Object.freeze({ value: "veh-mobility", label: "Mobility",          zone: "Mobility", sectionKey: "mobility", drKey: "hull", kind: "vehicle-section", basePenalty: -30 }),
+  Object.freeze({ value: "veh-engine",   label: "Engine",            zone: "Engine",   sectionKey: "engine",   drKey: "hull", kind: "vehicle-section", basePenalty: -30 }),
+  Object.freeze({ value: "veh-optics",   label: "Optics",            zone: "Optics",   sectionKey: "optics",   drKey: "hull", kind: "vehicle-section", basePenalty: -30 })
+]);
+
+// Called-shot options for walker vehicle targets.
+// All zones at -30; no sublocation selection.
+const WALKER_CALLED_SHOT_DEFS = Object.freeze([
+  Object.freeze({ value: "none",        label: "No" }),
+  Object.freeze({ value: "walk-head",   label: "Head",      zone: "Head",      subZone: "Head",      sectionKey: "head",     drKey: "head",  kind: "walker-zone", basePenalty: -30 }),
+  Object.freeze({ value: "walk-chest",  label: "Chest",     zone: "Chest",     subZone: "Chest",     sectionKey: "chest",    drKey: "chest", kind: "walker-zone", basePenalty: -30 }),
+  Object.freeze({ value: "walk-larm",   label: "Left Arm",  zone: "Left Arm",  subZone: "Left Arm",  sectionKey: "leftArm",  drKey: "lArm",  kind: "walker-zone", basePenalty: -30 }),
+  Object.freeze({ value: "walk-rarm",   label: "Right Arm", zone: "Right Arm", subZone: "Right Arm", sectionKey: "rightArm", drKey: "rArm",  kind: "walker-zone", basePenalty: -30 }),
+  Object.freeze({ value: "walk-lleg",   label: "Left Leg",  zone: "Left Leg",  subZone: "Left Leg",  sectionKey: "leftLeg",  drKey: "lLeg",  kind: "walker-zone", basePenalty: -30 }),
+  Object.freeze({ value: "walk-rleg",   label: "Right Leg", zone: "Right Leg", subZone: "Right Leg", sectionKey: "rightLeg", drKey: "rLeg",  kind: "walker-zone", basePenalty: -30 })
+]);
+
 const SCENE_UNIT_TO_METERS = Object.freeze({
   m: 1,
   meter: 1,
@@ -84,18 +107,22 @@ function buildDefaultAttackModifierResult() {
     rangeMeters: null,
     rangeMode: null,
     rangeSource: "",
-    rangeResolution: null
+    rangeResolution: null,
+    targetMode: "character"
   };
 }
 
 function buildInitialFormState(state = {}) {
+  const rawMode = String(state?.targetMode ?? "character").trim().toLowerCase();
+  const targetMode = ["vehicle", "walker"].includes(rawMode) ? rawMode : "character";
   return {
     toHitInput: String(state?.toHitInput ?? "0"),
     damageMod: String(state?.damageMod ?? ""),
     pierceInput: String(state?.pierceInput ?? "0"),
     calledShotZone: String(state?.calledShotZone ?? "none").trim().toLowerCase() || "none",
     calledShotSub: String(state?.calledShotSub ?? "").trim(),
-    overrideRangeInput: String(state?.overrideRangeInput ?? "").trim()
+    overrideRangeInput: String(state?.overrideRangeInput ?? "").trim(),
+    targetMode
   };
 }
 
@@ -108,7 +135,8 @@ function readAttackModifierFormState({ showRangeField = false } = {}) {
     calledShotSub: String(document.getElementById("mythic-atk-called-sub")?.value ?? "").trim(),
     overrideRangeInput: showRangeField
       ? String(document.getElementById("mythic-atk-range")?.value ?? "").trim()
-      : ""
+      : "",
+    targetMode: String(document.getElementById("mythic-atk-target-mode")?.value ?? "character").trim().toLowerCase()
   });
 }
 
@@ -125,7 +153,33 @@ function getActorAbilityNames(actor = null) {
 }
 
 function buildCalledShotSelection(formState = {}, { isMelee = false, hasClearTarget = false, hasPrecisionStrike = false } = {}) {
+  const mode = String(formState?.targetMode ?? "character");
   const selectedValue = String(formState?.calledShotZone ?? "none").trim().toLowerCase();
+  const reductionFactor = (isMelee && hasPrecisionStrike) || (!isMelee && hasClearTarget) ? 0.5 : 1;
+
+  if (mode === "vehicle") {
+    const def = VEHICLE_CALLED_SHOT_DEFS.find((d) => String(d.value ?? "").toLowerCase() === selectedValue)
+      ?? VEHICLE_CALLED_SHOT_DEFS[0];
+    if (def.value === "none") return { calledShotPenalty: 0, calledShot: null };
+    const penalty = Math.round(def.basePenalty * reductionFactor);
+    return {
+      calledShotPenalty: penalty,
+      calledShot: { kind: "vehicle-section", zone: def.zone, sectionKey: def.sectionKey, drKey: def.drKey, basePenalty: def.basePenalty, penalty }
+    };
+  }
+
+  if (mode === "walker") {
+    const def = WALKER_CALLED_SHOT_DEFS.find((d) => String(d.value ?? "").toLowerCase() === selectedValue)
+      ?? WALKER_CALLED_SHOT_DEFS[0];
+    if (def.value === "none") return { calledShotPenalty: 0, calledShot: null };
+    const penalty = Math.round(def.basePenalty * reductionFactor);
+    return {
+      calledShotPenalty: penalty,
+      calledShot: { kind: "walker-zone", zone: def.zone, subZone: def.subZone, sectionKey: def.sectionKey, drKey: def.drKey, basePenalty: def.basePenalty, penalty }
+    };
+  }
+
+  // Character called shot (existing logic)
   const calledShotSubRaw = String(formState?.calledShotSub ?? "").trim();
   const selectedCalledZone = CALLED_SHOT_ZONE_DEFS.find((entry) => String(entry.value ?? "").toLowerCase() === selectedValue)
     ?? CALLED_SHOT_ZONE_DEFS[0];
@@ -134,10 +188,6 @@ function buildCalledShotSelection(formState = {}, { isMelee = false, hasClearTar
   let calledShot = null;
 
   if (selectedCalledZone?.value !== "none") {
-    const reductionFactor = (isMelee && hasPrecisionStrike) || (!isMelee && hasClearTarget)
-      ? 0.5
-      : 1;
-
     if (selectedCalledZone.kind === "weapon") {
       const basePenalty = selectedCalledZone.weaponClass === "large-heavy" ? -20 : -40;
       calledShotPenalty = Math.round(basePenalty * reductionFactor);
@@ -382,7 +432,7 @@ function resolveAutoTargetToken(rangeContext = {}, scene = null) {
   };
 }
 
-function getTokenFootprintRectPixels(tokenDoc = null, scene = null) {
+function getTokenCenterPointPixels(tokenDoc = null, scene = null) {
   const gridSize = Number(scene?.grid?.size ?? scene?.dimensions?.size ?? NaN);
   const x = Number(tokenDoc?.x ?? NaN);
   const y = Number(tokenDoc?.y ?? NaN);
@@ -393,16 +443,15 @@ function getTokenFootprintRectPixels(tokenDoc = null, scene = null) {
   if (gridSize <= 0 || widthUnits <= 0 || heightUnits <= 0) return null;
 
   return {
-    left: x,
-    top: y,
-    right: x + (widthUnits * gridSize),
-    bottom: y + (heightUnits * gridSize)
+    x: x + ((widthUnits * gridSize) / 2),
+    y: y + ((heightUnits * gridSize) / 2)
   };
 }
 
-function measureRectangleGapPixels(leftRect, rightRect) {
-  const dx = Math.max(0, Number(leftRect?.left ?? 0) - Number(rightRect?.right ?? 0), Number(rightRect?.left ?? 0) - Number(leftRect?.right ?? 0));
-  const dy = Math.max(0, Number(leftRect?.top ?? 0) - Number(rightRect?.bottom ?? 0), Number(rightRect?.top ?? 0) - Number(leftRect?.bottom ?? 0));
+function measurePointDistancePixels(leftPoint, rightPoint) {
+  const dx = Number(rightPoint?.x ?? NaN) - Number(leftPoint?.x ?? NaN);
+  const dy = Number(rightPoint?.y ?? NaN) - Number(leftPoint?.y ?? NaN);
+  if (![dx, dy].every((value) => Number.isFinite(value))) return NaN;
   return Math.hypot(dx, dy);
 }
 
@@ -515,11 +564,11 @@ function resolveAutoRange(rangeContext = {}) {
     return unresolved;
   }
 
-  const sourceRect = getTokenFootprintRectPixels(sourceResolution.tokenDoc, scene);
-  const targetRect = getTokenFootprintRectPixels(targetResolution.tokenDoc, scene);
-  if (!sourceRect || !targetRect) {
+  const sourcePoint = getTokenCenterPointPixels(sourceResolution.tokenDoc, scene);
+  const targetPoint = getTokenCenterPointPixels(targetResolution.tokenDoc, scene);
+  if (!sourcePoint || !targetPoint) {
     const unresolved = buildUnresolvedAutoRange({
-      reason: "Auto range is unavailable: token footprints could not be measured.",
+      reason: "Auto range is unavailable: token centers could not be measured.",
       attackerLabel: sourceResolution.label,
       targetLabel: targetResolution.label,
       sceneId
@@ -528,7 +577,7 @@ function resolveAutoRange(rangeContext = {}) {
     return unresolved;
   }
 
-  const horizontalPixels = measureRectangleGapPixels(sourceRect, targetRect);
+  const horizontalPixels = measurePointDistancePixels(sourcePoint, targetPoint);
   const horizontalMeters = measurePixelDistanceInMeters(scene, horizontalPixels, conversion);
   if (!Number.isFinite(horizontalMeters)) {
     const unresolved = buildUnresolvedAutoRange({
@@ -1022,7 +1071,25 @@ function buildAppliedRangeHint(effectiveRange = null, rangeState = {}, findRange
     : "No applied range yet. Use Override Range.";
 }
 
-function buildCalledShotZoneOptionMarkup(esc, selectedValue = "none") {
+function buildCalledShotZoneOptionMarkup(esc, selectedValue = "none", targetMode = "character") {
+  const mode = String(targetMode ?? "character");
+  if (mode === "vehicle") {
+    return VEHICLE_CALLED_SHOT_DEFS
+      .map((entry) => {
+        const isSelected = String(entry.value ?? "").trim().toLowerCase() === selectedValue;
+        return `<option value="${esc(String(entry.value ?? ""))}"${isSelected ? " selected" : ""}>${esc(String(entry.label ?? entry.value ?? ""))}</option>`;
+      })
+      .join("");
+  }
+  if (mode === "walker") {
+    return WALKER_CALLED_SHOT_DEFS
+      .map((entry) => {
+        const isSelected = String(entry.value ?? "").trim().toLowerCase() === selectedValue;
+        return `<option value="${esc(String(entry.value ?? ""))}"${isSelected ? " selected" : ""}>${esc(String(entry.label ?? entry.value ?? ""))}</option>`;
+      })
+      .join("");
+  }
+  // character
   return CALLED_SHOT_ZONE_DEFS
     .map((entry) => {
       const isSelected = String(entry.value ?? "").trim().toLowerCase() === selectedValue;
@@ -1096,7 +1163,7 @@ function buildRangeSectionMarkup({ esc, formState, rangeContext, rangeState, clo
   `;
 }
 
-export async function promptAttackModifiersDialog({ actor = null, weaponName = "Weapon", gear = null, vehicleTargetingContext = null, rangeContext = null } = {}) {
+export async function promptAttackModifiersDialog({ actor = null, weaponName = "Weapon", gear = null, vehicleTargetingContext = null, rangeContext = null, targetMode: initialTargetMode = "character" } = {}) {
   if (!actor) return buildDefaultAttackModifierResult();
 
   const esc = foundry.utils.escapeHTML;
@@ -1122,7 +1189,7 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
     sceneId: String(rangeContext?.sceneId ?? canvas?.scene?.id ?? game.scenes?.active?.id ?? "").trim()
   };
 
-  let formState = buildInitialFormState();
+  let formState = buildInitialFormState({ targetMode: initialTargetMode });
   let rangeState = showRangeField
     ? {
       autoRange: resolveAutoRange(resolvedRangeContext),
@@ -1133,9 +1200,20 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
       foundRange: null
     };
 
+  // Serialized option sets for all three target modes — embedded in the select's
+  // data-option-sets attribute so inline onchange JS can rebuild options dynamically.
+  const _calledZoneOptSetsAttr = esc(JSON.stringify({
+    character: CALLED_SHOT_ZONE_DEFS.map((d) => ({ v: String(d.value ?? ""), l: String(d.label ?? d.value ?? "") })),
+    vehicle:   VEHICLE_CALLED_SHOT_DEFS.map((d) => ({ v: String(d.value ?? ""), l: String(d.label ?? d.value ?? "") })),
+    walker:    WALKER_CALLED_SHOT_DEFS.map((d) => ({ v: String(d.value ?? ""), l: String(d.label ?? d.value ?? "") }))
+  }));
+
   while (true) {
+    const currentTargetMode = String(formState.targetMode ?? "character");
+    const isVehicleMode = currentTargetMode === "vehicle";
+    const isWalkerMode = currentTargetMode === "walker";
     const selectedZone = String(formState.calledShotZone ?? "none").trim().toLowerCase();
-    const disableSubZone = selectedZone === "none" || selectedZone.startsWith("weapon-");
+    const disableSubZone = isVehicleMode || isWalkerMode || selectedZone === "none" || selectedZone.startsWith("weapon-");
 
     const dialogResult = await foundry.applications.api.DialogV2.wait({
       window: {
@@ -1166,12 +1244,42 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
           </div>
           ${showCalledShot ? `
           <div class="form-group">
+            <label>Target Type</label>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <label><input type="checkbox" id="mythic-atk-is-vehicle"${isVehicleMode || isWalkerMode ? " checked" : ""} onchange="
+                const veh = this.checked;
+                const walk = document.getElementById('mythic-atk-is-walker');
+                if (!veh && walk) walk.checked = false;
+                const hidden = document.getElementById('mythic-atk-target-mode');
+                if (hidden) hidden.value = veh ? (walk && walk.checked ? 'walker' : 'vehicle') : 'character';
+                const zoneRow = document.getElementById('mythic-atk-called-zone-group');
+                if (zoneRow) zoneRow.style.opacity = '1';
+                (function(){var s=document.getElementById('mythic-atk-called-zone');if(!s)return;var m=(document.getElementById('mythic-atk-target-mode')||{}).value||'character';var sets=JSON.parse(s.dataset.optionSets||'{}');var opts=sets[m]||sets.character||[];while(s.options.length)s.remove(0);opts.forEach(function(o){s.add(new Option(o.l,o.v));});s.value='none';var h=document.getElementById('mythic-atk-called-hint');if(h)h.textContent=m==='vehicle'?'Hull: no penalty. Other sections: -30.':m==='walker'?'All zones: -30 penalty.':'Body location -30, sublocation -60. Weapon shots: -40 standard, -20 large/heavy. Clear Target halves ranged penalties, Precision Strike halves melee penalties.';})();
+                const subDiv = document.getElementById('mythic-atk-called-sub-group');
+                if (subDiv) subDiv.style.display = veh ? 'none' : '';
+              "> Vehicle</label>
+              <label><input type="checkbox" id="mythic-atk-is-walker"${isWalkerMode ? " checked" : ""} onchange="
+                const walk = this.checked;
+                const veh = document.getElementById('mythic-atk-is-vehicle');
+                if (walk && veh) veh.checked = true;
+                const hidden = document.getElementById('mythic-atk-target-mode');
+                if (hidden) hidden.value = walk ? 'walker' : (veh && veh.checked ? 'vehicle' : 'character');
+                (function(){var s=document.getElementById('mythic-atk-called-zone');if(!s)return;var m=(document.getElementById('mythic-atk-target-mode')||{}).value||'character';var sets=JSON.parse(s.dataset.optionSets||'{}');var opts=sets[m]||sets.character||[];while(s.options.length)s.remove(0);opts.forEach(function(o){s.add(new Option(o.l,o.v));});s.value='none';var h=document.getElementById('mythic-atk-called-hint');if(h)h.textContent=m==='vehicle'?'Hull: no penalty. Other sections: -30.':m==='walker'?'All zones: -30 penalty.':'Body location -30, sublocation -60. Weapon shots: -40 standard, -20 large/heavy. Clear Target halves ranged penalties, Precision Strike halves melee penalties.';})();
+                const subDiv = document.getElementById('mythic-atk-called-sub-group');
+                if (subDiv) subDiv.style.display = walk ? 'none' : '';
+              "> Walker</label>
+            </div>
+            <input type="hidden" id="mythic-atk-target-mode" value="${esc(currentTargetMode)}" />
+            <p class="hint">Walker implies Vehicle. Vehicle/walker targets are resolved manually after the roll.</p>
+          </div>
+          <div class="form-group" id="mythic-atk-called-zone-group">
             <label for="mythic-atk-called-zone">Called Shot</label>
-            <select id="mythic-atk-called-zone" onchange="
+            <select id="mythic-atk-called-zone" data-option-sets="${_calledZoneOptSetsAttr}" onchange="
               const zone = String(this.value || 'none');
+              const mode = document.getElementById('mythic-atk-target-mode')?.value ?? 'character';
               const sub = document.getElementById('mythic-atk-called-sub');
               if (!sub) return;
-              const disableSub = zone === 'none' || zone.startsWith('weapon-');
+              const disableSub = mode === 'vehicle' || mode === 'walker' || zone === 'none' || zone.startsWith('weapon-');
               for (const opt of sub.options) {
                 const parentZone = String(opt.dataset.zone || '');
                 opt.hidden = Boolean(parentZone) && parentZone !== zone;
@@ -1180,11 +1288,11 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
               const selected = sub.options[sub.selectedIndex];
               if (disableSub || (selected && selected.hidden)) sub.value = '';
             ">
-              ${buildCalledShotZoneOptionMarkup(esc, selectedZone)}
+              ${buildCalledShotZoneOptionMarkup(esc, selectedZone, currentTargetMode)}
             </select>
-            <p class="hint">Body location -30, sublocation -60. Weapon shots: -40 standard, -20 large/heavy.</p>
+            <p class="hint" id="mythic-atk-called-hint">${isVehicleMode ? "Hull: no penalty. Other sections: -30." : isWalkerMode ? "All zones: -30 penalty." : "Body location -30, sublocation -60. Weapon shots: -40 standard, -20 large/heavy."} Clear Target halves ranged penalties, Precision Strike halves melee penalties.</p>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="mythic-atk-called-sub-group"${disableSubZone ? " style=\"display:none\"" : ""}>
             <label for="mythic-atk-called-sub">Called Shot Sublocation</label>
             <select id="mythic-atk-called-sub"${disableSubZone ? " disabled" : ""}>
               ${buildCalledShotSubOptionMarkup(esc, selectedZone, String(formState.calledShotSub ?? ""))}
@@ -1227,14 +1335,16 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
         {
           action: "cancel",
           label: "Cancel",
-          callback: () => null
+          callback: () => ({
+            action: "cancel"
+          })
         }
       ],
       rejectClose: false,
       modal: true
     });
 
-    if (dialogResult === null) return null;
+    if (dialogResult === null || dialogResult?.action === "cancel") return null;
     formState = buildInitialFormState(dialogResult?.formState ?? formState);
 
     if (dialogResult?.action === "find-range") {
@@ -1276,7 +1386,8 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
         foundRange: cloneRangeRecord(rangeState.foundRange),
         effectiveRange: cloneRangeRecord(effectiveRange),
         overrideRangeInput: String(formState.overrideRangeInput ?? "")
-      } : null
+      } : null,
+      targetMode: String(formState.targetMode ?? "character")
     };
   }
 }

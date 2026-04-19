@@ -81,6 +81,66 @@ export function getMythicWaypointMeasurementDistance(waypoint, useTotalDistance 
   return null;
 }
 
+const MYTHIC_RULER_LABEL_BASE_SIZE = 28;
+const MYTHIC_RULER_LABEL_MIN_SIZE = 18;
+const MYTHIC_RULER_LABEL_DEFAULT_TOTAL_SIZE = 24;
+
+function clampMythicUiSizeValue(value, min) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return min;
+  return Math.max(min, numeric);
+}
+
+function getMythicZoomAdjustedUiScale(baseSize, minSize, defaultSize) {
+  const zoom = Number(canvas?.stage?.scale?.x) || 1;
+  const size = clampMythicUiSizeValue(baseSize / zoom, minSize);
+  return size / defaultSize;
+}
+
+export function getMythicRulerLabelScale() {
+  return getMythicZoomAdjustedUiScale(
+    MYTHIC_RULER_LABEL_BASE_SIZE,
+    MYTHIC_RULER_LABEL_MIN_SIZE,
+    MYTHIC_RULER_LABEL_DEFAULT_TOTAL_SIZE
+  );
+}
+
+export function refreshMythicRulerLabelElements(root = document) {
+  const scale = getMythicRulerLabelScale();
+  const labels = root.querySelectorAll?.(
+    "#measurement .token-ruler-labels .waypoint-label, #measurement .distance-ruler-labels .waypoint-label"
+  );
+  for (const label of labels ?? []) {
+    label.classList.add("mythic-ruler-label");
+    label.style.setProperty("--ui-scale", scale);
+    label.style.setProperty("--mythic-ruler-label-scale", scale);
+  }
+}
+
+export function installMythicDistanceRulerLabelPatch() {
+  const rulerClass = foundry?.canvas?.interaction?.Ruler
+    ?? CONFIG?.Canvas?.rulerClass
+    ?? globalThis?.Ruler
+    ?? null;
+
+  const rulerPrototype = rulerClass?.prototype;
+  if (!rulerPrototype || rulerPrototype._mythicRulerLabelPatchInstalled) return;
+
+  const originalGetWaypointLabelContext = rulerPrototype._getWaypointLabelContext;
+  if (typeof originalGetWaypointLabelContext !== "function") return;
+
+  rulerPrototype._mythicRulerLabelPatchInstalled = true;
+  rulerPrototype._getWaypointLabelContext = function (...args) {
+    const context = originalGetWaypointLabelContext.apply(this, args);
+    if (!context) return context;
+
+    const scale = getMythicRulerLabelScale();
+    context.uiScale = scale;
+    context.cssClass = [context.cssClass, "mythic-ruler-label"].filter(Boolean).join(" ");
+    return context;
+  };
+}
+
 export class MythicTokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
   _getSegmentStyle(waypoint) {
     const style = super._getSegmentStyle(waypoint);
@@ -106,6 +166,20 @@ export class MythicTokenRuler extends foundry.canvas.placeables.tokens.TokenRule
     style.alpha = isGridHighlight ? 0.55 : 1;
     return style;
   }
+
+  _getWaypointLabelContext(waypoint, state) {
+    const context = super._getWaypointLabelContext(waypoint, state);
+    if (!context) return context;
+
+    const scale = getMythicRulerLabelScale();
+    context.uiScale = scale;
+    context.cssClass = [context.cssClass, "mythic-ruler-label"].filter(Boolean).join(" ");
+    return context;
+  }
+
+  refreshMythicMeasurementLabelStyle() {
+    refreshMythicRulerLabelElements();
+  }
 }
 
 export function installMythicTokenRuler() {
@@ -126,4 +200,6 @@ export function installMythicTokenRuler() {
       return null;
     }
   };
+
+  installMythicDistanceRulerLabelPatch();
 }

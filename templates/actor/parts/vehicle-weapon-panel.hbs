@@ -9,6 +9,7 @@
           {{#if hasTrainingWarning}}<span class="vehicle-weapon-strip-warning" title="{{trainingWarningText}}">!</span>{{/if}}
         </div>
         <div class="vehicle-weapon-strip-controller" title="{{controllingUserLabel}}">{{controllingUserLabel}}</div>
+        {{#if locationLabel}}<div class="vehicle-weapon-strip-controller" title="Mount location">Mount: {{locationLabel}}</div>{{/if}}
       </div>
     </div>
 

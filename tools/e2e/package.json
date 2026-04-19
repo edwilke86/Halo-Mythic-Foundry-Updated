@@ -1,0 +1,12 @@
+{
+  "name": "mythic-foundry-e2e",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  },
+  "scripts": {
+    "foundry:login": "node ./foundry-login.mjs"
+  }
+}
+

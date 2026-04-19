@@ -8,6 +8,8 @@ import {
   MYTHIC_WEAPON_JSON_MIGRATION_VERSION,
   MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY,
   MYTHIC_ARMOR_JSON_MIGRATION_VERSION,
+  MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY,
+  MYTHIC_VEHICLE_CSV_MIGRATION_VERSION,
   MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY,
   MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY,
   MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY,
@@ -86,6 +88,12 @@ import {
 } from "../core/chat-combat.mjs";
 
 import {
+  mythicRollVehicleSplatterEvasion as mythicRollVehicleSplatterEvasionImpl,
+  mythicRollVehicleSplatterFollowup as mythicRollVehicleSplatterFollowupImpl,
+  mythicApplyVehicleSplatterDamage as mythicApplyVehicleSplatterDamageImpl
+} from "../core/chat-splatter.mjs";
+
+import {
   mythicFearRollShockTest as mythicFearRollShockTestImpl,
   mythicFearRollPtsdTest as mythicFearRollPtsdTestImpl,
   mythicFearRollFollowup as mythicFearRollFollowupImpl,
@@ -103,7 +111,16 @@ import {
 
 import { registerMythicDocumentAndChatHooks } from "./hooks-document-events.mjs";
 
-import { installMythicTokenRuler } from "../core/token-ruler.mjs";
+import {
+  installMythicTokenRuler,
+  installMythicDistanceRulerLabelPatch,
+  refreshMythicRulerLabelElements
+} from "../core/token-ruler.mjs";
+
+import {
+  installMythicTokenHudUiPatch,
+  scheduleMythicTokenHudRefresh
+} from "../core/token-hud.mjs";
 
 import {
   maybeRunWorldMigration,
@@ -126,6 +143,11 @@ import {
 } from "../reference/weapons.mjs";
 
 import { refreshBestiaryCompendiums } from "../reference/bestiary.mjs";
+import {
+  previewVehicleCompendiums,
+  refreshVehicleCompendiums,
+  getLastVehicleCompendiumReport
+} from "../reference/vehicles.mjs";
 
 import {
   importSoldierTypesFromJson,
@@ -161,6 +183,15 @@ import {
   refreshFloodContaminationHud,
   destroyFloodContaminationHud
 } from "../ui/flood-contamination-hud.mjs";
+import {
+  getArmorFamily as getBestiaryArmorFamily,
+  getAvailablePresets as getBestiaryArmorPresets,
+  promptForPresetIfNeeded as promptBestiaryArmorPresetIfNeeded,
+  applyArmorPreset as applyBestiaryArmorPreset,
+  initializeShieldStateIfNeeded as initializeBestiaryShieldStateIfNeeded,
+  setCustomHitLocationSchemaIfNeeded as setBestiaryCustomHitLocationSchemaIfNeeded,
+  prepareBestiaryArmorSystemForSpawn
+} from "../mechanics/bestiary-armor-service.mjs";
 
 const MYTHIC_ALPHA_PLAYTEST_NOTICE_FLAG = "dismissAlphaPlaytestNoticeV1";
 const MYTHIC_ALPHA_BUG_REPORT_TEMPLATE = [
@@ -405,6 +436,18 @@ export async function mythicApplyGrenadeKillDamage(...args) {
   return mythicApplyGrenadeKillDamageImpl(...args);
 }
 
+export async function mythicRollVehicleSplatterEvasion(...args) {
+  return mythicRollVehicleSplatterEvasionImpl(...args);
+}
+
+export async function mythicRollVehicleSplatterFollowup(...args) {
+  return mythicRollVehicleSplatterFollowupImpl(...args);
+}
+
+export async function mythicApplyVehicleSplatterDamage(...args) {
+  return mythicApplyVehicleSplatterDamageImpl(...args);
+}
+
 export async function mythicFearRollShockTest(...args) {
   return mythicFearRollShockTestImpl(...args);
 }
@@ -467,6 +510,26 @@ export function registerAllHooks() {
     });
 
     installMythicTokenRuler();
+    installMythicDistanceRulerLabelPatch();
+    installMythicTokenHudUiPatch();
+
+    // Keep measurement labels and the Token HUD readable across zoom levels
+    // even if the user zooms while they are already visible.
+    Hooks.on("canvasPan", () => {
+      try {
+        refreshMythicRulerLabelElements();
+      } catch (error) {
+        // Non-fatal; measurement styling will still update on ruler ticks.
+        console.warn("[mythic-system] Failed to refresh ruler label style on canvasPan.", error);
+      }
+
+      try {
+        scheduleMythicTokenHudRefresh(null, { frames: 1 });
+      } catch (error) {
+        // Non-fatal; Token HUD placement will still update when it re-renders.
+        console.warn("[mythic-system] Failed to refresh Token HUD layout on canvasPan.", error);
+      }
+    });
 
     // With our custom initiative system we need to keep Combat tracker roll in sync.
     const originalCombatantRollInitiative = Combatant.prototype.rollInitiative;
@@ -597,6 +660,15 @@ export function registerAllHooks() {
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY, {
       name: "Armor JSON Migration Version",
       hint: "Internal marker for one-time armor compendium replacement using JSON definitions.",
+      scope: "world",
+      config: false,
+      type: Number,
+      default: 0
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY, {
+      name: "Vehicle CSV Migration Version",
+      hint: "Internal marker for one-time vehicle compendium replacement using the reference vehicle CSV.",
       scope: "world",
       config: false,
       type: Number,
@@ -974,6 +1046,20 @@ export function registerAllHooks() {
         );
       }
 
+      const vehicleCsvMigrationVersion = Number(
+        game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY) ?? 0
+      );
+      if (vehicleCsvMigrationVersion < MYTHIC_VEHICLE_CSV_MIGRATION_VERSION) {
+        const vehicleRefreshResult = await refreshVehicleCompendiums({ silent: true });
+        if (vehicleRefreshResult?.blocked !== true && vehicleRefreshResult?.applied === true) {
+          await game.settings.set(
+            "Halo-Mythic-Foundry-Updated",
+            MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY,
+            MYTHIC_VEHICLE_CSV_MIGRATION_VERSION
+          );
+        }
+      }
+
       await maybeRunCompendiumCanonicalMigration();
 
       const shouldAutoRefresh = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY));
@@ -1017,6 +1103,17 @@ export function registerAllHooks() {
     game.mythic.refreshArmorCompendiums = refreshArmorCompendiums;
     game.mythic.rebuildArmorCompendiumsFromJson = rebuildArmorCompendiumsFromJson;
     game.mythic.refreshBestiaryCompendiums = refreshBestiaryCompendiums;
+    game.mythic.previewVehicleCompendiums = previewVehicleCompendiums;
+    game.mythic.refreshVehicleCompendiums = refreshVehicleCompendiums;
+    game.mythic.getLastVehicleCompendiumReport = getLastVehicleCompendiumReport;
+    game.mythic.lastVehicleCompendiumReport = getLastVehicleCompendiumReport();
+    game.mythic.getBestiaryArmorFamily = getBestiaryArmorFamily;
+    game.mythic.getBestiaryArmorPresets = getBestiaryArmorPresets;
+    game.mythic.promptBestiaryArmorPresetIfNeeded = promptBestiaryArmorPresetIfNeeded;
+    game.mythic.applyBestiaryArmorPreset = applyBestiaryArmorPreset;
+    game.mythic.initializeBestiaryShieldStateIfNeeded = initializeBestiaryShieldStateIfNeeded;
+    game.mythic.setBestiaryCustomHitLocationSchemaIfNeeded = setBestiaryCustomHitLocationSchemaIfNeeded;
+    game.mythic.prepareBestiaryArmorSystemForSpawn = prepareBestiaryArmorSystemForSpawn;
     game.mythic.getFloodContaminationState = getFloodContaminationState;
     game.mythic.refreshFloodContaminationHud = refreshFloodContaminationHud;
     game.mythic.getCanonicalEquipmentPackSchemaData = getCanonicalEquipmentPackSystemData;
@@ -1121,6 +1218,59 @@ export function registerAllHooks() {
           console.error(`[mythic-system] Failed seeding ${label} compendium ${collection}.`, error);
         } finally {
           if (wasLocked && unlockedForSeed) {
+            try {
+              await pack.configure({ locked: true });
+            } catch (lockError) {
+              console.error(`[mythic-system] Failed to relock compendium ${collection}.`, lockError);
+            }
+          }
+        }
+      };
+
+      const enforceAmmoCompendiumAmmunitionType = async () => {
+        const collection = "Halo-Mythic-Foundry-Updated.ammo-types";
+        const pack = game.packs.get(collection);
+        if (!pack) return;
+
+        let docs = [];
+        try {
+          docs = await pack.getDocuments();
+        } catch (error) {
+          console.error("[mythic-system] Failed loading ammo compendium for normalization.", error);
+          return;
+        }
+        if (!Array.isArray(docs) || docs.length < 1) return;
+
+        const updates = docs
+          .map((doc) => {
+            const equipmentType = String(doc?.system?.equipmentType ?? "").trim().toLowerCase();
+            if (equipmentType === "ammunition") return null;
+            return {
+              _id: doc.id,
+              system: {
+                ...(foundry.utils.deepClone(doc.system ?? {})),
+                equipmentType: "ammunition",
+                category: String(doc?.system?.category ?? "").trim() || "Ammo"
+              }
+            };
+          })
+          .filter(Boolean);
+
+        if (updates.length < 1) return;
+
+        const wasLocked = Boolean(pack.locked);
+        let unlockedForUpdate = false;
+        try {
+          if (wasLocked) {
+            await pack.configure({ locked: false });
+            unlockedForUpdate = true;
+          }
+          await Item.updateDocuments(updates, { pack: pack.collection });
+          console.log(`[mythic-system] Normalized ${updates.length} ammo compendium item(s) to ammunition.`);
+        } catch (error) {
+          console.error("[mythic-system] Failed normalizing ammo compendium item types.", error);
+        } finally {
+          if (wasLocked && unlockedForUpdate) {
             try {
               await pack.configure({ locked: true });
             } catch (lockError) {
@@ -1261,7 +1411,7 @@ export function registerAllHooks() {
 
       await seedCompendiumIfEmpty({
         collection: "Halo-Mythic-Foundry-Updated.ammo-types",
-        label: "ammo types",
+        label: "ammo",
         buildItems: async () => {
           const defs = await loadMythicAmmoTypeDefinitionsFromJson();
           if (!defs.length) return [];
@@ -1270,6 +1420,7 @@ export function registerAllHooks() {
             type: "gear",
             img: MYTHIC_ABILITY_DEFAULT_ICON,
             system: {
+              equipmentType: "ammunition",
               ammoTypeDefinition: {
                 name: String(def.name ?? "Ammo Type"),
                 unitWeightKg: Number(def.unitWeightKg ?? def.weightPerRoundKg ?? 0) || 0,
@@ -1278,11 +1429,13 @@ export function registerAllHooks() {
                 specialAmmoCategory: String(def.specialAmmoCategory ?? "Standard").trim() || "Standard"
               },
               source: "mythic",
-              category: "Ammo Type"
+              category: "Ammo"
             }
           }));
         }
       });
+
+      await enforceAmmoCompendiumAmmunitionType();
 
       await seedCompendiumIfEmpty({
         collection: "Halo-Mythic-Foundry-Updated.mythic-equipment-human",
@@ -1409,6 +1562,9 @@ export function registerAllHooks() {
     mythicRollEvadeIntoCover,
     mythicApplyGrenadeBlastDamage,
     mythicApplyGrenadeKillDamage,
+    mythicRollVehicleSplatterEvasion,
+    mythicRollVehicleSplatterFollowup,
+    mythicApplyVehicleSplatterDamage,
     mythicFearRollShockTest,
     mythicFearRollPtsdTest,
     mythicFearRollFollowup,

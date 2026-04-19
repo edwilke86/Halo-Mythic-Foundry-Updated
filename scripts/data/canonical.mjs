@@ -51,6 +51,11 @@ export function getCanonicalCharacterSystemData() {
         tou: 0,
         agi: 0
       },
+      characteristicModifiers: {
+        str: 0,
+        tou: 0,
+        agi: 0
+      },
       fixedCarryWeight: 0,
       soldierTypeChargeRunAgiBonus: 0,
       soldierTypeStrCarryMultiplier: 1,
@@ -330,6 +335,11 @@ export function getCanonicalBestiarySystemData() {
       tou: 0,
       agi: 0
     },
+    mythicMisc: {
+      str: 0,
+      tou: 0,
+      agi: 0
+    },
     xpPayouts: {
       br1: 0,
       br2: 0,
@@ -373,6 +383,25 @@ export function getCanonicalBestiarySystemData() {
     flood: {
       formClass: "none",
       keymindRole: "none"
+    },
+    armorProfile: {
+      family: "",
+      system: "none",
+      defaultPresetId: "",
+      appliedPresetId: "",
+      appliedPresetLabel: "",
+      schema: {
+        armorSystem: "none",
+        locations: [],
+        hasShields: false,
+        unavailableLocations: []
+      },
+      notes: [],
+      metadata: {},
+      modifierDelta: {
+        misc: { str: 0, tou: 0, agi: 0 },
+        mythic: { str: 0, tou: 0, agi: 0 }
+      }
     }
   };
 
@@ -415,6 +444,7 @@ export function getCanonicalVehicleSystemData() {
         full: 0,
         charge: 0,
         run: 0,
+        sprint: 0,
         jump: 0,
         leap: 0,
         owner: "",
@@ -592,6 +622,54 @@ export function getCanonicalVehicleSystemData() {
       state: {
         multiplier: 1,
         toHit: 0
+      }
+    },
+    isWalker: false,
+    walker: {
+      armCount: 2,
+      sizeCategory: "Normal",
+      reach: 0,
+      melee: {
+        punch: {
+          diceCount: 3,
+          diceSize: 10,
+          modifier: "strength"
+        },
+        stomp: {
+          diceCount: 4,
+          diceSize: 10,
+          modifier: "stomp",
+          specialRules: ["Slow", "Kinetic"]
+        }
+      },
+      arms: {
+        byId: {}
+      },
+      locations: {
+        head: { armor: 0, breakpointType: "engine", destroyed: false, disabled: false, notes: "" },
+        chest: { armor: 0, breakpointType: "cockpit", destroyed: false, disabled: false, notes: "" },
+        leftArm: { armor: 0, breakpointType: "mobility", destroyed: false, disabled: false, notes: "" },
+        rightArm: { armor: 0, breakpointType: "mobility", destroyed: false, disabled: false, notes: "" },
+        leftLeg: { armor: 0, breakpointType: "mobility", destroyed: false, disabled: false, notes: "" },
+        rightLeg: { armor: 0, breakpointType: "mobility", destroyed: false, disabled: false, notes: "" }
+      },
+      derived: {
+        movement: {},
+        evasion: {
+          characteristic: 0,
+          pilotAgility: 0,
+          walkerAgility: 0,
+          pilotEvasionSkill: 0,
+          total: 0
+        },
+        physical: {
+          strength: 0,
+          strengthModifier: 0,
+          mythicStrength: 0,
+          jump: 0,
+          leap: 0,
+          stomp: 0
+        }
       }
     },
     modifications: {

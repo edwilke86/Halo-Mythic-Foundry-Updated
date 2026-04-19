@@ -457,6 +457,130 @@
   margin-top: 10px;
 }
 
+.vehicle-walker-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(228, 183, 106, 0.72);
+  background: rgba(88, 61, 28, 0.42);
+  color: rgba(255, 235, 194, 0.98);
+  font-family: Orbitron, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vehicle-walker-readonly-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.vehicle-walker-readonly-grid > div {
+  display: grid;
+  gap: 2px;
+  min-height: 42px;
+  padding: 6px;
+  border: 1px solid rgba(148, 180, 220, 0.22);
+  border-radius: 4px;
+  background: rgba(17, 28, 42, 0.62);
+}
+
+.vehicle-walker-readonly-grid span {
+  color: rgba(201, 219, 238, 0.72);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.vehicle-walker-readonly-grid strong {
+  color: rgba(246, 250, 255, 0.96);
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.vehicle-walker-derived {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.vehicle-walker-derived h3 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.vehicle-mobility-walker-note {
+  margin-top: 10px;
+  padding: 7px 8px;
+  border: 1px solid rgba(228, 183, 106, 0.32);
+  border-radius: 4px;
+  background: rgba(80, 58, 26, 0.28);
+  color: rgba(244, 226, 188, 0.92);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.vehicle-walker-evasion-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.vehicle-walker-characteristics-panel .compact-row .vehicle-walker-flex-break {
+  flex-basis: 100%;
+  height: 0;
+}
+
+.vehicle-walker-characteristics-panel .compact-row .compact-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.vehicle-walker-characteristics-panel .compact-row .small-input {
+  width: 100%;
+}
+
+.vehicle-walker-melee-setup {
+  display: grid;
+  gap: 6px;
+}
+
+.vehicle-walker-melee-block {
+  display: grid;
+  gap: 4px;
+}
+
+.vehicle-walker-melee-block-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(201, 219, 238, 0.78);
+  line-height: 1;
+}
+
+.vehicle-walker-melee-formula-row {
+  display: grid;
+  grid-template-columns: 64px 64px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.vehicle-walker-melee-modifier-select {
+  height: 28px;
+  min-width: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-walker-melee-table {
+  margin-bottom: 2px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-walker-melee-card .vehicle-weapon-strip-secondary {
+  grid-template-columns: auto auto auto minmax(0, 1fr);
+}
+
 .grid-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -493,8 +617,77 @@
 }
 .small-input { width:64px; height:28px; text-align:center; font-size:13px; }
 
+.vehicle-walker-location-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.vehicle-walker-location-card {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(148, 180, 220, 0.24);
+  border-radius: 6px;
+  background: rgba(18, 27, 42, 0.58);
+}
+
+.vehicle-walker-location-card.is-disabled {
+  border-color: rgba(228, 183, 106, 0.38);
+  background: rgba(73, 55, 27, 0.44);
+}
+
+.vehicle-walker-location-card.is-destroyed {
+  border-color: rgba(226, 123, 108, 0.42);
+  background: rgba(87, 27, 24, 0.46);
+}
+
+.vehicle-walker-location-head {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  text-align: center;
+  color: rgba(246, 250, 255, 0.96);
+  font-size: 11px;
+}
+
+.vehicle-walker-location-head span,
+.vehicle-walker-location-state {
+  color: rgba(201, 219, 238, 0.72);
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.vehicle-walker-location-card label {
+  display: grid;
+  gap: 3px;
+  font-size: 10px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-table.vehicle-overview-walker-armor-table {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-table.vehicle-overview-walker-armor-table .vehicle-overview-armor-cell {
+  padding: 6px 2px;
+}
+
+.vehicle-overview-armor-value.is-disabled {
+  background: rgba(111, 80, 28, 0.62);
+}
+
+.vehicle-overview-armor-value.is-destroyed {
+  background: rgba(116, 28, 36, 0.76);
+}
+
 /* Slightly larger select inside compact-field */
 .compact-field select, .panel select { height:28px; }
+
+.vehicle-size-category-select {
+  min-width: 140px;
+  height: 28px;
+}
 
 @media (max-width: 900px) {
   .setup-grid { grid-template-columns: 1fr; }

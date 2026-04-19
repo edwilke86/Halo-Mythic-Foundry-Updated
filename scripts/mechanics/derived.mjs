@@ -42,6 +42,7 @@ export function isGoodFortuneModeEnabled() {
 export function computeCharacterDerivedValues(systemData = {}) {
   const characteristics = systemData?.characteristics ?? {};
   const mythic = systemData?.mythic?.characteristics ?? {};
+  const mythicModifiers = systemData?.mythic?.characteristicModifiers ?? {};
   const modifiers = computeCharacteristicModifiers(characteristics);
 
   const actorGravity = Number(systemData?.gravity ?? 1.0);
@@ -51,9 +52,17 @@ export function computeCharacterDerivedValues(systemData = {}) {
   const safeGravity = isZeroG ? 1.0 : gravity;
   const gravDist = (value) => (isZeroG ? value : (value / safeGravity));
 
-  const mythicStr = toNonNegativeNumber(mythic?.str, 0);
-  const mythicTou = toNonNegativeNumber(mythic?.tou, 0);
-  const mythicAgi = toNonNegativeNumber(mythic?.agi, 0);
+  const signedWhole = (value) => {
+    const numeric = Number(value ?? 0);
+    return Number.isFinite(numeric) ? Math.trunc(numeric) : 0;
+  };
+
+  const baseMythicStr = toNonNegativeNumber(mythic?.str, 0);
+  const baseMythicTou = toNonNegativeNumber(mythic?.tou, 0);
+  const baseMythicAgi = toNonNegativeNumber(mythic?.agi, 0);
+  const mythicStr = Math.max(0, baseMythicStr + signedWhole(mythicModifiers?.str));
+  const mythicTou = Math.max(0, baseMythicTou + signedWhole(mythicModifiers?.tou));
+  const mythicAgi = Math.max(0, baseMythicAgi + signedWhole(mythicModifiers?.agi));
 
   const touModifier = toNonNegativeWhole(modifiers.tou, 0);
   const touCombined = touModifier + mythicTou;

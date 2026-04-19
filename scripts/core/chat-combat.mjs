@@ -211,7 +211,10 @@ function resolveIncomingDamageAgainstDefenses(targetActor, incoming = {}) {
   const touModifier = Math.max(0, Number(derivedTarget.touModifier ?? 0));
   const ignoresTouModifierOnHead = isHeadshot && drKey === "head";
   const touForDR = Math.max(0, touCombined - (ignoresTouModifierOnHead ? touModifier : 0));
-  const totalDR = touForDR + armorValue;
+  const naturalArmorValue = drKey === "head"
+    ? Math.max(0, Number(derivedTarget.naturalArmor?.headShotValue ?? derivedTarget.naturalArmor?.effectiveValue ?? 0) || 0)
+    : Math.max(0, Number(derivedTarget.naturalArmor?.effectiveValue ?? 0) || 0);
+  const totalDR = touForDR + naturalArmorValue + armorValue;
   const effectiveDR = Math.max(0, totalDR - bodyPierce);
   const woundDamage = Math.max(0, bodyDamageBeforeDR - effectiveDR);
 
@@ -233,6 +236,11 @@ function resolveIncomingDamageAgainstDefenses(targetActor, incoming = {}) {
 }
 
 export async function mythicRollEvasion(messageId, targetMode, attackData) {
+  const atkTargetMode = String(attackData?.targetMode ?? "character");
+  if (atkTargetMode === "vehicle" || atkTargetMode === "walker") {
+    console.warn("[mythic-system] mythicRollEvasion: vehicle/walker targets are resolved manually. Skipping.");
+    return;
+  }
   let targetEntries = [];
 
   if (targetMode === "selected") {
@@ -482,6 +490,11 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
 }
 
 export async function mythicApplyDirectAttackDamage(messageId, targetMode, attackData) {
+  const atkTargetMode = String(attackData?.targetMode ?? "character");
+  if (atkTargetMode === "vehicle" || atkTargetMode === "walker") {
+    console.warn("[mythic-system] mythicApplyDirectAttackDamage: vehicle/walker targets are resolved manually. Skipping.");
+    return;
+  }
   let targetEntries = [];
 
   if (targetMode === "selected") {
@@ -581,6 +594,11 @@ export async function mythicApplyDirectAttackDamage(messageId, targetMode, attac
 }
 
 export async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sceneId = null, options = {}) {
+  const atkTargetMode = String(options?.attackTargetMode ?? "character");
+  if (atkTargetMode === "vehicle" || atkTargetMode === "walker") {
+    console.warn("[mythic-system] mythicApplyWoundDamage: vehicle/walker targets are resolved manually. Skipping.");
+    return;
+  }
   let targetActor = null;
   let targetName = "Target";
 
@@ -649,15 +667,25 @@ export async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sc
     || currentWounds <= 0
     || newWounds <= 0
   );
+  const specialDamageHitLocs = Array.isArray(options?.specialDamageHitLocs) && options.specialDamageHitLocs.length
+    ? options.specialDamageHitLocs
+    : [options?.hitLoc ?? null].filter(Boolean);
   const appliedSpecialEffects = qualifiesForSpecialDamage
     ? await appendActorMedicalEffects(
         targetActor,
-        await resolveSpecialDamageEffects(options?.hitLoc ?? null, Number(damage ?? 0))
+        (await Promise.all(specialDamageHitLocs.map((hitLoc) => resolveSpecialDamageEffects(hitLoc, Number(damage ?? 0)))))
+          .flat()
       )
     : [];
 
   const shieldLine = resolveHit
-    ? `<div>Shields: <strong>${shieldDamageApplied}</strong> (${currentShields} -> ${shieldsRemaining})</div>`
+    ? `<div>Shield Damage: <strong>${shieldDamageApplied}</strong> (${currentShields} -> ${shieldsRemaining})</div>`
+    : "";
+  const defenseLine = resolveHit && String(options?.drLabel ?? "").trim()
+    ? `<div>DR: <strong>${foundry.utils.escapeHTML(String(options.drLabel))}</strong></div>`
+    : "";
+  const hitLocationLine = resolveHit && specialDamageHitLocs.length > 1
+    ? `<div>Hit Locations: <strong>${specialDamageHitLocs.map((hitLoc) => `${foundry.utils.escapeHTML(String(hitLoc?.zone ?? ""))} / ${foundry.utils.escapeHTML(String(hitLoc?.subZone ?? ""))}`).join(", ")}</strong></div>`
     : "";
   const shieldPierceLine = resolveHit && Number(options?.damagePierce ?? 0) > 0 && Boolean(options?.appliesShieldPierce) && currentShields > 0 && !Boolean(options?.ignoresShields)
     ? (() => {
@@ -678,13 +706,13 @@ export async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sc
   const headshotLine = resolveHit && Boolean(options?.isHeadshot) && String(options?.drKey ?? "").trim() === "head"
     ? `<div>Headshot: TOU modifier ignored for head DR.</div>`
     : "";
-  const woundLine = `<div>Wounds: <strong>${woundDamage}</strong> (${currentWounds} -> ${newWounds} / ${maxWounds})</div>`;
+  const woundLine = `<div>Wound Damage: <strong>${woundDamage}</strong> (${currentWounds} -> ${newWounds} / ${maxWounds})</div>`;
   const specialDamageLine = appliedSpecialEffects.length
     ? `<div>Special Damage Effects: <strong>${appliedSpecialEffects.map((entry) => foundry.utils.escapeHTML(entry.displayName)).join(", ")}</strong></div>`
     : "";
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor: targetActor }),
-    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(targetName)}</strong>${shieldLine}${shieldPierceLine}${kineticLine}${headshotLine}${woundLine}${specialDamageLine}</div>`,
+    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(targetName)}</strong>${shieldLine}${defenseLine}${hitLocationLine}${shieldPierceLine}${kineticLine}${headshotLine}${woundLine}${specialDamageLine}</div>`,
     type: CONST.CHAT_MESSAGE_STYLES.OTHER
   });
 

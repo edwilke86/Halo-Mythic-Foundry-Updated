@@ -15,8 +15,77 @@ export function resolveHitLocation(attackRoll) {
   if (locRoll === null) return null;
   return {
     locRoll,
+    isCrit: attackRoll === 1,
     ...(MYTHIC_HIT_LOCATION_TABLE[locRoll] ?? { zone: "Chest", subZone: "Ribcage", drKey: "chest" })
   };
+}
+
+// ─── Vehicle / Walker hit-location infrastructure ────────────────────────────
+
+export const VEHICLE_HIT_SECTION_KEYS = Object.freeze(["weapon", "mobility", "engine", "optics", "hull"]);
+
+export const VEHICLE_HIT_SECTION_DEFS = Object.freeze({
+  weapon:   Object.freeze({ zone: "Weapon",   sectionKey: "weapon",   drKey: "hull" }),
+  mobility: Object.freeze({ zone: "Mobility", sectionKey: "mobility", drKey: "hull" }),
+  engine:   Object.freeze({ zone: "Engine",   sectionKey: "engine",   drKey: "hull" }),
+  optics:   Object.freeze({ zone: "Optics",   sectionKey: "optics",   drKey: "hull" }),
+  hull:     Object.freeze({ zone: "Hull",     sectionKey: "hull",     drKey: "hull" })
+});
+
+export const WALKER_ZONE_KEYS = Object.freeze(["head", "chest", "leftArm", "rightArm", "leftLeg", "rightLeg"]);
+
+export const WALKER_ZONE_DEFS = Object.freeze({
+  head:     Object.freeze({ zone: "Head",      subZone: "Head",      sectionKey: "head",     drKey: "head" }),
+  chest:    Object.freeze({ zone: "Chest",     subZone: "Chest",     sectionKey: "chest",    drKey: "chest" }),
+  leftArm:  Object.freeze({ zone: "Left Arm",  subZone: "Left Arm",  sectionKey: "leftArm",  drKey: "lArm" }),
+  rightArm: Object.freeze({ zone: "Right Arm", subZone: "Right Arm", sectionKey: "rightArm", drKey: "rArm" }),
+  leftLeg:  Object.freeze({ zone: "Left Leg",  subZone: "Left Leg",  sectionKey: "leftLeg",  drKey: "lLeg" }),
+  rightLeg: Object.freeze({ zone: "Right Leg", subZone: "Right Leg", sectionKey: "rightLeg", drKey: "rLeg" })
+});
+
+// Character hit-location zone label → walker zone key
+const _CHAR_ZONE_TO_WALKER_KEY = Object.freeze({
+  "Head":      "head",
+  "Chest":     "chest",
+  "Left Arm":  "leftArm",
+  "Right Arm": "rightArm",
+  "Left Leg":  "leftLeg",
+  "Right Leg": "rightLeg"
+});
+
+// Weapon 1-15, Mobility 16-30, Engine 31-45, Optics 46-60, Hull 61-100
+function _vehicleSectionFromLocRoll(locRoll) {
+  if (locRoll <= 15) return "weapon";
+  if (locRoll <= 30) return "mobility";
+  if (locRoll <= 45) return "engine";
+  if (locRoll <= 60) return "optics";
+  return "hull";
+}
+
+// Resolve hit location for a non-walker vehicle. Returns null on crit fail (raw 100).
+export function resolveVehicleHitLocation(attackRoll) {
+  const locRoll = invertAttackRoll(attackRoll);
+  if (locRoll === null) return null;
+  const sectionKey = _vehicleSectionFromLocRoll(locRoll);
+  return { locRoll, isCrit: attackRoll === 1, ...VEHICLE_HIT_SECTION_DEFS[sectionKey] };
+}
+
+// Resolve hit location for a walker vehicle (6 collapsed humanoid zones).
+export function resolveWalkerHitLocation(attackRoll) {
+  const locRoll = invertAttackRoll(attackRoll);
+  if (locRoll === null) return null;
+  const charEntry = MYTHIC_HIT_LOCATION_TABLE[locRoll] ?? { zone: "Chest" };
+  const walkerKey = _CHAR_ZONE_TO_WALKER_KEY[String(charEntry.zone ?? "").trim()] ?? "chest";
+  return { locRoll, isCrit: attackRoll === 1, ...WALKER_ZONE_DEFS[walkerKey] };
+}
+
+// Unified dispatcher. targetMode: "character" | "vehicle" | "walker".
+// Returns null on crit fail (raw 100). isCrit: true on natural 01.
+export function resolveHitLocationForMode(attackRoll, targetMode) {
+  const mode = String(targetMode ?? "character");
+  if (mode === "vehicle") return resolveVehicleHitLocation(attackRoll);
+  if (mode === "walker") return resolveWalkerHitLocation(attackRoll);
+  return resolveHitLocation(attackRoll);
 }
 
 export function getFireModeToHitBonus(modeValue) {

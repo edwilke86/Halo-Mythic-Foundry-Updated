@@ -6,15 +6,15 @@ This project is actively in development and currently targets Foundry v13.
 
 ## Current Status
 
-- Implemented: modular v13 system architecture, unified actor/item sheets, characteristic and combat automation foundations, fear/shock/PTSD chat workflow, tracked medical effects with structured duration controls, and expanded system compendium sync coverage (weapons, armor, equipment, bestiary baseline).
-- In progress: deeper rules automation, Character Creation and Advancement parity polish, compendium/content coverage expansion, and current alpha.2 branch hardening (grenade flow, ammo handling, and crew/inventory UX fixes).
-- Roadmap: see [TODO.md](TODO.md).
+- Implemented: modular v13 system architecture, unified actor/item sheets, characteristic and combat automation foundations, fear/shock/PTSD chat workflow, tracked medical effects with structured duration controls, staged grenade throw/cook resolution, ammo split/uncarry handling, and expanded system compendium sync coverage (weapons, armor, equipment, bestiary baseline).
+- In progress: deeper rules automation, Character Creation and Advancement parity polish, compendium/content coverage expansion, and continued crew/group inventory UX hardening.
+- Release notes and current public progress are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Alpha Readiness
 
-Current build target: `0.3.0-alpha.2` (playtest alpha, unreleased)
+Current build target: `0.4.0-alpha.1` (current playtest alpha)
 
-Latest published release: `0.3.0-alpha.1` (2026-04-03)
+Latest published release: `0.4.0-alpha.1` (2026-04-19)
 
 Known alpha limitations:
 
@@ -27,8 +27,8 @@ Recommended alpha test focus:
 
 1. Character Creation and Advancement flow end-to-end on a new actor.
 2. Soldier Type apply behavior (including first-drop/second-drop behavior).
-3. XP tracking + transaction notes + manual transaction add/remove persistence.
-4. Collapse-state persistence and scroll-position stability during rerenders.
+3. Ammo carry/uncarry/split plus reload flows across weapons and magazines.
+4. Grenade throw/cook staged resolution from action selection through final damage prompt.
 
 Alpha bug reporting focus (important):
 
@@ -45,7 +45,7 @@ Where to report:
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.3.0-alpha.2` (or latest published build in use)
+1. Build/version: `0.4.0-alpha.1` (or latest published build in use)
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -64,8 +64,8 @@ Format:
 
 Current working version:
 
-- Development target: `0.3.0-alpha.2` (unreleased)
-- Latest published: `0.3.0-alpha.1`
+- Development target: `0.4.0-alpha.1`
+- Latest published: `0.4.0-alpha.1`
 
 Rules used:
 
@@ -85,7 +85,7 @@ Use this section for short public-facing updates as development progresses.
 - Removed load-time alpha notice chat post; retained startup modal notice flow.
 - Updated roadmap/changelog/reporting docs for 0.3.0-alpha.1 consistency.
 
-### 0.3.0-alpha.2 (UNRELEASED)
+### 0.4.0-alpha.1
 
 - Added ammo split support and uncarry flow for ammo/magazines.
 - Added grenade throw and cook actions with range-aware chat details and staged resolution flow.

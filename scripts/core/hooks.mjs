@@ -195,7 +195,7 @@ import {
 
 const MYTHIC_ALPHA_PLAYTEST_NOTICE_FLAG = "dismissAlphaPlaytestNoticeV1";
 const MYTHIC_ALPHA_BUG_REPORT_TEMPLATE = [
-  "Build/version: 0.3.0-alpha.1",
+  "Build/version: 0.4.0-alpha.1",
   "Actor type and whether newly created or existing:",
   "Exact steps to reproduce:",
   "Expected result:",

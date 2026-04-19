@@ -4,14 +4,14 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
-## [0.3.0-alpha.2] - UNRELEASED
+## [0.4.0-alpha.1] - 2026-04-19
 
-### Added (0.3.0-alpha.2)
+### Added (0.4.0-alpha.1)
 
 - Added a "split" function for piles of ammo, and allowed "uncarrying" of ammo and magazines
 - Added fully functioning grenade throw and cook actions, with proper range calculations and chat message details
 
-### Changed (0.3.0-alpha.2)
+### Changed (0.4.0-alpha.1)
 
 - Fixed ammo being imported as ranged weapons instead of ammo items.
 - Corrected weights on some items that the devsheet had incorrectly listed
@@ -20,7 +20,7 @@ The format is based on Keep a Changelog, and this project follows SemVer pre-rel
 - Fixed a bug where you could not modify wounds or shields from the token HUD
 - Cooked grenade resolution is now staged by chat: throw test first, then scatter and cook as separate steps, then a final damage-roll prompt before the explosion controls appear.
 
-### Removed (0.3.0-alpha.2)
+### Removed (0.4.0-alpha.1)
 
 - Removed "Queued XP" display from Character Creation panel, as the unified Character Creation + Advancement flow now provides more comprehensive XP tracking and logging.
 

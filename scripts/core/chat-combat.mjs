@@ -4,6 +4,7 @@ import { loadMythicMedicalEffectDefinitions, loadMythicSpecialDamageDefinitions 
 import { computeCharacterDerivedValues } from "../mechanics/derived.mjs";
 import { computeAttackDOS } from "../mechanics/combat.mjs";
 import { isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
+import { getOutlierEffectSummary } from "../mechanics/outliers.mjs";
 import { getSkillTierBonus } from "../reference/ref-utils.mjs";
 import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
 import { MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY } from "../config.mjs";
@@ -209,8 +210,12 @@ function resolveIncomingDamageAgainstDefenses(targetActor, incoming = {}) {
   const derivedTarget = computeCharacterDerivedValues(targetActor.system ?? {});
   const touCombined = Math.max(0, Number(derivedTarget.touCombined ?? 0));
   const touModifier = Math.max(0, Number(derivedTarget.touModifier ?? 0));
+  const outlierEffects = getOutlierEffectSummary(targetActor.system ?? {});
   const ignoresTouModifierOnHead = isHeadshot && drKey === "head";
-  const touForDR = Math.max(0, touCombined - (ignoresTouModifierOnHead ? touModifier : 0));
+  const retainedTouModifierOnHead = ignoresTouModifierOnHead && outlierEffects?.hardHead?.keepHalfTouModifierOnHeadshot
+    ? Math.floor(touModifier / 2)
+    : 0;
+  const touForDR = Math.max(0, touCombined - (ignoresTouModifierOnHead ? Math.max(0, touModifier - retainedTouModifierOnHead) : 0));
   const naturalArmorValue = drKey === "head"
     ? Math.max(0, Number(derivedTarget.naturalArmor?.headShotValue ?? derivedTarget.naturalArmor?.effectiveValue ?? 0) || 0)
     : Math.max(0, Number(derivedTarget.naturalArmor?.effectiveValue ?? 0) || 0);
@@ -226,6 +231,7 @@ function resolveIncomingDamageAgainstDefenses(targetActor, incoming = {}) {
     shieldPierceMultiplier,
     shieldPierceReason,
     ignoresTouModifierOnHead,
+    retainedTouModifierOnHead,
     shieldsCurrent,
     shieldsRemaining,
     bodyDamageBeforeDR,
@@ -403,6 +409,9 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
       const headshotDetailLine = (() => {
         if (isEvaded || !incoming.isHeadshot) return "";
         if (String(incoming.hitLoc?.drKey ?? "") !== "head") return "";
+        if (Number(shieldPreview?.retainedTouModifierOnHead ?? 0) > 0) {
+          return `<div class="mythic-evasion-roll-detail is-shield-pierce-active">Headshot: Hard-Head retains ${shieldPreview.retainedTouModifierOnHead} TOU DR on headshots.</div>`;
+        }
         return `<div class="mythic-evasion-roll-detail is-shield-pierce-active">Headshot: TOU modifier ignored for head DR.</div>`;
       })();
       const lineClass = incoming.appliesShieldPierce

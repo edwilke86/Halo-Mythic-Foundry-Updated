@@ -82,43 +82,6 @@
         </details>
       </details>
 
-
-
-      <details class="mythic-derived-card" data-collapse-key="sight-card" open>
-        <summary>Sight</summary>
-        <div class="movement-strip">
-          <div class="movement-block movement-block-wide">
-            <div class="movement-value">{{mythicPerceptiveRange.effectiveMeters}}</div>
-            <div class="movement-label">Perceptive Range</div>
-          </div>
-        </div>
-        {{#if mythicFarSight.hasAbility}}
-          <div class="movement-ref-row mythic-sight-control-row">
-            <span>Far-Sight</span>
-            <button type="button" class="action-btn far-sight-activate-btn {{#unless mythicFarSight.canActivate}}is-disabled{{/unless}}" {{#unless mythicFarSight.canActivate}}disabled{{/unless}}>{{mythicFarSight.buttonLabel}}</button>
-          </div>
-        {{/if}}
-        <details class="movement-reference" data-collapse-key="sight-reference">
-          <summary>Lighting &amp; Range Penalties</summary>
-          <div class="movement-ref-content" title="Base {{mythicPerceptiveRange.breakdown.baseLightingMultiplier}} + VIGIL {{mythicPerceptiveRange.breakdown.vigilBonus}} + Far-Sight {{mythicPerceptiveRange.breakdown.farSightBonus}}; then optics x{{mythicPerceptiveRange.breakdown.opticsMultiplier}}">
-            <div class="movement-ref-row mythic-sight-control-row">
-              <span>Lighting</span>
-              <select name="system.perceptiveRange.lightingCondition">
-                {{#each mythicPerceptiveRange.lightingOptions as |opt|}}
-                  <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
-                {{/each}}
-              </select>
-            </div>
-            <div class="movement-ref-row"><span>Bright / Low-Light</span><span>{{mythicDerived.perceptiveRange.brightOrLowLight}} m</span></div>
-            <div class="movement-ref-row"><span>Blinding / Darkness</span><span>{{mythicDerived.perceptiveRange.blindingOrDarkness}} m</span></div>
-            <div class="movement-ref-row"><span>-20 To Hit up to</span><span>{{mythicPerceptiveRange.penalty20Max}} m</span></div>
-            <div class="movement-ref-row"><span>-60 To Hit up to</span><span>{{mythicPerceptiveRange.penalty60Max}} m</span></div>
-            <p>Scopes, sights, and binoculars multiply current Perceptive Range after lighting/outlier/temporary modifiers.</p>
-            <p>Aim is only legal up to current Perceptive Range. Beyond 3x Perceptive Range is impossible.</p>
-          </div>
-        </details>
-      </details>
-
       <details class="mythic-derived-card" data-collapse-key="weight-card" open>
         <summary>Weight</summary>
         <div class="movement-strip">
@@ -126,6 +89,9 @@
           <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.lift}}</div><div class="movement-label">Lift</div></div>
           <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.push}}</div><div class="movement-label">Push</div></div>
         </div>
+        {{#if mythicDerived.carryingCapacity.usesFullCharacteristicsForCarry}}
+          <p class="ccadv-note">Strongman: carry calculations use full STR and TOU instead of halved values.</p>
+        {{/if}}
         <details class="movement-reference" data-collapse-key="weight-reference">
           <summary>Gravity</summary>
           <div class="movement-ref-content">
@@ -166,6 +132,12 @@
             <button type="button" class="action-btn wounds-full-heal-btn">Full Heal</button>
           </div>
         </div>
+        {{#if mythicDerived.outliers.robust.enabled}}
+          <p class="ccadv-note">Robust: +{{mythicDerived.outliers.robust.woundsBonus}} max Wounds.</p>
+        {{/if}}
+        {{#if (gt mythicDerived.naturalHealing.multiplier 1)}}
+          <p class="ccadv-note">Vigorous: Natural Healing x{{mythicDerived.naturalHealing.multiplier}}.</p>
+        {{/if}}
 
         <div class="mythic-resource-line">
           <div class="mythic-resource-label">Fatigue</div>
@@ -174,6 +146,12 @@
             <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.fatigue.max" value="{{mythicCombat.fatigue.max}}" readonly title="Coma threshold: fatigue greater than this value" /></div>
           </div>
         </div>
+        {{#if mythicDerived.outliers.enduring.enabled}}
+          <p class="ccadv-note">Enduring: first {{mythicDerived.outliers.enduring.ignoredLevels}} Fatigue levels are ignored for penalties{{#if (gt mythicDerived.outliers.enduring.currentFatigue 0)}}; currently {{mythicDerived.outliers.enduring.suppressedLevels}} suppressed{{#if (gt mythicDerived.outliers.enduring.effectiveLevels 0)}}, {{mythicDerived.outliers.enduring.effectiveLevels}} still active{{/if}}{{/if}}.</p>
+        {{/if}}
+        {{#if mythicDerived.outliers.rugged.enabled}}
+          <p class="ccadv-note">Rugged: halve harsh-environment and hunger/thirst fatigue penalties.</p>
+        {{/if}}
 
         <div class="mythic-resource-line">
           <div class="mythic-resource-label">Luck</div>
@@ -205,6 +183,9 @@
           <div class="mythic-dr-note">Natural Armor{{#if mythicDerived.naturalArmor.isWearingArmor}} (halved){{/if}}</div>
         </div>
         {{/if}}
+        {{#if mythicDerived.outliers.hardHead.enabled}}
+          <p class="ccadv-note">Hard-Head: headshots keep half your TOU modifier and Head-butt attacks gain +{{mythicDerived.outliers.hardHead.headbuttDamageBonus}} damage.</p>
+        {{/if}}
       </div>
 
       <div class="mythic-combat-column right">
@@ -224,6 +205,9 @@
             <div class="mythic-mini-field"><span>Current</span><input type="number" min="0" name="system.combat.supportPoints.current" value="{{mythicCombat.supportPoints.current}}" /></div>
             <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.supportPoints.max" value="{{mythicCombat.supportPoints.max}}" /></div>
           </div>
+          {{#if mythicDerived.outliers.advocate.enabled}}
+            <p class="ccadv-note">Advocate: each Support Point award should grant +{{mythicDerived.outliers.advocate.supportPointsPerAward}} extra Support Points.</p>
+          {{/if}}
         </div>
 
         <div class="mythic-right-block">
@@ -457,6 +441,7 @@
       <summary>Hand-to-Hand Combat</summary>
       <div class="mythic-hth-actions">
         <button type="button" class="action-btn hth-attack-btn" data-attack="Unarmed Strike">Unarmed Strike</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Head-butt">Head-butt</button>
         <button type="button" class="action-btn hth-attack-btn" data-attack="Grapple">Grapple</button>
         <button type="button" class="action-btn hth-attack-btn" data-attack="Disarm">Disarm</button>
         <button type="button" class="action-btn hth-attack-btn" data-attack="Tackle">Tackle</button>

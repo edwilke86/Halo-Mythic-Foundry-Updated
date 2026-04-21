@@ -8,6 +8,7 @@ import {
   hasOutlierPurchase, applySbaolekgoloSizing,
   computeMeleeReach, computeToHitModifierVsSize, computeMeleeDamageBonus
 } from './size.mjs';
+import { getOutlierEffectSummary } from './outliers.mjs';
 import { calculatePerceptiveRange } from './perceptive-range.mjs';
 
 function roundToOne(n) { return Math.round(Number(n ?? 0) * 10) / 10; }
@@ -44,6 +45,7 @@ export function computeCharacterDerivedValues(systemData = {}) {
   const mythic = systemData?.mythic?.characteristics ?? {};
   const mythicModifiers = systemData?.mythic?.characteristicModifiers ?? {};
   const modifiers = computeCharacteristicModifiers(characteristics);
+  const outlierEffects = getOutlierEffectSummary(systemData);
 
   const actorGravity = Number(systemData?.gravity ?? 1.0);
   const worldGravity = getWorldGravity();
@@ -224,8 +226,11 @@ export function computeCharacterDerivedValues(systemData = {}) {
   const fixedCarryWeight = Number.isFinite(rawFixedCarryWeight) ? Math.max(0, rawFixedCarryWeight) : 0;
   const rawCarryStr = toNonNegativeNumber(characteristics.str, 0);
   const rawCarryTou = toNonNegativeNumber(characteristics.tou, 0);
-  const baseCarry = (((rawCarryStr / 2) + (10 * mythicStr)) * soldierTypeStrMultiplier)
-    + (((rawCarryTou / 2) + (10 * mythicTou)) * soldierTypeTouMultiplier)
+  const useFullCarryCharacteristics = Boolean(outlierEffects?.strongman?.usesFullCharacteristicsForCarry);
+  const carryStrBase = useFullCarryCharacteristics ? rawCarryStr : (rawCarryStr / 2);
+  const carryTouBase = useFullCarryCharacteristics ? rawCarryTou : (rawCarryTou / 2);
+  const baseCarry = (((carryStrBase) + (10 * mythicStr)) * soldierTypeStrMultiplier)
+    + (((carryTouBase) + (10 * mythicTou)) * soldierTypeTouMultiplier)
     + miscCarryBonus;
   const gravCarry = fixedCarryWeight > 0
     ? fixedCarryWeight
@@ -234,7 +239,8 @@ export function computeCharacterDerivedValues(systemData = {}) {
   const carryingCapacity = {
     carry: gravCarry,
     lift:  roundToOne(gravCarry * 3),
-    push:  roundToOne(gravCarry * 5)
+    push:  roundToOne(gravCarry * 5),
+    usesFullCharacteristicsForCarry: useFullCarryCharacteristics
   };
 
   const buildSizeRaw = String(systemData?.header?.buildSize ?? "").trim() || "Normal";
@@ -274,6 +280,10 @@ export function computeCharacterDerivedValues(systemData = {}) {
     notes: String(naturalArmorScaffold?.notes ?? "").trim()
   };
 
+  const naturalHealing = {
+    multiplier: Math.max(1, Number(outlierEffects?.vigorous?.multiplier ?? 1) || 1)
+  };
+
   return {
     modifiers,
     mythicCharacteristics: {
@@ -289,6 +299,8 @@ export function computeCharacterDerivedValues(systemData = {}) {
     perceptiveRange,
     carryingCapacity,
     sizeScaffolding,
-    naturalArmor
+    naturalArmor,
+    naturalHealing,
+    outliers: outlierEffects
   };
 }

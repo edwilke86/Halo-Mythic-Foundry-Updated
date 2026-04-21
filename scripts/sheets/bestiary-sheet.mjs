@@ -154,6 +154,22 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
   _sheetScrollTop = 0;
 
+  _vehicleActorTokenDocuments = new WeakMap();
+
+  _characterVehicleOverviewUiState = {};
+
+  _characterVehicleActorId = "";
+
+  _characterVehicleActorUpdateHook = null;
+
+  _characterVehicleActorDeleteHook = null;
+
+  _characterVehicleTokenUpdateHook = null;
+
+  _characterVehicleTokenDeleteHook = null;
+
+  _characterVehicleRerenderPending = false;
+
   _tabSelectArmed = false;
 
   _tabSelectTimestamp = 0;
@@ -331,6 +347,20 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
       };
     });
 
+    const characterVehicleSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+    const linkedVehicleActorId = String(characterVehicleSystem?.vehicles?.currentVehicleActorId ?? "").trim();
+    const vehicleActors = this._getCharacterVehicleActorPool();
+    const linkedVehicleActor = this._resolveVehicleActorReference(linkedVehicleActorId);
+    context.mythicCurrentVehicleActor = linkedVehicleActor;
+    context.mythicCharacterVehicle = await this._buildCharacterVehicleTabContext(characterVehicleSystem, {
+      linkedVehicleActor,
+      vehicleActors
+    });
+    this._characterVehicleActorId = String(context.mythicCharacterVehicle?.vehicleUuid ?? context.mythicCharacterVehicle?.vehicleActorId ?? "").trim();
+    context.mythicVehicleOverviewReadOnly = true;
+    context.mythicVehicleBreakpointEditable = Boolean(context.mythicCharacterVehicle?.mythicVehicleBreakpointEditable);
+    context.mythicVehicleBreakpointManagementEditable = false;
+
     return context;
   }
 
@@ -388,6 +418,8 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
         this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop ?? 0));
       }, { passive: true });
     }
+
+    this._registerCharacterVehicleActorHooks();
 
     if (!this.isEditable) return;
 
@@ -656,26 +688,102 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
     // Weapon card event handlers (same API as character sheet).
     root.querySelectorAll(".weapon-reload-btn[data-item-id]").forEach((b) => {
-      b.addEventListener("click", (e) => { void this._onReloadWeapon(e); });
+      b.addEventListener("click", (e) => {
+        if (e.currentTarget?.dataset?.vehicleActorId || e.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponReload(e);
+        } else {
+          void this._onReloadWeapon(e);
+        }
+      });
     });
     root.querySelectorAll(".weapon-attack-btn[data-item-id][data-action]").forEach((b) => {
-      b.addEventListener("click", (e) => { void this._onWeaponAttack(e); });
+      b.addEventListener("click", (e) => {
+        if (e.currentTarget?.dataset?.vehicleActorId || e.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponAttack(e);
+        } else {
+          void this._onWeaponAttack(e);
+        }
+      });
     });
     root.querySelectorAll(".weapon-fire-mode-btn[data-item-id][data-fire-mode]").forEach((b) => {
-      b.addEventListener("click", (e) => { void this._onWeaponFireModeToggle(e); });
+      b.addEventListener("click", (e) => {
+        if (e.currentTarget?.dataset?.vehicleActorId || e.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponFireModeToggle(e);
+        } else {
+          void this._onWeaponFireModeToggle(e);
+        }
+      });
     });
     root.addEventListener("click", (e) => {
       const btn = e.target instanceof Element ? e.target.closest(".weapon-variant-btn[data-item-id][data-variant-index]") : null;
-      if (btn && root.contains(btn)) void this._onWeaponVariantSelect(e);
+      if (!btn || !root.contains(btn)) return;
+      if (btn.dataset?.vehicleActorId || btn.dataset?.vehicleUuid) {
+        void this._onCharacterVehicleWeaponVariantSelect(e, btn);
+      } else {
+        void this._onWeaponVariantSelect(e);
+      }
     });
     root.querySelectorAll(".weapon-charge-btn[data-item-id]").forEach((b) => {
-      b.addEventListener("click", (e) => { void this._onWeaponCharge(e); });
+      b.addEventListener("click", (e) => {
+        if (e.currentTarget?.dataset?.vehicleActorId || e.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponCharge(e);
+        } else {
+          void this._onWeaponCharge(e);
+        }
+      });
     });
     root.querySelectorAll(".weapon-clear-charge-btn[data-item-id]").forEach((b) => {
-      b.addEventListener("click", (e) => { void this._onWeaponClearCharge(e); });
+      b.addEventListener("click", (e) => {
+        if (e.currentTarget?.dataset?.vehicleActorId || e.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponClearCharge(e);
+        } else {
+          void this._onWeaponClearCharge(e);
+        }
+      });
     });
     root.querySelectorAll(".weapon-state-input[data-item-id][data-field]").forEach((i) => {
-      i.addEventListener("change", (e) => { void this._onWeaponStateInputChange(e); });
+      i.addEventListener("change", (e) => {
+        if (e.currentTarget?.dataset?.vehicleActorId || e.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponStateInputChange(e);
+        } else {
+          void this._onWeaponStateInputChange(e);
+        }
+      });
+    });
+    root.querySelectorAll(".vehicle-weapon-neural-link-toggle[data-emplacement-id][data-vehicle-actor-id], .vehicle-weapon-neural-link-toggle[data-emplacement-id][data-vehicle-uuid]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onCharacterVehicleNeuralLinkToggle(event);
+      });
+    });
+    root.querySelectorAll(".vehicle-overview-toggle[data-target-path][data-vehicle-actor-id], .vehicle-overview-toggle[data-target-path][data-vehicle-uuid], [data-character-vehicle-actor-id] .vehicle-overview-toggle[data-target-path], [data-character-vehicle-uuid] .vehicle-overview-toggle[data-target-path]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCharacterVehicleOverviewToggle(event);
+      });
+    });
+    root.querySelectorAll(".mythic-character-vehicle-speed-btn[data-direction][data-vehicle-actor-id], .mythic-character-vehicle-speed-btn[data-direction][data-vehicle-uuid]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCharacterVehicleAdjustCurrentSpeed(event);
+      });
+    });
+    root.querySelectorAll(".mythic-character-vehicle-speed-input[data-vehicle-actor-id], .mythic-character-vehicle-speed-input[data-vehicle-uuid]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onCharacterVehicleSpeedInputChange(event);
+      });
+    });
+    root.querySelectorAll(".vehicle-breakpoint-current-input[data-update-path][data-vehicle-actor-id], .vehicle-breakpoint-current-input[data-update-path][data-vehicle-uuid]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onVehicleBreakpointCurrentInputChange(event);
+      });
+    });
+    root.querySelectorAll(".mythic-character-vehicle-active-btn[data-vehicle-actor-id], .mythic-character-vehicle-active-btn[data-vehicle-uuid]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onSetCharacterVehicleActive(event);
+      });
+    });
+    root.querySelectorAll(".mythic-character-vehicle-remove-btn[data-vehicle-actor-id][data-crew-key][data-slot-index], .mythic-character-vehicle-remove-btn[data-vehicle-uuid][data-crew-key][data-slot-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRemoveCharacterVehicleAssignment(event);
+      });
     });
     root.querySelectorAll(".gear-open-btn[data-item-id]").forEach((b) => {
       b.addEventListener("click", (e) => {
@@ -802,6 +910,23 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
         if (Object.keys(updates).length) await this.actor.update(updates);
       };
     }
+  }
+
+  async close(options = {}) {
+    this._unregisterCharacterVehicleActorHooks();
+    return super.close(options);
+  }
+
+  _queueCharacterVehicleRerender() {
+    if (!this.rendered || this._characterVehicleRerenderPending) return;
+    this._characterVehicleRerenderPending = true;
+    const scrollable = this.element?.querySelector(".sheet-tab-scrollable");
+    if (scrollable) this._sheetScrollTop = Math.max(0, Number(scrollable.scrollTop ?? 0));
+    setTimeout(() => {
+      this._characterVehicleRerenderPending = false;
+      if (!this.rendered) return;
+      void this.render(false);
+    }, 0);
   }
 
   _prepareSubmitData(event, form, formData, updateData = {}) {
@@ -2757,4 +2882,70 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
         };
       });
   }
+}
+
+const BESTIARY_CHARACTER_VEHICLE_METHODS = [
+  "_isVehicleActor",
+  "_isVehicleActorDocument",
+  "_canUseVehicleActorControls",
+  "_canCurrentUserControlSheetActor",
+  "_canUseCharacterVehicleSeatControls",
+  "_getCharacterVehicleControlRequestOptions",
+  "_getVehicleControlSystemData",
+  "_getVehicleActorUpdateRequestOptions",
+  "_applyVehicleControlSystemCachePatch",
+  "_createVehicleActorBridgeContext",
+  "_getVehicleActorTokenDocument",
+  "_getVehicleActorReference",
+  "_getVehicleActorReferenceKeys",
+  "_doesVehicleReferenceMatchActor",
+  "_getVehicleActorFromResolvedDocument",
+  "_resolveVehicleActorReference",
+  "_getCharacterVehicleActorPool",
+  "_getCharacterVehicleOverviewUiState",
+  "_getActorVehicleIdentityKeys",
+  "_getActorVehicleNameKeys",
+  "_doesVehicleSeatMatchCurrentActor",
+  "_getCharacterVehicleSeatMatchScore",
+  "_getCharacterSeatInVehicle",
+  "_getCharacterSeatsInVehicle",
+  "_getVehicleActorModifiedTime",
+  "_isActorSheetRendered",
+  "_getVehicleWeaponControllerDefinitions",
+  "_getVehicleEmplacementControllerSeatKey",
+  "_getCharacterVehicleActorFromControl",
+  "_resolveCharacterVehicleSelection",
+  "_isCharacterVehicleRelatedActor",
+  "_isCharacterVehicleRelatedToken",
+  "_registerCharacterVehicleActorHooks",
+  "_unregisterCharacterVehicleActorHooks",
+  "_buildCharacterVehicleAssignmentsContext",
+  "_buildCharacterVehicleWeaponAccess",
+  "_buildCharacterVehicleTabContext",
+  "_resolveCharacterVehicleWeaponControl",
+  "_runCharacterVehicleWeaponControl",
+  "_onCharacterVehicleWeaponAttack",
+  "_onCharacterVehicleWeaponReload",
+  "_onCharacterVehicleWeaponCharge",
+  "_onCharacterVehicleWeaponClearCharge",
+  "_onCharacterVehicleWeaponStateInputChange",
+  "_onCharacterVehicleWeaponFireModeToggle",
+  "_onCharacterVehicleWeaponVariantSelect",
+  "_onCharacterVehicleNeuralLinkToggle",
+  "_onCharacterVehicleOverviewToggle",
+  "_onCharacterVehicleAdjustCurrentSpeed",
+  "_onCharacterVehicleSpeedInputChange",
+  "_updateCharacterVehicleCurrentSpeedFromControl",
+  "_onVehicleBreakpointCurrentInputChange",
+  "_onSetCharacterVehicleActive",
+  "_onRemoveCharacterVehicleAssignment"
+];
+
+for (const methodName of BESTIARY_CHARACTER_VEHICLE_METHODS) {
+  if (Object.prototype.hasOwnProperty.call(MythicBestiarySheet.prototype, methodName)) continue;
+  const actorSheetMethod = MythicActorSheet.prototype[methodName];
+  if (typeof actorSheetMethod !== "function") continue;
+  MythicBestiarySheet.prototype[methodName] = function (...args) {
+    return actorSheetMethod.apply(this, args);
+  };
 }

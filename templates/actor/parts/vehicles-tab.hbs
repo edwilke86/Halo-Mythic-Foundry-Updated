@@ -1,32 +1,122 @@
-<div class="tab vehicles" data-group="primary" data-tab="vehicles">
-  <section class="panel mythic-phase4-panel">
-    <h2>Vehicles</h2>
+<div
+  class="tab vehicles mythic-character-vehicle-tab mythic-vehicle-fallback-sheet"
+  data-group="primary"
+  data-tab="vehicles"
+  {{#if mythicCharacterVehicle.vehicleActorId}}data-character-vehicle-actor-id="{{mythicCharacterVehicle.vehicleActorId}}"{{/if}}
+  {{#if mythicCharacterVehicle.vehicleUuid}}data-character-vehicle-uuid="{{mythicCharacterVehicle.vehicleUuid}}"{{/if}}>
+  <div class="mythic-character-vehicle-stack">
+    {{#if mythicCharacterVehicle.hasVehicle}}
+      <section class="panel vehicle-summary-weapons-panel mythic-character-vehicle-weapons-panel">
+        <div class="mythic-character-vehicle-panel-heading">
+          <div>
+            <h2>Available Vehicle Weapons</h2>
+            <div class="mythic-character-vehicle-subtitle">{{mythicCharacterVehicle.weapons.modeLabel}}</div>
+          </div>
+          <div class="mythic-character-vehicle-chip-row">
+            <span class="mythic-character-vehicle-chip">{{mythicCharacterVehicle.roleLabel}}</span>
+            {{#if mythicCharacterVehicle.occupantLabel}}
+              <span class="mythic-character-vehicle-chip">{{mythicCharacterVehicle.occupantLabel}}</span>
+            {{/if}}
+          </div>
+        </div>
 
-    <div class="mythic-phase4-grid two-column">
-      <div class="mythic-phase4-card">
-        <h3>Assignment</h3>
-        <div class="bio-row">
-          <label>Linked Vehicle Actor</label>
-          <select name="system.vehicles.currentVehicleActorId" class="mythic-character-vehicle-select">
-            {{#each mythicVehicleActorOptions as |opt|}}
-              <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
-            {{/each}}
-          </select>
+        {{#if mythicCharacterVehicle.weapons.hasCards}}
+          <div class="vehicle-summary-weapons-table">
+            <div class="vehicle-summary-weapons-table-body">
+              {{#each mythicCharacterVehicle.weapons.cards as |weapon|}}
+                {{#with weapon}}
+                  {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-weapon-panel.hbs"}}
+                {{/with}}
+              {{/each}}
+            </div>
+          </div>
+        {{else}}
+          <div class="vehicle-overview-empty mythic-character-vehicle-empty-message">{{mythicCharacterVehicle.weapons.emptyMessage}}</div>
+        {{/if}}
+      </section>
+
+      <section class="panel mythic-character-vehicle-overview-panel">
+        <div class="mythic-character-vehicle-panel-heading">
+          <div>
+            <h2>Vehicle Overview</h2>
+            <div class="mythic-character-vehicle-subtitle">{{mythicCharacterVehicle.vehicleName}}</div>
+          </div>
+          <div class="mythic-character-vehicle-chip-row">
+            <span class="mythic-character-vehicle-chip">{{mythicCharacterVehicle.sourceLabel}}</span>
+            <span class="mythic-character-vehicle-chip">{{mythicCharacterVehicle.seatLabel}}</span>
+            {{#if mythicCharacterVehicle.vehicleHasNeuralLink}}
+              <span class="mythic-character-vehicle-chip is-neural">Neural Interface</span>
+            {{/if}}
+          </div>
         </div>
-        <div class="mythic-character-vehicle-actions">
-          <button type="button" class="mythic-vehicle-link-open">Open Linked Vehicle</button>
-          <button type="button" class="mythic-vehicle-link-create">Create New Vehicle</button>
+
+        <div class="mythic-character-vehicle-overview-grid">
+          {{#with mythicCharacterVehicle}}
+            {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-mobility-panel.hbs"}}
+            {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-overview-tab.hbs"}}
+          {{/with}}
         </div>
-        <div class="mythic-character-vehicle-dropzone" title="Drag a vehicle actor here to link it.">Drop Vehicle Actor Here To Link</div>
-        <div class="bio-row"><label>Current Vehicle</label><input type="text" name="system.vehicles.currentVehicle" value="{{mythicSystem.vehicles.currentVehicle}}" readonly /></div>
-        <div class="bio-row"><label>Role</label><input type="text" name="system.vehicles.role" value="{{mythicSystem.vehicles.role}}" /></div>
-        <div class="bio-row"><label>Callsign</label><input type="text" name="system.vehicles.callsign" value="{{mythicSystem.vehicles.callsign}}" /></div>
+      </section>
+    {{else}}
+      <section class="panel mythic-character-vehicle-empty-panel">
+        <h2>{{mythicCharacterVehicle.emptyTitle}}</h2>
+        <div class="vehicle-overview-empty">{{mythicCharacterVehicle.emptyMessage}}</div>
+      </section>
+    {{/if}}
+
+    <section class="panel mythic-character-vehicle-assignments-panel">
+      <div class="mythic-character-vehicle-panel-heading">
+        <div>
+          <h2>Assigned Vehicles</h2>
+          <div class="mythic-character-vehicle-subtitle">Crew seats currently assigned to this character</div>
+        </div>
       </div>
 
-      <div class="mythic-phase4-card">
-        <h3>Vehicle Notes</h3>
-        <textarea name="system.vehicles.notes" rows="10">{{mythicSystem.vehicles.notes}}</textarea>
-      </div>
-    </div>
-  </section>
+      {{#if mythicCharacterVehicle.assignments.hasRows}}
+        <div class="mythic-character-vehicle-assignment-list">
+          {{#each mythicCharacterVehicle.assignments.rows as |assignment|}}
+            <article class="mythic-character-vehicle-assignment-row{{#if assignment.isActive}} is-active{{/if}}{{#if assignment.isSelected}} is-selected{{/if}}">
+              <div class="mythic-character-vehicle-assignment-main">
+                <div class="mythic-character-vehicle-assignment-title">{{assignment.vehicleName}}</div>
+                <div class="mythic-character-vehicle-assignment-meta">
+                  <span>{{assignment.roleLabel}}</span>
+                  <span>{{assignment.seatLabel}}</span>
+                  {{#if assignment.occupantLabel}}<span>{{assignment.occupantLabel}}</span>{{/if}}
+                </div>
+              </div>
+              <div class="mythic-character-vehicle-assignment-badges">
+                {{#if assignment.isActive}}<span class="mythic-character-vehicle-chip is-active">Active</span>{{/if}}
+                {{#if assignment.isSelected}}<span class="mythic-character-vehicle-chip">Showing</span>{{/if}}
+              </div>
+              <div class="mythic-character-vehicle-assignment-actions">
+                <button
+                  type="button"
+                  class="action-btn mythic-character-vehicle-active-btn"
+                  data-vehicle-actor-id="{{assignment.vehicleActorId}}"
+                  data-vehicle-uuid="{{assignment.vehicleUuid}}"
+                  {{#if assignment.isActive}}disabled{{/if}}
+                  {{#unless assignment.canSetActive}}disabled{{/unless}}>
+                  {{#if assignment.isActive}}Active{{else}}Set Active{{/if}}
+                </button>
+                <button
+                  type="button"
+                  class="action-btn mythic-character-vehicle-remove-btn"
+                  data-vehicle-actor-id="{{assignment.vehicleActorId}}"
+                  data-vehicle-uuid="{{assignment.vehicleUuid}}"
+                  data-crew-key="{{assignment.crewKey}}"
+                  data-slot-index="{{assignment.slotIndex}}"
+                  title="{{assignment.removeTitle}}"
+                  {{#unless assignment.canRemove}}disabled{{/unless}}>
+                  Remove
+                </button>
+              </div>
+            </article>
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="vehicle-overview-empty mythic-character-vehicle-empty-message">{{mythicCharacterVehicle.assignments.emptyMessage}}</div>
+      {{/if}}
+    </section>
+
+  </div>
 </div>

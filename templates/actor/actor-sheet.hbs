@@ -92,9 +92,7 @@
 
     <div class="tab sheet-tab-scrollable" data-group="primary" data-tab="vehicle-summary" style="padding:14px 16px;">
       <div class="vehicle-summary-grid">
-        <aside class="panel vehicle-mobility">
-          <h2>Mobility</h2>
-          {{!--
+        {{!--
           <div class="mobility-row">
             <label>Current Speed</label>
             <div class="mobility-value" data-field="system.mythicVehicleSystem.movement.speed.value">{{mythicVehicleSystem.movement.speed.value}}</div>
@@ -120,56 +118,7 @@
             <button class="action-btn" type="button" data-action="wreck">Wreck</button>
           </div>
           --}}
-          {{#if mythicVehicleIsWalker}}
-          <div class="vehicle-walker-mode-banner">Walker Mode</div>
-          <div class="vehicle-mobility-current-label">Movement</div>
-          <div class="vehicle-walker-readonly-grid">
-            <div><span>Half</span><strong>{{mythicVehicleWalker.movement.half}} m</strong></div>
-            <div><span>Full</span><strong>{{mythicVehicleWalker.movement.full}} m</strong></div>
-            <div><span>Charge</span><strong>{{mythicVehicleWalker.movement.charge}} m</strong></div>
-            <div><span>Run</span><strong>{{mythicVehicleWalker.movement.run}} m</strong></div>
-            <div><span>Jump</span><strong>{{mythicVehicleWalker.movement.jump}} m</strong></div>
-            <div><span>Leap</span><strong>{{mythicVehicleWalker.movement.leap}} m</strong></div>
-          </div>
-          <div class="vehicle-mobility-walker-note">
-            {{mythicVehicleWalker.terrainNote}}
-          </div>
-          <button type="button" class="action-btn vehicle-walker-evasion-btn" data-action="walker-evasion">Evasion - {{mythicVehicleWalker.evasion.total}}</button>
-          {{else}}
-          <div class="vehicle-mobility-current-label">Current Speed</div>
-          <div class="vehicle-mobility-speed-row">
-            <button class="vehicle-mobility-speed-btn" type="button" data-direction="down" aria-label="Decrease Speed">-</button>
-            <input class="vehicle-mobility-speed-input" type="number" min="0" step="1" name="system.movement.speed.value" value="{{mythicVehicleMobility.currentSpeed}}" />
-            <button class="vehicle-mobility-speed-btn" type="button" data-direction="up" aria-label="Increase Speed">+</button>
-          </div>
-          <div class="vehicle-speedometer" style="--mythic-needle-angle: {{mythicVehicleMobility.needleAngle}}deg;">
-            <div class="vehicle-speedometer-arc"></div>
-            <div class="vehicle-speedometer-ticks"></div>
-            <div class="vehicle-speedometer-needle"></div>
-            <div class="vehicle-speedometer-center"></div>
-          </div>
-          <div class="vehicle-speedometer-readout">
-            <div>{{mythicVehicleMobility.currentSpeed}} / {{mythicVehicleMobility.speedometerMaxSpeed}} MpT</div>
-            <div>{{mythicVehicleMobility.currentKmh}} / {{mythicVehicleMobility.speedometerMaxKmh}} Km/H</div>
-          </div>
-          <div class="vehicle-mobility-stat-row">
-            <label>Brake</label>
-            <div class="vehicle-mobility-stat-value">{{mythicVehicleMobility.brake}}</div>
-          </div>
-          <div class="vehicle-mobility-stat-row">
-            <label>Accelerate</label>
-            <div class="vehicle-mobility-stat-value">{{mythicVehicleMobility.accelerate}}</div>
-          </div>
-          <div class="vehicle-mobility-stat-row">
-            <label>Maneuver</label>
-            <div class="vehicle-mobility-stat-value">{{mythicVehicleMobility.maneuver}}</div>
-          </div>
-          <div class="mobility-actions">
-            <button class="action-btn" type="button" data-action="splatter">Splatter</button>
-            <button class="action-btn" type="button" data-action="wreck">Wreck</button>
-          </div>
-          {{/if}}
-        </aside>
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-mobility-panel.hbs"}}
 
         <div class="panel vehicle-summary-main">
           {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-overview-tab.hbs"}}
@@ -426,26 +375,26 @@
           <div class="panel breakpoints-panel">
             <h3>Breakpoints</h3>
             <div class="compact-row">
-              <div class="compact-field"><div class="field-label">WEP</div><input class="small-input" type="number" name="system.breakpoints.wep.value" value="{{mythicVehicleSystem.breakpoints.wep.value}}" /></div>
-              <div class="compact-field"><div class="field-label">MOB</div><input class="small-input" type="number" name="system.breakpoints.mob.value" value="{{mythicVehicleSystem.breakpoints.mob.value}}" /></div>
-              <div class="compact-field"><div class="field-label">ENG</div><input class="small-input" type="number" name="system.breakpoints.eng.value" value="{{mythicVehicleSystem.breakpoints.eng.value}}" /></div>
+              <div class="compact-field"><div class="field-label">WEP</div><input class="small-input" type="number" name="system.breakpoints.wep.value" value="{{mythicVehicleSystem.breakpoints.wep.value}}" {{#unless mythicIsGM}}disabled{{/unless}} /></div>
+              <div class="compact-field"><div class="field-label">MOB</div><input class="small-input" type="number" name="system.breakpoints.mob.value" value="{{mythicVehicleSystem.breakpoints.mob.value}}" {{#unless mythicIsGM}}disabled{{/unless}} /></div>
+              <div class="compact-field"><div class="field-label">ENG</div><input class="small-input" type="number" name="system.breakpoints.eng.value" value="{{mythicVehicleSystem.breakpoints.eng.value}}" {{#unless mythicIsGM}}disabled{{/unless}} /></div>
               <div class="compact-field">
                 <div class="field-label">OP</div>
                 {{#if mythicVehicleSystem.breakpoints.op.noOptics}}
                 <input class="small-input" type="text" value="-" disabled />
-                <input type="hidden" name="system.breakpoints.op.value" value="0" />
+                <input type="hidden" name="system.breakpoints.op.value" value="0" {{#unless mythicIsGM}}disabled{{/unless}} />
                 {{else}}
-                <input class="small-input" type="number" name="system.breakpoints.op.value" value="{{mythicVehicleSystem.breakpoints.op.value}}" />
+                <input class="small-input" type="number" name="system.breakpoints.op.value" value="{{mythicVehicleSystem.breakpoints.op.value}}" {{#unless mythicIsGM}}disabled{{/unless}} />
                 {{/if}}
               </div>
-              <div class="compact-field"><div class="field-label">HULL</div><input class="small-input" type="number" name="system.breakpoints.hull.value" value="{{mythicVehicleSystem.breakpoints.hull.value}}" /></div>
+              <div class="compact-field"><div class="field-label">HULL</div><input class="small-input" type="number" name="system.breakpoints.hull.value" value="{{mythicVehicleSystem.breakpoints.hull.value}}" {{#unless mythicIsGM}}disabled{{/unless}} /></div>
               <div class="compact-field compact-field-checkbox">
                 <div class="field-label">No Optics</div>
-                <input type="hidden" name="system.breakpoints.op.noOptics" value="false" />
-                <input id="vehicle-{{actor.id}}-no-optics" type="checkbox" name="system.breakpoints.op.noOptics" value="true" {{#if mythicVehicleSystem.breakpoints.op.noOptics}}checked{{/if}} />
+                <input type="hidden" name="system.breakpoints.op.noOptics" value="false" {{#unless mythicIsGM}}disabled{{/unless}} />
+                <input id="vehicle-{{actor.id}}-no-optics" type="checkbox" name="system.breakpoints.op.noOptics" value="true" {{#if mythicVehicleSystem.breakpoints.op.noOptics}}checked{{/if}} {{#unless mythicIsGM}}disabled{{/unless}} />
               </div>
             </div>
-            {{#if editable}}
+            {{#if mythicVehicleBreakpointManagementEditable}}
               <div class="vehicle-setup-panel-actions">
                 <button type="button" class="action-btn vehicle-breakpoints-full-repair-btn">Full Repair</button>
               </div>

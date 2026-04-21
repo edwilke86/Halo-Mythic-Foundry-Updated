@@ -225,7 +225,7 @@
         <h3>Available Outliers</h3>
         <div class="ccadv-outliers-scroll">
           {{#each mythicOutliers.options as |outlier|}}
-            <button type="button" class="action-btn outlier-select-btn {{#if outlier.selected}}is-active{{/if}}" data-outlier-key="{{outlier.key}}">{{outlier.name}}</button>
+            <button type="button" class="action-btn outlier-select-btn {{#if outlier.selected}}is-active{{/if}}" data-outlier-key="{{outlier.key}}" title="{{#unless outlier.canPurchase}}{{outlier.unavailableReason}}{{/unless}}">{{outlier.name}}</button>
           {{/each}}
         </div>
       </div>
@@ -235,13 +235,16 @@
         {{#if mythicOutliers.selected}}
           <h4>{{mythicOutliers.selected.name}}</h4>
           <p class="ccadv-note">{{mythicOutliers.selected.description}}</p>
+          {{#unless mythicOutliers.canPurchase}}
+            <p class="ccadv-note"><strong>Unavailable:</strong> {{mythicOutliers.purchaseDisabledReason}}</p>
+          {{/unless}}
         {{else}}
           <p class="ccadv-note">Select an Outlier to view its rules text.</p>
         {{/if}}
       </div>
 
       <div class="ccadv-outliers-purchased">
-        <button type="button" class="action-btn outlier-add-btn" {{#unless mythicOutliers.canPurchase}}disabled{{/unless}}>Add Selected Outlier (Burn 1 Luck)</button>
+        <button type="button" class="action-btn outlier-add-btn" title="{{mythicOutliers.purchaseDisabledReason}}" {{#unless mythicOutliers.canPurchase}}disabled{{/unless}}>Add Selected Outlier (Burn 1 Luck)</button>
         <p class="ccadv-note">Burned Luck from Outliers: <strong>{{mythicOutliers.burnedLuckCount}}</strong></p>
         <div class="ccadv-outliers-scroll">
           {{#if mythicOutliers.purchased.length}}

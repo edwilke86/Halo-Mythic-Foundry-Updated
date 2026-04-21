@@ -1,6 +1,12 @@
 <div class="tab skills" data-group="primary" data-tab="skills">
   <section class="panel mythic-skills-tab">
     <h2>Skills</h2>
+    {{#if mythicDerived.outliers.poised.enabled}}
+      <p class="ccadv-note">Poised: successful Social Skill tests can shift disposition one step up or down.</p>
+    {{/if}}
+    {{#if mythicDerived.outliers.olympian.enabled}}
+      <p class="ccadv-note">Olympian: halve penalties from difficult terrain, swimming, and climbing.</p>
+    {{/if}}
     <div class="mythic-skills-table">
 
       <div class="mythic-skills-col-headers">
@@ -35,7 +41,7 @@
               <div class="skills-col-modifiers">
                 <input type="number" name="system.skills.base.{{skill.key}}.variants.{{variant.key}}.modifier" value="{{variant.modifier}}" />
               </div>
-              <div class="skills-col-roll roll-skill" data-roll-label="{{skill.label}} ({{variant.label}})" data-roll-target="{{variant.rollTarget}}" title="Click to roll">{{variant.rollTarget}}</div>
+              <div class="skills-col-roll roll-skill" data-roll-label="{{skill.label}} ({{variant.label}})" data-roll-group="{{skill.group}}" data-roll-target="{{variant.rollTarget}}" title="Click to roll">{{variant.rollTarget}}</div>
               <div class="skills-col-delete"></div>
             </div>
           {{/each}}
@@ -58,7 +64,7 @@
             <div class="skills-col-modifiers">
               <input type="number" name="system.skills.base.{{skill.key}}.modifier" value="{{skill.modifier}}" />
             </div>
-            <div class="skills-col-roll roll-skill" data-roll-label="{{skill.label}}" data-roll-target="{{skill.rollTarget}}" title="Click to roll">{{skill.rollTarget}}</div>
+            <div class="skills-col-roll roll-skill" data-roll-label="{{skill.label}}" data-roll-group="{{skill.group}}" data-roll-target="{{skill.rollTarget}}" title="Click to roll">{{skill.rollTarget}}</div>
             <div class="skills-col-delete"></div>
           </div>
         {{/if}}
@@ -82,7 +88,7 @@
           <div class="skills-col-modifiers">
             <input type="number" name="system.skills.custom.{{@index}}.modifier" value="{{skill.modifier}}" />
           </div>
-          <div class="skills-col-roll roll-skill" data-roll-label="{{skill.label}}" data-roll-target="{{skill.rollTarget}}" title="Click to roll">{{skill.rollTarget}}</div>
+          <div class="skills-col-roll roll-skill" data-roll-label="{{skill.label}}" data-roll-group="{{skill.group}}" data-roll-target="{{skill.rollTarget}}" title="Click to roll">{{skill.rollTarget}}</div>
           <div class="skills-col-delete">
             <button class="skills-remove-btn action-btn" type="button" data-skill-index="{{@index}}" title="Remove custom skill">
               <i class="fas fa-times"></i>
@@ -102,6 +108,7 @@
   <!-- ═══ Educations ═══════════════════════════════════════════════════════ -->
   <section class="panel mythic-educations-section">
     <h2>Educations</h2>
+    <p class="ccadv-note">Known Educations: {{mythicEducations.length}} / {{mythicDerived.outliers.acumen.educationCapacity}}. {{#if mythicDerived.outliers.acumen.enabled}}Acumen triples INT modifier for language and education caps.{{else}}Education cap equals INT modifier.{{/if}}</p>
 
     {{#if mythicEducations.length}}
     <div class="mythic-educations-table">
@@ -143,6 +150,7 @@
           </div>
           <div class="edu-col-roll roll-education"
                data-roll-label="{{edu.rollLabel}}"
+            data-roll-group="{{edu.rollGroup}}"
                data-roll-target="{{edu.rollTarget}}"
                title="Click to roll {{edu.rollLabel}} test">
             {{edu.rollTarget}}

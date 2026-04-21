@@ -1,4 +1,4 @@
-<div class="vehicle-overview-shell">
+<div class="vehicle-overview-shell{{#if @root.mythicVehicleOverviewReadOnly}} is-read-only{{/if}}">
   <h2>Overview</h2>
 
   {{#if mythicVehicleOverview.specialRules.length}}
@@ -23,9 +23,11 @@
         <span class="vehicle-overview-status-summary">{{mythicVehicleOverview.status.summaryText}}</span>
         <span class="vehicle-overview-toggle-indicator">{{#if mythicVehicleOverview.status.expanded}}-{{else}}+{{/if}}</span>
       </button>
+      {{#unless @root.mythicVehicleOverviewReadOnly}}
       <button type="button" class="action-btn vehicle-overview-detonate-btn" title="Detonate" {{#unless mythicVehicleOverview.status.canDetonate}}disabled{{/unless}}>
         <i class="fas fa-bomb"></i>
       </button>
+      {{/unless}}
     </div>
 
     {{#if mythicVehicleOverview.status.expanded}}
@@ -97,14 +99,19 @@
                           {{#each band as |row|}}
                             <td class="vehicle-overview-breakpoint-value{{#if row.isCritical}} is-critical{{/if}}">
                               <input
+                                class="vehicle-breakpoint-current-input"
                                 type="number"
-                                name="{{row.currentName}}"
+                                {{#unless @root.mythicVehicleOverviewReadOnly}}name="{{row.currentName}}"{{/unless}}
+                                data-update-path="{{row.currentName}}"
+                                data-current="{{row.current}}"
+                                {{#if @root.mythicCharacterVehicle.vehicleActorId}}data-vehicle-actor-id="{{@root.mythicCharacterVehicle.vehicleActorId}}"{{/if}}
+                                {{#if @root.mythicCharacterVehicle.vehicleUuid}}data-vehicle-uuid="{{@root.mythicCharacterVehicle.vehicleUuid}}"{{/if}}
                                 value="{{row.current}}"
                                 min="{{row.clampMin}}"
                                 max="{{row.clampMax}}"
                                 data-clamp-min="{{row.clampMin}}"
                                 data-clamp-max="{{row.clampMax}}"
-                                {{#unless @root.editable}}readonly{{/unless}} />
+                                {{#unless @root.mythicVehicleBreakpointEditable}}disabled{{/unless}} />
                             </td>
                           {{/each}}
                         </tr>
@@ -166,14 +173,18 @@
             max="{{mythicVehicleOverview.shields.max}}"
             data-clamp-min="0"
             data-clamp-max="{{mythicVehicleOverview.shields.max}}"
-            {{#unless editable}}readonly{{/unless}} />
+            {{#if @root.mythicVehicleOverviewReadOnly}}disabled{{else}}{{#unless editable}}readonly{{/unless}}{{/if}} />
         </div>
         <div class="vehicle-overview-shields-label">Delay</div>
         <div class="vehicle-overview-shields-value vehicle-overview-shields-value-static">{{mythicVehicleOverview.shields.delay}}</div>
 
         <div class="vehicle-overview-shields-label">Max</div>
         <div class="vehicle-overview-shields-value vehicle-overview-shields-value-static">{{mythicVehicleOverview.shields.max}}</div>
+        {{#if @root.mythicVehicleOverviewReadOnly}}
+        <div class="vehicle-overview-shields-label">Recharge</div>
+        {{else}}
         <button type="button" class="shields-recharge-btn vehicle-overview-shields-recharge-btn">Recharge</button>
+        {{/if}}
         <div class="vehicle-overview-shields-value vehicle-overview-shields-value-static">{{mythicVehicleOverview.shields.recharge}}</div>
       </div>
     </section>
@@ -191,7 +202,7 @@
 
     {{#if mythicVehicleOverview.custom.expanded}}
       <div class="vehicle-overview-block-body">
-        {{#if editable}}
+        {{#if @root.mythicVehicleBreakpointManagementEditable}}
           <div class="vehicle-overview-custom-actions">
             <button type="button" class="action-btn vehicle-overview-custom-add-btn">Add</button>
             {{#if mythicVehicleOverview.custom.hasEntries}}
@@ -207,8 +218,8 @@
                 <th scope="row"></th>
                 {{#each mythicVehicleOverview.custom.entries as |entry|}}
                   <td class="vehicle-overview-custom-name-cell">
-                    <input type="hidden" name="{{entry.idName}}" value="{{entry.id}}" />
-                    <input type="text" name="{{entry.labelName}}" value="{{entry.label}}" placeholder="Breakpoint Name" {{#unless @root.editable}}readonly{{/unless}} />
+                    <input type="hidden" name="{{entry.idName}}" value="{{entry.id}}" {{#unless @root.mythicVehicleBreakpointManagementEditable}}disabled{{/unless}} />
+                    <input type="text" name="{{entry.labelName}}" value="{{entry.label}}" placeholder="Breakpoint Name" {{#unless @root.mythicVehicleBreakpointManagementEditable}}disabled{{/unless}} />
                   </td>
                 {{/each}}
               </tr>
@@ -217,14 +228,19 @@
                 {{#each mythicVehicleOverview.custom.entries as |entry|}}
                   <td>
                     <input
+                      class="vehicle-breakpoint-current-input"
                       type="number"
-                      name="{{entry.currentName}}"
+                      {{#unless @root.mythicVehicleOverviewReadOnly}}name="{{entry.currentName}}"{{/unless}}
+                      data-update-path="{{entry.currentName}}"
+                      data-current="{{entry.current}}"
+                      {{#if @root.mythicCharacterVehicle.vehicleActorId}}data-vehicle-actor-id="{{@root.mythicCharacterVehicle.vehicleActorId}}"{{/if}}
+                      {{#if @root.mythicCharacterVehicle.vehicleUuid}}data-vehicle-uuid="{{@root.mythicCharacterVehicle.vehicleUuid}}"{{/if}}
                       value="{{entry.current}}"
                       min="0"
                       max="{{entry.max}}"
                       data-clamp-min="0"
                       data-clamp-max="{{entry.max}}"
-                      {{#unless @root.editable}}readonly{{/unless}} />
+                      {{#unless @root.mythicVehicleBreakpointEditable}}disabled{{/unless}} />
                   </td>
                 {{/each}}
               </tr>
@@ -238,7 +254,7 @@
                       value="{{entry.max}}"
                       min="0"
                       data-clamp-min="0"
-                      {{#unless @root.editable}}readonly{{/unless}} />
+                      {{#unless @root.mythicVehicleBreakpointManagementEditable}}disabled{{/unless}} />
                   </td>
                 {{/each}}
               </tr>

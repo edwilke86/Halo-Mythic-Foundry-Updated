@@ -17,6 +17,177 @@
   margin: 0;
 }
 
+.mythic-character-vehicle-tab {
+  padding: 14px 16px;
+}
+
+.mythic-character-vehicle-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.mythic-character-vehicle-overview-panel,
+.mythic-character-vehicle-weapons-panel,
+.mythic-character-vehicle-assignments-panel,
+.mythic-character-vehicle-empty-panel {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.mythic-character-vehicle-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mythic-character-vehicle-panel-heading h2 {
+  margin: 0;
+}
+
+.mythic-character-vehicle-subtitle {
+  margin-top: 2px;
+  color: rgba(216, 230, 245, 0.76);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.mythic-character-vehicle-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.mythic-character-vehicle-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid rgba(148, 180, 220, 0.28);
+  border-radius: 999px;
+  background: rgba(10, 14, 24, 0.76);
+  color: rgba(230, 238, 250, 0.88);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mythic-character-vehicle-chip.is-neural {
+  border-color: rgba(247, 194, 116, 0.5);
+  color: rgba(255, 219, 161, 0.94);
+}
+
+.mythic-character-vehicle-chip.is-active {
+  border-color: rgba(98, 207, 138, 0.5);
+  color: rgba(178, 245, 201, 0.94);
+}
+
+.mythic-character-vehicle-assignment-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mythic-character-vehicle-assignment-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgba(148, 180, 220, 0.2);
+  border-radius: 6px;
+  background: rgba(10, 14, 24, 0.42);
+}
+
+.mythic-character-vehicle-assignment-row.is-active {
+  border-color: rgba(98, 207, 138, 0.38);
+  background: rgba(19, 49, 37, 0.38);
+}
+
+.mythic-character-vehicle-assignment-title {
+  color: rgba(244, 248, 255, 0.96);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mythic-character-vehicle-assignment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 3px;
+  color: rgba(216, 230, 245, 0.72);
+  font-size: 11px;
+}
+
+.mythic-character-vehicle-assignment-meta span {
+  padding-right: 6px;
+  border-right: 1px solid rgba(148, 180, 220, 0.24);
+}
+
+.mythic-character-vehicle-assignment-meta span:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.mythic-character-vehicle-assignment-badges,
+.mythic-character-vehicle-assignment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.mythic-character-vehicle-assignment-actions .action-btn {
+  min-height: 28px;
+}
+
+.mythic-character-vehicle-overview-panel .vehicle-overview-shell > h2 {
+  display: none;
+}
+
+.mythic-character-vehicle-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 276px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.mythic-character-vehicle-tab .vehicle-overview-status-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mythic-character-vehicle-tab .vehicle-mobility-speed-row.is-read-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mythic-character-vehicle-tab .vehicle-mobility-speed-display {
+  height: 38px;
+  border: 1px solid rgba(156, 191, 235, 0.28);
+  border-radius: 5px;
+  background: rgba(78, 108, 152, 0.5);
+  color: #f5fbff;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 38px;
+}
+
+.mythic-character-vehicle-tab .vehicle-overview-shell.is-read-only input:disabled,
+.mythic-character-vehicle-tab .vehicle-weapon-strip-number:disabled {
+  opacity: 1;
+  border-color: rgba(152, 179, 214, 0.22);
+  background: rgba(18, 27, 42, 0.58);
+  color: rgba(248, 251, 255, 0.94);
+}
+
+.mythic-character-vehicle-empty-message {
+  padding: 8px 10px;
+  border: 1px solid rgba(148, 180, 220, 0.18);
+  background: rgba(10, 14, 24, 0.42);
+}
+
 .mythic-vehicle-fallback-sheet .tab[data-tab="vehicle-summary"] .vehicle-summary-grid {
   grid-template-columns: minmax(240px, 1fr) minmax(0, 3fr);
 }
@@ -422,6 +593,28 @@
   .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-title-block,
   .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-title-row {
     flex-wrap: wrap;
+  }
+
+  .mythic-character-vehicle-panel-heading,
+  .mythic-character-vehicle-chip-row {
+    justify-content: flex-start;
+  }
+
+  .mythic-character-vehicle-panel-heading {
+    flex-direction: column;
+  }
+
+  .mythic-character-vehicle-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-vehicle-assignment-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-vehicle-assignment-badges,
+  .mythic-character-vehicle-assignment-actions {
+    justify-content: flex-start;
   }
 }
 

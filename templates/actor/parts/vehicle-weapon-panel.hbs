@@ -5,7 +5,9 @@
       <div class="vehicle-weapon-strip-title-block">
         <div class="vehicle-weapon-strip-title-row">
           <div class="vehicle-weapon-strip-title" title="{{name}}">{{name}}</div>
+          {{#if canOpenItemSheet}}
           <button type="button" class="action-btn gear-open-btn vehicle-weapon-strip-edit-btn" data-item-id="{{id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+          {{/if}}
           {{#if hasTrainingWarning}}<span class="vehicle-weapon-strip-warning" title="{{trainingWarningText}}">!</span>{{/if}}
         </div>
         <div class="vehicle-weapon-strip-controller" title="{{controllingUserLabel}}">{{controllingUserLabel}}</div>
@@ -22,6 +24,8 @@
           class="action-btn weapon-charge-btn vehicle-weapon-strip-attack-btn"
           data-item-id="{{id}}"
           data-vehicle-emplacement-id="{{emplacementId}}"
+          {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+          {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
           title="Charge {{chargeLevel}}/{{chargeMaxLevel}}"
           {{#unless canAttack}}disabled{{/unless}}>Charge {{chargeLevel}}/{{chargeMaxLevel}}</button>
       {{/if}}
@@ -31,6 +35,8 @@
           class="action-btn weapon-attack-btn vehicle-weapon-strip-attack-btn{{#if button.cssClass}} {{button.cssClass}}{{/if}}"
           data-item-id="{{../id}}"
           data-vehicle-emplacement-id="{{../emplacementId}}"
+          {{#if ../vehicleActorId}}data-vehicle-actor-id="{{../vehicleActorId}}"{{/if}}
+          {{#if ../vehicleUuid}}data-vehicle-uuid="{{../vehicleUuid}}"{{/if}}
           data-action="{{button.action}}"
           {{#if button.grenadeAction}}data-grenade-action="{{button.grenadeAction}}"{{/if}}
           title="{{button.title}}"
@@ -42,7 +48,10 @@
           class="action-btn weapon-reload-btn vehicle-weapon-strip-attack-btn vehicle-weapon-strip-reload-btn"
           data-item-id="{{id}}"
           data-vehicle-emplacement-id="{{emplacementId}}"
-          title="Reload">Reload</button>
+          {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+          {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
+          title="Reload"
+          {{#if controlsDisabled}}disabled{{/if}}>Reload</button>
       {{/if}}
     </div>
 
@@ -50,6 +59,8 @@
       type="button"
       class="vehicle-overview-toggle vehicle-weapon-strip-expand-btn"
       data-target-path="{{togglePath}}"
+      {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+      {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
       aria-expanded="{{#if isExpanded}}true{{else}}false{{/if}}"
       title="{{#if isExpanded}}Collapse details{{else}}Expand details{{/if}}">{{#if isExpanded}}-{{else}}+{{/if}}</button>
   </div>
@@ -61,12 +72,12 @@
 
     <label class="vehicle-weapon-strip-field" title="To Hit Modifier">
       <span>HIT</span>
-      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" data-field="toHitModifier" value="{{toHitModifier}}" />
+      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}} {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}} data-field="toHitModifier" value="{{toHitModifier}}" {{#if controlsDisabled}}disabled{{/if}} />
     </label>
 
     <label class="vehicle-weapon-strip-field" title="Damage Modifier">
       <span>DMG</span>
-      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" data-field="damageModifier" value="{{damageModifier}}" />
+      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}} {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}} data-field="damageModifier" value="{{damageModifier}}" {{#if controlsDisabled}}disabled{{/if}} />
     </label>
 
     {{#if showNeuralLinkToggle}}
@@ -77,10 +88,13 @@
             type="checkbox"
             class="vehicle-weapon-neural-link-toggle"
             data-emplacement-id="{{emplacementId}}"
+            {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+            {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
+            {{#if neuralLinkToggleDisabled}}disabled{{/if}}
             {{#if useNeuralLink}}checked{{/if}} />
         </label>
         {{#if showNeuralLinkOperatorSelect}}
-          <select class="vehicle-weapon-neural-link-operator vehicle-weapon-strip-select" data-emplacement-id="{{emplacementId}}" title="Neural Link operator">
+          <select class="vehicle-weapon-neural-link-operator vehicle-weapon-strip-select" data-emplacement-id="{{emplacementId}}" {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}} {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}} title="Neural Link operator">
             {{#each neuralLinkOperatorOptions as |option|}}
               <option value="{{option.value}}" {{#if option.isSelected}}selected{{/if}}>{{option.label}}</option>
             {{/each}}

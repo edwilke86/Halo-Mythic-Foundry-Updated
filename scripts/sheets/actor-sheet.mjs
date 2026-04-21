@@ -100,6 +100,12 @@ import {
   poundsToKilograms,
   kilogramsToPounds
 } from "../mechanics/size.mjs";
+import {
+  getAvailableOutlierChoiceOptions,
+  getOutlierEffectSummary,
+  getOutlierPurchaseValidation,
+  buildOutlierCompatibilityUpdate
+} from "../mechanics/outliers.mjs";
 
 import {
   parseFireModeProfile,
@@ -117,6 +123,12 @@ import {
   calculateVehicleWreck,
   formatVehicleHazardNumber
 } from "../mechanics/vehicle-hazards.mjs";
+import {
+  requestVehicleActorUpdate,
+  requestVehicleBreakpointUpdate,
+  resolveVehicleControlPermission,
+  resolveVehicleBreakpointEditPermission
+} from "../mechanics/vehicle-breakpoint-permissions.mjs";
 import { consumeActorHalfActions, isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
 
 import {
@@ -1511,6 +1523,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _showTokenPortrait = false;
   _vehicleCrewExpandedRows = new Set();
   _vehicleOverviewUiState = {};
+  _vehicleActorTokenDocuments = new WeakMap();
+  _characterVehicleOverviewUiState = {};
+  _characterVehicleActorId = "";
+  _characterVehicleActorUpdateHook = null;
+  _characterVehicleActorDeleteHook = null;
+  _characterVehicleTokenUpdateHook = null;
+  _characterVehicleTokenDeleteHook = null;
+  _characterVehicleRerenderPending = false;
   _batteryGroupExpanded = {};
   _ballisticGroupExpanded = {};
   _tabSelectArmed = false;
@@ -1677,6 +1697,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       context.cssClass = this.options.classes.join(" ");
       context.actor = this.actor;
       context.editable = this.isEditable || Boolean(game.user?.isGM);
+      context.mythicIsGM = Boolean(game.user?.isGM);
       context.mythicIsVehicleActor = true;
       context.mythicVehicleLoadout = vehicleLoadoutView;
       this._vehicleLoadoutNeedsMigration = Boolean(context.mythicVehicleLoadout?.needsMigration);
@@ -1708,8 +1729,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       displayVehicleSystem.dimensions.weightUnit = vehicleWeightUnit;
       const vehicleOverviewWeaponCards = await this._buildVehicleOverviewWeaponCards(displayVehicleSystem, vehicleLoadoutView);
       const vehicleOverviewContext = this._buildVehicleOverviewContext(displayVehicleSystem, vehicleLoadoutView, vehicleOverviewWeaponCards);
+      const vehicleBreakpointSurface = this._getVehicleBreakpointEditSurface(this.actor);
+      const vehicleBreakpointPermission = resolveVehicleBreakpointEditPermission(this.actor, {
+        surface: vehicleBreakpointSurface,
+        vehicleSystem: normalizedVehicleSystem
+      });
       context.mythicVehicleSystem = displayVehicleSystem;
       context.mythicVehicleOverview = vehicleOverviewContext;
+      context.mythicVehicleBreakpointPermissions = vehicleBreakpointPermission;
+      context.mythicVehicleBreakpointEditable = Boolean(vehicleBreakpointPermission.allowed);
+      context.mythicVehicleBreakpointManagementEditable = Boolean(game.user?.isGM && context.editable);
       context.mythicVehicleAmmoTrackingOptions = [
         { value: "none", label: "None" },
         { value: "standard", label: "Standard" }
@@ -1922,23 +1951,30 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicSpecialization = this._getSpecializationViewData(normalizedSystem);
 
     const linkedVehicleActorId = String(normalizedSystem?.vehicles?.currentVehicleActorId ?? "").trim();
-    const vehicleActors = Array.from(game.actors?.filter((entry) => entry.type === "vehicle") ?? [])
-      .sort((left, right) => String(left.name ?? "").localeCompare(String(right.name ?? "")));
+    const vehicleActors = this._getCharacterVehicleActorPool();
 
     context.mythicVehicleActorOptions = [
       { value: "", label: "-- None --", selected: !linkedVehicleActorId },
       ...vehicleActors.map((entry) => ({
-        value: String(entry.id ?? ""),
+        value: this._getVehicleActorReference(entry),
         label: String(entry.name ?? "(Unnamed Vehicle)"),
-        selected: String(entry.id ?? "") === linkedVehicleActorId
+        selected: this._doesVehicleReferenceMatchActor(linkedVehicleActorId, entry)
       }))
     ];
 
-    const linkedVehicleActor = linkedVehicleActorId ? (game.actors?.get(linkedVehicleActorId) ?? null) : null;
+    const linkedVehicleActor = this._resolveVehicleActorReference(linkedVehicleActorId);
     context.mythicCurrentVehicleActor = linkedVehicleActor;
     if (linkedVehicleActor) {
       context.mythicSystem.vehicles.currentVehicle = String(linkedVehicleActor.name ?? context.mythicSystem.vehicles.currentVehicle ?? "");
     }
+    context.mythicCharacterVehicle = await this._buildCharacterVehicleTabContext(normalizedSystem, {
+      linkedVehicleActor,
+      vehicleActors
+    });
+    this._characterVehicleActorId = String(context.mythicCharacterVehicle?.vehicleUuid ?? context.mythicCharacterVehicle?.vehicleActorId ?? "").trim();
+    context.mythicVehicleOverviewReadOnly = true;
+    context.mythicVehicleBreakpointEditable = Boolean(context.mythicCharacterVehicle?.mythicVehicleBreakpointEditable);
+    context.mythicVehicleBreakpointManagementEditable = false;
 
     return context;
   }
@@ -2955,12 +2991,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         controllingUserLabel: activeUser.activeUserLabel || "Unmanned",
         compactControllerLabel,
         activeUserType: activeUser.activeUserType,
+        activeUserSeatKey: String(activeUser.activeUserSeatKey ?? "").trim(),
         canAttack: Boolean(activeUser.canAttack),
         disableReason: String(activeUser.disableReason ?? "").trim(),
         hasTrainingWarning: trainingStatus.hasAnyMismatch,
         trainingWarningText: trainingStatus.warningText,
+        canOpenItemSheet: true,
+        controlsDisabled: false,
+        vehicleActorId: "",
         showNeuralLinkToggle: hasNeuralLinkCapability,
         useNeuralLink: emplacement?.useNeuralLink === true,
+        neuralLinkOperatorSeatKey: String(emplacement?.neuralLinkOperatorSeatKey ?? "").trim(),
+        neuralLinkToggleDisabled: false,
         showNeuralLinkOperatorSelect: hasNeuralLinkCapability && emplacement?.useNeuralLink === true && neuralLinkOperatorOptions.length > 1,
         neuralLinkOperatorOptions: [
           { value: "", label: "Select operator", isSelected: !selectedNeuralLinkSeatKey },
@@ -4671,7 +4713,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedEmplacementId = String(emplacementId ?? "").trim();
     if (!normalizedEmplacementId || !item || item.type !== "gear") return { reloaded: false, reason: "invalid" };
 
-    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor.system ?? {});
+    const source = vehicleSystem ?? this._getVehicleControlSystemData();
     const matchedEmplacement = (Array.isArray(source?.weaponEmplacements) ? source.weaponEmplacements : [])
       .find((entry) => String(entry?.id ?? "").trim() === normalizedEmplacementId) ?? null;
     if (!matchedEmplacement) return { reloaded: false, reason: "missing" };
@@ -4740,7 +4782,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return { ammoCurrent: 0, usesTracking: false, autoReloaded: false };
     }
 
-    const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor.system ?? {});
+    const source = vehicleSystem ?? this._getVehicleControlSystemData();
     const matchedEmplacement = (Array.isArray(source?.weaponEmplacements) ? source.weaponEmplacements : [])
       .find((entry) => String(entry?.id ?? "").trim() === normalizedEmplacementId) ?? null;
     if (!matchedEmplacement) {
@@ -4792,7 +4834,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const reloadResult = await this._reloadVehicleWeaponEmplacement({
       item,
       emplacementId: normalizedEmplacementId,
-      vehicleSystem: normalizeVehicleSystemData(this.actor.system ?? {}),
+      vehicleSystem: this._getVehicleControlSystemData(),
       reason: "empty"
     });
 
@@ -5284,7 +5326,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         showHalfMode: hasHalfMode,
         showFullMode: hasFullMode,
         controllerRole,
-        controllerSlotKey: controllerRole && controllerIndex > 0 ? `${controllerRole}:${controllerIndex}` : "",
+        controllerSlotKey: controllerDefinition && controllerIndex > 0 ? `${controllerDefinition.crewKey}:${controllerIndex}` : "",
         controllerRoleOptions: buildRoleOptions(controllerRole),
         controllerIndex: controllerRole && controllerIndex > 0 ? String(controllerIndex) : "",
         showControllerPositionField,
@@ -5345,7 +5387,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           }
           return game.actors?.get(storedReference) ?? null;
         })());
-        const actorReference = String(resolution.reference ?? getVehicleCrewStoredReference(row) ?? "").trim();
+        const storedReference = getVehicleCrewStoredReference(row);
+        const actorReference = String(resolution.reference ?? storedReference ?? "").trim();
         seatMap.set(slotKey, {
           seatKey: slotKey,
           crewKey,
@@ -5354,6 +5397,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           seatLabel,
           slotCode,
           actorReference,
+          rawReference: String(storedReference ?? "").trim(),
+          canonicalReference: String(resolution.canonicalReference ?? "").trim(),
+          tokenUuid: String(resolution.tokenUuid ?? row?.tokenUuid ?? "").trim(),
+          actorUuid: String(resolution.actorUuid ?? row?.actorUuid ?? "").trim(),
+          rawDisplay: String(row?.display ?? "").trim(),
           actorDoc: resolution.isValid ? resolution.actorDoc : null,
           tokenDoc: resolution.isValid ? resolution.tokenDoc : null,
           display: String(resolution.occupantDisplay ?? resolution.displayName ?? row?.display ?? "").trim(),
@@ -5417,9 +5465,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const resolvedNeuralLinkSeat = resolvedNeuralLinkSeatKey ? seatMap.get(resolvedNeuralLinkSeatKey) ?? null : null;
 
     const controllerDefinition = MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES.find((entry) => entry.value === String(emplacement?.controllerRole ?? "").trim().toLowerCase()) ?? null;
-    const controllerSeatKey = controllerDefinition && Number(emplacement?.controllerIndex ?? 0) > 0
-      ? `${controllerDefinition.crewKey}:${toNonNegativeWhole(emplacement?.controllerIndex, 0)}`
-      : "";
+    const controllerSeatKey = this._getVehicleEmplacementControllerSeatKey(emplacement, source);
     const controllerSeat = controllerSeatKey ? seatMap.get(controllerSeatKey) ?? null : null;
     const weaponTrackerCurrent = Number(source?.overview?.breakpoints?.weapons?.byId?.[normalizedEmplacementId]?.current ?? 0);
     const weaponDisabled = normalizedEmplacementId && weaponTrackerCurrent <= 0;
@@ -5482,10 +5528,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
   }
 
-  async _updateVehicleWeaponEmplacementById(emplacementId = "", mutator = null) {
+  async _updateVehicleWeaponEmplacementById(emplacementId = "", mutator = null, options = {}) {
     const normalizedEmplacementId = String(emplacementId ?? "").trim();
     if (!normalizedEmplacementId || typeof mutator !== "function") return;
-    const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+    const vehicleSystem = this._getVehicleControlSystemData();
     const currentEmplacements = this._serializeVehicleWeaponEmplacements(vehicleSystem.weaponEmplacements ?? []);
     const nextEmplacements = currentEmplacements.map((entry) => ({ ...entry }));
     const targetIndex = nextEmplacements.findIndex((entry) => String(entry?.id ?? "").trim() === normalizedEmplacementId);
@@ -5493,16 +5539,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const nextEntry = this._buildVehicleWeaponEmplacementRecord(nextEmplacements[targetIndex], normalizedEmplacementId);
     mutator(nextEntry, nextEmplacements, vehicleSystem);
     nextEmplacements[targetIndex] = this._buildVehicleWeaponEmplacementRecord(nextEntry, normalizedEmplacementId);
-    await this._updateVehicleWeaponEmplacements(nextEmplacements);
+    await this._updateVehicleWeaponEmplacements(nextEmplacements, {
+      vehicleControl: this._getVehicleActorUpdateRequestOptions({
+        controlKind: options.controlKind ?? "weapon",
+        emplacementId: normalizedEmplacementId
+      })
+    });
   }
 
   async _updateVehicleWeaponEmplacements(emplacements = [], options = {}) {
     if (options.rememberScroll !== false) {
       this._rememberSheetScrollPosition();
     }
-    await this.actor.update({
+    const updateData = {
       "system.weaponEmplacements": this._serializeVehicleWeaponEmplacements(emplacements)
-    }, options.updateOptions ?? {});
+    };
+
+    const controlOptions = options.vehicleControl ?? this._getVehicleActorUpdateRequestOptions({ controlKind: "weapon" });
+    if (controlOptions) {
+      const result = await requestVehicleActorUpdate(this.actor, updateData, controlOptions);
+      if (!result.applied && !result.pending) {
+        ui.notifications?.warn(result.reason || "You cannot update that vehicle weapon.");
+        return;
+      }
+      this._applyVehicleControlSystemCachePatch(updateData);
+      return;
+    }
+
+    await this.actor.update(updateData, options.updateOptions ?? {});
   }
 
   _getVehicleWeaponMagazineEditContext(entry = {}, vehicleSystem = null) {
@@ -6073,6 +6137,1482 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return actorType === "vehicle" || actorType === "Vehicle";
   }
 
+  _isVehicleActorDocument(actorDoc = null) {
+    const actorType = String(actorDoc?.type ?? "").trim().toLowerCase();
+    return actorType === "vehicle";
+  }
+
+  _getVehicleBreakpointEditSurface(vehicleActor = null) {
+    if (!this._isVehicleActorDocument(vehicleActor)) return "characterVehicleTab";
+    const actorUuid = String(vehicleActor?.uuid ?? "").trim();
+    const tokenDoc = this._getVehicleActorTokenDocument(vehicleActor);
+    return Boolean(vehicleActor?.isToken || tokenDoc || actorUuid.includes(".Token.") || actorUuid.startsWith("Scene."))
+      ? "vehicleTokenSheet"
+      : "mainVehicleActorSheet";
+  }
+
+  _canUseVehicleActorControls(vehicleActor = null) {
+    if (!vehicleActor) return false;
+    if (game.user?.isGM) return true;
+    if (vehicleActor.isOwner === true) return true;
+    if (typeof vehicleActor.testUserPermission === "function") {
+      try {
+        return vehicleActor.testUserPermission(game.user, "OWNER");
+      } catch (_error) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  _canCurrentUserControlSheetActor() {
+    if (game.user?.isGM) return true;
+    if (this.isEditable || this.actor?.isOwner === true) return true;
+    if (typeof this.actor?.testUserPermission === "function") {
+      try {
+        if (this.actor.testUserPermission(game.user, "OWNER")) return true;
+      } catch (_error) {
+        // Fall through to the assigned user character check.
+      }
+    }
+    const userCharacter = game.user?.character ?? null;
+    if (!userCharacter || !this.actor) return false;
+    const actorKeys = this._getActorVehicleIdentityKeys(this.actor);
+    const characterKeys = this._getActorVehicleIdentityKeys(userCharacter);
+    for (const key of characterKeys) {
+      if (actorKeys.has(key) || actorKeys.has(String(key).toLowerCase())) return true;
+    }
+    return false;
+  }
+
+  _canUseCharacterVehicleSeatControls(vehicleActor = null, seat = null, { requiredCrewKey = "" } = {}) {
+    if (!this._isVehicleActorDocument(vehicleActor) || !seat) return false;
+    if (game.user?.isGM) return true;
+    if (!this._doesVehicleSeatMatchCurrentActor(seat)) return false;
+    const requestedCrewKey = String(requiredCrewKey ?? "").trim().toLowerCase();
+    if (requestedCrewKey && String(seat?.crewKey ?? "").trim().toLowerCase() !== requestedCrewKey) return false;
+    const permission = resolveVehicleControlPermission(vehicleActor, this._getCharacterVehicleControlRequestOptions(vehicleActor, seat, {
+      controlKind: "seat"
+    }) ?? {});
+    return Boolean(permission.allowed || this._canCurrentUserControlSheetActor());
+  }
+
+  _getCharacterVehicleControlRequestOptions(vehicleActor = null, seat = null, overrides = {}) {
+    if (!this._isVehicleActorDocument(vehicleActor) || !seat) return null;
+    return {
+      surface: "characterVehicleTab",
+      requireAttachedActor: this.actor,
+      requireAttachedToken: this.token?.document ?? this.token ?? null,
+      seatKey: String(seat?.seatKey ?? "").trim(),
+      ...overrides
+    };
+  }
+
+  _getVehicleControlSystemData() {
+    return normalizeVehicleSystemData(this._vehicleActorControlSystemCache ?? this.actor?.system ?? {});
+  }
+
+  _getVehicleActorUpdateRequestOptions(overrides = {}) {
+    const base = this._vehicleActorUpdateRequestOptions && typeof this._vehicleActorUpdateRequestOptions === "object"
+      ? this._vehicleActorUpdateRequestOptions
+      : null;
+    return base ? { ...base, ...overrides } : null;
+  }
+
+  _applyVehicleControlSystemCachePatch(updateData = {}) {
+    if (!this._vehicleActorControlSystemCache || !updateData || typeof updateData !== "object") return;
+    const nextSystem = foundry.utils.deepClone(this._vehicleActorControlSystemCache);
+    for (const [path, value] of Object.entries(updateData)) {
+      const localPath = String(path ?? "").replace(/^system\./u, "");
+      if (!localPath) continue;
+      foundry.utils.setProperty(nextSystem, localPath, foundry.utils.deepClone(value));
+    }
+    this._vehicleActorControlSystemCache = normalizeVehicleSystemData(nextSystem);
+  }
+
+  _createVehicleActorBridgeContext(vehicleActor = null, options = {}) {
+    const bridge = Object.create(MythicActorSheet.prototype);
+    const canUseVehicleActorControls = this._canUseVehicleActorControls(vehicleActor);
+    Object.defineProperties(bridge, {
+      actor: {
+        value: vehicleActor,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      isEditable: {
+        value: Boolean(options.isEditable ?? canUseVehicleActorControls),
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      options: {
+        value: this.options,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      position: {
+        value: this.position,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      element: {
+        value: this.element,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      token: {
+        value: null,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      render: {
+        value: (...args) => this.render(...args),
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      _vehicleOverviewUiState: {
+        value: {},
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      _sheetScrollTop: {
+        value: this._sheetScrollTop,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      _vehicleActorUpdateRequestOptions: {
+        value: options.updateRequestOptions ?? null,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      },
+      _vehicleActorControlSystemCache: {
+        value: options.updateRequestOptions ? normalizeVehicleSystemData(vehicleActor?.system ?? {}) : null,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      }
+    });
+    return bridge;
+  }
+
+  _getVehicleActorTokenDocument(vehicleActor = null) {
+    if (!vehicleActor || typeof vehicleActor !== "object") return null;
+    const mappedToken = this._vehicleActorTokenDocuments instanceof WeakMap
+      ? (this._vehicleActorTokenDocuments.get(vehicleActor) ?? null)
+      : null;
+    if (String(mappedToken?.documentName ?? "") === "Token") return mappedToken;
+    if (String(vehicleActor?.token?.documentName ?? "") === "Token") return vehicleActor.token;
+    if (String(vehicleActor?.token?.document?.documentName ?? "") === "Token") return vehicleActor.token.document;
+    if (String(vehicleActor?.parent?.documentName ?? "") === "Token") return vehicleActor.parent;
+    if (String(vehicleActor?.document?.parent?.documentName ?? "") === "Token") return vehicleActor.document.parent;
+    return null;
+  }
+
+  _getVehicleActorReference(vehicleActor = null) {
+    if (!this._isVehicleActorDocument(vehicleActor)) return "";
+    const actorUuid = String(vehicleActor?.uuid ?? "").trim();
+    if (actorUuid && (actorUuid.includes(".Token.") || actorUuid.startsWith("Scene."))) return actorUuid;
+    const tokenUuid = String(this._getVehicleActorTokenDocument(vehicleActor)?.uuid ?? "").trim();
+    if (tokenUuid) return tokenUuid;
+    if (actorUuid) return actorUuid;
+    const actorId = String(vehicleActor?.id ?? vehicleActor?._id ?? "").trim();
+    return actorId ? `Actor.${actorId}` : "";
+  }
+
+  _getVehicleActorReferenceKeys(vehicleActor = null) {
+    const keys = new Set();
+    const addKey = (value = "") => {
+      const normalized = String(value ?? "").trim();
+      if (!normalized) return;
+      keys.add(normalized);
+      keys.add(normalized.toLowerCase());
+      if (!normalized.startsWith("Actor.") && /^[A-Za-z0-9_-]+$/u.test(normalized)) {
+        keys.add(`Actor.${normalized}`);
+        keys.add(`actor.${normalized.toLowerCase()}`);
+      }
+    };
+
+    addKey(this._getVehicleActorReference(vehicleActor));
+    addKey(vehicleActor?.id);
+    addKey(vehicleActor?._id);
+    addKey(vehicleActor?.uuid);
+    if (vehicleActor?.id) addKey(`Actor.${vehicleActor.id}`);
+
+    const tokenDoc = this._getVehicleActorTokenDocument(vehicleActor);
+    addKey(tokenDoc?.uuid);
+    addKey(tokenDoc?.id);
+    addKey(tokenDoc?._id);
+    addKey(tokenDoc?.actorId);
+    addKey(tokenDoc?.actor?.uuid);
+    addKey(tokenDoc?.actor?.id);
+    return keys;
+  }
+
+  _doesVehicleReferenceMatchActor(reference = "", vehicleActor = null) {
+    const normalizedReference = String(reference ?? "").trim();
+    if (!normalizedReference || !this._isVehicleActorDocument(vehicleActor)) return false;
+    const keys = this._getVehicleActorReferenceKeys(vehicleActor);
+    return keys.has(normalizedReference) || keys.has(normalizedReference.toLowerCase());
+  }
+
+  _getVehicleActorFromResolvedDocument(resolved = null) {
+    if (this._isVehicleActorDocument(resolved)) return resolved;
+    const tokenDoc = unwrapVehicleCrewTokenDocument(resolved);
+    if (this._isVehicleActorDocument(tokenDoc?.actor)) return tokenDoc.actor;
+    if (this._isVehicleActorDocument(resolved?.actor)) return resolved.actor;
+    if (this._isVehicleActorDocument(resolved?.document?.actor)) return resolved.document.actor;
+    return null;
+  }
+
+  _resolveVehicleActorReference(reference = "", fallbackActorId = "") {
+    const candidates = [
+      String(reference ?? "").trim(),
+      String(fallbackActorId ?? "").trim()
+    ].filter(Boolean);
+
+    for (const candidate of candidates) {
+      const directActor = game.actors?.get(candidate) ?? null;
+      if (this._isVehicleActorDocument(directActor)) return directActor;
+
+      if (candidate.startsWith("Actor.")) {
+        const actorId = candidate.split(".").pop();
+        const actorFromUuidId = actorId ? (game.actors?.get(actorId) ?? null) : null;
+        if (this._isVehicleActorDocument(actorFromUuidId)) return actorFromUuidId;
+      }
+
+      if (typeof globalThis.fromUuidSync === "function") {
+        try {
+          const resolved = globalThis.fromUuidSync(candidate) ?? null;
+          const vehicleActor = this._getVehicleActorFromResolvedDocument(resolved);
+          if (vehicleActor) return vehicleActor;
+        } catch (_error) {
+          // Some arbitrary legacy ids are not valid UUID strings; fall through to pool matching.
+        }
+      }
+
+      const normalizedCandidate = candidate.toLowerCase();
+      const pooledActor = this._getCharacterVehicleActorPool()
+        .find((vehicleActor) => {
+          const keys = this._getVehicleActorReferenceKeys(vehicleActor);
+          return keys.has(candidate) || keys.has(normalizedCandidate);
+        }) ?? null;
+      if (pooledActor) return pooledActor;
+    }
+
+    return null;
+  }
+
+  _getCharacterVehicleActorPool(vehicleActors = []) {
+    const pool = [];
+    const seen = new Set();
+    const addActor = (actorDoc = null) => {
+      if (!this._isVehicleActorDocument(actorDoc)) return;
+      const reference = this._getVehicleActorReference(actorDoc)
+        || String(actorDoc?.uuid ?? actorDoc?.id ?? "").trim();
+      const key = reference.toLowerCase();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      pool.push(actorDoc);
+    };
+    const addToken = (tokenDoc = null) => {
+      const actorDoc = tokenDoc?.actor ?? tokenDoc?.document?.actor ?? null;
+      const actorUuid = String(actorDoc?.uuid ?? "").trim();
+      if (this._isVehicleActorDocument(actorDoc)
+        && String(tokenDoc?.uuid ?? "").trim()
+        && (actorDoc?.isToken === true || actorUuid.includes(".Token.") || actorUuid.startsWith("Scene."))) {
+        this._vehicleActorTokenDocuments.set(actorDoc, tokenDoc);
+      }
+      addActor(actorDoc);
+    };
+    const toArray = (collection = null) => {
+      if (!collection) return [];
+      if (Array.isArray(collection)) return collection;
+      if (Array.isArray(collection.contents)) return collection.contents;
+      if (typeof collection[Symbol.iterator] === "function") return Array.from(collection);
+      return [];
+    };
+
+    for (const entry of (Array.isArray(vehicleActors) ? vehicleActors : [])) {
+      const actorDoc = this._getVehicleActorFromResolvedDocument(entry) ?? entry;
+      addActor(actorDoc);
+    }
+    for (const actorDoc of (game.actors?.filter((entry) => this._isVehicleActorDocument(entry)) ?? [])) {
+      addActor(actorDoc);
+    }
+    for (const scene of toArray(game.scenes)) {
+      for (const tokenDoc of toArray(scene?.tokens)) addToken(tokenDoc);
+    }
+    for (const token of toArray(globalThis.canvas?.tokens?.placeables)) {
+      addToken(token?.document ?? token);
+    }
+
+    return pool.sort((left, right) =>
+      String(left.name ?? "").localeCompare(String(right.name ?? ""))
+      || String(this._getVehicleActorReference(left)).localeCompare(String(this._getVehicleActorReference(right)))
+    );
+  }
+
+  _getCharacterVehicleOverviewUiState(vehicleActorId = "") {
+    const key = String(vehicleActorId ?? "").trim();
+    if (!key) return {};
+    if (!this._characterVehicleOverviewUiState || typeof this._characterVehicleOverviewUiState !== "object") {
+      this._characterVehicleOverviewUiState = {};
+    }
+    if (!this._characterVehicleOverviewUiState[key] || typeof this._characterVehicleOverviewUiState[key] !== "object") {
+      this._characterVehicleOverviewUiState[key] = {};
+    }
+    return this._characterVehicleOverviewUiState[key];
+  }
+
+  _getActorVehicleIdentityKeys(actorDoc = null) {
+    const actor = actorDoc ?? this.actor;
+    const keys = new Set();
+    const addKey = (value = "") => {
+      const normalized = String(value ?? "").trim();
+      if (!normalized) return;
+      keys.add(normalized);
+      keys.add(normalized.toLowerCase());
+      if (!normalized.startsWith("Actor.") && /^[A-Za-z0-9_-]+$/u.test(normalized)) {
+        keys.add(`Actor.${normalized}`);
+        keys.add(`actor.${normalized.toLowerCase()}`);
+      }
+    };
+
+    for (const value of [
+      actor?.id,
+      actor?._id,
+      actor?.uuid,
+      actor?.id ? `Actor.${actor.id}` : "",
+      actor?.baseActor?.id,
+      actor?.baseActor?._id,
+      actor?.baseActor?.uuid,
+      actor?.baseActor?.id ? `Actor.${actor.baseActor.id}` : "",
+      actor?.token?.actorId,
+      actor?.token?.actor?.id,
+      actor?.token?.actor?.uuid
+    ]) {
+      addKey(value);
+    }
+
+    if (actor === this.actor) {
+      for (const value of [
+        this.token?.actorId,
+        this.token?.document?.actorId,
+        this.token?.actor?.id,
+        this.token?.actor?.uuid,
+        this.token?.document?.actor?.id,
+        this.token?.document?.actor?.uuid
+      ]) {
+        addKey(value);
+      }
+    }
+    return keys;
+  }
+
+  _getActorVehicleNameKeys(actorDoc = null) {
+    const actor = actorDoc ?? this.actor;
+    const names = new Set();
+    const addName = (value = "") => {
+      const normalized = normalizeLookupText(value);
+      if (normalized) names.add(normalized);
+    };
+
+    addName(actor?.name);
+    addName(actor?.baseActor?.name);
+    addName(actor?.token?.name);
+    addName(actor?.token?.actor?.name);
+    if (actor === this.actor) {
+      addName(this.token?.name);
+      addName(this.token?.document?.name);
+      addName(this.token?.actor?.name);
+      addName(this.token?.document?.actor?.name);
+    }
+    return names;
+  }
+
+  _doesVehicleSeatMatchCurrentActor(seat = null) {
+    return this._getCharacterVehicleSeatMatchScore(seat) > 0;
+  }
+
+  _getCharacterVehicleSeatMatchScore(seat = null) {
+    if (!seat || !this.actor) return 0;
+    const actorKeys = this._getActorVehicleIdentityKeys(this.actor);
+    const seatActor = seat?.actorDoc ?? null;
+    const sheetTokenUuid = String(this.token?.uuid ?? this.token?.document?.uuid ?? this.actor?.token?.uuid ?? "").trim();
+    const seatTokenUuid = String(seat?.tokenDoc?.uuid ?? "").trim();
+
+    const seatReferences = [
+      seat?.actorReference,
+      seat?.rawReference,
+      seat?.canonicalReference,
+      seat?.tokenUuid,
+      seat?.actorUuid
+    ].map((entry) => String(entry ?? "").trim()).filter(Boolean);
+    if (sheetTokenUuid && (seatTokenUuid === sheetTokenUuid || seatReferences.includes(sheetTokenUuid))) return 100;
+
+    let score = 0;
+
+    const seatTokenActor = seat?.tokenDoc?.actor ?? null;
+    if (seatTokenActor) {
+      const seatTokenActorKeys = this._getActorVehicleIdentityKeys(seatTokenActor);
+      for (const key of seatTokenActorKeys) {
+        if (actorKeys.has(key)) {
+          score = Math.max(score, 90);
+          break;
+        }
+      }
+    }
+
+    if (seatActor) {
+      const seatActorKeys = this._getActorVehicleIdentityKeys(seatActor);
+      for (const key of seatActorKeys) {
+        if (actorKeys.has(key)) {
+          score = Math.max(score, 70);
+          break;
+        }
+      }
+    }
+
+    for (const seatReference of seatReferences) {
+      if (actorKeys.has(seatReference) || actorKeys.has(seatReference.toLowerCase())) {
+        score = Math.max(score, 70);
+        break;
+      }
+    }
+
+    const actorNameKeys = this._getActorVehicleNameKeys(this.actor);
+    if (actorNameKeys.size) {
+      const seatDisplayKey = normalizeLookupText(`${seat?.display ?? ""} ${seat?.actorDoc?.name ?? ""} ${seat?.tokenDoc?.name ?? ""} ${seat?.rawDisplay ?? ""}`);
+      for (const nameKey of actorNameKeys) {
+        if (nameKey && seatDisplayKey && (seatDisplayKey.includes(nameKey) || nameKey.includes(seatDisplayKey))) {
+          score = Math.max(score, 45);
+          break;
+        }
+      }
+    }
+    return score;
+  }
+
+  _getCharacterSeatInVehicle(vehicleActor = null, vehicleSystem = null) {
+    if (!this._isVehicleActorDocument(vehicleActor)) return null;
+    const source = vehicleSystem ?? normalizeVehicleSystemData(vehicleActor.system ?? {});
+    const bridge = this._createVehicleActorBridgeContext(vehicleActor);
+    const seatMap = bridge._getVehicleCrewSeatMap(source);
+    let bestSeat = null;
+    let bestScore = 0;
+    for (const seat of seatMap.values()) {
+      const score = this._getCharacterVehicleSeatMatchScore(seat);
+      if (score <= bestScore) continue;
+      bestSeat = seat;
+      bestScore = score;
+    }
+    return bestSeat ? { ...bestSeat, matchScore: bestScore } : null;
+  }
+
+  _getCharacterSeatsInVehicle(vehicleActor = null, vehicleSystem = null) {
+    if (!this._isVehicleActorDocument(vehicleActor)) return [];
+    const source = vehicleSystem ?? normalizeVehicleSystemData(vehicleActor.system ?? {});
+    const bridge = this._createVehicleActorBridgeContext(vehicleActor);
+    const seatMap = bridge._getVehicleCrewSeatMap(source);
+    return Array.from(seatMap.values())
+      .map((seat) => ({
+        ...seat,
+        matchScore: this._getCharacterVehicleSeatMatchScore(seat)
+      }))
+      .filter((seat) => Number(seat?.matchScore ?? 0) > 0)
+      .sort((left, right) =>
+        Number(right.matchScore ?? 0) - Number(left.matchScore ?? 0)
+        || String(left.crewKey ?? "").localeCompare(String(right.crewKey ?? ""))
+        || Number(left.slotNumber ?? 0) - Number(right.slotNumber ?? 0)
+      );
+  }
+
+  _getVehicleActorModifiedTime(vehicleActor = null) {
+    const raw = vehicleActor?._stats?.modifiedTime ?? vehicleActor?._stats?.lastModified ?? "";
+    const numeric = Number(raw);
+    if (Number.isFinite(numeric)) return numeric;
+    const parsed = Date.parse(String(raw ?? ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  _isActorSheetRendered(actorDoc = null) {
+    const apps = actorDoc?.apps;
+    if (apps instanceof Map) {
+      for (const app of apps.values()) {
+        if (app?.rendered) return true;
+      }
+    } else if (apps && typeof apps === "object") {
+      for (const app of Object.values(apps)) {
+        if (app?.rendered) return true;
+      }
+    }
+    return Boolean(actorDoc?.sheet?.rendered);
+  }
+
+  _getVehicleEmplacementControllerSeatKey(emplacement = null, vehicleSystem = null) {
+    const controllerRole = String(emplacement?.controllerRole ?? "").trim().toLowerCase();
+    const definition = MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES.find((entry) => entry.value === controllerRole) ?? null;
+    if (!definition) return "";
+    let controllerIndex = toNonNegativeWhole(emplacement?.controllerIndex, 0);
+    if (controllerIndex <= 0 && vehicleSystem) {
+      const source = vehicleSystem ?? normalizeVehicleSystemData(this.actor?.system ?? {});
+      const activeDefinition = this._getVehicleWeaponControllerDefinitions(source)
+        .find((entry) => entry.value === controllerRole) ?? null;
+      if (activeDefinition?.count === 1) controllerIndex = 1;
+    }
+    if (controllerIndex <= 0) return "";
+    return definition ? `${definition.crewKey}:${controllerIndex}` : "";
+  }
+
+  _getCharacterVehicleActorFromControl(control = null) {
+    const element = control instanceof Element ? control : null;
+    const vehicleUuid = String(
+      element?.dataset?.vehicleUuid
+      ?? element?.closest?.("[data-character-vehicle-uuid]")?.dataset?.characterVehicleUuid
+      ?? ""
+    ).trim();
+    const vehicleActorId = String(
+      element?.dataset?.vehicleActorId
+      ?? element?.closest?.("[data-character-vehicle-actor-id]")?.dataset?.characterVehicleActorId
+      ?? ""
+    ).trim();
+    const vehicleActor = this._resolveVehicleActorReference(vehicleUuid, vehicleActorId);
+    return this._isVehicleActorDocument(vehicleActor) ? vehicleActor : null;
+  }
+
+  _resolveCharacterVehicleSelection(normalizedSystem = null, options = {}) {
+    const system = normalizedSystem ?? normalizeCharacterSystemData(this.actor?.system ?? {});
+    const linkedVehicleActorId = String(system?.vehicles?.currentVehicleActorId ?? "").trim();
+    const vehicleActors = this._getCharacterVehicleActorPool(options.vehicleActors);
+    const linkedVehicleActor = this._isVehicleActorDocument(options.linkedVehicleActor)
+      ? options.linkedVehicleActor
+      : this._resolveVehicleActorReference(linkedVehicleActorId);
+
+    const occupiedCandidates = [];
+    const pushOccupiedCandidate = (vehicleActor = null, vehicleSystem = null, isLinked = false) => {
+      if (!this._isVehicleActorDocument(vehicleActor)) return;
+      const source = vehicleSystem ?? normalizeVehicleSystemData(vehicleActor.system ?? {});
+      const seat = this._getCharacterSeatInVehicle(vehicleActor, source);
+      if (!seat) return;
+      const seatMatchScore = Math.max(0, Number(seat?.matchScore ?? 0) || 0);
+      occupiedCandidates.push({
+        vehicleActor,
+        vehicleSystem: source,
+        seat,
+        isLinked,
+        sourceKey: isLinked ? "linked" : "occupied",
+        sourceLabel: isLinked ? "Linked Vehicle" : "Occupied Vehicle",
+        selectionScore: seatMatchScore
+          + (this._isActorSheetRendered(vehicleActor) ? 30 : 0)
+          + (isLinked ? 1000 : 0),
+        modifiedTime: this._getVehicleActorModifiedTime(vehicleActor)
+      });
+    };
+
+    if (this._isVehicleActorDocument(linkedVehicleActor)) {
+      pushOccupiedCandidate(linkedVehicleActor, normalizeVehicleSystemData(linkedVehicleActor.system ?? {}), true);
+    }
+
+    for (const vehicleActor of vehicleActors) {
+      if (!this._isVehicleActorDocument(vehicleActor)) continue;
+      if (linkedVehicleActor && this._getVehicleActorReference(vehicleActor) === this._getVehicleActorReference(linkedVehicleActor)) continue;
+      pushOccupiedCandidate(vehicleActor, normalizeVehicleSystemData(vehicleActor.system ?? {}), false);
+    }
+
+    if (occupiedCandidates.length) {
+      occupiedCandidates.sort((left, right) =>
+        Number(right.selectionScore ?? 0) - Number(left.selectionScore ?? 0)
+        || Number(right.modifiedTime ?? 0) - Number(left.modifiedTime ?? 0)
+        || String(left.vehicleActor?.name ?? "").localeCompare(String(right.vehicleActor?.name ?? ""))
+      );
+      const selected = occupiedCandidates[0];
+      return {
+        vehicleActor: selected.vehicleActor,
+        vehicleSystem: selected.vehicleSystem,
+        seat: selected.seat,
+        sourceKey: selected.sourceKey,
+        sourceLabel: selected.sourceLabel,
+        linkedVehicleMissing: Boolean(linkedVehicleActorId && !linkedVehicleActor)
+      };
+    }
+
+    if (this._isVehicleActorDocument(linkedVehicleActor)) {
+      const vehicleSystem = normalizeVehicleSystemData(linkedVehicleActor.system ?? {});
+      return {
+        vehicleActor: linkedVehicleActor,
+        vehicleSystem,
+        seat: null,
+        sourceKey: "linked",
+        sourceLabel: "Linked Vehicle",
+        linkedVehicleMissing: false
+      };
+    }
+
+    return {
+      vehicleActor: null,
+      vehicleSystem: null,
+      seat: null,
+      sourceKey: "",
+      sourceLabel: "",
+      linkedVehicleMissing: Boolean(linkedVehicleActorId)
+    };
+  }
+
+  _isCharacterVehicleRelatedActor(vehicleActor = null) {
+    if (!this.actor || this._isVehicleActor() || !this._isVehicleActorDocument(vehicleActor)) return false;
+    const vehicleReference = this._getVehicleActorReference(vehicleActor);
+    if (!vehicleReference) return false;
+
+    const normalizedSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+    const linkedVehicleActorId = String(normalizedSystem?.vehicles?.currentVehicleActorId ?? "").trim();
+    if (this._doesVehicleReferenceMatchActor(linkedVehicleActorId, vehicleActor)) return true;
+    if (this._doesVehicleReferenceMatchActor(this._characterVehicleActorId, vehicleActor)) return true;
+
+    const vehicleSystem = normalizeVehicleSystemData(vehicleActor.system ?? {});
+    return Boolean(this._getCharacterSeatInVehicle(vehicleActor, vehicleSystem));
+  }
+
+  _isCharacterVehicleRelatedToken(tokenDoc = null) {
+    const vehicleActor = tokenDoc?.actor ?? null;
+    if (!this._isVehicleActorDocument(vehicleActor)) return false;
+    if (this._isCharacterVehicleRelatedActor(vehicleActor)) return true;
+
+    const tokenUuid = String(tokenDoc?.uuid ?? "").trim();
+    const normalizedSystem = normalizeCharacterSystemData(this.actor?.system ?? {});
+    const linkedVehicleActorId = String(normalizedSystem?.vehicles?.currentVehicleActorId ?? "").trim();
+    return Boolean(tokenUuid && (
+      linkedVehicleActorId === tokenUuid
+      || linkedVehicleActorId.toLowerCase() === tokenUuid.toLowerCase()
+      || this._characterVehicleActorId === tokenUuid
+      || this._characterVehicleActorId.toLowerCase() === tokenUuid.toLowerCase()
+    ));
+  }
+
+  _queueCharacterVehicleRerender() {
+    if (!this.rendered || this._characterVehicleRerenderPending) return;
+    this._characterVehicleRerenderPending = true;
+    this._rememberSheetScrollPosition();
+    setTimeout(() => {
+      this._characterVehicleRerenderPending = false;
+      if (!this.rendered) return;
+      void this.render(false);
+    }, 0);
+  }
+
+  _registerCharacterVehicleActorHooks() {
+    if (this._isVehicleActor()) {
+      this._unregisterCharacterVehicleActorHooks();
+      return;
+    }
+    if (this._characterVehicleActorUpdateHook || this._characterVehicleActorDeleteHook) return;
+
+    this._characterVehicleActorUpdateHook = Hooks.on("updateActor", (actor) => {
+      if (!this._isCharacterVehicleRelatedActor(actor)) return;
+      this._queueCharacterVehicleRerender();
+    });
+    this._characterVehicleActorDeleteHook = Hooks.on("deleteActor", (actor) => {
+      if (!this._isCharacterVehicleRelatedActor(actor)) return;
+      this._queueCharacterVehicleRerender();
+    });
+    this._characterVehicleTokenUpdateHook = Hooks.on("updateToken", (tokenDoc) => {
+      if (!this._isCharacterVehicleRelatedToken(tokenDoc)) return;
+      this._queueCharacterVehicleRerender();
+    });
+    this._characterVehicleTokenDeleteHook = Hooks.on("deleteToken", (tokenDoc) => {
+      if (!this._isCharacterVehicleRelatedToken(tokenDoc)) return;
+      this._queueCharacterVehicleRerender();
+    });
+  }
+
+  _unregisterCharacterVehicleActorHooks() {
+    if (this._characterVehicleActorUpdateHook) {
+      Hooks.off("updateActor", this._characterVehicleActorUpdateHook);
+      this._characterVehicleActorUpdateHook = null;
+    }
+    if (this._characterVehicleActorDeleteHook) {
+      Hooks.off("deleteActor", this._characterVehicleActorDeleteHook);
+      this._characterVehicleActorDeleteHook = null;
+    }
+    if (this._characterVehicleTokenUpdateHook) {
+      Hooks.off("updateToken", this._characterVehicleTokenUpdateHook);
+      this._characterVehicleTokenUpdateHook = null;
+    }
+    if (this._characterVehicleTokenDeleteHook) {
+      Hooks.off("deleteToken", this._characterVehicleTokenDeleteHook);
+      this._characterVehicleTokenDeleteHook = null;
+    }
+    this._characterVehicleRerenderPending = false;
+  }
+
+  _buildCharacterVehicleAssignmentsContext(vehicleActors = [], { activeVehicleActorId = "", selectedVehicleActorId = "" } = {}) {
+    const activeId = String(activeVehicleActorId ?? "").trim();
+    const selectedId = String(selectedVehicleActorId ?? "").trim();
+    const canSetActive = this._canCurrentUserControlSheetActor();
+    const rows = [];
+
+    for (const vehicleActor of this._getCharacterVehicleActorPool(vehicleActors)) {
+      if (!this._isVehicleActorDocument(vehicleActor)) continue;
+      const vehicleSystem = normalizeVehicleSystemData(vehicleActor.system ?? {});
+      const seats = this._getCharacterSeatsInVehicle(vehicleActor, vehicleSystem);
+      if (!seats.length) continue;
+      const vehicleReference = this._getVehicleActorReference(vehicleActor);
+      const vehicleActorId = String(vehicleActor.id ?? "").trim();
+
+      for (const seat of seats) {
+        const seatKey = String(seat?.seatKey ?? "").trim();
+        const crewKey = String(seat?.crewKey ?? "").trim();
+        const slotIndex = Math.max(0, toNonNegativeWhole(seat?.slotNumber, 1) - 1);
+        const canRemove = this._canUseCharacterVehicleSeatControls(vehicleActor, seat);
+        rows.push({
+          key: `${vehicleReference || vehicleActorId}:${seatKey || `${crewKey}:${slotIndex}`}`,
+          vehicleActorId,
+          vehicleUuid: vehicleReference,
+          vehicleName: String(vehicleActor.name ?? "Vehicle").trim() || "Vehicle",
+          seatKey,
+          crewKey,
+          slotIndex,
+          seatLabel: String(seat?.seatLabel ?? "Seat").trim() || "Seat",
+          slotCode: String(seat?.slotCode ?? "").trim(),
+          roleLabel: String(seat?.roleLabel ?? "Crew").trim() || "Crew",
+          occupantLabel: String(seat?.display ?? "").trim(),
+          isActive: activeId && this._doesVehicleReferenceMatchActor(activeId, vehicleActor),
+          isSelected: selectedId && this._doesVehicleReferenceMatchActor(selectedId, vehicleActor),
+          canSetActive,
+          canRemove,
+          removeTitle: canRemove
+            ? `Remove this character from ${String(vehicleActor.name ?? "this vehicle").trim() || "this vehicle"}`
+            : "Only the owning assigned occupant can remove this assignment."
+        });
+      }
+    }
+
+    rows.sort((left, right) =>
+      Number(Boolean(right.isActive)) - Number(Boolean(left.isActive))
+      || Number(Boolean(right.isSelected)) - Number(Boolean(left.isSelected))
+      || String(left.vehicleName ?? "").localeCompare(String(right.vehicleName ?? ""))
+      || String(left.roleLabel ?? "").localeCompare(String(right.roleLabel ?? ""))
+      || Number(left.slotIndex ?? 0) - Number(right.slotIndex ?? 0)
+    );
+
+    return {
+      rows,
+      hasRows: rows.length > 0,
+      activeVehicleActorId: activeId,
+      emptyMessage: "This character is not assigned to any vehicle crew seats."
+    };
+  }
+
+  _buildCharacterVehicleWeaponAccess({
+    vehicleActor = null,
+    vehicleSystem = null,
+    loadoutView = null,
+    weaponCards = [],
+    seat = null,
+    seatMap = null
+  } = {}) {
+    const source = vehicleSystem ?? normalizeVehicleSystemData(vehicleActor?.system ?? {});
+    const cards = Array.isArray(weaponCards) ? weaponCards : [];
+    const seatKey = String(seat?.seatKey ?? "").trim();
+    const crewKey = String(seat?.crewKey ?? "").trim().toLowerCase();
+    const canControlVehicle = this._canUseCharacterVehicleSeatControls(vehicleActor, seat);
+    const emplacements = Array.isArray(loadoutView?.emplacements) ? loadoutView.emplacements : [];
+    const emplacementById = new Map(emplacements.map((entry) => [String(entry?.id ?? "").trim(), entry]));
+    const resolvedSeatMap = seatMap instanceof Map ? seatMap : new Map();
+    const hasVehicleWeapons = cards.length > 0;
+    const vehicleHasNeuralLink = Boolean(source?.special?.neuralInterface?.has);
+    const noPermissionReason = "You must own the occupant assigned to this vehicle seat to use these controls.";
+
+    const seatDisplay = String(seat?.display ?? seat?.seatLabel ?? "").trim() || "This seat";
+    const getNeuralSeatLabel = (seatKeyValue = "") => {
+      const neuralSeat = resolvedSeatMap.get(String(seatKeyValue ?? "").trim()) ?? null;
+      return String(neuralSeat?.display ?? neuralSeat?.seatLabel ?? "").trim() || "another operator";
+    };
+    const decorateCard = (card = {}, emplacement = null, overrides = {}) => {
+      const canAttack = Boolean(overrides.canAttack);
+      const disableReason = String(
+        !canControlVehicle
+          ? noPermissionReason
+          : (overrides.disableReason ?? card.disableReason ?? "")
+      ).trim();
+      return {
+        ...card,
+        vehicleActorId: String(vehicleActor?.id ?? "").trim(),
+        vehicleUuid: this._getVehicleActorReference(vehicleActor),
+        canOpenItemSheet: false,
+        canAttack: canControlVehicle && canAttack,
+        disableReason,
+        controlsDisabled: !canControlVehicle || (overrides.controlsDisabled ?? !canAttack),
+        showNeuralLinkToggle: Boolean(overrides.showNeuralLinkToggle),
+        useNeuralLink: Boolean(overrides.useNeuralLink),
+        showNeuralLinkOperatorSelect: false,
+        neuralLinkToggleDisabled: !canControlVehicle || Boolean(overrides.neuralLinkToggleDisabled),
+        neuralLinkOperatorSeatKey: String(emplacement?.neuralLinkOperatorSeatKey ?? card.neuralLinkOperatorSeatKey ?? "").trim(),
+        controllingUserLabel: String(overrides.controllingUserLabel ?? card.controllingUserLabel ?? "").trim(),
+        compactControllerLabel: String(overrides.compactControllerLabel ?? overrides.controllingUserLabel ?? card.compactControllerLabel ?? "").trim()
+      };
+    };
+
+    if (!seatKey) {
+      return {
+        cards: [],
+        hasCards: false,
+        modeKey: "none",
+        modeLabel: "No Assigned Seat",
+        emptyMessage: "This character is not assigned to a crew seat on the current vehicle.",
+        hasVehicleWeapons,
+        canControlVehicle
+      };
+    }
+
+    if (crewKey === "gunners" || (crewKey === "operators" && !vehicleHasNeuralLink)) {
+      const directCards = cards
+        .map((card) => {
+          const emplacement = emplacementById.get(String(card?.emplacementId ?? "").trim()) ?? null;
+          const controllerSeatKey = this._getVehicleEmplacementControllerSeatKey(emplacement, source)
+            || String(emplacement?.controllerSlotKey ?? "").trim();
+          if (controllerSeatKey !== seatKey) return null;
+          const activeForSeat = String(card?.activeUserSeatKey ?? "").trim() === seatKey;
+          const cardCanAttack = Boolean(card?.canAttack && activeForSeat);
+          const inactiveReason = String(card?.disableReason ?? "").trim()
+            || (activeForSeat ? "" : "This weapon is currently controlled by another crew station.");
+          return decorateCard(card, emplacement, {
+            canAttack: cardCanAttack,
+            disableReason: inactiveReason,
+            controlsDisabled: !cardCanAttack,
+            showNeuralLinkToggle: false,
+            useNeuralLink: false
+          });
+        })
+        .filter(Boolean);
+
+      const modeLabel = crewKey === "gunners" ? "Gunner Weapons" : "Operator Weapons";
+      const emptyMessage = hasVehicleWeapons
+        ? (crewKey === "gunners"
+            ? "This gunner seat has no mounted weapons assigned."
+            : "This operator seat has no directly assigned weapons on this vehicle.")
+        : "This vehicle has no valid mounted weapons.";
+      return {
+        cards: directCards,
+        hasCards: directCards.length > 0,
+        modeKey: crewKey === "gunners" ? "gunner" : "operator",
+        modeLabel,
+        emptyMessage,
+        hasVehicleWeapons,
+        canControlVehicle
+      };
+    }
+
+    if (crewKey === "operators" && vehicleHasNeuralLink) {
+      const neuralCards = cards.map((card) => {
+        const emplacement = emplacementById.get(String(card?.emplacementId ?? "").trim()) ?? null;
+        const selectedSeatKey = String(emplacement?.neuralLinkOperatorSeatKey ?? "").trim();
+        const selectedForThisOperator = emplacement?.useNeuralLink === true && selectedSeatKey === seatKey;
+        const selectedForOtherOperator = emplacement?.useNeuralLink === true && selectedSeatKey && selectedSeatKey !== seatKey;
+        const activeForSeat = String(card?.activeUserSeatKey ?? "").trim() === seatKey;
+        const cardCanAttack = Boolean(selectedForThisOperator && card?.canAttack && activeForSeat);
+        const otherOperatorLabel = selectedForOtherOperator ? getNeuralSeatLabel(selectedSeatKey) : "";
+        const controllingUserLabel = selectedForThisOperator
+          ? `Neural Link: ${seatDisplay}`
+          : (selectedForOtherOperator ? `Neural Link: ${otherOperatorLabel}` : "Available via Neural Link");
+        const disableReason = selectedForThisOperator
+          ? String(card?.disableReason ?? "").trim()
+          : (selectedForOtherOperator
+              ? `${otherOperatorLabel} currently has Neural Link control.`
+              : "Select this weapon with Neural Link before firing.");
+        return decorateCard(card, emplacement, {
+          canAttack: cardCanAttack,
+          disableReason,
+          controlsDisabled: !cardCanAttack,
+          showNeuralLinkToggle: true,
+          useNeuralLink: selectedForThisOperator,
+          controllingUserLabel,
+          compactControllerLabel: controllingUserLabel
+        });
+      });
+
+      return {
+        cards: neuralCards,
+        hasCards: neuralCards.length > 0,
+        modeKey: "neural-link",
+        modeLabel: "Neural Link Weapons",
+        emptyMessage: hasVehicleWeapons
+          ? "No Neural Link-capable vehicle weapons are available."
+          : "This vehicle has no valid mounted weapons.",
+        hasVehicleWeapons,
+        canControlVehicle
+      };
+    }
+
+    return {
+      cards: [],
+      hasCards: false,
+      modeKey: "passenger",
+      modeLabel: "No Weapon Station",
+      emptyMessage: "This seat does not currently grant vehicle weapon access.",
+      hasVehicleWeapons,
+      canControlVehicle
+    };
+  }
+
+  async _buildCharacterVehicleTabContext(normalizedSystem = null, options = {}) {
+    const selection = this._resolveCharacterVehicleSelection(normalizedSystem, options);
+    const vehicleActor = selection.vehicleActor;
+    const linkedVehicleActorId = String((normalizedSystem ?? normalizeCharacterSystemData(this.actor?.system ?? {}))?.vehicles?.currentVehicleActorId ?? "").trim();
+    const vehicleActors = this._getCharacterVehicleActorPool(options.vehicleActors);
+    const selectedVehicleReference = this._getVehicleActorReference(vehicleActor);
+    const assignments = this._buildCharacterVehicleAssignmentsContext(vehicleActors, {
+      activeVehicleActorId: linkedVehicleActorId,
+      selectedVehicleActorId: selectedVehicleReference
+    });
+    if (!vehicleActor) {
+      return {
+        hasVehicle: false,
+        vehicleActorId: "",
+        vehicleUuid: "",
+        vehicleName: "",
+        sourceLabel: "",
+        linkedVehicleMissing: Boolean(selection.linkedVehicleMissing),
+        emptyTitle: selection.linkedVehicleMissing ? "Linked vehicle not found" : "No active vehicle",
+        emptyMessage: selection.linkedVehicleMissing
+          ? "The saved vehicle link no longer resolves. Select a vehicle or assign this character to a vehicle crew seat."
+          : "Link a vehicle or assign this character to a crew seat on a vehicle to populate this tab.",
+        weapons: {
+          cards: [],
+          hasCards: false,
+          modeKey: "none",
+          modeLabel: "No Vehicle",
+          emptyMessage: "No vehicle is available.",
+          hasVehicleWeapons: false,
+          canControlVehicle: false
+        },
+        assignments
+      };
+    }
+
+    const bridge = this._createVehicleActorBridgeContext(vehicleActor);
+    const normalizedVehicleSystem = selection.vehicleSystem ?? normalizeVehicleSystemData(vehicleActor.system ?? {});
+    const displayVehicleSystem = foundry.utils.deepClone(normalizedVehicleSystem);
+    const vehicleReference = this._getVehicleActorReference(vehicleActor);
+    const localOverviewState = this._getCharacterVehicleOverviewUiState(vehicleReference || vehicleActor.id);
+    if (localOverviewState && Object.keys(localOverviewState).length) {
+      foundry.utils.mergeObject(displayVehicleSystem, foundry.utils.deepClone(localOverviewState), {
+        inplace: true,
+        insertKeys: true,
+        insertValues: true,
+        overwrite: true,
+        recursive: true
+      });
+    }
+
+    const propulsionType = String(displayVehicleSystem?.propulsion?.type ?? "wheels").trim().toLowerCase() || "wheels";
+    const propulsionMaxOptions = bridge._getVehiclePropulsionMaxSelectOptions(propulsionType);
+    if (!propulsionMaxOptions.length) {
+      displayVehicleSystem.propulsion.max = "";
+    } else {
+      const currentMax = String(displayVehicleSystem?.propulsion?.max ?? "").trim();
+      const hasCurrentMax = propulsionMaxOptions.some((option) => option.value === currentMax);
+      displayVehicleSystem.propulsion.max = hasCurrentMax ? currentMax : propulsionMaxOptions[0].value;
+    }
+
+    const vehicleLoadoutView = bridge._getVehicleLoadoutViewData(displayVehicleSystem);
+    const vehicleMobilityContext = bridge._buildVehicleMobilityContext(displayVehicleSystem);
+    displayVehicleSystem.movement.speed.value = vehicleMobilityContext.currentSpeed;
+    const vehicleWeaponCards = await bridge._buildVehicleOverviewWeaponCards(displayVehicleSystem, vehicleLoadoutView);
+    const vehicleOverview = bridge._buildVehicleOverviewContext(displayVehicleSystem, vehicleLoadoutView, vehicleWeaponCards);
+    vehicleOverview.isReadOnly = true;
+
+    const seatMap = bridge._getVehicleCrewSeatMap(displayVehicleSystem);
+    const operatorRuntimes = await Promise.all(Array.from(seatMap.values())
+      .filter((seat) => String(seat?.crewKey ?? "").trim().toLowerCase() === "operators" && seat?.actorDoc)
+      .map(async (seat) => bridge._getLiveCharacteristicRuntime(seat.actorDoc)));
+    const vehicleWalker = bridge._buildVehicleWalkerContext(displayVehicleSystem, vehicleMobilityContext, operatorRuntimes);
+    const seat = selection.seat;
+    vehicleMobilityContext.canControlSpeed = Boolean(
+      !displayVehicleSystem?.isWalker
+      && String(seat?.crewKey ?? "").trim().toLowerCase() === "operators"
+      && this._canUseCharacterVehicleSeatControls(vehicleActor, seat, { requiredCrewKey: "operators" })
+    );
+    const characterVehicleBreakpointPermission = resolveVehicleBreakpointEditPermission(vehicleActor, {
+      surface: "characterVehicleTab",
+      vehicleSystem: normalizedVehicleSystem,
+      requireAttachedActor: this.actor,
+      requireAttachedToken: this.token?.document ?? this.token ?? null
+    });
+    const weaponAccess = this._buildCharacterVehicleWeaponAccess({
+      vehicleActor,
+      vehicleSystem: displayVehicleSystem,
+      loadoutView: vehicleLoadoutView,
+      weaponCards: vehicleWeaponCards,
+      seat,
+      seatMap
+    });
+
+    return {
+      hasVehicle: true,
+      vehicleActorId: String(vehicleActor.id ?? "").trim(),
+      vehicleUuid: vehicleReference,
+      vehicleName: String(vehicleActor.name ?? "Vehicle").trim() || "Vehicle",
+      vehicleImg: String(vehicleActor.img ?? "").trim(),
+      sourceKey: selection.sourceKey,
+      sourceLabel: selection.sourceLabel,
+      linkedVehicleMissing: Boolean(selection.linkedVehicleMissing),
+      hasSeat: Boolean(seat),
+      seatKey: String(seat?.seatKey ?? "").trim(),
+      seatLabel: String(seat?.seatLabel ?? "No assigned seat").trim() || "No assigned seat",
+      seatCode: String(seat?.slotCode ?? "").trim(),
+      roleLabel: String(seat?.roleLabel ?? "Unassigned").trim() || "Unassigned",
+      occupantLabel: String(seat?.display ?? "").trim(),
+      isOperatorSeat: String(seat?.crewKey ?? "").trim().toLowerCase() === "operators",
+      isGunnerSeat: String(seat?.crewKey ?? "").trim().toLowerCase() === "gunners",
+      isPassengerSeat: String(seat?.crewKey ?? "").trim().toLowerCase() === "complement",
+      vehicleHasNeuralLink: Boolean(displayVehicleSystem?.special?.neuralInterface?.has),
+      mythicVehicleSystem: displayVehicleSystem,
+      mythicVehicleOverview: vehicleOverview,
+      mythicVehicleIsWalker: Boolean(displayVehicleSystem?.isWalker),
+      mythicVehicleWalker: vehicleWalker,
+      mythicVehicleMobility: vehicleMobilityContext,
+      mythicVehicleBreakpointPermissions: characterVehicleBreakpointPermission,
+      mythicVehicleBreakpointEditable: Boolean(characterVehicleBreakpointPermission.allowed),
+      mythicVehicleBreakpointManagementEditable: false,
+      weapons: weaponAccess,
+      assignments,
+      editable: false
+    };
+  }
+
+  _resolveCharacterVehicleWeaponControl(vehicleActor = null, emplacementId = "", { requireActive = true, requireCanAttack = false } = {}) {
+    if (!this._isVehicleActorDocument(vehicleActor)) {
+      return { allowed: false, reason: "Vehicle actor is no longer available." };
+    }
+
+    const vehicleSystem = normalizeVehicleSystemData(vehicleActor.system ?? {});
+    const seat = this._getCharacterSeatInVehicle(vehicleActor, vehicleSystem);
+    const seatKey = String(seat?.seatKey ?? "").trim();
+    const crewKey = String(seat?.crewKey ?? "").trim().toLowerCase();
+    if (!seatKey) {
+      return { allowed: false, reason: "This character is not assigned to a crew seat on this vehicle." };
+    }
+    if (!this._canUseCharacterVehicleSeatControls(vehicleActor, seat)) {
+      return { allowed: false, reason: "You must own the occupant assigned to this vehicle seat to use these controls." };
+    }
+
+    const normalizedEmplacementId = String(emplacementId ?? "").trim();
+    const emplacements = Array.isArray(vehicleSystem?.weaponEmplacements) ? vehicleSystem.weaponEmplacements : [];
+    const emplacement = emplacements.find((entry) => String(entry?.id ?? "").trim() === normalizedEmplacementId) ?? null;
+    if (!emplacement) {
+      return { allowed: false, reason: "Vehicle weapon emplacement is no longer available." };
+    }
+
+    const vehicleHasNeuralLink = Boolean(vehicleSystem?.special?.neuralInterface?.has);
+    const controllerSeatKey = this._getVehicleEmplacementControllerSeatKey(emplacement, vehicleSystem);
+    let hasSeatAccess = false;
+    let reason = "";
+    if (crewKey === "gunners") {
+      hasSeatAccess = controllerSeatKey === seatKey;
+      reason = hasSeatAccess ? "" : "This gunner seat does not control that weapon.";
+    } else if (crewKey === "operators" && vehicleHasNeuralLink) {
+      hasSeatAccess = emplacement?.useNeuralLink === true
+        && String(emplacement?.neuralLinkOperatorSeatKey ?? "").trim() === seatKey;
+      reason = hasSeatAccess ? "" : "Select this weapon with Neural Link before using it.";
+    } else if (crewKey === "operators") {
+      hasSeatAccess = controllerSeatKey === seatKey;
+      reason = hasSeatAccess ? "" : "This operator seat does not directly control that weapon.";
+    } else {
+      reason = "This seat does not grant vehicle weapon access.";
+    }
+
+    if (!hasSeatAccess) return { allowed: false, reason };
+
+    const bridge = this._createVehicleActorBridgeContext(vehicleActor, {
+      isEditable: true,
+      updateRequestOptions: this._getCharacterVehicleControlRequestOptions(vehicleActor, seat, {
+        controlKind: "weapon",
+        emplacementId: normalizedEmplacementId
+      })
+    });
+    const activeUser = bridge._resolveVehicleWeaponActiveUser(emplacement, vehicleSystem, emplacements);
+    if (requireActive && String(activeUser?.activeUserSeatKey ?? "").trim() !== seatKey) {
+      return {
+        allowed: false,
+        reason: String(activeUser?.disableReason ?? "").trim() || "This weapon is currently controlled by another crew station."
+      };
+    }
+    if (requireCanAttack && !activeUser?.canAttack) {
+      return {
+        allowed: false,
+        reason: String(activeUser?.disableReason ?? "").trim() || "This vehicle weapon cannot currently be fired."
+      };
+    }
+
+    return { allowed: true, reason: "", vehicleSystem, seat, emplacement, activeUser, bridge };
+  }
+
+  async _runCharacterVehicleWeaponControl(event, bridgeMethodName = "", options = {}) {
+    const control = options.control instanceof Element
+      ? options.control
+      : (event?.currentTarget instanceof Element ? event.currentTarget : null);
+    const vehicleActor = this._getCharacterVehicleActorFromControl(control);
+    const emplacementId = String(control?.dataset?.vehicleEmplacementId ?? control?.dataset?.emplacementId ?? "").trim();
+    const access = this._resolveCharacterVehicleWeaponControl(vehicleActor, emplacementId, {
+      requireActive: options.requireActive !== false,
+      requireCanAttack: options.requireCanAttack === true
+    });
+    if (!access.allowed) {
+      event?.preventDefault?.();
+      ui.notifications?.warn(access.reason || "This character cannot use that vehicle weapon.");
+      this.render(false);
+      return;
+    }
+
+    const bridgeMethod = access.bridge?.[bridgeMethodName];
+    if (typeof bridgeMethod !== "function") return;
+    const bridgedEvent = {
+      preventDefault: () => event?.preventDefault?.(),
+      stopPropagation: () => event?.stopPropagation?.(),
+      currentTarget: control,
+      target: event?.target ?? control
+    };
+    await bridgeMethod.call(access.bridge, bridgedEvent);
+    this.render(false);
+  }
+
+  async _onCharacterVehicleWeaponAttack(event) {
+    await this._runCharacterVehicleWeaponControl(event, "_onWeaponAttack", {
+      requireActive: true,
+      requireCanAttack: true
+    });
+  }
+
+  async _onCharacterVehicleWeaponReload(event) {
+    await this._runCharacterVehicleWeaponControl(event, "_onReloadWeapon", {
+      requireActive: true,
+      requireCanAttack: false
+    });
+  }
+
+  async _onCharacterVehicleWeaponCharge(event) {
+    await this._runCharacterVehicleWeaponControl(event, "_onWeaponCharge", {
+      requireActive: true,
+      requireCanAttack: false
+    });
+  }
+
+  async _onCharacterVehicleWeaponClearCharge(event) {
+    await this._runCharacterVehicleWeaponControl(event, "_onWeaponClearCharge", {
+      requireActive: true,
+      requireCanAttack: false
+    });
+  }
+
+  async _onCharacterVehicleWeaponStateInputChange(event) {
+    await this._runCharacterVehicleWeaponControl(event, "_onWeaponStateInputChange", {
+      requireActive: true,
+      requireCanAttack: false
+    });
+  }
+
+  async _onCharacterVehicleWeaponFireModeToggle(event) {
+    await this._runCharacterVehicleWeaponControl(event, "_onWeaponFireModeToggle", {
+      requireActive: true,
+      requireCanAttack: false
+    });
+  }
+
+  async _onCharacterVehicleWeaponVariantSelect(event, control = null) {
+    await this._runCharacterVehicleWeaponControl(event, "_onWeaponVariantSelect", {
+      control,
+      requireActive: true,
+      requireCanAttack: false
+    });
+  }
+
+  async _onCharacterVehicleNeuralLinkToggle(event) {
+    event.preventDefault();
+    const control = event.currentTarget instanceof HTMLInputElement ? event.currentTarget : null;
+    const vehicleActor = this._getCharacterVehicleActorFromControl(control);
+    if (!this._isVehicleActorDocument(vehicleActor)) {
+      ui.notifications?.warn("Vehicle actor is no longer available.");
+      this.render(false);
+      return;
+    }
+
+    const emplacementId = String(control?.dataset?.emplacementId ?? "").trim();
+    const checked = control?.checked === true;
+    const vehicleSystem = normalizeVehicleSystemData(vehicleActor.system ?? {});
+    if (!vehicleSystem?.special?.neuralInterface?.has) {
+      ui.notifications?.warn("This vehicle does not have a Neural Interface.");
+      this.render(false);
+      return;
+    }
+
+    const seat = this._getCharacterSeatInVehicle(vehicleActor, vehicleSystem);
+    const seatKey = String(seat?.seatKey ?? "").trim();
+    if (!seatKey || String(seat?.crewKey ?? "").trim().toLowerCase() !== "operators") {
+      ui.notifications?.warn("Only an assigned vehicle operator can select a Neural Link weapon.");
+      this.render(false);
+      return;
+    }
+    if (!this._canUseCharacterVehicleSeatControls(vehicleActor, seat, { requiredCrewKey: "operators" })) {
+      ui.notifications?.warn("You must own the assigned operator to change Neural Link weapon selection.");
+      this.render(false);
+      return;
+    }
+
+    const bridge = this._createVehicleActorBridgeContext(vehicleActor, {
+      isEditable: true,
+      updateRequestOptions: this._getCharacterVehicleControlRequestOptions(vehicleActor, seat, {
+        controlKind: "neuralLink",
+        emplacementId
+      })
+    });
+    await bridge._updateVehicleWeaponEmplacementById(emplacementId, (entry, nextEmplacements) => {
+      if (checked) {
+        for (const nextEntry of nextEmplacements) {
+          if (String(nextEntry?.neuralLinkOperatorSeatKey ?? "").trim() !== seatKey) continue;
+          nextEntry.useNeuralLink = false;
+          nextEntry.neuralLinkOperatorSeatKey = "";
+        }
+        entry.useNeuralLink = true;
+        entry.neuralLinkOperatorSeatKey = seatKey;
+        return;
+      }
+
+      if (String(entry?.neuralLinkOperatorSeatKey ?? "").trim() === seatKey) {
+        entry.useNeuralLink = false;
+        entry.neuralLinkOperatorSeatKey = "";
+      }
+    }, { controlKind: "neuralLink" });
+    this.render(false);
+  }
+
+  async _onCharacterVehicleOverviewToggle(event) {
+    event.preventDefault();
+    const control = event.currentTarget instanceof Element ? event.currentTarget : null;
+    const targetPath = String(control?.dataset?.targetPath ?? "").trim();
+    const vehicleActor = this._getCharacterVehicleActorFromControl(control);
+    if (!targetPath || !this._isVehicleActorDocument(vehicleActor) || !targetPath.startsWith("system.overview.")) return;
+
+    const localPath = targetPath.replace(/^system\./u, "");
+    const state = this._getCharacterVehicleOverviewUiState(this._getVehicleActorReference(vehicleActor) || vehicleActor.id);
+    const localValue = foundry.utils.getProperty(state, localPath);
+    const currentValue = localValue !== undefined
+      ? Boolean(localValue)
+      : Boolean(foundry.utils.getProperty(vehicleActor, targetPath));
+    foundry.utils.setProperty(state, localPath, !currentValue);
+    this.render(false);
+  }
+
+  async _onCharacterVehicleAdjustCurrentSpeed(event) {
+    event.preventDefault();
+    const control = event.currentTarget instanceof Element ? event.currentTarget : null;
+    const direction = String(control?.dataset?.direction ?? "").trim().toLowerCase();
+    if (direction !== "up" && direction !== "down") return;
+    await this._updateCharacterVehicleCurrentSpeedFromControl(control, { direction });
+  }
+
+  async _onCharacterVehicleSpeedInputChange(event) {
+    const control = event.currentTarget instanceof HTMLInputElement ? event.currentTarget : null;
+    const exactSpeed = Number(control?.value ?? 0);
+    await this._updateCharacterVehicleCurrentSpeedFromControl(control, { exactSpeed });
+  }
+
+  async _onVehicleBreakpointCurrentInputChange(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const input = event.currentTarget instanceof HTMLInputElement ? event.currentTarget : null;
+    if (!input) return;
+
+    const updatePath = String(input.dataset?.updatePath ?? input.name ?? "").trim();
+    const fallbackValue = Number(input.dataset.current ?? input.defaultValue ?? 0);
+    const fallbackMax = Number(input.dataset.clampMax ?? input.max ?? Number.POSITIVE_INFINITY);
+    const vehicleActor = this._isVehicleActor()
+      ? this.actor
+      : this._getCharacterVehicleActorFromControl(input);
+    const surface = this._isVehicleActor()
+      ? this._getVehicleBreakpointEditSurface(vehicleActor)
+      : "characterVehicleTab";
+
+    const result = await requestVehicleBreakpointUpdate(vehicleActor, updatePath, input.value, {
+      surface,
+      fallbackMax,
+      requireAttachedActor: this._isVehicleActor() ? null : this.actor,
+      requireAttachedToken: this._isVehicleActor() ? null : (this.token?.document ?? this.token ?? null)
+    });
+
+    if (!result.applied && !result.pending) {
+      ui.notifications?.warn(result.reason || "You cannot edit this vehicle breakpoint.");
+      input.value = Number.isFinite(fallbackValue) ? String(fallbackValue) : String(input.defaultValue ?? 0);
+      return;
+    }
+
+    input.value = String(result.value);
+    input.dataset.current = String(result.value);
+    input.defaultValue = String(result.value);
+    if (result.applied) this.render(false);
+  }
+
+  async _updateCharacterVehicleCurrentSpeedFromControl(control = null, { direction = "", exactSpeed = null } = {}) {
+    const vehicleActor = this._getCharacterVehicleActorFromControl(control);
+    if (!this._isVehicleActorDocument(vehicleActor)) {
+      ui.notifications?.warn("Vehicle actor is no longer available.");
+      this.render(false);
+      return;
+    }
+
+    const vehicleSystem = normalizeVehicleSystemData(vehicleActor.system ?? {});
+    const seat = this._getCharacterSeatInVehicle(vehicleActor, vehicleSystem);
+    if (String(seat?.crewKey ?? "").trim().toLowerCase() !== "operators") {
+      ui.notifications?.warn("Only an assigned vehicle operator can adjust vehicle speed.");
+      this.render(false);
+      return;
+    }
+    if (!this._canUseCharacterVehicleSeatControls(vehicleActor, seat, { requiredCrewKey: "operators" })) {
+      ui.notifications?.warn("You must own the assigned operator to adjust vehicle speed.");
+      this.render(false);
+      return;
+    }
+    if (vehicleSystem?.isWalker) {
+      ui.notifications?.warn("Walker movement is shown as a movement profile instead of current speed.");
+      this.render(false);
+      return;
+    }
+
+    const bridge = this._createVehicleActorBridgeContext(vehicleActor);
+    const mobility = bridge._buildVehicleMobilityContext(vehicleSystem);
+    const hasExactSpeed = exactSpeed !== null && exactSpeed !== undefined && String(exactSpeed).trim() !== "";
+    let nextSpeed = hasExactSpeed ? Number(exactSpeed) : NaN;
+    if (!hasExactSpeed || !Number.isFinite(nextSpeed)) {
+      const step = direction === "up" ? mobility.accelerate : mobility.brake;
+      if (step <= 0) return;
+      nextSpeed = direction === "up"
+        ? mobility.currentSpeed + step
+        : mobility.currentSpeed - step;
+    }
+    nextSpeed = Math.max(0, Math.round(nextSpeed));
+    if (mobility.topSpeed > 0) {
+      nextSpeed = Math.min(nextSpeed, mobility.topSpeed);
+    }
+    if (control instanceof HTMLInputElement) control.value = String(nextSpeed);
+    if (nextSpeed === mobility.currentSpeed) return;
+
+    const result = await requestVehicleActorUpdate(vehicleActor, { "system.movement.speed.value": nextSpeed }, this._getCharacterVehicleControlRequestOptions(vehicleActor, seat, {
+      controlKind: "speed"
+    }));
+    if (!result.applied && !result.pending) {
+      ui.notifications?.warn(result.reason || "You cannot adjust this vehicle speed.");
+      this.render(false);
+      return;
+    }
+    if (result.applied) this.render(false);
+  }
+
+  async _onSetCharacterVehicleActive(event) {
+    event.preventDefault();
+    if (!(this.isEditable || game.user?.isGM || this.actor?.isOwner)) {
+      ui.notifications?.warn("You do not have permission to update this character.");
+      return;
+    }
+
+    const vehicleActor = this._getCharacterVehicleActorFromControl(event.currentTarget);
+    if (!this._isVehicleActorDocument(vehicleActor)) {
+      ui.notifications?.warn("Vehicle actor is no longer available.");
+      this.render(false);
+      return;
+    }
+
+    const vehicleSystem = normalizeVehicleSystemData(vehicleActor.system ?? {});
+    const seat = this._getCharacterSeatInVehicle(vehicleActor, vehicleSystem);
+    if (!seat) {
+      ui.notifications?.warn("This character is not assigned to a crew seat on that vehicle.");
+      this.render(false);
+      return;
+    }
+
+    const vehicleReference = this._getVehicleActorReference(vehicleActor);
+    await this.actor.update({
+      "system.vehicles.currentVehicleActorId": vehicleReference,
+      "system.vehicles.currentVehicle": String(vehicleActor.name ?? "").trim()
+    });
+    this._characterVehicleActorId = vehicleReference;
+    ui.notifications?.info(`${String(vehicleActor.name ?? "Vehicle").trim() || "Vehicle"} set as active vehicle.`);
+    this.render(false);
+  }
+
+  async _onRemoveCharacterVehicleAssignment(event) {
+    event.preventDefault();
+    const control = event.currentTarget instanceof Element ? event.currentTarget : null;
+    const vehicleActor = this._getCharacterVehicleActorFromControl(control);
+    if (!this._isVehicleActorDocument(vehicleActor)) {
+      ui.notifications?.warn("Vehicle actor is no longer available.");
+      this.render(false);
+      return;
+    }
+
+    const crewKey = String(control?.dataset?.crewKey ?? "").trim();
+    const rawSlotIndex = Number(control?.dataset?.slotIndex ?? Number.NaN);
+    const slotIndex = Number.isFinite(rawSlotIndex) ? Math.floor(rawSlotIndex) : -1;
+    if (!["operators", "gunners", "complement"].includes(crewKey) || slotIndex < 0) return;
+
+    const vehicleSystem = normalizeVehicleSystemData(vehicleActor.system ?? {});
+    const seatMap = this._createVehicleActorBridgeContext(vehicleActor)._getVehicleCrewSeatMap(vehicleSystem);
+    const seat = seatMap.get(`${crewKey}:${slotIndex + 1}`) ?? null;
+    if (!this._doesVehicleSeatMatchCurrentActor(seat)) {
+      ui.notifications?.warn("That vehicle seat is no longer assigned to this character.");
+      this.render(false);
+      return;
+    }
+    if (!this._canUseCharacterVehicleSeatControls(vehicleActor, seat)) {
+      ui.notifications?.warn("Only the owning assigned occupant can remove this vehicle assignment.");
+      this.render(false);
+      return;
+    }
+
+    const crewRows = Array.isArray(vehicleSystem?.crew?.[crewKey])
+      ? foundry.utils.deepClone(vehicleSystem.crew[crewKey])
+      : [];
+    if (slotIndex >= crewRows.length) return;
+    crewRows[slotIndex] = buildVehicleCrewAssignmentPayload(null, slotIndex, crewRows[slotIndex]);
+
+    const result = await requestVehicleActorUpdate(vehicleActor, {
+      [`system.crew.${crewKey}`]: crewRows
+    }, this._getCharacterVehicleControlRequestOptions(vehicleActor, seat, {
+      controlKind: "crewAssignment",
+      crewKey,
+      slotIndex
+    }));
+    if (!result.applied && !result.pending) {
+      ui.notifications?.warn(result.reason || "Failed to remove vehicle assignment.");
+      this.render(false);
+      return;
+    }
+
+    const remainingSeats = this._getCharacterSeatsInVehicle(vehicleActor, vehicleSystem)
+      .filter((entry) => String(entry?.seatKey ?? "").trim() !== String(seat?.seatKey ?? "").trim());
+    if (!remainingSeats.length && this._doesVehicleReferenceMatchActor(this.actor.system?.vehicles?.currentVehicleActorId, vehicleActor)) {
+      try {
+        await this.actor.update({
+          "system.vehicles.currentVehicleActorId": "",
+          "system.vehicles.currentVehicle": ""
+        });
+        this._characterVehicleActorId = "";
+      } catch (_error) {
+        // The vehicle seat has still been cleared; the character link will become stale until the owner can update it.
+      }
+    }
+
+    ui.notifications?.info(`Removed ${this.actor.name} from ${String(vehicleActor.name ?? "vehicle").trim() || "vehicle"}.`);
+    this.render(false);
+  }
+
   _isHuragokActor(systemData = null) {
     return isHuragokActor(systemData ?? this.actor?.system ?? {});
   }
@@ -6362,19 +7902,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const ccAdv = ccAdvData && typeof ccAdvData === "object"
       ? ccAdvData
       : this._getCharacterCreationAdvancementViewData();
+    const canBurnLuck = toNonNegativeWhole(normalized?.combat?.luck?.current, 0) >= 1
+      && toNonNegativeWhole(normalized?.combat?.luck?.max, 0) >= 1;
+    const creationLockedReason = "Outliers can only be purchased during Character Creation.";
+    const noLuckReason = "Purchasing an Outlier burns 1 Luck and requires at least 1 current Luck.";
+    const selectedValidation = selected ? getOutlierPurchaseValidation(selected, normalized) : null;
 
     return {
-      options: MYTHIC_OUTLIER_DEFINITIONS.map((entry) => ({
-        key: entry.key,
-        name: entry.name,
-        selected: entry.key === selectedKey
-      })),
+      options: MYTHIC_OUTLIER_DEFINITIONS.map((entry) => {
+        const validation = getOutlierPurchaseValidation(entry, normalized);
+        return {
+          key: entry.key,
+          name: entry.name,
+          selected: entry.key === selectedKey,
+          canPurchase: ccAdv.isCreationActive && canBurnLuck && validation.canPurchase,
+          unavailableReason: !ccAdv.isCreationActive
+            ? creationLockedReason
+            : (!canBurnLuck ? noLuckReason : validation.reason)
+        };
+      }),
       selected,
       purchased,
       entries,
       hasEntries: entries.length > 0,
       burnedLuckCount,
-      canPurchase: ccAdv.isCreationActive
+      canPurchase: ccAdv.isCreationActive && canBurnLuck && Boolean(selectedValidation?.canPurchase),
+      purchaseDisabledReason: !ccAdv.isCreationActive
+        ? creationLockedReason
+        : (!canBurnLuck ? noLuckReason : (selectedValidation?.reason ?? ""))
     };
   }
 
@@ -6749,6 +8304,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const totalXp = toNonNegativeWhole(xpData?.earned ?? normalizedSystem?.advancements?.xpEarned, 0);
     const spentXp = toNonNegativeWhole(xpData?.spent ?? normalizedSystem?.advancements?.xpSpent, 0);
     const freeXp = Math.max(0, totalXp - spentXp);
+    const outlierEffects = getOutlierEffectSummary(normalizedSystem);
 
     const ownedAbilityNames = new Set(this.actor.items
       .filter((item) => item.type === "ability")
@@ -6794,7 +8350,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         cost: toNonNegativeWhole(entry?.cost, 0)
       });
     }
-    const educationQueuedXp = queuedEducations.reduce((sum, entry) => sum + toNonNegativeWhole(entry.cost, 0), 0);
+    const educationCapacity = Math.max(0, Number(outlierEffects?.acumen?.educationCapacity ?? 0) || 0);
+    const maxQueuedEducations = Math.max(0, educationCapacity - ownedEducationNames.size);
+    const clampedQueuedEducations = queuedEducations.slice(0, maxQueuedEducations);
+    const educationQueuedXp = clampedQueuedEducations.reduce((sum, entry) => sum + toNonNegativeWhole(entry.cost, 0), 0);
 
     const skillRows = this._buildAdvancementSkillRows(normalizedSystem, queue);
     const skillQueuedXp = skillRows.reduce((sum, row) => sum + toNonNegativeWhole(row.queuedCost, 0), 0);
@@ -6905,9 +8464,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       languageSeen.add(normalized);
       queuedLanguages.push(text);
     }
-    const languageCapacityBonus = toNonNegativeWhole(normalizedSystem?.advancements?.purchases?.languageCapacityBonus, 0);
-    const intModifier = Math.max(0, Number(computeCharacteristicModifiers(normalizedSystem?.characteristics ?? {}).int ?? 0));
-    const languageCapacity = Math.max(0, intModifier + languageCapacityBonus);
+    const languageCapacityBonus = toNonNegativeWhole(outlierEffects?.acumen?.languageCapacityBonus, 0);
+    const intModifier = Math.max(0, Number(outlierEffects?.acumen?.intModifier ?? 0) || 0);
+    const languageCapacity = Math.max(0, Number(outlierEffects?.acumen?.languageCapacity ?? 0) || 0);
     const maxQueuedLanguages = Math.max(0, languageCapacity - officialLanguages.length);
     const clampedQueuedLanguages = queuedLanguages.slice(0, maxQueuedLanguages);
     const languageQueuedXp = clampedQueuedLanguages.reduce((sum, _entry, index) => {
@@ -6937,10 +8496,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     return {
       queuedAbilities,
-      queuedEducations,
+      queuedEducations: clampedQueuedEducations,
       skills: {
         rows: skillRows,
         queuedXp: skillQueuedXp
+      },
+      educations: {
+        officialCount: ownedEducationNames.size,
+        queuedCount: clampedQueuedEducations.length,
+        capacity: educationCapacity,
+        intModifier,
+        learningMultiplier: Math.max(1, Number(outlierEffects?.acumen?.learningMultiplier ?? 1) || 1),
+        queuedXp: educationQueuedXp
       },
       training: {
         weaponRows: weaponTrainingRows,
@@ -9156,7 +10723,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       movement: foundry.utils.deepClone(derived.movement),
       perceptiveRange: foundry.utils.deepClone(derived.perceptiveRange),
       carryingCapacity: foundry.utils.deepClone(derived.carryingCapacity),
-      naturalArmor: foundry.utils.deepClone(derived.naturalArmor)
+      naturalArmor: foundry.utils.deepClone(derived.naturalArmor),
+      naturalHealing: foundry.utils.deepClone(derived.naturalHealing),
+      outliers: foundry.utils.deepClone(derived.outliers)
     };
   }
 
@@ -9703,6 +11272,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         for (const variant of skill.variantList) {
           normalizedSkillEntries.push({
             label: `${skill.label} (${variant.label})`,
+            group: skill.group,
             characteristic: variant.selectedCharacteristic,
             rollTarget: variant.rollTarget
           });
@@ -9710,6 +11280,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       } else {
         normalizedSkillEntries.push({
           label: skill.label,
+          group: skill.group,
           characteristic: skill.selectedCharacteristic,
           rollTarget: skill.rollTarget
         });
@@ -9718,6 +11289,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     for (const skill of skillsView.custom) {
       normalizedSkillEntries.push({
         label: skill.label,
+        group: skill.group,
         characteristic: skill.selectedCharacteristic,
         rollTarget: skill.rollTarget
       });
@@ -9751,6 +11323,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           skillOptions,
           selectedSkill,
           rollLabel: selectedSkill ? `${item.name} (${selectedSkill})` : item.name,
+          rollGroup: String(resolvedSkill?.group ?? "").trim().toLowerCase(),
           characteristic: charKey,
           tier,
           modifier,
@@ -10824,6 +12397,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async close(options = {}) {
+    this._unregisterCharacterVehicleActorHooks();
     if (this._headerFitObserver) {
       this._headerFitObserver.disconnect();
       this._headerFitObserver = null;
@@ -11036,7 +12610,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!currentVehicleActorId) {
       foundry.utils.setProperty(submitData, "system.vehicles.currentVehicle", "");
     } else {
-      const linkedVehicle = game.actors?.get(currentVehicleActorId);
+      const linkedVehicle = this._resolveVehicleActorReference(currentVehicleActorId);
       if (linkedVehicle) {
         foundry.utils.setProperty(submitData, "system.vehicles.currentVehicle", String(linkedVehicle.name ?? "").trim());
       }
@@ -11264,6 +12838,26 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         }
       };
 
+      if (this._isVehicleActor()) {
+        const inputName = String(input.name ?? "").trim();
+        if (inputName.startsWith("system.breakpoints.") && !game.user?.isGM) {
+          const actorPath = inputName.replace(/^system\./u, "");
+          input.value = String(foundry.utils.getProperty(this.actor.system ?? {}, actorPath) ?? input.defaultValue ?? "");
+          return;
+        }
+        if (inputName.startsWith("system.overview.breakpoints.")) {
+          const permission = resolveVehicleBreakpointEditPermission(this.actor, {
+            surface: this._getVehicleBreakpointEditSurface(this.actor),
+            vehicleSystem: this.actor.system ?? {}
+          });
+          if (!permission.allowed) {
+            const actorPath = inputName.replace(/^system\./u, "");
+            input.value = String(foundry.utils.getProperty(this.actor.system ?? {}, actorPath) ?? input.defaultValue ?? "");
+            return;
+          }
+        }
+      }
+
       if (input.name === "system.biography.physical.heightCm") {
         const heightCm = Number(input.value);
         const resolvedCm = Number.isFinite(heightCm) ? Math.max(0, Math.round(heightCm)) : 0;
@@ -11431,6 +13025,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await super._onRender(context, options);
 
     if (this._isVehicleActor()) {
+      this._unregisterCharacterVehicleActorHooks();
+    } else {
+      this._registerCharacterVehicleActorHooks();
+    }
+
+    if (this._isVehicleActor()) {
       const root = this.element?.querySelector(".mythic-character-sheet") ?? this.element;
       if (!root) return;
 
@@ -11596,6 +13196,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           });
         });
       }
+      root.querySelectorAll(".vehicle-breakpoint-current-input[data-update-path]").forEach((input) => {
+        input.addEventListener("change", (event) => {
+          void this._onVehicleBreakpointCurrentInputChange(event);
+        });
+      });
       root.querySelectorAll('[data-action="splatter"]').forEach((button) => {
         button.addEventListener("click", (event) => {
           void this._onVehicleSplatter(event);
@@ -12171,19 +13776,31 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     root.querySelectorAll(".weapon-reload-btn[data-item-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
-        void this._onReloadWeapon(event);
+        if (event.currentTarget?.dataset?.vehicleActorId || event.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponReload(event);
+        } else {
+          void this._onReloadWeapon(event);
+        }
       });
     });
 
     root.querySelectorAll(".weapon-attack-btn[data-item-id][data-action]").forEach((button) => {
       button.addEventListener("click", (event) => {
-        void this._onWeaponAttack(event);
+        if (event.currentTarget?.dataset?.vehicleActorId || event.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponAttack(event);
+        } else {
+          void this._onWeaponAttack(event);
+        }
       });
     });
 
     root.querySelectorAll(".weapon-fire-mode-btn[data-item-id][data-fire-mode]").forEach((button) => {
       button.addEventListener("click", (event) => {
-        void this._onWeaponFireModeToggle(event);
+        if (event.currentTarget?.dataset?.vehicleActorId || event.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponFireModeToggle(event);
+        } else {
+          void this._onWeaponFireModeToggle(event);
+        }
       });
     });
 
@@ -12192,24 +13809,82 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (!(target instanceof Element)) return;
       const variantBtn = target.closest(".weapon-variant-btn[data-item-id][data-variant-index]");
       if (!variantBtn || !root.contains(variantBtn)) return;
-      void this._onWeaponVariantSelect(event);
+      if (variantBtn.dataset?.vehicleActorId || variantBtn.dataset?.vehicleUuid) {
+        void this._onCharacterVehicleWeaponVariantSelect(event, variantBtn);
+      } else {
+        void this._onWeaponVariantSelect(event);
+      }
     });
 
     root.querySelectorAll(".weapon-charge-btn[data-item-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
-        void this._onWeaponCharge(event);
+        if (event.currentTarget?.dataset?.vehicleActorId || event.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponCharge(event);
+        } else {
+          void this._onWeaponCharge(event);
+        }
       });
     });
 
     root.querySelectorAll(".weapon-clear-charge-btn[data-item-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
-        void this._onWeaponClearCharge(event);
+        if (event.currentTarget?.dataset?.vehicleActorId || event.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponClearCharge(event);
+        } else {
+          void this._onWeaponClearCharge(event);
+        }
       });
     });
 
     root.querySelectorAll(".weapon-state-input[data-item-id][data-field]").forEach((input) => {
       input.addEventListener("change", (event) => {
-        void this._onWeaponStateInputChange(event);
+        if (event.currentTarget?.dataset?.vehicleActorId || event.currentTarget?.dataset?.vehicleUuid) {
+          void this._onCharacterVehicleWeaponStateInputChange(event);
+        } else {
+          void this._onWeaponStateInputChange(event);
+        }
+      });
+    });
+
+    root.querySelectorAll(".vehicle-weapon-neural-link-toggle[data-emplacement-id][data-vehicle-actor-id], .vehicle-weapon-neural-link-toggle[data-emplacement-id][data-vehicle-uuid]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onCharacterVehicleNeuralLinkToggle(event);
+      });
+    });
+
+    root.querySelectorAll(".vehicle-overview-toggle[data-target-path][data-vehicle-actor-id], .vehicle-overview-toggle[data-target-path][data-vehicle-uuid], [data-character-vehicle-actor-id] .vehicle-overview-toggle[data-target-path], [data-character-vehicle-uuid] .vehicle-overview-toggle[data-target-path]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCharacterVehicleOverviewToggle(event);
+      });
+    });
+
+    root.querySelectorAll(".mythic-character-vehicle-speed-btn[data-direction][data-vehicle-actor-id], .mythic-character-vehicle-speed-btn[data-direction][data-vehicle-uuid]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onCharacterVehicleAdjustCurrentSpeed(event);
+      });
+    });
+
+    root.querySelectorAll(".mythic-character-vehicle-speed-input[data-vehicle-actor-id], .mythic-character-vehicle-speed-input[data-vehicle-uuid]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onCharacterVehicleSpeedInputChange(event);
+      });
+    });
+
+    root.querySelectorAll(".vehicle-breakpoint-current-input[data-update-path][data-vehicle-actor-id], .vehicle-breakpoint-current-input[data-update-path][data-vehicle-uuid]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        void this._onVehicleBreakpointCurrentInputChange(event);
+      });
+    });
+
+    root.querySelectorAll(".mythic-character-vehicle-active-btn[data-vehicle-actor-id], .mythic-character-vehicle-active-btn[data-vehicle-uuid]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onSetCharacterVehicleActive(event);
+      });
+    });
+
+    root.querySelectorAll(".mythic-character-vehicle-remove-btn[data-vehicle-actor-id][data-crew-key][data-slot-index], .mythic-character-vehicle-remove-btn[data-vehicle-uuid][data-crew-key][data-slot-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onRemoveCharacterVehicleAssignment(event);
       });
     });
 
@@ -12669,6 +14344,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _onClose(options) {
+    this._unregisterCharacterVehicleActorHooks();
     if (this._headerFitObserver) {
       this._headerFitObserver.disconnect();
       this._headerFitObserver = null;
@@ -12900,6 +14576,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (owned) {
       ui.notifications?.warn(`${itemObject.name} is already owned.`);
       return;
+    }
+
+    if (kindKey === "education") {
+      const normalizedSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+      const queueState = this._normalizeAdvancementQueueState(normalizedSystem?.advancements?.queue ?? {});
+      const outlierEffects = getOutlierEffectSummary(normalizedSystem);
+      const educationCapacity = Math.max(0, Number(outlierEffects?.acumen?.educationCapacity ?? 0) || 0);
+      const ownedEducationNames = new Set(this.actor.items
+        .filter((entry) => entry.type === "education")
+        .map((entry) => normalizeLookupText(entry.name ?? ""))
+        .filter(Boolean));
+      const queuedEducationNames = new Set((Array.isArray(queueState.educations) ? queueState.educations : [])
+        .map((entry) => normalizeLookupText(entry?.name ?? ""))
+        .filter((entry) => entry && !ownedEducationNames.has(entry)));
+      if ((ownedEducationNames.size + queuedEducationNames.size) >= educationCapacity) {
+        ui.notifications?.warn(`Education cap reached (${educationCapacity}).`);
+        return;
+      }
     }
 
     let cost = 0;
@@ -13201,9 +14895,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedName = normalizeLookupText(name);
     if (!normalizedName) return;
 
-    const intModifier = Math.max(0, Number(computeCharacteristicModifiers(normalizedSystem?.characteristics ?? {}).int ?? 0));
-    const capBonus = toNonNegativeWhole(normalizedSystem?.advancements?.purchases?.languageCapacityBonus, 0);
-    const cap = Math.max(0, intModifier + capBonus);
+    const outlierEffects = getOutlierEffectSummary(normalizedSystem);
+    const cap = Math.max(0, Number(outlierEffects?.acumen?.languageCapacity ?? 0) || 0);
 
     if (official.length >= cap) {
       ui.notifications?.warn(`Language cap reached (${cap}).`);
@@ -13761,6 +15454,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const duplicate = this.actor.items.find((i) => i.type === "education" && i.name === result.name);
     if (duplicate) {
       ui.notifications.warn(`${result.name} is already on this character.`);
+      return;
+    }
+
+    const normalizedSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+    const outlierEffects = getOutlierEffectSummary(normalizedSystem);
+    const educationCapacity = Math.max(0, Number(outlierEffects?.acumen?.educationCapacity ?? 0) || 0);
+    const ownedEducationNames = new Set(this.actor.items
+      .filter((entry) => entry.type === "education")
+      .map((entry) => normalizeLookupText(entry.name ?? ""))
+      .filter(Boolean));
+    if (ownedEducationNames.size >= educationCapacity) {
+      ui.notifications.warn(`Education cap reached (${educationCapacity}).`);
       return;
     }
 
@@ -15161,6 +16866,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (item.type === "education") {
       const itemData = item.toObject();
+      const normalizedSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+      const outlierEffects = getOutlierEffectSummary(normalizedSystem);
+      const educationCapacity = Math.max(0, Number(outlierEffects?.acumen?.educationCapacity ?? 0) || 0);
+      const ownedEducationNames = new Set(this.actor.items
+        .filter((entry) => entry.type === "education")
+        .map((entry) => normalizeLookupText(entry.name ?? ""))
+        .filter(Boolean));
+      if (ownedEducationNames.size >= educationCapacity) {
+        ui.notifications?.warn(`Education cap reached (${educationCapacity}).`);
+        return false;
+      }
 
       const educationMetadata = await this._promptEducationVariantMetadata(itemData.name);
       if (educationMetadata === null) return false;
@@ -19489,36 +21205,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _promptOutlierChoice(definition, existingPurchases) {
     if (!definition?.requiresChoice) return { key: "", label: "" };
 
-    let options = [];
-    if (definition.requiresChoice === "characteristic") {
-      options = [
-        { key: "str", label: "Strength" },
-        { key: "tou", label: "Toughness" },
-        { key: "agi", label: "Agility" },
-        { key: "wfr", label: "Warfare Range" },
-        { key: "wfm", label: "Warfare Melee" },
-        { key: "int", label: "Intellect" },
-        { key: "per", label: "Perception" },
-        { key: "crg", label: "Courage" },
-        { key: "cha", label: "Charisma" },
-        { key: "ldr", label: "Leadership" }
-      ];
-    } else if (definition.requiresChoice === "mythic") {
-      options = [
-        { key: "str", label: "Mythic Strength" },
-        { key: "tou", label: "Mythic Toughness" },
-        { key: "agi", label: "Mythic Agility" }
-      ];
-    }
-
-    const maxPerChoice = Math.max(0, Number(definition.maxPerChoice ?? 0));
-    const purchaseRows = Array.isArray(existingPurchases) ? existingPurchases : [];
-
-    const available = options.filter((entry) => {
-      if (maxPerChoice <= 0) return true;
-      const count = purchaseRows.filter((row) => row.key === definition.key && row.choice === entry.key).length;
-      return count < maxPerChoice;
-    });
+    const available = getAvailableOutlierChoiceOptions(definition, existingPurchases);
 
     if (!available.length) return null;
     if (available.length === 1) {
@@ -19572,10 +21259,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? foundry.utils.deepClone(systemData.advancements.outliers.purchases)
       : [];
 
-    const totalByKey = purchases.filter((entry) => entry.key === definition.key).length;
-    const maxPurchases = Math.max(0, Number(definition.maxPurchases ?? 1));
-    if (maxPurchases > 0 && totalByKey >= maxPurchases) {
-      ui.notifications?.warn(`${definition.name} has already reached its purchase limit.`);
+    const validation = getOutlierPurchaseValidation(definition, systemData);
+    if (!validation.canPurchase) {
+      ui.notifications?.warn(validation.reason || `${definition.name} has already reached its purchase limit.`);
       return;
     }
 
@@ -19584,6 +21270,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const choiceKey = String(selectedChoice?.key ?? "").trim().toLowerCase();
     if (definition.requiresChoice && !choiceKey) return;
+    if (definition.requiresChoice) {
+      const choiceValidation = getOutlierPurchaseValidation(definition, systemData, { choiceKey });
+      if (!choiceValidation.canPurchase) {
+        ui.notifications?.warn(choiceValidation.reason || `${definition.name} has already reached its purchase limit.`);
+        return;
+      }
+    }
 
     const nextPurchases = [...purchases, {
       key: definition.key,
@@ -19598,35 +21291,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.combat.luck.current": Math.max(0, luckCurrent - 1),
       "system.combat.luck.max": Math.max(0, luckMax - 1)
     };
-
-    if (definition.key === "advocate") {
-      const supportCurrent = toNonNegativeWhole(systemData?.combat?.supportPoints?.current, 0);
-      const supportMax = toNonNegativeWhole(systemData?.combat?.supportPoints?.max, 0);
-      updateData["system.combat.supportPoints.current"] = supportCurrent + 2;
-      updateData["system.combat.supportPoints.max"] = supportMax + 2;
-    } else if (definition.key === "aptitude" && choiceKey) {
-      const current = toWholeNumber(systemData?.charBuilder?.misc?.[choiceKey], 0);
-      updateData[`system.charBuilder.misc.${choiceKey}`] = current + 5;
-    } else if (definition.key === "forte" && choiceKey) {
-      const current = toNonNegativeWhole(systemData?.mythic?.characteristics?.[choiceKey], 0);
-      updateData[`system.mythic.characteristics.${choiceKey}`] = current + 1;
-    } else if (definition.key === "imposing") {
-      const strCurrent = toWholeNumber(systemData?.charBuilder?.misc?.str, 0);
-      const touCurrent = toWholeNumber(systemData?.charBuilder?.misc?.tou, 0);
-      updateData["system.charBuilder.misc.str"] = strCurrent + 3;
-      updateData["system.charBuilder.misc.tou"] = touCurrent + 3;
-      const currentSize = String(systemData?.header?.buildSize ?? "Normal").trim() || "Normal";
-      const nextSize = getNextSizeCategoryLabel(currentSize);
-      if (nextSize) {
-        updateData["system.header.buildSize"] = nextSize;
-      }
-    } else if (definition.key === "robust") {
-      const miscWoundsModifier = Number(systemData?.mythic?.miscWoundsModifier ?? 0);
-      const safeMiscWoundsModifier = Number.isFinite(miscWoundsModifier) ? miscWoundsModifier : 0;
-      const woundsCurrent = toNonNegativeWhole(systemData?.combat?.wounds?.current, 0);
-      updateData["system.mythic.miscWoundsModifier"] = safeMiscWoundsModifier + 18;
-      updateData["system.combat.wounds.current"] = woundsCurrent + 18;
-    }
+    Object.assign(updateData, buildOutlierCompatibilityUpdate(systemData, definition, { mode: "add", choiceKey }));
 
     const outlierLabel = definition.requiresChoice && selectedChoice?.label
       ? `${definition.name} (${selectedChoice.label})`
@@ -19691,38 +21356,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
 
     const choiceKey = String(removed?.choice ?? "").trim().toLowerCase();
-    if (definition.key === "advocate") {
-      const supportCurrent = toNonNegativeWhole(systemData?.combat?.supportPoints?.current, 0);
-      const supportMax = toNonNegativeWhole(systemData?.combat?.supportPoints?.max, 0);
-      const nextSupportMax = Math.max(0, supportMax - 2);
-      updateData["system.combat.supportPoints.max"] = nextSupportMax;
-      updateData["system.combat.supportPoints.current"] = Math.min(nextSupportMax, Math.max(0, supportCurrent - 2));
-    } else if (definition.key === "aptitude" && choiceKey) {
-      const current = toWholeNumber(systemData?.charBuilder?.misc?.[choiceKey], 0);
-      updateData[`system.charBuilder.misc.${choiceKey}`] = current - 5;
-    } else if (definition.key === "forte" && choiceKey) {
-      const current = toNonNegativeWhole(systemData?.mythic?.characteristics?.[choiceKey], 0);
-      updateData[`system.mythic.characteristics.${choiceKey}`] = Math.max(0, current - 1);
-    } else if (definition.key === "imposing") {
-      const strCurrent = toWholeNumber(systemData?.charBuilder?.misc?.str, 0);
-      const touCurrent = toWholeNumber(systemData?.charBuilder?.misc?.tou, 0);
-      updateData["system.charBuilder.misc.str"] = strCurrent - 3;
-      updateData["system.charBuilder.misc.tou"] = touCurrent - 3;
-      const currentSize = String(systemData?.header?.buildSize ?? "Normal").trim() || "Normal";
-      const prevSize = getPreviousSizeCategoryLabel(currentSize);
-      if (prevSize) {
-        updateData["system.header.buildSize"] = prevSize;
-      }
-    } else if (definition.key === "robust") {
-      const miscWoundsModifier = Number(systemData?.mythic?.miscWoundsModifier ?? 0);
-      const safeMiscWoundsModifier = Number.isFinite(miscWoundsModifier) ? miscWoundsModifier : 0;
-      const nextMiscWoundsModifier = safeMiscWoundsModifier - 18;
-      const woundsMax = toNonNegativeWhole(systemData?.combat?.wounds?.max, 0);
-      const woundsCurrent = toNonNegativeWhole(systemData?.combat?.wounds?.current, 0);
-      const nextWoundsMax = Math.max(0, woundsMax - 18);
-      updateData["system.mythic.miscWoundsModifier"] = nextMiscWoundsModifier;
-      updateData["system.combat.wounds.current"] = Math.min(nextWoundsMax, Math.max(0, woundsCurrent - 18));
-    }
+    Object.assign(updateData, buildOutlierCompatibilityUpdate(systemData, definition, { mode: "remove", choiceKey }));
 
     const unlockedFeatures = String(systemData?.advancements?.unlockedFeatures ?? "").trim();
     const spendLog = String(systemData?.advancements?.spendLog ?? "").trim();
@@ -20831,7 +22465,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const state = vehicleEmplacementId
       ? (() => {
-          const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+          const vehicleSystem = this._getVehicleControlSystemData();
           const emplacements = Array.isArray(vehicleSystem?.weaponEmplacements) ? vehicleSystem.weaponEmplacements : [];
           const matchedEmplacement = emplacements.find((entry) => String(entry?.id ?? "").trim() === vehicleEmplacementId) ?? null;
           return (matchedEmplacement?.weaponState && typeof matchedEmplacement.weaponState === "object")
@@ -20885,7 +22519,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const currentLevel = vehicleEmplacementId
       ? (() => {
-          const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
+          const vehicleSystem = this._getVehicleControlSystemData();
           const emplacements = Array.isArray(vehicleSystem?.weaponEmplacements) ? vehicleSystem.weaponEmplacements : [];
           const matchedEmplacement = emplacements.find((entry) => String(entry?.id ?? "").trim() === vehicleEmplacementId) ?? null;
           return toNonNegativeWhole(matchedEmplacement?.weaponState?.chargeLevel, 0);
@@ -21551,7 +23185,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const weaponOwnerActor = this.actor;
     const isVehicleWeaponAttack = this._isVehicleActor() && Boolean(vehicleEmplacementId);
-    const vehicleSystem = isVehicleWeaponAttack ? normalizeVehicleSystemData(weaponOwnerActor.system ?? {}) : null;
+    const vehicleSystem = isVehicleWeaponAttack ? this._getVehicleControlSystemData() : null;
     const vehicleEmplacements = isVehicleWeaponAttack && Array.isArray(vehicleSystem?.weaponEmplacements)
       ? vehicleSystem.weaponEmplacements
       : [];
@@ -22284,13 +23918,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ? (String(gear.attackName ?? "").trim() || "Primary Attack")
           : (String(variantAttacksRaw[selectedVariantIndex - 1]?.name ?? "").trim() || `Variant ${selectedVariantIndex}`))
       : null;
+    const attackOutlierEffects = getOutlierEffectSummary(attackActor?.system ?? weaponOwnerActor?.system ?? this.actor.system ?? {});
+    const weaponCanonicalId = String(gear?.sync?.canonicalId ?? item?.system?.sync?.canonicalId ?? "").trim().toLowerCase();
+    const hardHeadDamageBonus = weaponCanonicalId === "gear:melee-universal-unarmed-head-butt"
+      ? Math.max(0, Number(attackOutlierEffects?.hardHead?.headbuttDamageBonus ?? 0) || 0)
+      : 0;
 
     const baseDamageStrengthBonus = isMelee ? resolveStrengthContribution(activeBaseDamageModMode) : 0;
     const pierceStrengthBonus = isMelee ? resolveStrengthContribution(activePierceModMode) : 0;
     const infusionIntMod = isInfusionRadiusWeapon
       ? Math.round(Number(characteristicModifiers?.int ?? 0) || 0)
       : 0;
-    const flatTotal = activeBaseFlat + baseDamageStrengthBonus + damageModifier + infusionIntMod;
+    const flatTotal = activeBaseFlat + baseDamageStrengthBonus + damageModifier + infusionIntMod + hardHeadDamageBonus;
     const damageParts = [];
     if (activeD10Count > 0) damageParts.push(`${activeD10Count}d10`);
     if (activeD5Count > 0) damageParts.push(`${activeD5Count}d5`);
@@ -23325,10 +24964,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     const attack = String(event.currentTarget?.dataset?.attack ?? "Unarmed Strike").trim() || "Unarmed Strike";
+    const normalizedAttack = attack.toLowerCase();
+    const outlierEffects = getOutlierEffectSummary(normalizeCharacterSystemData(this.actor.system ?? {}));
+    const hardHeadNote = normalizedAttack === "head-butt" && outlierEffects?.hardHead?.enabled
+      ? ` Hard-Head adds +${Math.max(0, Number(outlierEffects?.hardHead?.headbuttDamageBonus ?? 0) || 0)} damage when you resolve this as a head-butt attack.`
+      : "";
     const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      content: `<p><strong>${esc(this.actor.name)}</strong> uses <strong>${esc(attack)}</strong> (hand-to-hand).</p>`,
+      content: `<p><strong>${esc(this.actor.name)}</strong> uses <strong>${esc(attack)}</strong> (hand-to-hand).${esc(hardHeadNote)}</p>`,
       type: CONST.CHAT_MESSAGE_STYLES.OTHER
     });
   }
@@ -23688,6 +25332,33 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  _buildUniversalTestNotes({ skillGroup = "" } = {}) {
+    const normalizedSystem = normalizeCharacterSystemData(this.actor.system ?? {});
+    const outlierEffects = getOutlierEffectSummary(normalizedSystem);
+    const notes = [];
+    const normalizedGroup = String(skillGroup ?? "").trim().toLowerCase();
+
+    if (outlierEffects?.enduring?.enabled && Number(outlierEffects?.enduring?.currentFatigue ?? 0) > 0) {
+      const ignoredLevels = Math.max(0, Number(outlierEffects?.enduring?.ignoredLevels ?? 0) || 0);
+      const suppressedLevels = Math.max(0, Number(outlierEffects?.enduring?.suppressedLevels ?? 0) || 0);
+      const effectiveLevels = Math.max(0, Number(outlierEffects?.enduring?.effectiveLevels ?? 0) || 0);
+      const enduringSummary = effectiveLevels > 0
+        ? `${suppressedLevels} ignored, ${effectiveLevels} still active`
+        : `${suppressedLevels} ignored`;
+      notes.push(`Enduring suppresses the first ${ignoredLevels} Fatigue levels for penalties (${enduringSummary}).`);
+    }
+
+    if (normalizedGroup === "social" && outlierEffects?.poised?.enabled) {
+      notes.push("Poised: after a successful Social Skill test, you may shift the target disposition one step up or down.");
+    }
+
+    if (normalizedGroup === "movement" && outlierEffects?.olympian?.enabled) {
+      notes.push("Olympian: halve penalties from difficult terrain, swimming, and climbing.");
+    }
+
+    return notes;
+  }
+
   async _promptAttackModifiers(weaponName, gear = null, options = {}) {
     const rawMode = String(options?.targetMode ?? "character").trim().toLowerCase();
     const targetMode = ["vehicle", "walker"].includes(rawMode) ? rawMode : "character";
@@ -23792,7 +25463,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     successLabel = "Success",
     failureLabel = "Failure",
     successDegreeLabel = "DOS",
-    failureDegreeLabel = "DOF"
+    failureDegreeLabel = "DOF",
+    notes = []
   }) {
     if (!Number.isFinite(targetValue) || targetValue <= 0) {
       ui.notifications.warn(invalidTargetWarning);
@@ -23815,7 +25487,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       failureLabel,
       successDegreeLabel,
       failureDegreeLabel,
-      miscModifier
+      miscModifier,
+      notes
     });
 
     await ChatMessage.create({
@@ -23833,7 +25506,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     successLabel = "Success",
     failureLabel = "Failure",
     successDegreeLabel = "DOS",
-    failureDegreeLabel = "DOF"
+    failureDegreeLabel = "DOF",
+    notes = []
   }) {
     if (!speakerActor) return;
     if (!Number.isFinite(targetValue) || targetValue <= 0) {
@@ -23857,7 +25531,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       failureLabel,
       successDegreeLabel,
       failureDegreeLabel,
-      miscModifier
+      miscModifier,
+      notes
     });
 
     await ChatMessage.create({
@@ -24485,10 +26160,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const cell = event.currentTarget;
     const label = String(cell?.dataset?.rollLabel ?? "Education");
     const targetValue = Number(cell?.dataset?.rollTarget ?? 0);
+    const skillGroup = String(cell?.dataset?.rollGroup ?? "").trim().toLowerCase();
     await this._runUniversalTest({
       label,
       targetValue,
-      invalidTargetWarning: `Set a valid target for ${label} before rolling.`
+      invalidTargetWarning: `Set a valid target for ${label} before rolling.`,
+      notes: this._buildUniversalTestNotes({ skillGroup })
     });
   }
 
@@ -24499,10 +26176,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const cell = event.currentTarget;
     const label = String(cell?.dataset?.rollLabel ?? "Skill");
     const targetValue = Number(cell?.dataset?.rollTarget ?? 0);
+    const skillGroup = String(cell?.dataset?.rollGroup ?? "").trim().toLowerCase();
     await this._runUniversalTest({
       label,
       targetValue,
-      invalidTargetWarning: `Set a valid target for ${label} before rolling.`
+      invalidTargetWarning: `Set a valid target for ${label} before rolling.`,
+      notes: this._buildUniversalTestNotes({ skillGroup })
     });
   }
 
@@ -24519,7 +26198,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this._runUniversalTest({
       label,
       targetValue,
-      invalidTargetWarning: `Set a valid ${label} value before rolling a test.`
+      invalidTargetWarning: `Set a valid ${label} value before rolling a test.`,
+      notes: this._buildUniversalTestNotes()
     });
   }
 

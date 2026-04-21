@@ -23,6 +23,7 @@
           </div>
         </div>
         <p class="ccadv-note">Bonus added to language cap. Base cap is INT modifier plus this bonus.</p>
+        <p class="ccadv-note">Current learning limits: Languages {{mythicDerived.outliers.acumen.languageCapacity}}, Educations {{mythicDerived.outliers.acumen.educationCapacity}}. {{#if mythicDerived.outliers.acumen.enabled}}Acumen triples INT modifier before these caps are applied.{{/if}}</p>
       </div>
 
       <div class="mythic-phase4-card">
@@ -132,6 +133,9 @@
             <span>B</span>
           </p>
         </div>
+        {{#if mythicDerived.carryingCapacity.usesFullCharacteristicsForCarry}}
+          <p class="ccadv-note"><strong>Strongman:</strong> this actor ignores the halved STR and TOU terms in the base carry formula.</p>
+        {{/if}}
         <p class="ccadv-note">Current values: Carry {{mythicDerived.carryingCapacity.carry}}, Lift {{mythicDerived.carryingCapacity.lift}}, Push {{mythicDerived.carryingCapacity.push}}.</p>
       </div>
 

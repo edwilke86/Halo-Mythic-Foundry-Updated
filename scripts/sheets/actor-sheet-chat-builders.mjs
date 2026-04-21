@@ -77,7 +77,8 @@ export function buildUniversalTestChatCard({
   failureLabel = "Failure",
   successDegreeLabel = "DOS",
   failureDegreeLabel = "DOF",
-  miscModifier = 0
+  miscModifier = 0,
+  notes = []
 }) {
   const safeLabel = foundry.utils.escapeHTML(String(label ?? "Test"));
   const outcome = success ? successLabel : failureLabel;
@@ -87,6 +88,13 @@ export function buildUniversalTestChatCard({
   const degrees = (diff / 10).toFixed(1);
   const miscNote = (miscModifier !== 0)
     ? ` <span class="mythic-stat-mods">(${miscModifier > 0 ? "+" : ""}${miscModifier} misc)</span>`
+    : "";
+  const noteLines = Array.isArray(notes)
+    ? notes
+      .map((entry) => String(entry ?? "").trim())
+      .filter(Boolean)
+      .map((entry) => `<p class="mythic-chat-note">${foundry.utils.escapeHTML(entry)}</p>`)
+      .join("")
     : "";
 
   return `
@@ -100,6 +108,7 @@ export function buildUniversalTestChatCard({
         <span class="stat roll ${outcomeClass}"><strong>Roll</strong> ${rolled}</span>
         <span class="stat degree ${outcomeClass}"><strong>${foundry.utils.escapeHTML(degreeLabel)}</strong> ${degrees}</span>
       </div>
+      ${noteLines}
     </article>
   `;
 }

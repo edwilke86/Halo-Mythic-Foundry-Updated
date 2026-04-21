@@ -1383,6 +1383,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 51
@@ -1986,6 +2005,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 1,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 69
@@ -2015,6 +2053,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 1,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 70
@@ -2044,6 +2101,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 5,
+    "tou": 0,
+    "agi": 10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 1,
+    "tou": 0,
+    "agi": 1
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 71
@@ -2079,6 +2155,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 10,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 2,
+    "tou": 0,
+    "agi": 2
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 73
@@ -2114,6 +2209,25 @@
       "delay": 3,
       "rechargeRate": 25
     },
+    "characteristicMods": {
+  "base": {
+    "str": 15,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 2,
+    "tou": 0,
+    "agi": 2
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 74
@@ -2149,6 +2263,25 @@
       "delay": 2,
       "rechargeRate": 50
     },
+    "characteristicMods": {
+  "base": {
+    "str": 20,
+    "tou": 0,
+    "agi": 10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 2,
+    "tou": 0,
+    "agi": 2
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 75
@@ -2184,6 +2317,25 @@
       "delay": 2,
       "rechargeRate": 50
     },
+    "characteristicMods": {
+  "base": {
+    "str": 15,
+    "tou": 0,
+    "agi": 10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 3,
+    "tou": 0,
+    "agi": 2
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 76
@@ -2219,6 +2371,25 @@
       "delay": 2,
       "rechargeRate": 50
     },
+    "characteristicMods": {
+  "base": {
+    "str": 20,
+    "tou": 0,
+    "agi": 15,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 4,
+    "tou": 0,
+    "agi": 4
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 77
@@ -2254,6 +2425,25 @@
       "delay": 2,
       "rechargeRate": 50
     },
+    "characteristicMods": {
+  "base": {
+    "str": 20,
+    "tou": 0,
+    "agi": 15,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 3,
+    "tou": 0,
+    "agi": 3
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 78
@@ -2544,6 +2734,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 90
@@ -2573,6 +2782,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 91
@@ -3155,6 +3383,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -15,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 113
@@ -3416,6 +3663,25 @@
       "delay": 3,
       "rechargeRate": 25
     },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 124
@@ -3648,6 +3914,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 133
@@ -3705,7 +3990,25 @@
       "integrity": 0,
       "delay": 0,
       "rechargeRate": 0
-    },
+    },"characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 135
@@ -3763,7 +4066,25 @@
       "integrity": 175,
       "delay": 4,
       "rechargeRate": 50
-    },
+    },"characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 138
@@ -4863,6 +5184,25 @@
       "delay": 0,
       "rechargeRate": 0
     },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 499
@@ -4936,7 +5276,25 @@
       "integrity": 0,
       "delay": 0,
       "rechargeRate": 0
-    },
+    },"characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
     "sourceReference": {
       "table": "Mythic Dev Sheet - Armor.csv",
       "rowNumber": 501

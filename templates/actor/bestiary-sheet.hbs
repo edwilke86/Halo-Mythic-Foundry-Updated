@@ -25,6 +25,9 @@
       <a class="item" data-tab="biography" title="Biography">
         <i class="fas fa-book-open"></i>
       </a>
+      <a class="item" data-tab="vehicles" title="Vehicles">
+        <i class="fas fa-truck"></i>
+      </a>
       <a class="item" data-tab="setup" title="Setup">
         <i class="fas fa-gear"></i>
       </a>
@@ -141,25 +144,6 @@
                   <p><strong>Jump Bonus While Moving:</strong> Add +1 m leap distance for every 10 m moved this turn.</p>
                   <p><strong>Swim Speed:</strong> {{mythicDerived.movement.swimSpeed}} m/turn (STR MOD, no Mythic).</p>
                   <p><strong>Initiative Formula:</strong> 1d10 + AGI MOD + (Mythic AGI / 2) + Manual Bonus + Misc.</p>
-                </div>
-              </details>
-            </details>
-
-            <details class="mythic-derived-card" data-collapse-key="sight-card" open>
-              <summary>Sight</summary>
-              <div class="movement-strip">
-                <div class="movement-block movement-block-wide">
-                  <div class="movement-value">{{mythicDerived.perceptiveRange.standard}}</div>
-                  <div class="movement-label">Perceptive Range</div>
-                </div>
-              </div>
-              <details class="movement-reference" data-collapse-key="sight-reference">
-                <summary>Lighting &amp; Range Penalties</summary>
-                <div class="movement-ref-content">
-                  <div class="movement-ref-row"><span>Bright / Low-Light</span><span>{{mythicDerived.perceptiveRange.brightOrLowLight}} m</span></div>
-                  <div class="movement-ref-row"><span>Blinding / Darkness</span><span>{{mythicDerived.perceptiveRange.blindingOrDarkness}} m</span></div>
-                  <div class="movement-ref-row"><span>-20 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty20Max}} m</span></div>
-                  <div class="movement-ref-row"><span>-60 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty60Max}} m</span></div>
                 </div>
               </details>
             </details>
@@ -643,6 +627,8 @@
           </section>
         </section>
       </div>
+
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicles-tab.hbs"}}
 
       <div class="tab setup" data-group="primary" data-tab="setup">
         <section class="mythic-bestiary-sheet">

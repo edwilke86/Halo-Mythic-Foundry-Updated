@@ -529,5 +529,5 @@
   
   "primaryTokenAttribute": { "attribute": "system.combat.wounds" },
   "secondaryTokenAttribute": { "attribute": "system.combat.shields" },
-  "socket": false
+  "socket": true
 }

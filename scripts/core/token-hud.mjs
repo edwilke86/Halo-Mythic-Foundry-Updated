@@ -1,6 +1,14 @@
-import { MYTHIC_TOKEN_HUD_UI_CONFIG } from "../config.mjs";
+import {
+  MYTHIC_TOKEN_HUD_UI_CONFIG,
+  MYTHIC_USE_FOUNDRY_DEFAULT_TOKEN_HUD_SETTING_KEY
+} from "../config.mjs";
 import { buildVehicleTokenHudBreakpointSections, normalizeVehicleSystemData } from "../data/normalization.mjs";
+import {
+  requestVehicleBreakpointUpdate,
+  resolveVehicleBreakpointEditPermission
+} from "../mechanics/vehicle-breakpoint-permissions.mjs";
 
+const MYTHIC_SYSTEM_ID = "Halo-Mythic-Foundry-Updated";
 const MYTHIC_TOKEN_HUD_ID = "token-hud";
 const MYTHIC_TOKEN_HUD_PATCH_FLAG = "_mythicTokenHudUiPatchInstalled";
 const MYTHIC_TOKEN_HUD_BOUND_FLAG = "mythicHudEventsBound";
@@ -62,17 +70,53 @@ function getMythicTokenSizeBucket(tokenRect) {
   return "standard";
 }
 
+function shouldUseFoundryDefaultTokenHud() {
+  const settingKey = `${MYTHIC_SYSTEM_ID}.${MYTHIC_USE_FOUNDRY_DEFAULT_TOKEN_HUD_SETTING_KEY}`;
+  if (!game?.settings?.settings?.has?.(settingKey)) return false;
+  return Boolean(game.settings.get(MYTHIC_SYSTEM_ID, MYTHIC_USE_FOUNDRY_DEFAULT_TOKEN_HUD_SETTING_KEY));
+}
+
+function teardownMythicTokenHudElement(element) {
+  if (!isMythicHtmlElement(element)) return;
+
+  const cluster = element.querySelector(":scope > .mythic-token-hud-cluster");
+  if (isMythicHtmlElement(cluster)) {
+    const columns = Array.from(cluster.children).filter((child) => child.classList?.contains("col"));
+    for (const column of columns) {
+      element.insertBefore(column, cluster);
+    }
+    cluster.remove();
+  }
+
+  element.querySelector(":scope > .mythic-token-hud-pointer")?.remove();
+  element.classList.remove("mythic-token-hud", "is-opening", "is-closing");
+  delete element.dataset[MYTHIC_TOKEN_HUD_BOUND_FLAG];
+  delete element.dataset.hudActorType;
+  delete element.dataset.hudSize;
+  delete element.dataset.hudHighlight;
+  delete element.dataset.hudAnimated;
+  delete element.dataset.hudReadoutMode;
+  delete element.dataset.hudSide;
+  delete element.dataset.hudHasReadout;
+  delete element.dataset.mythicHudClosing;
+  element.style.removeProperty("--mythic-token-hud-control-size");
+  element.style.removeProperty("--mythic-token-hud-inner-gap");
+  element.style.removeProperty("--mythic-token-hud-readout-width");
+  element.style.removeProperty("--mythic-token-hud-scale");
+  element.style.removeProperty("--ui-scale");
+  element.style.removeProperty("--mythic-token-hud-gap");
+  element.style.removeProperty("--mythic-token-hud-pointer-x");
+  element.style.removeProperty("--mythic-token-hud-pointer-y");
+}
+
 function getMythicTokenHudScale(tokenRect = null) {
   const zoom = Math.max(0.01, Number(canvas?.stage?.scale?.x) || 1);
   const shortSide = Math.min(Number(tokenRect?.width) || 0, Number(tokenRect?.height) || 0);
   const normalizedShortSide = shortSide / zoom;
 
-  let targetScreenScale = 1;
+  let targetScreenScale = 0.95;
   if (normalizedShortSide > 0 && normalizedShortSide < MYTHIC_TOKEN_HUD_UI_CONFIG.smallTokenThreshold) targetScreenScale += 0.08;
   else if (normalizedShortSide > MYTHIC_TOKEN_HUD_UI_CONFIG.largeTokenThreshold) targetScreenScale -= 0.06;
-
-  if (zoom < 0.75) targetScreenScale += 0.05;
-  if (zoom > 1.75) targetScreenScale -= 0.05;
 
   const baseScale = targetScreenScale / zoom;
 
@@ -84,8 +128,9 @@ function getMythicTokenHudScale(tokenRect = null) {
 }
 
 function getMythicTokenHudGap(tokenRect = null) {
-  const shortSide = Math.min(Number(tokenRect?.width) || 0, Number(tokenRect?.height) || 0);
-  const longSide = Math.max(Number(tokenRect?.width) || 0, Number(tokenRect?.height) || 0);
+  const zoom = Math.max(0.01, Number(canvas?.stage?.scale?.x) || 1);
+  const shortSide = Math.min(Number(tokenRect?.width) || 0, Number(tokenRect?.height) || 0) / zoom;
+  const longSide = Math.max(Number(tokenRect?.width) || 0, Number(tokenRect?.height) || 0) / zoom;
 
   let gap = Number(MYTHIC_TOKEN_HUD_UI_CONFIG.baseGapPx) || 12;
   if (shortSide > 0 && shortSide < MYTHIC_TOKEN_HUD_UI_CONFIG.smallTokenThreshold) gap += 4;
@@ -286,7 +331,10 @@ function refreshMythicVehicleTokenHudContent(hud, element, cluster) {
   const allowedSectionKeys = sections.filter((section) => !section?.isDisabled).map((section) => section.key);
   const defaultSection = allowedSectionKeys.includes("engineHull") ? "engineHull" : (allowedSectionKeys[0] ?? "");
   const activeSection = getMythicVehicleTokenHudActiveSection(hud, actorKey, allowedSectionKeys, defaultSection);
-  const editable = actor?.isOwner !== false;
+  const editable = resolveVehicleBreakpointEditPermission(actor, {
+    surface: "tokenHud",
+    vehicleSystem: normalizedSystem
+  }).allowed;
 
   middleColumn.classList.add("mythic-vehicle-breakpoint-middle");
   middleColumn.replaceChildren(buildMythicVehicleTokenHudContent(sections, activeSection, editable));
@@ -334,8 +382,18 @@ async function updateMythicVehicleTokenHudBreakpointValue(hud, input) {
   }
 
   try {
-    await actor.update({ [updatePath]: nextValue });
-    input.dataset.current = String(nextValue);
+    const result = await requestVehicleBreakpointUpdate(actor, updatePath, nextValue, {
+      surface: "tokenHud",
+      fallbackMax: maximum
+    });
+    if (!result.applied && !result.pending) {
+      ui.notifications?.warn(result.reason || "You cannot edit this vehicle breakpoint.");
+      input.value = String(fallbackValue);
+      scheduleMythicTokenHudRefresh(hud, { frames: 1 });
+      return;
+    }
+    input.value = String(result.value);
+    input.dataset.current = String(result.value);
   } catch (error) {
     console.warn("[mythic-system] Failed to update vehicle HUD breakpoint value.", error);
     input.value = String(fallbackValue);
@@ -543,6 +601,11 @@ export function refreshMythicTokenHudElement(target = null) {
   const element = getMythicTokenHudElement(hud ?? target);
   if (!hud?.rendered || !isMythicHtmlElement(element)) return;
 
+  if (shouldUseFoundryDefaultTokenHud()) {
+    teardownMythicTokenHudElement(element);
+    return;
+  }
+
   const cluster = ensureMythicTokenHudCluster(element);
   const pointer = ensureMythicTokenHudPointer(element);
   refreshMythicVehicleTokenHudContent(hud, element, cluster);
@@ -582,6 +645,21 @@ export function scheduleMythicTokenHudRefresh(target = null, { frames = 1 } = {}
   };
 
   scheduleFrame();
+}
+
+export async function handleMythicTokenHudSettingChange() {
+  const hud = resolveMythicTokenHud();
+  const element = getMythicTokenHudElement(hud);
+
+  teardownMythicTokenHudElement(element);
+
+  if (!hud?.rendered) return;
+
+  try {
+    await hud.close?.({ skipMythicAnimation: true });
+  } catch (error) {
+    console.warn("[mythic-system] Failed to close Token HUD after a HUD setting change.", error);
+  }
 }
 
 function installMythicTokenHudResizeListener() {

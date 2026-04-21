@@ -2,18 +2,21 @@
 import {
   MYTHIC_CM_PER_INCH, MYTHIC_LBS_PER_KG,
   MYTHIC_SIZE_CATEGORIES, MYTHIC_DEFAULT_HEIGHT_RANGE_CM,
-  MYTHIC_DEFAULT_WEIGHT_RANGE_KG, MYTHIC_OUTLIER_DEFINITIONS,
+  MYTHIC_DEFAULT_WEIGHT_RANGE_KG,
   MYTHIC_SPECIALIZATION_PACKS
 } from '../config.mjs';
+import {
+  getOutlierDefinitionByKey as getOutlierDefinitionByKeyFromResolver,
+  getOutlierDefaultSelectionKey as getOutlierDefaultSelectionKeyFromResolver,
+  hasOutlierPurchase as hasOutlierPurchaseFromResolver
+} from './outliers.mjs';
 
 export function getOutlierDefinitionByKey(key) {
-  const marker = String(key ?? "").trim().toLowerCase();
-  if (!marker) return null;
-  return MYTHIC_OUTLIER_DEFINITIONS.find((entry) => entry.key === marker) ?? null;
+  return getOutlierDefinitionByKeyFromResolver(key);
 }
 
 export function getOutlierDefaultSelectionKey() {
-  return MYTHIC_OUTLIER_DEFINITIONS[0]?.key ?? "";
+  return getOutlierDefaultSelectionKeyFromResolver();
 }
 
 export function normalizeRangeObject(rangeValue, fallbackRange) {
@@ -169,12 +172,7 @@ export function applySbaolekgoloSizing(buildSize, hasImposingOutlier, phenomeKey
 }
 
 export function hasOutlierPurchase(systemData, outlierKey) {
-  const target = String(outlierKey ?? "").trim().toLowerCase();
-  if (!target) return false;
-  const purchases = Array.isArray(systemData?.advancements?.outliers?.purchases)
-    ? systemData.advancements.outliers.purchases
-    : [];
-  return purchases.some((entry) => String(entry?.key ?? "").trim().toLowerCase() === target);
+  return hasOutlierPurchaseFromResolver(systemData, outlierKey);
 }
 
 export function clampToRange(value, range) {

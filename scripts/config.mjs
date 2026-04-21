@@ -17,6 +17,22 @@ export const MYTHIC_DEFAULT_CHARACTER_ICON = "icons/svg/mystery-man.svg";
 export const MYTHIC_DEFAULT_GROUP_ICON = "icons/svg/mystery-man.svg";
 export const MYTHIC_DEFAULT_VEHICLE_ICON = "icons/svg/mystery-man.svg";
 
+export const MYTHIC_VEHICLE_BREAKPOINT_EDIT_PERMISSION_SETTING_KEY = "vehicleBreakpointEditPermission";
+
+export const MYTHIC_VEHICLE_BREAKPOINT_EDIT_PERMISSION_VALUES = Object.freeze([
+  "gmOnly",
+  "gmOperator",
+  "gmOperatorGunners",
+  "gmOperatorGunnersPassengers"
+]);
+
+export const MYTHIC_VEHICLE_BREAKPOINT_EDIT_PERMISSION_OPTIONS = Object.freeze([
+  Object.freeze({ value: "gmOnly", label: "GM ONLY" }),
+  Object.freeze({ value: "gmOperator", label: "GM + OPERATOR" }),
+  Object.freeze({ value: "gmOperatorGunners", label: "GM + OPERATOR + GUNNERS" }),
+  Object.freeze({ value: "gmOperatorGunnersPassengers", label: "GM + OPERATOR + GUNNERS + PASSENGERS" })
+]);
+
 // --- Skill Tiers ---
 export const MYTHIC_SKILL_BONUS_BY_TIER = {
   untrained: 0,
@@ -112,6 +128,7 @@ export const MYTHIC_ACTOR_PARTIAL_TEMPLATES = [
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicles-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-crew-roster.hbs",
+  "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-mobility-panel.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-overview-tab.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-weapon-panel.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs",
@@ -415,6 +432,7 @@ export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY = "ammoWeigh
 export const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
 export const MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY = "ignoreBasicAmmoCounts";
 export const MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY = "tokenBarVisibilityDefault";
+export const MYTHIC_USE_FOUNDRY_DEFAULT_TOKEN_HUD_SETTING_KEY = "useFoundryDefaultTokenHud";
 export const MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY = "charBuilderCreationPoints";
 export const MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY = "charBuilderStatCap";
 export const MYTHIC_CREATION_XP_PLAYER_EDIT_SETTING_KEY = "letPlayersHandleXp";

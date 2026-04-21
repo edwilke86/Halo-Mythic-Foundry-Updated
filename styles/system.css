@@ -7666,17 +7666,21 @@ input.gear-item-nickname::placeholder {
 .mythic-prompt .dialog-content,
 .mythic-prompt .dialog-form {
   background: transparent !important;
-  padding: 18px 18px 10px !important;
+  padding: 14px 14px 8px !important;
 }
 
 .mythic-prompt .form-group {
-  margin-bottom: 16px !important;
+  margin-bottom: 10px !important;
 }
 
 .mythic-prompt .form-group > label,
 .mythic-prompt .form-group > select,
 .mythic-prompt .form-group > input[type="text"] {
   display: block;
+}
+
+.mythic-prompt .hint {
+  margin: 2px 0 0 !important;
 }
 
 .mythic-prompt #mythic-other-group {

@@ -1,0 +1,95 @@
+<aside class="{{#unless @root.mythicVehicleOverviewReadOnly}}panel {{/unless}}vehicle-mobility{{#if @root.mythicVehicleOverviewReadOnly}} is-read-only{{/if}}">
+  <h2>Mobility</h2>
+  {{#if mythicVehicleIsWalker}}
+    <div class="vehicle-walker-mode-banner">Walker Mode</div>
+    <div class="vehicle-mobility-current-label">Movement</div>
+    <div class="vehicle-walker-readonly-grid">
+      <div><span>Half</span><strong>{{mythicVehicleWalker.movement.half}} m</strong></div>
+      <div><span>Full</span><strong>{{mythicVehicleWalker.movement.full}} m</strong></div>
+      <div><span>Charge</span><strong>{{mythicVehicleWalker.movement.charge}} m</strong></div>
+      <div><span>Run</span><strong>{{mythicVehicleWalker.movement.run}} m</strong></div>
+      <div><span>Jump</span><strong>{{mythicVehicleWalker.movement.jump}} m</strong></div>
+      <div><span>Leap</span><strong>{{mythicVehicleWalker.movement.leap}} m</strong></div>
+    </div>
+    <div class="vehicle-mobility-walker-note">
+      {{mythicVehicleWalker.terrainNote}}
+    </div>
+    {{#if @root.mythicVehicleOverviewReadOnly}}
+      <div class="vehicle-mobility-stat-row">
+        <label>Evasion</label>
+        <div class="vehicle-mobility-stat-value">{{mythicVehicleWalker.evasion.total}}</div>
+      </div>
+    {{else}}
+      <button type="button" class="action-btn vehicle-walker-evasion-btn" data-action="walker-evasion">Evasion - {{mythicVehicleWalker.evasion.total}}</button>
+    {{/if}}
+  {{else}}
+    <div class="vehicle-mobility-current-label">Current Speed</div>
+    {{#if @root.mythicVehicleOverviewReadOnly}}
+      {{#if mythicVehicleMobility.canControlSpeed}}
+        <div class="vehicle-mobility-speed-row is-character-control">
+          <button
+            class="vehicle-mobility-speed-btn mythic-character-vehicle-speed-btn"
+            type="button"
+            data-direction="down"
+            {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+            {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
+            aria-label="Decrease Speed">-</button>
+          <input
+            class="vehicle-mobility-speed-input mythic-character-vehicle-speed-input"
+            type="number"
+            min="0"
+            step="1"
+            value="{{mythicVehicleMobility.currentSpeed}}"
+            {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+            {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
+            aria-label="Current Speed" />
+          <button
+            class="vehicle-mobility-speed-btn mythic-character-vehicle-speed-btn"
+            type="button"
+            data-direction="up"
+            {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+            {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
+            aria-label="Increase Speed">+</button>
+        </div>
+      {{else}}
+        <div class="vehicle-mobility-speed-row is-read-only">
+          <div class="vehicle-mobility-speed-display">{{mythicVehicleMobility.currentSpeed}}</div>
+        </div>
+      {{/if}}
+    {{else}}
+      <div class="vehicle-mobility-speed-row">
+        <button class="vehicle-mobility-speed-btn" type="button" data-direction="down" aria-label="Decrease Speed">-</button>
+        <input class="vehicle-mobility-speed-input" type="number" min="0" step="1" name="system.movement.speed.value" value="{{mythicVehicleMobility.currentSpeed}}" />
+        <button class="vehicle-mobility-speed-btn" type="button" data-direction="up" aria-label="Increase Speed">+</button>
+      </div>
+    {{/if}}
+    <div class="vehicle-speedometer" style="--mythic-needle-angle: {{mythicVehicleMobility.needleAngle}}deg;">
+      <div class="vehicle-speedometer-arc"></div>
+      <div class="vehicle-speedometer-ticks"></div>
+      <div class="vehicle-speedometer-needle"></div>
+      <div class="vehicle-speedometer-center"></div>
+    </div>
+    <div class="vehicle-speedometer-readout">
+      <div>{{mythicVehicleMobility.currentSpeed}} / {{mythicVehicleMobility.speedometerMaxSpeed}} MpT</div>
+      <div>{{mythicVehicleMobility.currentKmh}} / {{mythicVehicleMobility.speedometerMaxKmh}} Km/H</div>
+    </div>
+    <div class="vehicle-mobility-stat-row">
+      <label>Brake</label>
+      <div class="vehicle-mobility-stat-value">{{mythicVehicleMobility.brake}}</div>
+    </div>
+    <div class="vehicle-mobility-stat-row">
+      <label>Accelerate</label>
+      <div class="vehicle-mobility-stat-value">{{mythicVehicleMobility.accelerate}}</div>
+    </div>
+    <div class="vehicle-mobility-stat-row">
+      <label>Maneuver</label>
+      <div class="vehicle-mobility-stat-value">{{mythicVehicleMobility.maneuver}}</div>
+    </div>
+    {{#unless @root.mythicVehicleOverviewReadOnly}}
+      <div class="mobility-actions">
+        <button class="action-btn" type="button" data-action="splatter">Splatter</button>
+        <button class="action-btn" type="button" data-action="wreck">Wreck</button>
+      </div>
+    {{/unless}}
+  {{/if}}
+</aside>

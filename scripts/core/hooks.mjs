@@ -15,6 +15,9 @@ import {
   MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY,
   MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY,
   MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY,
+  MYTHIC_USE_FOUNDRY_DEFAULT_TOKEN_HUD_SETTING_KEY,
+  MYTHIC_VEHICLE_BREAKPOINT_EDIT_PERMISSION_OPTIONS,
+  MYTHIC_VEHICLE_BREAKPOINT_EDIT_PERMISSION_SETTING_KEY,
   MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY,
   MYTHIC_CHAR_BUILDER_STAT_CAP_SETTING_KEY,
   MYTHIC_CAMPAIGN_YEAR_SETTING_KEY,
@@ -119,8 +122,10 @@ import {
 
 import {
   installMythicTokenHudUiPatch,
+  handleMythicTokenHudSettingChange,
   scheduleMythicTokenHudRefresh
 } from "../core/token-hud.mjs";
+import { registerVehicleBreakpointPermissionSocket } from "../mechanics/vehicle-breakpoint-permissions.mjs";
 
 import {
   maybeRunWorldMigration,
@@ -476,6 +481,37 @@ export function mythicDescribeFearFlowPermissionHint(...args) {
   return mythicDescribeFearFlowPermissionHintImpl(...args);
 }
 
+function refreshVehicleBreakpointPermissionConsumers() {
+  try {
+    scheduleMythicTokenHudRefresh(null, { frames: 2 });
+  } catch (error) {
+    console.warn("[mythic-system] Failed to refresh Token HUD after breakpoint permission setting change.", error);
+  }
+
+  const apps = new Set();
+  const addApp = (app = null) => {
+    if (app?.rendered) apps.add(app);
+  };
+
+  for (const app of Object.values(ui?.windows ?? {})) addApp(app);
+  const applicationInstances = foundry?.applications?.instances;
+  if (applicationInstances instanceof Map) {
+    for (const app of applicationInstances.values()) addApp(app);
+  } else if (applicationInstances && typeof applicationInstances === "object") {
+    for (const app of Object.values(applicationInstances)) addApp(app);
+  }
+
+  for (const app of apps) {
+    const actor = app.actor ?? app.document ?? null;
+    if (!["vehicle", "character", "bestiary"].includes(String(actor?.type ?? "").trim().toLowerCase())) continue;
+    try {
+      void app.render(false);
+    } catch (error) {
+      console.warn("[mythic-system] Failed to refresh actor sheet after breakpoint permission setting change.", error);
+    }
+  }
+}
+
 export function registerAllHooks() {
   Hooks.once("init", async () => {
     const MYTHIC_STARTING_XP_SETTING_KEY = "startingXp";
@@ -529,6 +565,16 @@ export function registerAllHooks() {
         // Non-fatal; Token HUD placement will still update when it re-renders.
         console.warn("[mythic-system] Failed to refresh Token HUD layout on canvasPan.", error);
       }
+    });
+
+    Hooks.on("updateActor", (actor) => {
+      if (String(actor?.type ?? "").trim().toLowerCase() !== "vehicle") return;
+      scheduleMythicTokenHudRefresh(null, { frames: 2 });
+    });
+
+    Hooks.on("updateToken", (tokenDoc) => {
+      if (String(tokenDoc?.actor?.type ?? "").trim().toLowerCase() !== "vehicle") return;
+      scheduleMythicTokenHudRefresh(null, { frames: 2 });
     });
 
     // With our custom initiative system we need to keep Combat tracker roll in sync.
@@ -727,6 +773,31 @@ export function registerAllHooks() {
       default: "owner-hover",
       onChange: () => {
         void applyMythicTokenDefaultsToWorld();
+      }
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_VEHICLE_BREAKPOINT_EDIT_PERMISSION_SETTING_KEY, {
+      name: "Vehicle Breakpoint Edit Access",
+      hint: "Controls which attached vehicle occupants may edit vehicle breakpoint current values outside the main vehicle actor sheet. GMs can always edit.",
+      scope: "world",
+      config: true,
+      type: String,
+      choices: Object.fromEntries(MYTHIC_VEHICLE_BREAKPOINT_EDIT_PERMISSION_OPTIONS.map((option) => [option.value, option.label])),
+      default: "gmOnly",
+      onChange: () => {
+        refreshVehicleBreakpointPermissionConsumers();
+      }
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_USE_FOUNDRY_DEFAULT_TOKEN_HUD_SETTING_KEY, {
+      name: "Use Foundry Default Token HUD",
+      hint: "Use Foundry's stock token HUD on this client instead of Mythic's custom attached HUD and zoom handling.",
+      scope: "client",
+      config: true,
+      type: Boolean,
+      default: false,
+      onChange: () => {
+        void handleMythicTokenHudSettingChange();
       }
     });
 
@@ -1014,6 +1085,7 @@ export function registerAllHooks() {
 
   Hooks.once("ready", async () => {
     console.log("[mythic-system] Ready");
+    registerVehicleBreakpointPermissionSocket();
     void maybeRunWorldMigration();
     await migrateAmmoWeightOptionalRuleSetting();
     await migrateLegacyAiIconsToFoundryDefaults();

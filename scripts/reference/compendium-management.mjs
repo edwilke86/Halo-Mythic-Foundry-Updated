@@ -1174,6 +1174,7 @@ export async function loadReferenceArmorItemsFromJson() {
           delay: toNonNegativeWhole(def?.shields?.delay ?? 0, 0),
           rechargeRate: toNonNegativeWhole(def?.shields?.rechargeRate ?? 0, 0)
         },
+        characteristicMods: foundry.utils.deepClone(def?.characteristicMods ?? {}),
         sync: {
           sourceScope: "mythic",
           sourceCollection: "armor-json",

@@ -1119,46 +1119,24 @@ function buildCalledShotSubOptionMarkup(esc, selectedZone = "none", selectedSub 
 
 function buildRangeSectionMarkup({ esc, formState, rangeContext, rangeState, closeRange = 0, maxRange = 0 } = {}) {
   const scene = resolveSceneForRangeContext(rangeContext);
-  const findRangeAvailability = getFindRangeAvailability(rangeContext);
   const candidateRange = getCandidateRange(rangeState);
   const effectiveRange = getEffectiveRange(rangeState, formState.overrideRangeInput);
-  const attackerLabel = String(candidateRange?.attackerLabel ?? rangeState?.autoRange?.attackerLabel ?? getSourceActorLabel(rangeContext)).trim() || "Attacker";
   const targetLabel = String(candidateRange?.targetLabel ?? rangeState?.autoRange?.targetLabel ?? getSnapshotTargetLabel(rangeContext, scene)).trim() || "Target";
   const measuredValue = candidateRange && Number.isFinite(Number(candidateRange?.meters)) ? String(candidateRange.meters) : "";
-  const appliedValue = effectiveRange && Number.isFinite(Number(effectiveRange?.meters)) ? String(effectiveRange.meters) : "";
   const overrideValue = String(formState?.overrideRangeInput ?? "");
-  const measuredHint = buildMeasuredRangeHint(candidateRange, rangeState, findRangeAvailability);
-  const appliedHint = buildAppliedRangeHint(effectiveRange, rangeState, findRangeAvailability);
-  const optimalRangeHint = maxRange > 0
-    ? `Optimal Range: ${closeRange}m - ${maxRange}m.`
-    : "";
-  const overrideHint = `Leave blank to use Measured Range. Override takes precedence.${optimalRangeHint ? ` ${optimalRangeHint}` : ""}`;
 
   return `
     <div class="form-group">
-      <label for="mythic-atk-attacker">Attacker</label>
-      <input id="mythic-atk-attacker" type="text" value="${esc(attackerLabel)}" readonly />
-      <p class="hint">Attacker context is snapped when the dialog opens.</p>
-    </div>
-    <div class="form-group">
       <label for="mythic-atk-target">Target</label>
       <input id="mythic-atk-target" type="text" value="${esc(targetLabel)}" readonly />
-      <p class="hint">Target selection is snapped when the dialog opens.</p>
     </div>
     <div class="form-group">
-      <label for="mythic-atk-measured-range">Measured Range (m)</label>
+      <label for="mythic-atk-measured-range">Auto Calculated Range (m)</label>
       <input id="mythic-atk-measured-range" type="number" step="1" value="${esc(measuredValue)}" readonly />
-      <p class="hint">${esc(measuredHint)}</p>
     </div>
     <div class="form-group">
-      <label for="mythic-atk-range">Override Range (m)</label>
+      <label for="mythic-atk-range">Manual Override Range (m)</label>
       <input id="mythic-atk-range" type="number" step="1" min="0" value="${esc(overrideValue)}" />
-      <p class="hint">${esc(overrideHint)}</p>
-    </div>
-    <div class="form-group">
-      <label for="mythic-atk-applied-range">Applied Range (m)</label>
-      <input id="mythic-atk-applied-range" type="number" step="1" value="${esc(appliedValue)}" readonly />
-      <p class="hint">${esc(appliedHint)}</p>
     </div>
   `;
 }
@@ -1174,8 +1152,6 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
   const maxRange = toNonNegativeWhole(gear?.range?.max, 0);
   const showRangeField = !isMelee && !isGrenadeWeapon && maxRange > 0;
   const showCalledShot = !isGrenadeWeapon;
-  const showVehicleTargetingNote = Boolean(vehicleTargetingContext)
-    && Number(vehicleTargetingContext?.effectivePerceptionRangeMeters ?? 0) > 0;
   const abilityNames = getActorAbilityNames(actor);
   const hasClearTarget = abilityNames.has("clear target");
   const hasPrecisionStrike = abilityNames.has("precision strike");
@@ -1230,17 +1206,14 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
           <div class="form-group">
             <label for="mythic-atk-tohit">To Hit</label>
             <input id="mythic-atk-tohit" type="number" step="1" value="${esc(String(formState.toHitInput ?? "0"))}" />
-            <p class="hint">Bonus/penalty to attack roll.</p>
           </div>
           <div class="form-group">
             <label for="mythic-atk-damage">Damage</label>
             <input id="mythic-atk-damage" type="text" value="${esc(String(formState.damageMod ?? ""))}" placeholder="5, -3, 1d10" />
-            <p class="hint">Flat or dice expression.</p>
           </div>
           <div class="form-group">
             <label for="mythic-atk-pierce">Pierce</label>
             <input id="mythic-atk-pierce" type="number" step="1" value="${esc(String(formState.pierceInput ?? "0"))}" />
-            <p class="hint">Bonus/penalty to pierce.</p>
           </div>
           ${showCalledShot ? `
           <div class="form-group">
@@ -1270,7 +1243,6 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
               "> Walker</label>
             </div>
             <input type="hidden" id="mythic-atk-target-mode" value="${esc(currentTargetMode)}" />
-            <p class="hint">Walker implies Vehicle. Vehicle/walker targets are resolved manually after the roll.</p>
           </div>
           <div class="form-group" id="mythic-atk-called-zone-group">
             <label for="mythic-atk-called-zone">Called Shot</label>
@@ -1290,14 +1262,12 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
             ">
               ${buildCalledShotZoneOptionMarkup(esc, selectedZone, currentTargetMode)}
             </select>
-            <p class="hint" id="mythic-atk-called-hint">${isVehicleMode ? "Hull: no penalty. Other sections: -30." : isWalkerMode ? "All zones: -30 penalty." : "Body location -30, sublocation -60. Weapon shots: -40 standard, -20 large/heavy."} Clear Target halves ranged penalties, Precision Strike halves melee penalties.</p>
           </div>
           <div class="form-group" id="mythic-atk-called-sub-group"${disableSubZone ? " style=\"display:none\"" : ""}>
             <label for="mythic-atk-called-sub">Called Shot Sublocation</label>
             <select id="mythic-atk-called-sub"${disableSubZone ? " disabled" : ""}>
               ${buildCalledShotSubOptionMarkup(esc, selectedZone, String(formState.calledShotSub ?? ""))}
             </select>
-            <p class="hint">Pick a matching sublocation for the selected location. Clear Target halves ranged penalties, Precision Strike halves melee penalties.</p>
           </div>
           ` : ""}
           ${showRangeField ? buildRangeSectionMarkup({
@@ -1308,11 +1278,6 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
             closeRange,
             maxRange
           }) : ""}
-          ${showVehicleTargetingNote ? `
-          <div class="form-group">
-            <p class="hint">${esc(String(vehicleTargetingContext?.noteText ?? ""))}</p>
-          </div>
-          ` : ""}
         </form>
       `,
       buttons: [

@@ -4,6 +4,20 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
+## [0.4.0-alpha.2] - 2026-04-21
+
+### Added (0.4.0-alpha.2)
+
+- Added a vehicle mobility panel with walker-mode movement stats and standard speed controls for supported vehicles.
+- Added outlier-aware character sheet notes and combat affordances, including support for Head-butt in hand-to-hand actions.
+- Added sheet performance monitoring hooks to help track actor and item render costs during playtesting.
+
+### Changed (0.4.0-alpha.2)
+
+- Token HUD behavior now supports reverting to Foundry's default HUD and includes improved Mythic HUD sizing/spacing behavior.
+- Vehicle token HUD interactions now support permission-aware breakpoint editing.
+- Character sheet resource blocks now surface relevant outlier notes directly in-place instead of relying on a separate Sight panel.
+
 ## [0.4.0-alpha.1] - 2026-04-19
 
 ### Added (0.4.0-alpha.1)

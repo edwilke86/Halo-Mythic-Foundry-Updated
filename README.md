@@ -6,15 +6,15 @@ This project is actively in development and currently targets Foundry v13.
 
 ## Current Status
 
-- Implemented: modular v13 system architecture, unified actor/item sheets, characteristic and combat automation foundations, fear/shock/PTSD chat workflow, tracked medical effects with structured duration controls, staged grenade throw/cook resolution, ammo split/uncarry handling, and expanded system compendium sync coverage (weapons, armor, equipment, bestiary baseline).
-- In progress: deeper rules automation, Character Creation and Advancement parity polish, compendium/content coverage expansion, and continued crew/group inventory UX hardening.
+- Implemented: modular v13 system architecture, unified actor/item sheets, characteristic and combat automation foundations, fear/shock/PTSD chat workflow, tracked medical effects with structured duration controls, staged grenade throw/cook resolution, ammo split/uncarry handling, new vehicle mobility controls, outlier-aware sheet behavior, and expanded system compendium sync coverage (weapons, armor, equipment, bestiary baseline).
+- In progress: deeper rules automation, Character Creation and Advancement parity polish, compendium/content coverage expansion, and continued vehicle/crew UX hardening.
 - Release notes and current public progress are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Alpha Readiness
 
-Current build target: `0.4.0-alpha.1` (current playtest alpha)
+Current build target: `0.4.0-alpha.2` (current playtest hotfix alpha)
 
-Latest published release: `0.4.0-alpha.1` (2026-04-19)
+Latest published release: `0.4.0-alpha.2` (2026-04-21)
 
 Known alpha limitations:
 
@@ -26,9 +26,9 @@ Known alpha limitations:
 Recommended alpha test focus:
 
 1. Character Creation and Advancement flow end-to-end on a new actor.
-2. Soldier Type apply behavior (including first-drop/second-drop behavior).
-3. Ammo carry/uncarry/split plus reload flows across weapons and magazines.
-4. Grenade throw/cook staged resolution from action selection through final damage prompt.
+2. Token HUD interactions, especially wounds/shields, vehicle breakpoints, and the default-HUD toggle.
+3. Vehicle mobility panel behavior for walker movement, acceleration, braking, and speed display updates.
+4. Outlier-driven character notes and related combat affordances such as Head-butt handling.
 
 Alpha bug reporting focus (important):
 
@@ -45,7 +45,7 @@ Where to report:
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.4.0-alpha.1` (or latest published build in use)
+1. Build/version: `0.4.0-alpha.2` (or latest published build in use)
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -64,8 +64,8 @@ Format:
 
 Current working version:
 
-- Development target: `0.4.0-alpha.1`
-- Latest published: `0.4.0-alpha.1`
+- Development target: `0.4.0-alpha.2`
+- Latest published: `0.4.0-alpha.2`
 
 Rules used:
 
@@ -76,6 +76,13 @@ Rules used:
 ## Progress Log (Keep Updated)
 
 Use this section for short public-facing updates as development progresses.
+
+### 0.4.0-alpha.2
+
+- Added vehicle mobility controls with walker-mode movement stats and supported speedometer controls.
+- Added outlier-aware notes/bonuses in the character sheet and hand-to-hand flow updates such as Head-butt support.
+- Improved Token HUD behavior with default HUD fallback, refined Mythic sizing, and permission-aware vehicle breakpoint editing.
+- Added sheet performance monitoring hooks to help catch render regressions during playtesting.
 
 ### 0.3.0-alpha.1
 

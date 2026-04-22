@@ -216,6 +216,10 @@ const MYTHIC_ADVANCEMENT_WOUND_TIERS = Object.freeze([
 
 const MYTHIC_ENERGY_CELL_AMMO_MODES = Object.freeze(new Set(["plasma-battery", "light-mass"]));
 const MYTHIC_BATTERY_SUBTYPES = Object.freeze(new Set(["plasma", "ionized-particle", "unsc-cell", "grindell"]));
+// Module-level cache for creation-path compendium documents (upbringings, environments, lifestyles).
+// These packs don't change during a play session; the cache prevents repeated getDocuments() calls on each render.
+// On the first render the Promise is stored so concurrent requests share one in-flight load.
+const _creationPathPackDocsCache = new Map();
 const MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES = Object.freeze([
   Object.freeze({ value: "operator", label: "Operator", crewKey: "operators", capacityKey: "operators" }),
   Object.freeze({ value: "gunner", label: "Gunner", crewKey: "gunners", capacityKey: "gunners" }),
@@ -266,6 +270,9 @@ function _deriveTargetModeFromToken(tokenLike = null) {
   if (!actor) return "character";
   const actorType = String(actor?.type ?? "").trim().toLowerCase();
   if (actorType !== "vehicle") return "character";
+  if (actor?.system?.isWalker === true) return "walker";
+  const propulsionType = String(actor?.system?.propulsion?.type ?? "").trim().toLowerCase();
+  if (propulsionType === "legs") return "walker";
   const moveType = String(actor?.system?.movement?.type ?? "").trim().toLowerCase();
   if (moveType === "walker" || moveType === "biped" || moveType === "quadruped") return "walker";
   return "vehicle";
@@ -1499,6 +1506,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     primary: null
   };
 
+  // Tracks which tab payloads have been requested by this sheet instance. The
+  // data itself is still rebuilt on render, so hidden tabs do not go stale.
+  _preparedPrimaryTabs = new Set();
+
+  _getPrimaryTabIds() {
+    return this._isVehicleActor()
+      ? ["vehicle-summary", "vehicle-crew", "vehicle-cargo", "vehicle-notes", "vehicle-settings"]
+      : ["main", "skills", "abilities", "equipment", "medical", "advancements", "notes", "biography", "vehicles", "setup"];
+  }
+
+  _getActivePrimaryTab(fallback = "main") {
+    const availableTabs = this._getPrimaryTabIds();
+    const requested = String(this.tabGroups?.primary ?? fallback ?? "").trim();
+    return availableTabs.includes(requested) ? requested : fallback;
+  }
+
+  _markPrimaryTabPrepared(tabId) {
+    const normalizedTab = String(tabId ?? "").trim();
+    if (!normalizedTab || !this._getPrimaryTabIds().includes(normalizedTab)) return false;
+    if (this._preparedPrimaryTabs.has(normalizedTab)) return false;
+    this._preparedPrimaryTabs.add(normalizedTab);
+    return true;
+  }
+
+  _getPreparedPrimaryTabsView(tabs = this._getPrimaryTabIds()) {
+    return Object.fromEntries(tabs.map((tabId) => [tabId, this._preparedPrimaryTabs.has(tabId)]));
+  }
+
   _getHeaderControls() {
     const controls = super._getHeaderControls();
     const seen = new Set();
@@ -1542,6 +1577,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const context = await super._prepareContext(options);
     const isVehicleActor = this._isVehicleActor();
     if (isVehicleActor) {
+      const activePrimaryTab = this._getActivePrimaryTab("vehicle-summary");
+      this.tabGroups.primary = activePrimaryTab;
+      this._markPrimaryTabPrepared(activePrimaryTab);
+      const preparedPrimaryTabs = this._getPreparedPrimaryTabsView();
+      const shouldPrepareVehicleCrew = Boolean(preparedPrimaryTabs["vehicle-crew"]);
       const normalizedVehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
       const displayVehicleSystem = foundry.utils.deepClone(normalizedVehicleSystem);
       if (this._vehicleOverviewUiState && Object.keys(this._vehicleOverviewUiState).length) {
@@ -1554,24 +1594,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         });
       }
       const vehicleLoadoutView = this._getVehicleLoadoutViewData(displayVehicleSystem);
-      const crewWeaponBySlot = new Map(
-        (Array.isArray(vehicleLoadoutView?.emplacements) ? vehicleLoadoutView.emplacements : [])
-          .map((emplacement) => {
-            const controllerRole = String(emplacement?.controllerRole ?? "").trim().toLowerCase();
-            const controllerIndex = toNonNegativeWhole(emplacement?.controllerIndex, 0);
-            const slotKey = controllerRole && controllerIndex > 0 ? `${controllerRole}:${controllerIndex}` : "";
-            const weaponDisplay = String(emplacement?.weaponDisplayName ?? emplacement?.weaponName ?? "").trim();
-            return slotKey ? [slotKey, weaponDisplay] : null;
-          })
-          .filter(Boolean)
-      );
-
-      // Resolve crew display rows into token-aware seat assignments for the crew tab.
-      const crewGroupDescriptions = {
-        operators: "Pilots, drivers, commanders, and primary control stations.",
-        gunners: "Fire-control positions and dedicated weapon crews.",
-        complement: "Embarked personnel and transport compartment occupancy."
-      };
       const crewRosterRows = [];
       const crewGroups = [];
       const crewSummary = {
@@ -1584,121 +1606,142 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         hasConfiguredSeats: false,
         cards: []
       };
-      for (const definition of MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES) {
-        const kind = definition.crewKey;
-        const capacity = toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.[definition.capacityKey], 0);
-        const sourceRows = Array.isArray(normalizedVehicleSystem?.crew?.[kind]) ? normalizedVehicleSystem.crew[kind] : [];
-        const rows = await Promise.all(Array.from({ length: capacity }, async (_unused, i) => {
-          const entry = sourceRows[i] ?? {
-            idx: i,
-            id: "",
-            display: "",
-            position: "",
-            assignmentType: "",
-            tokenUuid: "",
-            actorUuid: ""
-          };
-          const resolution = await resolveVehicleCrewStoredResolution(entry);
-          const position = normalizeCrewSeatPosition(entry?.position ?? "");
-          const slotNumber = i + 1;
-          const slotKey = `${kind}:${slotNumber}`;
-          const hasReference = Boolean(resolution.reference);
-          const hasResolvedOccupant = Boolean(resolution.isValid);
-          const slotDisplay = String(
-            resolution.occupantDisplay
-            ?? resolution.displayName
-            ?? entry?.display
-            ?? ""
-          ).trim();
-          const stats = hasResolvedOccupant ? resolution.stats : null;
-          const weaponDisplay = String(crewWeaponBySlot.get(slotKey) ?? "").trim();
-          return {
-            idx: i,
-            id: String(resolution.canonicalReference ?? resolution.reference ?? "").trim(),
-            referenceValue: String(resolution.reference ?? "").trim(),
-            referenceInputValue: String(resolution.reference ?? "").trim(),
-            referencePlaceholder: "Paste Token UUID or drop unique actor here",
-            display: slotDisplay,
-            shortDisplay: String(resolution.displayName ?? slotDisplay).trim(),
-            assignmentType: normalizeVehicleCrewAssignmentType(resolution.assignmentType),
-            tokenUuid: String(resolution.tokenUuid ?? "").trim(),
-            actorUuid: String(resolution.actorUuid ?? "").trim(),
-            actorTypeLabel: hasResolvedOccupant
-              ? (resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token ? "Token UUID" : "Character Actor")
-              : "",
-            hasActor: hasResolvedOccupant,
-            hasReference,
-            hasResolvedOccupant,
-            isInvalid: hasReference && !hasResolvedOccupant,
-            showClear: hasReference,
-            position,
-            roleLabel: definition.label,
-            seatLabel: buildVehicleCrewSeatLabel(definition.label, slotNumber),
-            slotCode: buildVehicleCrewShortSlotLabel(definition.label, slotNumber),
-            slotKey,
-            weaponDisplay,
-            stats,
-            slotNumber,
-            isExpanded: hasResolvedOccupant && this._vehicleCrewExpandedRows.has(slotKey),
-            kind,
-            statusKey: String(resolution.statusKey ?? "empty").trim() || "empty",
-            statusLabel: String(resolution.statusLabel ?? "Empty").trim() || "Empty",
-            statusClass: `status-${String(resolution.statusKey ?? "empty").trim() || "empty"}`,
-            statusMessage: String(resolution.statusMessage ?? "").trim(),
-            referenceTypeLabel: String(resolution.referenceTypeLabel ?? "Seat Reference").trim() || "Seat Reference",
-            sceneName: String(resolution.sceneName ?? "").trim(),
-            canExpand: hasResolvedOccupant && Boolean(stats),
-            isTokenAssignment: hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token,
-            isCharacterException: hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor
-          };
-        }));
-        for (const row of rows) {
-          crewSummary.totalCapacity += 1;
-          if (row.hasReference) crewSummary.filledCount += 1;
-          if (row.hasResolvedOccupant) crewSummary.validCount += 1;
-          if (row.isInvalid) crewSummary.invalidCount += 1;
-          if (row.isTokenAssignment) crewSummary.tokenCount += 1;
-          if (row.isCharacterException) crewSummary.characterCount += 1;
+      if (shouldPrepareVehicleCrew) {
+        const crewWeaponBySlot = new Map(
+          (Array.isArray(vehicleLoadoutView?.emplacements) ? vehicleLoadoutView.emplacements : [])
+            .map((emplacement) => {
+              const controllerRole = String(emplacement?.controllerRole ?? "").trim().toLowerCase();
+              const controllerIndex = toNonNegativeWhole(emplacement?.controllerIndex, 0);
+              const slotKey = controllerRole && controllerIndex > 0 ? `${controllerRole}:${controllerIndex}` : "";
+              const weaponDisplay = String(emplacement?.weaponDisplayName ?? emplacement?.weaponName ?? "").trim();
+              return slotKey ? [slotKey, weaponDisplay] : null;
+            })
+            .filter(Boolean)
+        );
+
+        const crewGroupDescriptions = {
+          operators: "Pilots, drivers, commanders, and primary control stations.",
+          gunners: "Fire-control positions and dedicated weapon crews.",
+          complement: "Embarked personnel and transport compartment occupancy."
+        };
+        for (const definition of MYTHIC_VEHICLE_WEAPON_CONTROLLER_ROLES) {
+          const kind = definition.crewKey;
+          const capacity = toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.[definition.capacityKey], 0);
+          const sourceRows = Array.isArray(normalizedVehicleSystem?.crew?.[kind]) ? normalizedVehicleSystem.crew[kind] : [];
+          const rows = await Promise.all(Array.from({ length: capacity }, async (_unused, i) => {
+            const entry = sourceRows[i] ?? {
+              idx: i,
+              id: "",
+              display: "",
+              position: "",
+              assignmentType: "",
+              tokenUuid: "",
+              actorUuid: ""
+            };
+            const resolution = await resolveVehicleCrewStoredResolution(entry);
+            const position = normalizeCrewSeatPosition(entry?.position ?? "");
+            const slotNumber = i + 1;
+            const slotKey = `${kind}:${slotNumber}`;
+            const hasReference = Boolean(resolution.reference);
+            const hasResolvedOccupant = Boolean(resolution.isValid);
+            const slotDisplay = String(
+              resolution.occupantDisplay
+              ?? resolution.displayName
+              ?? entry?.display
+              ?? ""
+            ).trim();
+            const stats = hasResolvedOccupant ? resolution.stats : null;
+            const weaponDisplay = String(crewWeaponBySlot.get(slotKey) ?? "").trim();
+            return {
+              idx: i,
+              id: String(resolution.canonicalReference ?? resolution.reference ?? "").trim(),
+              referenceValue: String(resolution.reference ?? "").trim(),
+              referenceInputValue: String(resolution.reference ?? "").trim(),
+              referencePlaceholder: "Paste Token UUID or drop unique actor here",
+              display: slotDisplay,
+              shortDisplay: String(resolution.displayName ?? slotDisplay).trim(),
+              assignmentType: normalizeVehicleCrewAssignmentType(resolution.assignmentType),
+              tokenUuid: String(resolution.tokenUuid ?? "").trim(),
+              actorUuid: String(resolution.actorUuid ?? "").trim(),
+              actorTypeLabel: hasResolvedOccupant
+                ? (resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token ? "Token UUID" : "Character Actor")
+                : "",
+              hasActor: hasResolvedOccupant,
+              hasReference,
+              hasResolvedOccupant,
+              isInvalid: hasReference && !hasResolvedOccupant,
+              showClear: hasReference,
+              position,
+              roleLabel: definition.label,
+              seatLabel: buildVehicleCrewSeatLabel(definition.label, slotNumber),
+              slotCode: buildVehicleCrewShortSlotLabel(definition.label, slotNumber),
+              slotKey,
+              weaponDisplay,
+              stats,
+              slotNumber,
+              isExpanded: hasResolvedOccupant && this._vehicleCrewExpandedRows.has(slotKey),
+              kind,
+              statusKey: String(resolution.statusKey ?? "empty").trim() || "empty",
+              statusLabel: String(resolution.statusLabel ?? "Empty").trim() || "Empty",
+              statusClass: `status-${String(resolution.statusKey ?? "empty").trim() || "empty"}`,
+              statusMessage: String(resolution.statusMessage ?? "").trim(),
+              referenceTypeLabel: String(resolution.referenceTypeLabel ?? "Seat Reference").trim() || "Seat Reference",
+              sceneName: String(resolution.sceneName ?? "").trim(),
+              canExpand: hasResolvedOccupant && Boolean(stats),
+              isTokenAssignment: hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.token,
+              isCharacterException: hasResolvedOccupant && resolution.assignmentType === MYTHIC_VEHICLE_CREW_ASSIGNMENT_TYPES.characterActor
+            };
+          }));
+          for (const row of rows) {
+            crewSummary.totalCapacity += 1;
+            if (row.hasReference) crewSummary.filledCount += 1;
+            if (row.hasResolvedOccupant) crewSummary.validCount += 1;
+            if (row.isInvalid) crewSummary.invalidCount += 1;
+            if (row.isTokenAssignment) crewSummary.tokenCount += 1;
+            if (row.isCharacterException) crewSummary.characterCount += 1;
+          }
+
+          const title = kind === "complement" ? "Passengers" : `${definition.label}s`;
+          const assignedCount = rows.filter((row) => row.hasReference).length;
+          const validCount = rows.filter((row) => row.hasResolvedOccupant).length;
+          const invalidCount = rows.filter((row) => row.isInvalid).length;
+          const tokenCount = rows.filter((row) => row.isTokenAssignment).length;
+          const characterCount = rows.filter((row) => row.isCharacterException).length;
+          displayVehicleSystem.crew[kind] = rows;
+          crewRosterRows.push(...rows);
+          crewGroups.push({
+            key: kind,
+            title,
+            description: crewGroupDescriptions[kind] ?? "",
+            capacity,
+            assignedCount,
+            validCount,
+            invalidCount,
+            tokenCount,
+            characterCount,
+            rows
+          });
         }
 
-        const title = kind === "complement" ? "Passengers" : `${definition.label}s`;
-        const assignedCount = rows.filter((row) => row.hasReference).length;
-        const validCount = rows.filter((row) => row.hasResolvedOccupant).length;
-        const invalidCount = rows.filter((row) => row.isInvalid).length;
-        const tokenCount = rows.filter((row) => row.isTokenAssignment).length;
-        const characterCount = rows.filter((row) => row.isCharacterException).length;
-        displayVehicleSystem.crew[kind] = rows;
-        crewRosterRows.push(...rows);
-        crewGroups.push({
-          key: kind,
-          title,
-          description: crewGroupDescriptions[kind] ?? "",
-          capacity,
-          assignedCount,
-          validCount,
-          invalidCount,
-          tokenCount,
-          characterCount,
-          rows
-        });
+        crewSummary.hasConfiguredSeats = crewSummary.totalCapacity > 0;
+        crewSummary.cards = [
+          { label: "Operators", value: toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.operators, 0), meta: "Control stations", toneClass: "metric-neutral" },
+          { label: "Gunners", value: toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.gunners, 0), meta: "Weapon crews", toneClass: "metric-neutral" },
+          { label: "Passengers", value: toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.passengers, 0), meta: "Compartment", toneClass: "metric-neutral" },
+          { label: "Filled", value: crewSummary.filledCount, meta: `${crewSummary.totalCapacity} configured`, toneClass: "metric-neutral" },
+          { label: "Token Linked", value: crewSummary.tokenCount, meta: "Preferred", toneClass: "metric-token" },
+          { label: "Character Exceptions", value: crewSummary.characterCount, meta: "Unique actors", toneClass: "metric-character" },
+          { label: "Needs Reassignment", value: crewSummary.invalidCount, meta: "Token UUID required", toneClass: crewSummary.invalidCount > 0 ? "metric-warning" : "metric-neutral" }
+        ];
       }
-
-      crewSummary.hasConfiguredSeats = crewSummary.totalCapacity > 0;
-      crewSummary.cards = [
-        { label: "Operators", value: toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.operators, 0), meta: "Control stations", toneClass: "metric-neutral" },
-        { label: "Gunners", value: toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.gunners, 0), meta: "Weapon crews", toneClass: "metric-neutral" },
-        { label: "Passengers", value: toNonNegativeWhole(normalizedVehicleSystem?.crew?.capacity?.passengers, 0), meta: "Compartment", toneClass: "metric-neutral" },
-        { label: "Filled", value: crewSummary.filledCount, meta: `${crewSummary.totalCapacity} configured`, toneClass: "metric-neutral" },
-        { label: "Token Linked", value: crewSummary.tokenCount, meta: "Preferred", toneClass: "metric-token" },
-        { label: "Character Exceptions", value: crewSummary.characterCount, meta: "Unique actors", toneClass: "metric-character" },
-        { label: "Needs Reassignment", value: crewSummary.invalidCount, meta: "Token UUID required", toneClass: crewSummary.invalidCount > 0 ? "metric-warning" : "metric-neutral" }
-      ];
 
       context.cssClass = this.options.classes.join(" ");
       context.actor = this.actor;
       context.editable = this.isEditable || Boolean(game.user?.isGM);
       context.mythicIsGM = Boolean(game.user?.isGM);
       context.mythicIsVehicleActor = true;
+      context.mythicActivePrimaryTab = activePrimaryTab;
+      context.mythicPreparedTabs = preparedPrimaryTabs;
       context.mythicVehicleLoadout = vehicleLoadoutView;
       this._vehicleLoadoutNeedsMigration = Boolean(context.mythicVehicleLoadout?.needsMigration);
       context.mythicVehicleCrewRoster = crewRosterRows;
@@ -1791,8 +1834,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     context.mythicIsVehicleActor = false;
+    // ── Performance instrumentation: character sheet _prepareContext ─────────
+    const _charPerfT0 = performance.now();
+    const activePrimaryTab = this._getActivePrimaryTab("main");
+    this.tabGroups.primary = activePrimaryTab;
+    this._markPrimaryTabPrepared(activePrimaryTab);
+    const preparedPrimaryTabs = this._getPreparedPrimaryTabsView();
+    const shouldPrepareEquipment = Boolean(preparedPrimaryTabs.main || preparedPrimaryTabs.equipment);
+    const shouldPrepareEquipmentDetails = Boolean(preparedPrimaryTabs.equipment);
+    const shouldPrepareSkills = Boolean(preparedPrimaryTabs.skills);
+    const shouldPrepareAbilities = Boolean(preparedPrimaryTabs.abilities);
+    const shouldPrepareMedical = Boolean(preparedPrimaryTabs.medical);
+    const shouldPrepareAdvancements = Boolean(preparedPrimaryTabs.advancements);
+    const shouldPrepareBiography = Boolean(preparedPrimaryTabs.biography);
+    const shouldPrepareVehicles = Boolean(preparedPrimaryTabs.vehicles);
+    const shouldPrepareSetup = Boolean(preparedPrimaryTabs.setup);
+    const shouldPrepareOutliers = shouldPrepareAbilities || shouldPrepareAdvancements;
     const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
     const creationPathOutcome = await this._resolveCreationPathOutcome(normalizedSystem);
+    const _charPerfT1 = performance.now();
     const charBuilderView = this._getCharBuilderViewData(normalizedSystem, creationPathOutcome);
     const effectiveSystem = this._applyCreationPathOutcomeToSystem(normalizedSystem, creationPathOutcome);
     if (charBuilderView.managed) {
@@ -1807,7 +1867,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       effectiveSystem.characteristics.agi = Math.max(0, currentAgi - gravityAgiPenalty);
     }
     const characteristicRuntime = this._buildCharacteristicRuntime(effectiveSystem?.characteristics ?? {});
-    const derived = computeCharacterDerivedValues(effectiveSystem);
+    const _derivedSource = this._buildDerivedSystemData(effectiveSystem);
+    const derived = computeCharacterDerivedValues(_derivedSource);
+    const _charPerfT2 = performance.now();
     const faction = normalizedSystem?.header?.faction ?? "";
     const themedFaction = String(faction ?? "").trim() || "Other (Setting Agnostic)";
     const customLogo = normalizedSystem?.header?.logoPath ?? "";
@@ -1815,6 +1877,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.cssClass = this.options.classes.join(" ");
     context.actor = this.actor;
     context.editable = this.isEditable;
+    context.mythicActivePrimaryTab = activePrimaryTab;
+    context.mythicPreparedTabs = preparedPrimaryTabs;
     context.mythicSystem = normalizedSystem;
     context.mythicGravityAgilityPenalty = gravityAgiPenalty;
     context.mythicCreationPathOutcome = creationPathOutcome;
@@ -1830,9 +1894,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicCharacteristicModifiers = characteristicModifiers;
     context.mythicCharacteristicScores = characteristicRuntime.scores;
     context.mythicCharacteristicAliases = characteristicRuntime.aliases;
-    context.mythicBiography = this._getBiographyData(normalizedSystem);
+    context.mythicBiography = shouldPrepareBiography ? this._getBiographyData(normalizedSystem) : {};
     context.editable = this.isEditable || Boolean(game.user?.isGM);
-    context.mythicDerived = this._getMythicDerivedData(effectiveSystem);
+    context.mythicDerived = this._getMythicDerivedData(effectiveSystem, derived);
     const actorLightingCondition = this._getActorLightingCondition();
     const activePerceptive = calculatePerceptiveRange({
       actor: this.actor,
@@ -1874,34 +1938,41 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         : (farSightCooldownApplies ? `Cooldown (${farSightCooldownTurnsRemaining})` : "Activate")
     };
     context.mythicIsHuragok = this._isHuragokActor(effectiveSystem);
-    context.mythicCombat = this._getCombatViewData(effectiveSystem, characteristicModifiers);
-    context.mythicCcAdv = this._getCharacterCreationAdvancementViewData();
+    context.mythicCombat = this._getCombatViewData(effectiveSystem, characteristicModifiers, derived);
+    const ccAdvView = shouldPrepareOutliers ? this._getCharacterCreationAdvancementViewData() : null;
+    const _charPerfT3 = performance.now();
     const [
+      headerView,
       advancementView,
       equipmentView,
       medicalEffectsView,
       trainingView,
-      soldierTypeAdvancementScaffoldView,
-      headerView
+      soldierTypeAdvancementScaffoldView
     ] = await Promise.all([
-      this._getAdvancementViewData(normalizedSystem, creationPathOutcome),
-      this._getEquipmentViewData(effectiveSystem, derived),
-      this._getMedicalEffectsViewData(normalizedSystem),
-      this._getTrainingViewData(normalizedSystem?.training, normalizedSystem),
-      this._getSoldierTypeAdvancementScaffoldViewData(normalizedSystem),
-      this._getHeaderViewData(normalizedSystem)
+      this._getHeaderViewData(normalizedSystem),
+      shouldPrepareAdvancements ? this._getAdvancementViewData(normalizedSystem, creationPathOutcome) : null,
+      shouldPrepareEquipment ? this._getEquipmentViewData(effectiveSystem, derived, { includeInventoryDetails: shouldPrepareEquipmentDetails }) : null,
+      shouldPrepareMedical ? this._getMedicalEffectsViewData(normalizedSystem) : null,
+      shouldPrepareAdvancements ? this._getTrainingViewData(normalizedSystem?.training, normalizedSystem) : null,
+      shouldPrepareAdvancements ? this._getSoldierTypeAdvancementScaffoldViewData(normalizedSystem) : null
     ]);
-    context.mythicAdvancements = advancementView;
-    context.mythicOutliers = this._getOutliersViewData(normalizedSystem, context.mythicCcAdv);
-    context.mythicCustomOutliers = this._getCustomOutliersViewData(normalizedSystem);
-    context.mythicCreationFinalizeSummary = this._getCreationFinalizeSummaryViewData(normalizedSystem, context.mythicAdvancements, context.mythicOutliers);
-    context.mythicEquipment = equipmentView;
-    context.mythicGammaCompany = this._getGammaCompanyViewData(normalizedSystem);
-    context.mythicMedicalEffects = medicalEffectsView;
+    const _charPerfT4 = performance.now();
+    context.mythicCcAdv = ccAdvView ?? {};
+    context.mythicAdvancements = advancementView ?? {};
+    context.mythicOutliers = shouldPrepareOutliers
+      ? this._getOutliersViewData(normalizedSystem, context.mythicCcAdv)
+      : { options: [], selected: null, purchased: [], entries: [], hasEntries: false, burnedLuckCount: 0, canPurchase: false, purchaseDisabledReason: "" };
+    context.mythicCustomOutliers = shouldPrepareAdvancements ? this._getCustomOutliersViewData(normalizedSystem) : [];
+    context.mythicCreationFinalizeSummary = shouldPrepareAdvancements
+      ? this._getCreationFinalizeSummaryViewData(normalizedSystem, context.mythicAdvancements, context.mythicOutliers)
+      : {};
+    context.mythicEquipment = equipmentView ?? { readyWeaponCards: [], readyWeaponCount: 0 };
+    context.mythicGammaCompany = shouldPrepareMedical ? this._getGammaCompanyViewData(normalizedSystem) : { enabled: false, canApply: false };
+    context.mythicMedicalEffects = medicalEffectsView ?? {};
     const worldGravity = getWorldGravity();
     context.mythicGravityValue = String(worldGravity !== null ? worldGravity : (normalizedSystem?.gravity ?? 1.0));
     context.mythicIsGM = Boolean(game?.user?.isGM);
-    context.mythicSkills = this._getSkillsViewData(normalizedSystem?.skills, effectiveSystem?.characteristics);
+    context.mythicSkills = shouldPrepareSkills ? this._getSkillsViewData(normalizedSystem?.skills, effectiveSystem?.characteristics) : { base: [], custom: [] };
     context.mythicFactionOptions = [
       "United Nations Space Command",
       "Office of Naval Intelligence",
@@ -1917,26 +1988,32 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       value: option,
       label: option
     }));
-    context.mythicDutyStationStatusOptions = [
-      { value: "Current", label: "Current" },
-      { value: "Former", label: "Former" }
-    ];
-    context.mythicSkillTierOptions = [
-      { value: "untrained", label: "--" },
-      { value: "trained", label: "Trained" },
-      { value: "plus10", label: "+10" },
-      { value: "plus20", label: "+20" }
-    ];
-    context.mythicEducations = this._getEducationsViewData(effectiveSystem);
-    context.mythicEducationTierOptions = [
-      { value: "plus5",  label: "+5"  },
-      { value: "plus10", label: "+10" }
-    ];
-    context.mythicAbilities = this._getAbilitiesViewData();
-    context.mythicTraits = this._getTraitsViewData();
-    context.mythicTraining = trainingView;
-    context.mythicSoldierTypeScaffold = this._getSoldierTypeScaffoldViewData();
-    context.mythicSoldierTypeAdvancementScaffold = soldierTypeAdvancementScaffoldView;
+    context.mythicDutyStationStatusOptions = shouldPrepareBiography
+      ? [
+        { value: "Current", label: "Current" },
+        { value: "Former", label: "Former" }
+      ]
+      : [];
+    context.mythicSkillTierOptions = shouldPrepareSkills
+      ? [
+        { value: "untrained", label: "--" },
+        { value: "trained", label: "Trained" },
+        { value: "plus10", label: "+10" },
+        { value: "plus20", label: "+20" }
+      ]
+      : [];
+    context.mythicEducations = shouldPrepareSkills ? this._getEducationsViewData(effectiveSystem) : [];
+    context.mythicEducationTierOptions = shouldPrepareSkills
+      ? [
+        { value: "plus5",  label: "+5"  },
+        { value: "plus10", label: "+10" }
+      ]
+      : [];
+    context.mythicAbilities = shouldPrepareAbilities ? this._getAbilitiesViewData() : [];
+    context.mythicTraits = shouldPrepareAbilities ? this._getTraitsViewData() : [];
+    context.mythicTraining = trainingView ?? {};
+    context.mythicSoldierTypeScaffold = shouldPrepareAdvancements ? this._getSoldierTypeScaffoldViewData() : {};
+    context.mythicSoldierTypeAdvancementScaffold = soldierTypeAdvancementScaffoldView ?? {};
     context.mythicHasBlurAbility = this.actor.items.some((i) => i.type === "ability" && String(i.name ?? "").toLowerCase() === "blur");
     context.mythicCharBuilder = charBuilderView;
     // Augment char builder with penalty-aware rows so templates can show effective values.
@@ -1948,33 +2025,53 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mythicCharBuilder = { ...context.mythicCharBuilder, penaltiesRow: cbPenaltiesRow, effectiveTotals: cbEffectiveTotals };
     context.mythicEffectiveCharacteristics = effectiveSystem.characteristics;
     context.mythicHeader = headerView;
-    context.mythicSpecialization = this._getSpecializationViewData(normalizedSystem);
+    context.mythicSpecialization = (shouldPrepareAdvancements || shouldPrepareSetup)
+      ? this._getSpecializationViewData(normalizedSystem)
+      : { isSmartAi: false };
 
     const linkedVehicleActorId = String(normalizedSystem?.vehicles?.currentVehicleActorId ?? "").trim();
-    const vehicleActors = this._getCharacterVehicleActorPool();
+    this._characterVehicleActorId = linkedVehicleActorId;
+    context.mythicVehicleActorOptions = [];
+    context.mythicCurrentVehicleActor = null;
+    context.mythicCharacterVehicle = {};
+    if (shouldPrepareVehicles) {
+      const vehicleActors = this._getCharacterVehicleActorPool();
+      context.mythicVehicleActorOptions = [
+        { value: "", label: "-- None --", selected: !linkedVehicleActorId },
+        ...vehicleActors.map((entry) => ({
+          value: this._getVehicleActorReference(entry),
+          label: String(entry.name ?? "(Unnamed Vehicle)"),
+          selected: this._doesVehicleReferenceMatchActor(linkedVehicleActorId, entry)
+        }))
+      ];
 
-    context.mythicVehicleActorOptions = [
-      { value: "", label: "-- None --", selected: !linkedVehicleActorId },
-      ...vehicleActors.map((entry) => ({
-        value: this._getVehicleActorReference(entry),
-        label: String(entry.name ?? "(Unnamed Vehicle)"),
-        selected: this._doesVehicleReferenceMatchActor(linkedVehicleActorId, entry)
-      }))
-    ];
-
-    const linkedVehicleActor = this._resolveVehicleActorReference(linkedVehicleActorId);
-    context.mythicCurrentVehicleActor = linkedVehicleActor;
-    if (linkedVehicleActor) {
-      context.mythicSystem.vehicles.currentVehicle = String(linkedVehicleActor.name ?? context.mythicSystem.vehicles.currentVehicle ?? "");
+      const linkedVehicleActor = this._resolveVehicleActorReference(linkedVehicleActorId);
+      context.mythicCurrentVehicleActor = linkedVehicleActor;
+      if (linkedVehicleActor) {
+        context.mythicSystem.vehicles.currentVehicle = String(linkedVehicleActor.name ?? context.mythicSystem.vehicles.currentVehicle ?? "");
+      }
+      context.mythicCharacterVehicle = await this._buildCharacterVehicleTabContext(normalizedSystem, {
+        linkedVehicleActor,
+        vehicleActors
+      });
+      this._characterVehicleActorId = String(context.mythicCharacterVehicle?.vehicleUuid ?? context.mythicCharacterVehicle?.vehicleActorId ?? linkedVehicleActorId).trim();
     }
-    context.mythicCharacterVehicle = await this._buildCharacterVehicleTabContext(normalizedSystem, {
-      linkedVehicleActor,
-      vehicleActors
-    });
-    this._characterVehicleActorId = String(context.mythicCharacterVehicle?.vehicleUuid ?? context.mythicCharacterVehicle?.vehicleActorId ?? "").trim();
     context.mythicVehicleOverviewReadOnly = true;
     context.mythicVehicleBreakpointEditable = Boolean(context.mythicCharacterVehicle?.mythicVehicleBreakpointEditable);
     context.mythicVehicleBreakpointManagementEditable = false;
+
+    {
+      const _tEnd = performance.now();
+      console.groupCollapsed(
+        `[Mythic] Character Sheet | _prepareContext: ${Math.round(_tEnd - _charPerfT0)}ms — ${this.actor?.name ?? "?"}`
+      );
+      console.log(`  [1] normalizeSystem + creationPathOutcome (pack loads): ${Math.round(_charPerfT1 - _charPerfT0)}ms`);
+      console.log(`  [2] charBuilder + effectiveSystem + derivedValues:      ${Math.round(_charPerfT2 - _charPerfT1)}ms`);
+      console.log(`  [3] context setup (combat / perceptive / farSight):     ${Math.round(_charPerfT3 - _charPerfT2)}ms`);
+      console.log(`  [4] Promise.all (headerView + equipment + other tabs):  ${Math.round(_charPerfT4 - _charPerfT3)}ms`);
+      console.log(`  [5] remaining assembly + vehicleTab:                    ${Math.round(_tEnd - _charPerfT4)}ms`);
+      console.groupEnd();
+    }
 
     return context;
   }
@@ -8995,15 +9092,27 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async _getCreationPathPackDocs(packKey) {
+    const cached = _creationPathPackDocsCache.get(packKey);
+    if (cached !== undefined) return cached;
     const pack = game.packs.get(packKey);
-    if (!pack) return [];
-    try {
-      const docs = await pack.getDocuments();
-      return docs.sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
-    } catch (error) {
-      console.error(`[mythic-system] Failed to read creation path compendium ${packKey}.`, error);
+    if (!pack) {
+      _creationPathPackDocsCache.set(packKey, []);
       return [];
     }
+    // Store the Promise so concurrent calls share one in-flight request (first render).
+    const loadPromise = pack.getDocuments()
+      .then((docs) => {
+        const sorted = docs.sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+        _creationPathPackDocsCache.set(packKey, sorted); // Replace Promise with resolved array.
+        return sorted;
+      })
+      .catch((error) => {
+        console.error(`[mythic-system] Failed to read creation path compendium ${packKey}.`, error);
+        _creationPathPackDocsCache.delete(packKey); // Allow retry on next render.
+        return [];
+      });
+    _creationPathPackDocsCache.set(packKey, loadPromise);
+    return loadPromise;
   }
 
   _getCreationPathWorldDocs(kind = "") {
@@ -9304,7 +9413,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return [...baseModifiers, ...choiceSummary].filter(Boolean).join(", ");
   }
 
-  async _getEquipmentViewData(systemData, derivedData = null) {
+  async _getEquipmentViewData(systemData, derivedData = null, options = {}) {
+    const includeInventoryDetails = options?.includeInventoryDetails !== false;
     const derived = derivedData ?? computeCharacterDerivedValues(systemData);
     const storedCarriedWeight = toNonNegativeWhole(systemData?.equipment?.carriedWeight, 0);
     const carryCapacity = Number(derived?.carryingCapacity?.carry ?? 0);
@@ -10031,6 +10141,56 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     });
 
+    const equipped = {
+      weaponIds: equippedWeaponIds,
+      armorId: equippedArmorId,
+      wieldedWeaponId,
+      carriedIds
+    };
+
+    // Initial opens only need ready weapon cards for the Main tab; full inventory/ammo
+    // tables are prepared when the Inventory tab is first rendered.
+    if (!includeInventoryDetails) {
+      return {
+        carriedWeight: storedCarriedWeight,
+        storedCarriedWeight,
+        carryCapacity,
+        loadPercent: carryCapacity > 0
+          ? Math.min(999, Math.round((storedCarriedWeight / carryCapacity) * 100))
+          : 0,
+        remainingCarry: Math.max(0, roundWeight(carryCapacity - storedCarriedWeight)),
+        gearItems: [],
+        weaponItems: [],
+        armorItems: [],
+        generalItems: [],
+        otherItems: [],
+        equipped,
+        equippedWeaponItems,
+        readyWeaponCards,
+        ballisticAmmoEntries: [],
+        ballisticContainerEntries: [],
+        batteryEntries: [],
+        totalBallisticAmmoWeight: "0",
+        ammoConfig,
+        equippedArmor,
+        wieldedWeapon,
+        readyWeaponCount: equippedWeaponItems.length,
+        packSelection: {
+          hasSoldierType: false,
+          soldierTypeName: "",
+          options: [],
+          selectedValue: String(systemData?.equipment?.activePackSelection?.value ?? "").trim(),
+          selectedName: String(systemData?.equipment?.activePackSelection?.name ?? "").trim(),
+          selectedGroup: String(systemData?.equipment?.activePackSelection?.group ?? "").trim(),
+          selectedDescription: String(systemData?.equipment?.activePackSelection?.description ?? "").trim(),
+          selectedItems: normalizeStringList(Array.isArray(systemData?.equipment?.activePackSelection?.items)
+            ? systemData.equipment.activePackSelection.items
+            : []),
+          selectedPackKey: String(systemData?.equipment?.activePackSelection?.packKey ?? "").trim()
+        }
+      };
+    }
+
     const ammoTypeDefinitions = await loadMythicAmmoTypeDefinitions();
     const defaultAmmoIcon = "icons/svg/item-bag.svg";
     const worldAmmoByName = new Map();
@@ -10470,13 +10630,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const sortedBatteryEntries = batteryEntries
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
-    const equipped = {
-      weaponIds: equippedWeaponIds,
-      armorId: equippedArmorId,
-      wieldedWeaponId,
-      carriedIds
-    };
-
     const packSelection = await this._getEquipmentPackSelectionViewData(systemData);
 
     const computedCarriedWeight = roundWeight([
@@ -10715,8 +10868,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _getMythicDerivedData(systemData, precomputed = null) {
-    const derivedSource = this._buildDerivedSystemData(systemData);
-    const derived = precomputed ?? computeCharacterDerivedValues(derivedSource);
+    const derived = precomputed ?? computeCharacterDerivedValues(this._buildDerivedSystemData(systemData));
 
     return {
       mythicCharacteristics: foundry.utils.deepClone(derived.mythicCharacteristics),
@@ -10771,8 +10923,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _getCombatViewData(systemData, characteristicModifiers = {}, precomputed = null) {
-    const derivedSource = this._buildDerivedSystemData(systemData);
-    const derived = precomputed ?? computeCharacterDerivedValues(derivedSource);
+    const derived = precomputed ?? computeCharacterDerivedValues(this._buildDerivedSystemData(systemData));
     const combat = systemData?.combat ?? {};
     const tracksTurnEconomy = isActorActivelyInCombat(this.actor);
     const shields = combat?.shields ?? {};
@@ -13041,6 +13192,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         initial: this.tabGroups.primary ?? "vehicle-summary",
         callback: (_event, _tabs, activeTab) => {
           this.tabGroups.primary = activeTab;
+          if (this._markPrimaryTabPrepared(activeTab)) void this.render(false);
           if (activeTab === "vehicle-notes") this._initializeVehicleNotesEditor(root);
         }
       });
@@ -13317,6 +13469,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       initial: initialTab,
       callback: (_event, _tabs, activeTab) => {
         this.tabGroups.primary = activeTab;
+        if (this._markPrimaryTabPrepared(activeTab)) void this.render(false);
       }
     });
     tabs.bind(root);
@@ -23506,7 +23659,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       targetMode: initialTargetMode
     });
     if (attackMods === null) return;
-    const finalTargetMode = String(attackMods.targetMode ?? "character");
+    const finalTargetCategory = String(attackMods.targetCategory ?? "").trim().toLowerCase() || (initialTargetMode === "vehicle" || initialTargetMode === "walker" ? initialTargetMode : "standard");
+    const finalTargetMode = String(
+      attackMods.targetMode
+      ?? (finalTargetCategory === "vehicle" ? "vehicle" : (finalTargetCategory === "walker" ? "walker" : "character"))
+    );
 
     const promptRangeMeters = attackMods.rangeMeters === null || attackMods.rangeMeters === undefined
       ? NaN
@@ -24135,11 +24292,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const standardDosValue = actionType === "execution"
         ? dosValue
         : computeAttackDOS(standardEffectiveTarget, rawRoll);
+      const targetActorForHitLocation = targets?.[0]?.actor ?? targets?.[0]?.document?.actor ?? null;
       const defaultHitLocRaw = actionType === "execution"
         ? { zone: "Execution", subZone: "Point Blank", drKey: "chest", locRoll: null }
         : resolveHitLocationForMode(rawRoll, finalTargetMode);
       const defaultHitLoc = (finalTargetMode === "vehicle" && defaultHitLocRaw)
-        ? _applyVehicleHitFallback(defaultHitLocRaw, targets?.[0]?.actor ?? targets?.[0]?.document?.actor ?? null)
+        ? _applyVehicleHitFallback(defaultHitLocRaw, targetActorForHitLocation)
         : defaultHitLocRaw;
       const calledShotLocation = (() => {
         if (!calledShotData?.drKey) return null;
@@ -24153,12 +24311,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           };
         }
         if (kind === "vehicle-section") {
-          return {
+          return _applyVehicleHitFallback({
             zone: String(calledShotData.zone ?? "").trim(),
             sectionKey: String(calledShotData.sectionKey ?? "hull"),
             drKey: String(calledShotData.drKey ?? "hull"),
             locRoll: null
-          };
+          }, targetActorForHitLocation);
         }
         if (kind === "walker-zone") {
           return {
@@ -24508,16 +24666,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         })()
         : "";
 
-      const perceptiveDetail = !isGrenadeWeapon && Number.isFinite(Number(perceptiveResult?.rangeBand?.distanceMeters))
-        ? `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Perceptive band: <strong>${esc(perceptiveResult.rangeBand.band)}</strong> at ${Math.floor(Number(perceptiveResult.rangeBand.distanceMeters ?? 0))}m (${signMod(Number(perceptiveResult.toHitModifier ?? 0)) || "+0"} to hit). Aim ${perceptiveResult.aimAllowed ? "allowed" : "blocked"}.</div>`
-        : "";
       const attackRollTitle = row.attackRollTooltip || esc(`Attack roll: ${row.rawRoll} [1d100]`);
 
       return `<div class="mythic-attack-line">
         <div class="mythic-attack-mainline">A${row.index}: ${actionType === "execution" ? "AUTO" : `<span class="mythic-roll-inline" title="${attackRollTitle}">${row.rawRoll}</span> vs <span class="mythic-roll-target" title="Effective target">${row.effectiveTarget}</span>`} <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span></div>
         ${grenadeThrowDetail}
         ${calledShotDetail}
-        ${perceptiveDetail}
         ${grenadeMissDetail}
         ${successDetail}
       </div>`;
@@ -24667,13 +24821,23 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       throwWeightKg: Number(grenadeThrowProfile?.throwWeightKg ?? 0),
       timerDelayRounds: toNonNegativeWhole(gear.timerDelayRounds, 1),
       sceneId: canvas?.scene?.id ?? null,
+      targetCategory: finalTargetCategory,
       targetMode: finalTargetMode,
       hitLocRows: attackRows.filter((row) => !row.isClick).map((row) => ({
         index: row.index,
         rawRoll: row.rawRoll,
         locRoll: row.hitLoc?.locRoll ?? null,
+        targetCategory: finalTargetCategory,
         targetMode: finalTargetMode,
-        calledShotIntent: calledShotData ? { kind: String(calledShotData.kind ?? ""), zone: String(calledShotData.zone ?? ""), sectionKey: String(calledShotData.sectionKey ?? ""), penalty: Number(calledShotData.penalty ?? 0) } : null,
+        calledShotIntent: calledShotData ? {
+          kind: String(calledShotData.kind ?? ""),
+          selectionType: String(calledShotData.selectionType ?? ""),
+          targetCategory: String(calledShotData.targetCategory ?? finalTargetCategory),
+          zone: String(calledShotData.zone ?? ""),
+          subZone: String(calledShotData.subZone ?? ""),
+          sectionKey: String(calledShotData.sectionKey ?? ""),
+          penalty: Number(calledShotData.penalty ?? 0)
+        } : null,
         hitLoc: row.hitLoc ? foundry.utils.deepClone(row.hitLoc) : null
       }))
     };
@@ -25648,6 +25812,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       targetMode: "walker"
     });
     if (attackMods === null) return;
+    const finalTargetCategory = String(attackMods.targetCategory ?? "walker").trim().toLowerCase() || "walker";
     const finalTargetMode = "walker";
 
     const characteristicRuntime = await this._getLiveCharacteristicRuntime(attackActor);
@@ -26089,13 +26254,23 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       throwWeightKg: 0,
       timerDelayRounds: 0,
       sceneId: canvas?.scene?.id ?? null,
+      targetCategory: finalTargetCategory,
       targetMode: "walker",
       hitLocRows: attackRows.map((row) => ({
         index: row.index,
         rawRoll: row.rawRoll,
         locRoll: row.hitLoc?.locRoll ?? null,
+        targetCategory: finalTargetCategory,
         targetMode: "walker",
-        calledShotIntent: calledShotData ? { kind: String(calledShotData.kind ?? ""), zone: String(calledShotData.zone ?? ""), sectionKey: String(calledShotData.sectionKey ?? ""), penalty: Number(calledShotData.penalty ?? 0) } : null,
+        calledShotIntent: calledShotData ? {
+          kind: String(calledShotData.kind ?? ""),
+          selectionType: String(calledShotData.selectionType ?? ""),
+          targetCategory: String(calledShotData.targetCategory ?? finalTargetCategory),
+          zone: String(calledShotData.zone ?? ""),
+          subZone: String(calledShotData.subZone ?? ""),
+          sectionKey: String(calledShotData.sectionKey ?? ""),
+          penalty: Number(calledShotData.penalty ?? 0)
+        } : null,
         hitLoc: row.hitLoc ? foundry.utils.deepClone(row.hitLoc) : null
       }))
     };

@@ -2,21 +2,7 @@
 // Extracted from system.mjs — the generic item sheet for gear items.
 
 import { normalizeGearSystemData } from "../data/normalization.mjs";
-import { loadMythicSpecialAmmoCategoryOptions } from "../data/content-loading.mjs";
 import { mapNumberedObjectToArray } from "../reference/ref-utils.mjs";
-import {
-  MYTHIC_ARMOR_ABILITY_DEFINITIONS,
-  MYTHIC_ARMOR_SPECIAL_RULE_DEFINITIONS,
-  MYTHIC_POWER_ARMOR_TRAIT_DEFINITIONS,
-  MYTHIC_AMMO_COMPAT_CODES,
-  MYTHIC_MELEE_TRAINING_OPTIONS,
-  MYTHIC_MELEE_WEAPON_TYPE_OPTIONS,
-  MYTHIC_RANGED_TRAINING_OPTIONS,
-  MYTHIC_RANGED_WEAPON_TYPES_BY_TRAINING,
-  MYTHIC_MELEE_DAMAGE_MODIFIER_OPTIONS,
-  MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS,
-  MYTHIC_WEAPON_TAG_DEFINITIONS
-} from "../config.mjs";
 import { prepareMythicItemSheetGearContext } from "./item-sheet-context.mjs";
 import { runMythicItemSheetRender } from "./item-sheet-render.mjs";
 
@@ -27,6 +13,15 @@ export class MythicItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   static LOCKED_WIDTH = 590;
   static LOCKED_HEIGHT = 810;
   static SIZE_DEBUG = false;
+  // Sheet-open caches only hold display labels/options. They are cleared by item
+  // create/update/delete hooks registered during system init.
+  static _availableAmmoItemsCache = null;
+  static _uuidLabelCache = new Map();
+
+  static invalidateSheetCaches() {
+    this._availableAmmoItemsCache = null;
+    this._uuidLabelCache?.clear?.();
+  }
 
   _normalizeBuiltInItemRefs(values = []) {
     const raw = Array.isArray(values) ? values : [values];
@@ -210,51 +205,64 @@ export class MythicItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   }
 
   async _getAvailableAmmoItems() {
-    const ammoItems = [];
-    const ammoMap = new Map(); // Track by UUID to avoid duplicates
+    const cached = this.constructor._availableAmmoItemsCache;
+    if (Array.isArray(cached)) return cached.map((entry) => ({ ...entry }));
 
-    // Search all packs for ammunition items
-    for (const pack of game.packs) {
+    const ammoItems = [];
+    const ammoMap = new Map(); // Track by UUID to avoid duplicates.
+    const addAmmo = (uuid, label) => {
+      const safeUuid = String(uuid ?? "").trim();
+      if (!safeUuid || ammoMap.has(safeUuid)) return;
+      const safeLabel = String(label ?? "Ammo").trim() || "Ammo";
+      ammoMap.set(safeUuid, safeLabel);
+      ammoItems.push({ uuid: safeUuid, label: safeLabel, name: safeLabel });
+    };
+
+    // Compendium indexes are much cheaper than loading every Item document on sheet open.
+    for (const pack of game.packs ?? []) {
       if (!pack || pack.documentName !== "Item") continue;
       try {
-        const docs = await pack.getDocuments();
-        for (const doc of docs) {
-          if (doc.type !== "gear") continue;
-          const sys = doc.system ?? {};
-          const equipType = String(sys.equipmentType ?? "").trim().toLowerCase();
+        const index = await pack.getIndex({ fields: ["type", "system.equipmentType"] });
+        for (const entry of index ?? []) {
+          const entryType = String(entry?.type ?? "").trim();
+          if (entryType && entryType !== "gear") continue;
+          const equipType = String(foundry.utils.getProperty(entry, "system.equipmentType") ?? "").trim().toLowerCase();
           if (equipType !== "ammunition") continue;
-
-          // Base ammo only (no modifications)
-          const uuid = String(doc.uuid ?? "").trim();
-          if (!uuid || ammoMap.has(uuid)) continue;
-
-          const label = String(doc.name ?? "Ammo").trim() || "Ammo";
-          ammoMap.set(uuid, label);
-          ammoItems.push({ uuid, label, name: label });
+          const uuid = String(entry?.uuid ?? (entry?._id ? `Compendium.${pack.collection}.${entry._id}` : "")).trim();
+          addAmmo(uuid, entry?.name);
         }
       } catch (_err) {
-        // Silently skip packs that fail to load
+        // Silently skip packs that fail to index; failing open is worse than a missing optional ammo choice.
       }
     }
 
-    // Search world items (non-embedded)
     for (const item of game.items ?? []) {
       if (item.type !== "gear" || item.parent) continue;
-      const sys = item.system ?? {};
-      const equipType = String(sys.equipmentType ?? "").trim().toLowerCase();
+      const equipType = String(item.system?.equipmentType ?? "").trim().toLowerCase();
       if (equipType !== "ammunition") continue;
-
-      const uuid = String(item.uuid ?? "").trim();
-      if (!uuid || ammoMap.has(uuid)) continue;
-
-      const label = String(item.name ?? "Ammo").trim() || "Ammo";
-      ammoMap.set(uuid, label);
-      ammoItems.push({ uuid, label, name: label });
+      addAmmo(item.uuid, item.name);
     }
 
-    // Sort by label for dropdowns
     ammoItems.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+    this.constructor._availableAmmoItemsCache = ammoItems.map((entry) => ({ ...entry }));
     return ammoItems;
+  }
+
+  async _resolveUuidLabel(uuid, fallbackLabel = "") {
+    const key = String(uuid ?? "").trim();
+    if (!key) {
+      const label = String(fallbackLabel ?? "").trim();
+      return { uuid: key, label, missing: true };
+    }
+
+    const cache = this.constructor._uuidLabelCache;
+    if (cache.has(key)) return { ...cache.get(key) };
+
+    const doc = await fromUuid(key).catch(() => null);
+    const label = String(doc?.name ?? fallbackLabel ?? key).trim() || key;
+    const entry = { uuid: key, label, missing: !doc };
+    cache.set(key, entry);
+    return { ...entry };
   }
 
   _normalizeAmmoIdForVariant(ammoId = null) {

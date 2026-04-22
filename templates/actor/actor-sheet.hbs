@@ -91,6 +91,7 @@
     </header>
 
     <div class="tab sheet-tab-scrollable" data-group="primary" data-tab="vehicle-summary" style="padding:14px 16px;">
+      {{#if (lookup mythicPreparedTabs "vehicle-summary")}}
       <div class="vehicle-summary-grid">
         {{!--
           <div class="mobility-row">
@@ -203,13 +204,17 @@
           {{/if}}
         </section>
       </div>
+      {{/if}}
     </div>
 
     <div class="tab sheet-tab-scrollable" data-group="primary" data-tab="vehicle-crew" style="padding:14px 16px;">
+      {{#if (lookup mythicPreparedTabs "vehicle-crew")}}
       {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicle-crew-roster.hbs"}}
+      {{/if}}
     </div>
 
     <div class="tab sheet-tab-scrollable vehicle-loadout-tab" data-group="primary" data-tab="vehicle-cargo" style="padding:14px 16px;">
+      {{#if (lookup mythicPreparedTabs "vehicle-cargo")}}
       <div class="vehicle-loadout-stack">
         <div class="vehicle-loadout-help">
           Use Add Vehicle Weapon to create an emplacement card. Drop weapons onto a specific card to mount them, and drop any equipment into Cargo to keep it as cargo.
@@ -359,16 +364,20 @@
           {{/if}}
         </div>
       </div>
+      {{/if}}
     </div>
 
     <div class="tab sheet-tab-scrollable" data-group="primary" data-tab="vehicle-notes" style="padding:14px 16px;">
+      {{#if (lookup mythicPreparedTabs "vehicle-notes")}}
       <div class="panel vehicle-notes-panel">
         <h2>Notes</h2>
         <div class="vehicle-notes-editor" data-editor-target="system.notes"></div>
       </div>
+      {{/if}}
     </div>
 
     <div class="tab sheet-tab-scrollable" data-group="primary" data-tab="vehicle-settings" style="padding:14px 16px;">
+      {{#if (lookup mythicPreparedTabs "vehicle-settings")}}
       <div class="panel">
         <h2>Setup</h2>
         <div class="setup-grid">
@@ -650,6 +659,7 @@
           {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-fields.hbs"}}
         </div>
       </div>
+      {{/if}}
     </div>
   </section>
 </div>
@@ -700,16 +710,56 @@
   <section class="sheet-content">
     {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/header.hbs"}}
     <div class="sheet-tab-scrollable">
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab.hbs"}}
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/skills-tab.hbs"}}
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/abilities-tab.hbs"}}
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/equipment-tab.hbs"}}
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/medical-tab.hbs"}}
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/advancements-tab.hbs"}}
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/notes-tab.hbs"}}
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs"}}
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicles-tab.hbs"}}
-      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs"}}
+      {{#if mythicPreparedTabs.main}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab.hbs"}}
+      {{else}}
+        <div class="tab main" data-group="primary" data-tab="main"></div>
+      {{/if}}
+      {{#if mythicPreparedTabs.skills}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/skills-tab.hbs"}}
+      {{else}}
+        <div class="tab skills" data-group="primary" data-tab="skills"></div>
+      {{/if}}
+      {{#if mythicPreparedTabs.abilities}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/abilities-tab.hbs"}}
+      {{else}}
+        <div class="tab abilities" data-group="primary" data-tab="abilities"></div>
+      {{/if}}
+      {{#if mythicPreparedTabs.equipment}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/equipment-tab.hbs"}}
+      {{else}}
+        <div class="tab equipment" data-group="primary" data-tab="equipment"></div>
+      {{/if}}
+      {{#if mythicPreparedTabs.medical}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/medical-tab.hbs"}}
+      {{else}}
+        <div class="tab medical" data-group="primary" data-tab="medical"></div>
+      {{/if}}
+      {{#if mythicPreparedTabs.advancements}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/advancements-tab.hbs"}}
+      {{else}}
+        <div class="tab advancements" data-group="primary" data-tab="advancements"></div>
+      {{/if}}
+      {{#if mythicPreparedTabs.notes}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/notes-tab.hbs"}}
+      {{else}}
+        <div class="tab notes" data-group="primary" data-tab="notes"></div>
+      {{/if}}
+      {{#if mythicPreparedTabs.biography}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/biography-tab.hbs"}}
+      {{else}}
+        <div class="tab biography" data-group="primary" data-tab="biography"></div>
+      {{/if}}
+      {{#if mythicPreparedTabs.vehicles}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/vehicles-tab.hbs"}}
+      {{else}}
+        <div class="tab vehicles mythic-character-vehicle-tab mythic-vehicle-fallback-sheet" data-group="primary" data-tab="vehicles"></div>
+      {{/if}}
+      {{#if mythicPreparedTabs.setup}}
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/setup-tab.hbs"}}
+      {{else}}
+        <div class="tab setup" data-group="primary" data-tab="setup"></div>
+      {{/if}}
     </div>
   </section>
 </div>

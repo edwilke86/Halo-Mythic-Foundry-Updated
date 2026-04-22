@@ -126,6 +126,10 @@ import {
   scheduleMythicTokenHudRefresh
 } from "../core/token-hud.mjs";
 import { registerVehicleBreakpointPermissionSocket } from "../mechanics/vehicle-breakpoint-permissions.mjs";
+import {
+  installMythicSheetPerformanceInstrumentation,
+  registerMythicSheetPerformanceSetting
+} from "../utils/sheet-performance.mjs";
 
 import {
   maybeRunWorldMigration,
@@ -544,6 +548,62 @@ export function registerAllHooks() {
       type: Boolean,
       default: false
     });
+
+    registerMythicSheetPerformanceSetting();
+    installMythicSheetPerformanceInstrumentation([
+      {
+        sheetClass: MythicActorSheet,
+        label: "ActorSheet",
+        helpers: [
+          "_backfillEnergyCellsForExistingWeapons",
+          "_resolveCreationPathOutcome",
+          "_getEquipmentViewData",
+          "_getAdvancementViewData",
+          "_getMedicalEffectsViewData",
+          "_getTrainingViewData",
+          "_getSoldierTypeAdvancementScaffoldViewData",
+          "_getHeaderViewData",
+          "_getSkillsViewData",
+          "_getEducationsViewData",
+          "_getAbilitiesViewData",
+          "_getTraitsViewData",
+          "_buildCharacterVehicleTabContext",
+          "_getVehicleLoadoutViewData",
+          "_buildVehicleOverviewWeaponCards",
+          "_buildVehicleOverviewContext"
+        ]
+      },
+      {
+        sheetClass: MythicBestiarySheet,
+        label: "BestiarySheet",
+        helpers: [
+          "_getMedicalEffectsViewData",
+          "_getGammaCompanyViewData",
+          "_getBestiaryWeaponCards",
+          "_getSkillsViewData",
+          "_getEducationsViewData",
+          "_getAbilitiesViewData",
+          "_getTraitsViewData",
+          "_buildCharacterVehicleTabContext"
+        ]
+      },
+      { sheetClass: MythicGroupSheet, label: "GroupSheet" },
+      {
+        sheetClass: MythicItemSheet,
+        label: "GearItemSheet",
+        helpers: ["_getAvailableAmmoItems", "_resolveUuidLabel"]
+      },
+      { sheetClass: MythicSoldierTypeSheet, label: "SoldierTypeItemSheet" },
+      { sheetClass: MythicEducationSheet, label: "EducationItemSheet" },
+      { sheetClass: MythicAbilitySheet, label: "AbilityItemSheet" },
+      { sheetClass: MythicTraitSheet, label: "TraitItemSheet" },
+      { sheetClass: MythicUpbringingSheet, label: "UpbringingItemSheet" },
+      { sheetClass: MythicEnvironmentSheet, label: "EnvironmentItemSheet" },
+      { sheetClass: MythicLifestyleSheet, label: "LifestyleItemSheet" }
+    ]);
+    for (const itemCacheHook of ["createItem", "updateItem", "deleteItem"]) {
+      Hooks.on(itemCacheHook, () => MythicItemSheet.invalidateSheetCaches());
+    }
 
     installMythicTokenRuler();
     installMythicDistanceRulerLabelPatch();

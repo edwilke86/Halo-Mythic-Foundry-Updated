@@ -152,6 +152,32 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     primary: "main"
   };
 
+  // Tracks tabs requested by this sheet instance; tab data is still rebuilt on
+  // render, so deferred sections do not display stale actor data.
+  _preparedPrimaryTabs = new Set();
+
+  _getPrimaryTabIds() {
+    return ["main", "equipment", "knowledge", "medical", "biography", "vehicles", "setup"];
+  }
+
+  _getActivePrimaryTab(fallback = "main") {
+    const availableTabs = this._getPrimaryTabIds();
+    const requested = String(this.tabGroups?.primary ?? fallback ?? "").trim();
+    return availableTabs.includes(requested) ? requested : fallback;
+  }
+
+  _markPrimaryTabPrepared(tabId) {
+    const normalizedTab = String(tabId ?? "").trim();
+    if (!normalizedTab || !this._getPrimaryTabIds().includes(normalizedTab)) return false;
+    if (this._preparedPrimaryTabs.has(normalizedTab)) return false;
+    this._preparedPrimaryTabs.add(normalizedTab);
+    return true;
+  }
+
+  _getPreparedPrimaryTabsView() {
+    return Object.fromEntries(this._getPrimaryTabIds().map((tabId) => [tabId, this._preparedPrimaryTabs.has(tabId)]));
+  }
+
   _sheetScrollTop = 0;
 
   _vehicleActorTokenDocuments = new WeakMap();
@@ -176,6 +202,16 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
+    const activePrimaryTab = this._getActivePrimaryTab("main");
+    this.tabGroups.primary = activePrimaryTab;
+    this._markPrimaryTabPrepared(activePrimaryTab);
+    const preparedPrimaryTabs = this._getPreparedPrimaryTabsView();
+    const shouldPrepareEquipment = Boolean(preparedPrimaryTabs.main || preparedPrimaryTabs.equipment);
+    const shouldPrepareKnowledge = Boolean(preparedPrimaryTabs.knowledge);
+    const shouldPrepareMedical = Boolean(preparedPrimaryTabs.medical);
+    const shouldPrepareBiography = Boolean(preparedPrimaryTabs.biography);
+    const shouldPrepareVehicles = Boolean(preparedPrimaryTabs.vehicles);
+    const shouldPrepareSetup = Boolean(preparedPrimaryTabs.setup);
     const system = normalizeBestiarySystemData(this.actor.system ?? {});
     const effectiveSystem = foundry.utils.deepClone(system);
     const rank = Number(system?.bestiary?.rank ?? 1) || 1;
@@ -200,6 +236,8 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     context.actor = this.actor;
     context.system = system;
     context.mythicSystem = system;
+    context.mythicActivePrimaryTab = activePrimaryTab;
+    context.mythicPreparedTabs = preparedPrimaryTabs;
     context.editable = this.isEditable;
     context.mythicCharacteristicModifiers = characteristicRuntime.modifiers;
     context.mythicCharacteristicScores = characteristicRuntime.scores;
@@ -231,32 +269,36 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     context.mythicFloodFormClass = String(system?.bestiary?.flood?.formClass ?? "none").trim().toLowerCase() || "none";
     context.mythicFloodKeymindRole = String(system?.bestiary?.flood?.keymindRole ?? "none").trim().toLowerCase() || "none";
     context.mythicIsFloodKeymind = context.mythicFloodKeymindRole !== "none";
-    const floodContaminationLevel = Math.max(0, Math.floor(Number(readWorldSettingOrFallback(MYTHIC_FLOOD_CONTAMINATION_LEVEL_SETTING_KEY, 0)) || 0));
-    const floodJuggernautActive = Boolean(readWorldSettingOrFallback(MYTHIC_FLOOD_JUGGERNAUT_ACTIVE_SETTING_KEY, false));
-    const floodAbominationActive = Boolean(readWorldSettingOrFallback(MYTHIC_FLOOD_ABOMINATION_ACTIVE_SETTING_KEY, false));
-    const floodProtoGravemindActive = Boolean(readWorldSettingOrFallback(MYTHIC_FLOOD_PROTO_GRAVEMIND_ACTIVE_SETTING_KEY, false));
-    const floodGravemindActive = Boolean(readWorldSettingOrFallback(MYTHIC_FLOOD_GRAVEMIND_ACTIVE_SETTING_KEY, false));
-    const floodControlInt = floodGravemindActive ? 40
-      : floodProtoGravemindActive ? 25
-      : (floodJuggernautActive || floodAbominationActive) ? 10
-      : 0;
-    context.mythicFloodCampaign = {
-      contaminationLevel: floodContaminationLevel,
-      juggernautActive: floodJuggernautActive,
-      abominationActive: floodAbominationActive,
-      protoGravemindActive: floodProtoGravemindActive,
-      gravemindActive: floodGravemindActive,
-      controlInt: floodControlInt
-    };
+    if (shouldPrepareSetup) {
+      const floodContaminationLevel = Math.max(0, Math.floor(Number(readWorldSettingOrFallback(MYTHIC_FLOOD_CONTAMINATION_LEVEL_SETTING_KEY, 0)) || 0));
+      const floodJuggernautActive = Boolean(readWorldSettingOrFallback(MYTHIC_FLOOD_JUGGERNAUT_ACTIVE_SETTING_KEY, false));
+      const floodAbominationActive = Boolean(readWorldSettingOrFallback(MYTHIC_FLOOD_ABOMINATION_ACTIVE_SETTING_KEY, false));
+      const floodProtoGravemindActive = Boolean(readWorldSettingOrFallback(MYTHIC_FLOOD_PROTO_GRAVEMIND_ACTIVE_SETTING_KEY, false));
+      const floodGravemindActive = Boolean(readWorldSettingOrFallback(MYTHIC_FLOOD_GRAVEMIND_ACTIVE_SETTING_KEY, false));
+      const floodControlInt = floodGravemindActive ? 40
+        : floodProtoGravemindActive ? 25
+        : (floodJuggernautActive || floodAbominationActive) ? 10
+        : 0;
+      context.mythicFloodCampaign = {
+        contaminationLevel: floodContaminationLevel,
+        juggernautActive: floodJuggernautActive,
+        abominationActive: floodAbominationActive,
+        protoGravemindActive: floodProtoGravemindActive,
+        gravemindActive: floodGravemindActive,
+        controlInt: floodControlInt
+      };
+    } else {
+      context.mythicFloodCampaign = {};
+    }
     context.mythicHasBlurAbility = this.actor.items.some((item) => item.type === "ability" && String(item.name ?? "").trim().toLowerCase() === "blur");
     context.mythicCharBuilder = {
       ...(system?.charBuilder && typeof system.charBuilder === "object" ? foundry.utils.deepClone(system.charBuilder) : {}),
       managed: Boolean(system?.charBuilder?.managed)
     };
-    context.mythicMedicalEffects = await this._getMedicalEffectsViewData(system);
-    context.mythicGammaCompany = this._getGammaCompanyViewData(system);
+    context.mythicMedicalEffects = shouldPrepareMedical ? await this._getMedicalEffectsViewData(system) : {};
+    context.mythicGammaCompany = shouldPrepareMedical ? this._getGammaCompanyViewData(system) : { enabled: false, canApply: false };
     context.mythicEquipment = {
-      readyWeaponCards: this._getBestiaryWeaponCards(effectiveSystem)
+      readyWeaponCards: shouldPrepareEquipment ? this._getBestiaryWeaponCards(effectiveSystem) : []
     };
     context.rankOptions = MYTHIC_BESTIARY_RANK_OPTIONS.map((entry) => ({
       value: entry.value,
@@ -265,36 +307,40 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     }));
     const xpRankKey = `br${rank}`;
     context.mythicCurrentXpPayout = toNonNegativeWhole(system?.bestiary?.xpPayouts?.[xpRankKey], 0);
-    context.sizeOptions = MYTHIC_SIZE_CATEGORIES.map((entry) => ({
-      value: entry.label,
-      label: entry.label,
-      selected: String(entry.label) === String(system?.bestiary?.size ?? "Normal")
-    }));
+    context.sizeOptions = shouldPrepareSetup
+      ? MYTHIC_SIZE_CATEGORIES.map((entry) => ({
+        value: entry.label,
+        label: entry.label,
+        selected: String(entry.label) === String(system?.bestiary?.size ?? "Normal")
+      }))
+      : [];
 
     const characteristicOrder = BESTIARY_CHARACTERISTIC_ORDER.filter((key) => MYTHIC_CHARACTERISTIC_KEYS.includes(key));
 
-    context.characteristicColumns = characteristicOrder.map((key) => ({
-      key,
-      label: CHARACTERISTIC_LABELS[key] ?? String(key).toUpperCase()
-    }));
+    context.characteristicColumns = shouldPrepareSetup
+      ? characteristicOrder.map((key) => ({
+        key,
+        label: CHARACTERISTIC_LABELS[key] ?? String(key).toUpperCase()
+      }))
+      : [];
 
-    context.characteristicBaseValues = characteristicOrder.map((key) => toNonNegativeWhole(system?.bestiary?.baseCharacteristics?.[key], 0));
-    context.characteristicBrValues = characteristicOrder.map(() => brModifier);
-    context.characteristicMiscValues = characteristicOrder.map((key) => Math.floor(Number(system?.bestiary?.miscCharacteristics?.[key] ?? 0) || 0));
-    context.characteristicTotalValues = characteristicOrder.map((key) => toNonNegativeWhole(system?.characteristics?.[key], 0));
+    context.characteristicBaseValues = shouldPrepareSetup ? characteristicOrder.map((key) => toNonNegativeWhole(system?.bestiary?.baseCharacteristics?.[key], 0)) : [];
+    context.characteristicBrValues = shouldPrepareSetup ? characteristicOrder.map(() => brModifier) : [];
+    context.characteristicMiscValues = shouldPrepareSetup ? characteristicOrder.map((key) => Math.floor(Number(system?.bestiary?.miscCharacteristics?.[key] ?? 0) || 0)) : [];
+    context.characteristicTotalValues = shouldPrepareSetup ? characteristicOrder.map((key) => toNonNegativeWhole(system?.characteristics?.[key], 0)) : [];
 
     const mythicKeys = ["str", "tou", "agi"];
-    context.mythicColumns = mythicKeys.map((key) => ({ key, label: String(key).toUpperCase() }));
-    context.mythicBaseValues = mythicKeys.map((key) => toNonNegativeWhole(system?.bestiary?.mythicBase?.[key], 0));
-    context.mythicBrValues = mythicKeys.map(() => mythicBonus);
-    context.mythicMiscValues = mythicKeys.map((key) => Math.trunc(Number(system?.bestiary?.mythicMisc?.[key] ?? 0) || 0));
-    context.mythicTotalValues = mythicKeys.map((key) => toNonNegativeWhole(system?.mythic?.characteristics?.[key], 0));
+    context.mythicColumns = shouldPrepareSetup ? mythicKeys.map((key) => ({ key, label: String(key).toUpperCase() })) : [];
+    context.mythicBaseValues = shouldPrepareSetup ? mythicKeys.map((key) => toNonNegativeWhole(system?.bestiary?.mythicBase?.[key], 0)) : [];
+    context.mythicBrValues = shouldPrepareSetup ? mythicKeys.map(() => mythicBonus) : [];
+    context.mythicMiscValues = shouldPrepareSetup ? mythicKeys.map((key) => Math.trunc(Number(system?.bestiary?.mythicMisc?.[key] ?? 0) || 0)) : [];
+    context.mythicTotalValues = shouldPrepareSetup ? mythicKeys.map((key) => toNonNegativeWhole(system?.mythic?.characteristics?.[key], 0)) : [];
 
-    context.equipmentList = Array.isArray(system?.bestiary?.equipmentList) ? system.bestiary.equipmentList : [];
+    context.equipmentList = shouldPrepareEquipment && Array.isArray(system?.bestiary?.equipmentList) ? system.bestiary.equipmentList : [];
 
     // Equipped armor item (embedded).
     const equippedArmorId = String(system?.bestiary?.equippedArmorId ?? "").trim();
-    const equippedArmorItem = equippedArmorId ? this.actor.items.get(equippedArmorId) : null;
+    const equippedArmorItem = (shouldPrepareEquipment || shouldPrepareSetup) && equippedArmorId ? this.actor.items.get(equippedArmorId) : null;
     if (equippedArmorItem) {
       const armorGear = normalizeGearSystemData(equippedArmorItem.system ?? {}, equippedArmorItem.name ?? "");
       const ap = armorGear.protection ?? {};
@@ -319,22 +365,26 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     }
 
     // Skills, educations, abilities, traits for the Knowledge tab.
-    context.mythicSkills = this._getSkillsViewData(effectiveSystem?.skills, effectiveSystem?.characteristics);
-    context.mythicSkillTierOptions = [
-      { value: "untrained", label: "--" },
-      { value: "trained", label: "Trained" },
-      { value: "plus10", label: "+10" },
-      { value: "plus20", label: "+20" }
-    ];
-    context.mythicEducations = this._getEducationsViewData(effectiveSystem);
-    context.mythicEducationTierOptions = [
-      { value: "plus5", label: "+5" },
-      { value: "plus10", label: "+10" }
-    ];
-    context.mythicAbilities = this._getAbilitiesViewData();
-    context.mythicTraits = this._getTraitsViewData();
+    context.mythicSkills = shouldPrepareKnowledge ? this._getSkillsViewData(effectiveSystem?.skills, effectiveSystem?.characteristics) : { base: [], custom: [] };
+    context.mythicSkillTierOptions = shouldPrepareKnowledge
+      ? [
+        { value: "untrained", label: "--" },
+        { value: "trained", label: "Trained" },
+        { value: "plus10", label: "+10" },
+        { value: "plus20", label: "+20" }
+      ]
+      : [];
+    context.mythicEducations = shouldPrepareKnowledge ? this._getEducationsViewData(effectiveSystem) : [];
+    context.mythicEducationTierOptions = shouldPrepareKnowledge
+      ? [
+        { value: "plus5", label: "+5" },
+        { value: "plus10", label: "+10" }
+      ]
+      : [];
+    context.mythicAbilities = shouldPrepareKnowledge ? this._getAbilitiesViewData() : [];
+    context.mythicTraits = shouldPrepareKnowledge ? this._getTraitsViewData() : [];
 
-    const bestiaryNotes = Array.isArray(system?.bestiary?.notes) ? system.bestiary.notes : [];
+    const bestiaryNotes = shouldPrepareBiography && Array.isArray(system?.bestiary?.notes) ? system.bestiary.notes : [];
     context.mythicBestiaryNotes = bestiaryNotes.map((note) => {
       const title = String(note?.title ?? "").trim();
       const description = String(note?.description ?? "");
@@ -349,14 +399,19 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
     const characterVehicleSystem = normalizeCharacterSystemData(this.actor.system ?? {});
     const linkedVehicleActorId = String(characterVehicleSystem?.vehicles?.currentVehicleActorId ?? "").trim();
-    const vehicleActors = this._getCharacterVehicleActorPool();
-    const linkedVehicleActor = this._resolveVehicleActorReference(linkedVehicleActorId);
-    context.mythicCurrentVehicleActor = linkedVehicleActor;
-    context.mythicCharacterVehicle = await this._buildCharacterVehicleTabContext(characterVehicleSystem, {
-      linkedVehicleActor,
-      vehicleActors
-    });
-    this._characterVehicleActorId = String(context.mythicCharacterVehicle?.vehicleUuid ?? context.mythicCharacterVehicle?.vehicleActorId ?? "").trim();
+    this._characterVehicleActorId = linkedVehicleActorId;
+    context.mythicCurrentVehicleActor = null;
+    context.mythicCharacterVehicle = {};
+    if (shouldPrepareVehicles) {
+      const vehicleActors = this._getCharacterVehicleActorPool();
+      const linkedVehicleActor = this._resolveVehicleActorReference(linkedVehicleActorId);
+      context.mythicCurrentVehicleActor = linkedVehicleActor;
+      context.mythicCharacterVehicle = await this._buildCharacterVehicleTabContext(characterVehicleSystem, {
+        linkedVehicleActor,
+        vehicleActors
+      });
+      this._characterVehicleActorId = String(context.mythicCharacterVehicle?.vehicleUuid ?? context.mythicCharacterVehicle?.vehicleActorId ?? linkedVehicleActorId).trim();
+    }
     context.mythicVehicleOverviewReadOnly = true;
     context.mythicVehicleBreakpointEditable = Boolean(context.mythicCharacterVehicle?.mythicVehicleBreakpointEditable);
     context.mythicVehicleBreakpointManagementEditable = false;
@@ -394,7 +449,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     };
     await enrichBestiaryNotes();
 
-    const initialTab = this.tabGroups.primary ?? "setup";
+    const initialTab = this._getActivePrimaryTab("main");
     this.tabGroups.primary = initialTab;
     const tabs = new foundry.applications.ux.Tabs({
       group: "primary",
@@ -403,6 +458,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
       initial: initialTab,
       callback: (_event, _tabs, activeTab) => {
         this.tabGroups.primary = activeTab;
+        if (this._markPrimaryTabPrepared(activeTab)) void this.render(false);
       }
     });
     tabs.bind(root);

@@ -2,14 +2,30 @@
 
 import {
   MYTHIC_WORLD_MIGRATION_SETTING_KEY,
+  MYTHIC_WORLD_MIGRATION_VERSION,
   MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY,
   MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY,
+  MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION,
   MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY,
   MYTHIC_WEAPON_JSON_MIGRATION_VERSION,
   MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY,
   MYTHIC_ARMOR_JSON_MIGRATION_VERSION,
   MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY,
   MYTHIC_VEHICLE_CSV_MIGRATION_VERSION,
+  MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY,
+  MYTHIC_STARTUP_INITIALIZATION_SETTING_KEY,
+  MYTHIC_CONTENT_SYNC_VERSION,
+  MYTHIC_ABILITY_DEFINITIONS_PATH,
+  MYTHIC_TRAIT_DEFINITIONS_PATH,
+  MYTHIC_GENERAL_EQUIPMENT_DEFINITIONS_PATH,
+  MYTHIC_CONTAINER_EQUIPMENT_DEFINITIONS_PATH,
+  MYTHIC_ARMOR_DEFINITIONS_PATH,
+  MYTHIC_RANGED_WEAPON_DEFINITIONS_PATH,
+  MYTHIC_MELEE_WEAPON_DEFINITIONS_PATH,
+  MYTHIC_REFERENCE_BESTIARY_CSV,
+  MYTHIC_REFERENCE_VEHICLES_CSV,
+  MYTHIC_REFERENCE_VEHICLE_WEAPON_OVERRIDES_JSON,
+  MYTHIC_REFERENCE_SOLDIER_TYPES_JSON,
   MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY,
   MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY,
   MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY,
@@ -34,8 +50,6 @@ import {
   MYTHIC_FLOOD_ABOMINATION_ACTIVE_SETTING_KEY,
   MYTHIC_FLOOD_PROTO_GRAVEMIND_ACTIVE_SETTING_KEY,
   MYTHIC_FLOOD_GRAVEMIND_ACTIVE_SETTING_KEY,
-  MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY,
-  MYTHIC_STARTUP_SYNC_SILENT_SETTING_KEY,
   MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY,
   MYTHIC_ENVIRONMENTAL_AUTOMATION_ENABLED_SETTING_KEY,
   MYTHIC_FEAR_AUTOMATION_ENABLED_SETTING_KEY,
@@ -174,6 +188,11 @@ import {
   loadReferenceGeneralEquipmentItemsFromJson,
   loadReferenceArmorItemsFromJson
 } from "../reference/compendium-management.mjs";
+import {
+  flushPendingCompendiumRefreshes,
+  invalidateAndRerenderCompendiums
+} from "../reference/compendium-refresh-utils.mjs";
+import { mythicStartupProgress } from "../ui/startup-progress.mjs";
 
 import { MythicActorSheet } from "../sheets/actor-sheet.mjs";
 import { MythicBestiarySheet } from "../sheets/bestiary-sheet.mjs";
@@ -203,15 +222,6 @@ import {
 } from "../mechanics/bestiary-armor-service.mjs";
 
 const MYTHIC_ALPHA_PLAYTEST_NOTICE_FLAG = "dismissAlphaPlaytestNoticeV1";
-const MYTHIC_ALPHA_BUG_REPORT_TEMPLATE = [
-  "Build/version: 0.4.0-alpha.2",
-  "Actor type and whether newly created or existing:",
-  "Exact steps to reproduce:",
-  "Expected result:",
-  "Actual result:",
-  "Whether issue is consistent or intermittent:",
-  "Screenshot/video if available:"
-].join("\n");
 const MYTHIC_TOKEN_BAR_ALIAS_PATCH_FLAG = "_mythicTokenBarAliasPatchInstalled";
 const MYTHIC_EDITABLE_TOKEN_BAR_ACTOR_TYPES = Object.freeze(new Set(["character", "bestiary", "vehicle"]));
 const MYTHIC_TOKEN_BAR_ALIASES = Object.freeze({
@@ -324,33 +334,17 @@ function installMythicEditableTokenBarAliases() {
   }
 }
 
-async function copyAlphaBugTemplateToClipboard() {
-  if (!navigator?.clipboard?.writeText) {
-    ui.notifications?.warn("Clipboard API unavailable. Copy the template from the dialog text.");
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(MYTHIC_ALPHA_BUG_REPORT_TEMPLATE);
-    ui.notifications?.info("Copied alpha bug report template to clipboard.");
-  } catch (_error) {
-    ui.notifications?.warn("Could not copy template automatically. Copy the text manually.");
-  }
-}
-
 async function postAlphaPlaytestChatNotice() {
   if (!game.user?.isGM) return;
 
-  const esc = foundry.utils.escapeHTML;
-  const templateHtml = esc(MYTHIC_ALPHA_BUG_REPORT_TEMPLATE);
   const content = `
     <div class="mythic-alpha-chat-notice">
       <p><strong>Halo Mythic Alpha Notice:</strong> Bugs are expected in this playtest phase.</p>
-      <p>Report by Discord DM to <strong>.neoshain</strong>.</p>
-      <p><strong>Please report:</strong> incorrect calculations, incorrect rule resolution, or features that should work but are breaking.</p>
-      <p><strong>Please do not report on this pass:</strong> missing compendium content, unavailable vehicle workflows, or other not-yet-implemented coverage.</p>
-      <p><strong>Bug report template:</strong></p>
-      <pre>${templateHtml}</pre>
+      <p>Report bugs using the official bug report document at <a href="https://docs.google.com/document/d/1DTP78aZlpHavm1yx0r6jE9ZiM-i6RkjfNbfbsASmdKQ/edit?tab=t.0#heading=h.by73jlwz9a9n" target="_blank" rel="noopener">this link</a>.</p>
+      <p><strong>Bugs should be for existing issues only; ideas are for things not yet implemented or already planned.</strong></p>
+      <p><strong>Please read the report rules and confirm the bug is not already listed before submitting.</strong></p>
+      <p><strong>Please do not re-report bugs.</strong></p>
+      <p><strong>Please remember:</strong> this is a passion project by a guy with multiple jobs to support a family. Work on this system started in mid-March 2026.</p>
     </div>
   `;
 
@@ -375,11 +369,11 @@ async function maybeShowAlphaPlaytestNotice() {
       content: `
         <div class="mythic-alpha-notice">
           <p><strong>This is an alpha build. Bugs will be expected.</strong></p>
-          <p>Please report bugs in Discord DM to <strong>.neoshain</strong>.</p>
-          <p><strong>Please report:</strong> broken calculations, incorrect rule resolution, or features that clearly should work but fail.</p>
-          <p><strong>Please do not report on this pass:</strong> missing compendium entries, unavailable vehicle workflows, or not-yet-implemented content.</p>
-          <p><strong>Bug report template:</strong></p>
-          <pre>${foundry.utils.escapeHTML(MYTHIC_ALPHA_BUG_REPORT_TEMPLATE)}</pre>
+          <p>Please report bugs using the official bug report document at <a href="https://docs.google.com/document/d/1DTP78aZlpHavm1yx0r6jE9ZiM-i6RkjfNbfbsASmdKQ/edit?tab=t.0#heading=h.by73jlwz9a9n" target="_blank" rel="noopener">this link</a>.</p>
+          <p><strong>Please read the report rules and confirm the bug is not already listed before submitting.</strong></p>
+          <p><strong>Bugs should be for existing issues only; ideas are for things not yet implemented or already planned.</strong></p>
+          <p><strong>Please do not re-report bugs.</strong></p>
+          <p><strong>Please remember:</strong> this is a passion project by a person with multiple jobs to support a family, and work on this system started in mid-March 2026.</p>
           <div class="form-group">
             <label for="mythic-alpha-notice-dismiss">
               <input id="mythic-alpha-notice-dismiss" type="checkbox" />
@@ -389,11 +383,6 @@ async function maybeShowAlphaPlaytestNotice() {
         </div>
       `,
       buttons: [
-        {
-          action: "copy",
-          label: "Copy Bug Template",
-          callback: () => ({ action: "copy" })
-        },
         {
           action: "ok",
           label: "Understood",
@@ -406,11 +395,6 @@ async function maybeShowAlphaPlaytestNotice() {
       rejectClose: false,
       modal: true
     });
-
-    if (result?.action === "copy") {
-      await copyAlphaBugTemplateToClipboard();
-      continue;
-    }
 
     dontShowAgain = Boolean(result?.dontShowAgain);
     break;
@@ -514,6 +498,332 @@ function refreshVehicleBreakpointPermissionConsumers() {
       console.warn("[mythic-system] Failed to refresh actor sheet after breakpoint permission setting change.", error);
     }
   }
+}
+
+const MYTHIC_STARTUP_COMPENDIUM_SOURCES = Object.freeze({
+  soldierTypes: Object.freeze([MYTHIC_REFERENCE_SOLDIER_TYPES_JSON]),
+  abilities: Object.freeze([MYTHIC_ABILITY_DEFINITIONS_PATH]),
+  traits: Object.freeze([MYTHIC_TRAIT_DEFINITIONS_PATH]),
+  bestiary: Object.freeze([MYTHIC_REFERENCE_BESTIARY_CSV]),
+  equipment: Object.freeze([MYTHIC_GENERAL_EQUIPMENT_DEFINITIONS_PATH, MYTHIC_CONTAINER_EQUIPMENT_DEFINITIONS_PATH]),
+  armor: Object.freeze([MYTHIC_ARMOR_DEFINITIONS_PATH]),
+  rangedWeapons: Object.freeze([MYTHIC_RANGED_WEAPON_DEFINITIONS_PATH]),
+  meleeWeapons: Object.freeze([MYTHIC_MELEE_WEAPON_DEFINITIONS_PATH]),
+  vehicles: Object.freeze([MYTHIC_REFERENCE_VEHICLES_CSV, MYTHIC_REFERENCE_VEHICLE_WEAPON_OVERRIDES_JSON])
+});
+
+const MYTHIC_STARTUP_COMPENDIUM_COLLECTIONS = Object.freeze({
+  soldierTypes: Object.freeze(["Halo-Mythic-Foundry-Updated.soldier-types"]),
+  abilities: Object.freeze(["Halo-Mythic-Foundry-Updated.abilities"]),
+  traits: Object.freeze(["Halo-Mythic-Foundry-Updated.traits"]),
+  bestiary: Object.freeze([
+    "Halo-Mythic-Foundry-Updated.mythic-bestiary-unsc",
+    "Halo-Mythic-Foundry-Updated.mythic-bestiary-covenant",
+    "Halo-Mythic-Foundry-Updated.mythic-bestiary-forerunner",
+    "Halo-Mythic-Foundry-Updated.mythic-bestiary-flood"
+  ]),
+  equipment: Object.freeze([
+    "Halo-Mythic-Foundry-Updated.mythic-equipment-human",
+    "Halo-Mythic-Foundry-Updated.mythic-equipment-covenant",
+    "Halo-Mythic-Foundry-Updated.mythic-equipment-banished",
+    "Halo-Mythic-Foundry-Updated.mythic-equipment-forerunner"
+  ]),
+  armor: Object.freeze([
+    "Halo-Mythic-Foundry-Updated.mythic-armor-human",
+    "Halo-Mythic-Foundry-Updated.mythic-armor-covenant",
+    "Halo-Mythic-Foundry-Updated.mythic-armor-banished",
+    "Halo-Mythic-Foundry-Updated.mythic-armor-forerunner"
+  ]),
+  rangedWeapons: Object.freeze([
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged",
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged"
+  ]),
+  meleeWeapons: Object.freeze([
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee",
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-melee",
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-melee",
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee",
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee",
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-flood"
+  ]),
+  vehicles: Object.freeze([
+    "Halo-Mythic-Foundry-Updated.mythic-vehicles-unsc",
+    "Halo-Mythic-Foundry-Updated.mythic-vehicles-covenant",
+    "Halo-Mythic-Foundry-Updated.mythic-vehicles-banished",
+    "Halo-Mythic-Foundry-Updated.mythic-vehicles-forerunner"
+  ])
+});
+
+const MYTHIC_STARTUP_SEED_COLLECTIONS = Object.freeze([
+  "Halo-Mythic-Foundry-Updated.educations",
+  "Halo-Mythic-Foundry-Updated.abilities",
+  "Halo-Mythic-Foundry-Updated.traits",
+  "Halo-Mythic-Foundry-Updated.upbringings",
+  "Halo-Mythic-Foundry-Updated.environments",
+  "Halo-Mythic-Foundry-Updated.lifestyles",
+  "Halo-Mythic-Foundry-Updated.soldier-types",
+  "Halo-Mythic-Foundry-Updated.ammo-types",
+  "Halo-Mythic-Foundry-Updated.mythic-equipment-human",
+  "Halo-Mythic-Foundry-Updated.mythic-equipment-covenant",
+  "Halo-Mythic-Foundry-Updated.mythic-equipment-banished",
+  "Halo-Mythic-Foundry-Updated.mythic-equipment-forerunner",
+  "Halo-Mythic-Foundry-Updated.mythic-armor-human",
+  "Halo-Mythic-Foundry-Updated.mythic-armor-covenant",
+  "Halo-Mythic-Foundry-Updated.mythic-armor-banished",
+  "Halo-Mythic-Foundry-Updated.mythic-armor-forerunner",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-melee",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-melee",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee",
+  "Halo-Mythic-Foundry-Updated.mythic-weapons-flood"
+]);
+const MYTHIC_STARTUP_SETUP_STATE_VERSION = 1;
+
+function hashMythicString(value = "") {
+  let hash = 2166136261;
+  const text = String(value ?? "");
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+async function buildMythicSourceSignature(paths = []) {
+  const parts = [`content:${MYTHIC_CONTENT_SYNC_VERSION}`];
+  for (const path of paths) {
+    try {
+      const response = await fetch(path);
+      if (!response.ok) {
+        console.warn(`[mythic-system] Could not check compendium source ${path}: HTTP ${response.status}.`);
+        return "";
+      }
+      const text = await response.text();
+      parts.push(`${path}:${hashMythicString(text)}`);
+    } catch (error) {
+      console.warn(`[mythic-system] Could not check compendium source ${path}.`, error);
+      return "";
+    }
+  }
+  return hashMythicString(parts.join("|"));
+}
+
+async function buildMythicStartupCompendiumSignatures() {
+  const signatures = {};
+  for (const [key, paths] of Object.entries(MYTHIC_STARTUP_COMPENDIUM_SOURCES)) {
+    const signature = await buildMythicSourceSignature(paths);
+    if (signature) signatures[key] = signature;
+  }
+  return signatures;
+}
+
+async function mythicStartupPackCategoryNeedsRefresh(key) {
+  const collections = MYTHIC_STARTUP_COMPENDIUM_COLLECTIONS[key] ?? [];
+  for (const collection of collections) {
+    const pack = game.packs.get(collection);
+    if (!pack) continue;
+    try {
+      const index = await pack.getIndex({
+        fields: [
+          "system.sync.contentVersion",
+          "system.sync.lastSyncedVersion"
+        ]
+      });
+      if (!index || index.size < 1) return true;
+      for (const entry of index.values()) {
+        const contentVersion = Number(foundry.utils.getProperty(entry, "system.sync.contentVersion") ?? 0);
+        const lastSyncedVersion = Number(foundry.utils.getProperty(entry, "system.sync.lastSyncedVersion") ?? contentVersion);
+        if (contentVersion < MYTHIC_CONTENT_SYNC_VERSION || lastSyncedVersion < MYTHIC_CONTENT_SYNC_VERSION) {
+          return true;
+        }
+      }
+    } catch (error) {
+      console.warn(`[mythic-system] Could not check compendium integrity for ${collection}.`, error);
+    }
+  }
+  return false;
+}
+
+async function getMythicStartupChangedSourceKeys(previous, current) {
+  if (previous && Object.keys(previous).length > 0) {
+    return Object.entries(current)
+      .filter(([key, signature]) => String(previous[key] ?? "") !== String(signature ?? ""))
+      .map(([key]) => key);
+  }
+
+  const changedKeys = [];
+  for (const key of Object.keys(current)) {
+    if (await mythicStartupPackCategoryNeedsRefresh(key)) changedKeys.push(key);
+  }
+  return changedKeys;
+}
+
+function getMythicSystemVersion() {
+  return String(game.system?.version ?? game.data?.version ?? "").trim() || "unknown";
+}
+
+function getMythicStartupInitializationState() {
+  try {
+    const state = game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_INITIALIZATION_SETTING_KEY);
+    return state && typeof state === "object" ? foundry.utils.deepClone(state) : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+async function mythicStartupHasEmptySeedPacks() {
+  for (const collection of MYTHIC_STARTUP_SEED_COLLECTIONS) {
+    const pack = game.packs.get(collection);
+    if (!pack) continue;
+    try {
+      const index = await pack.getIndex();
+      if (!index || index.size < 1) return true;
+    } catch (error) {
+      console.warn(`[mythic-system] Could not inspect startup seed pack ${collection}.`, error);
+    }
+  }
+  return false;
+}
+
+async function buildMythicStartupWorkPlan() {
+  if (!game.user?.isGM) return { shouldShow: false };
+
+  const systemVersion = getMythicSystemVersion();
+  const initializationState = getMythicStartupInitializationState();
+  const firstSetup = initializationState.completed !== true;
+  const systemVersionChanged = String(initializationState.systemVersion ?? "") !== systemVersion;
+
+  const worldMigrationVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_WORLD_MIGRATION_SETTING_KEY) ?? 0) || 0;
+  const compendiumCanonicalMigrationVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY) ?? 0) || 0;
+  const weaponJsonMigrationVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY) ?? 0) || 0;
+  const armorJsonMigrationVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY) ?? 0) || 0;
+  const vehicleCsvMigrationVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY) ?? 0) || 0;
+  const ammoWeightMigrationVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY) ?? 0) || 0;
+  const plasmaPistolPatchVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY) ?? 0) || 0;
+
+  const previousSignatures = foundry.utils.deepClone(
+    game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY) ?? {}
+  );
+  const currentSignatures = await buildMythicStartupCompendiumSignatures();
+  const changedSourceKeys = await getMythicStartupChangedSourceKeys(previousSignatures, currentSignatures);
+  const seedPrepNeeded = firstSetup || systemVersionChanged
+    ? await mythicStartupHasEmptySeedPacks()
+    : false;
+
+  const reasons = [];
+  if (firstSetup) reasons.push("first-setup");
+  if (!firstSetup && systemVersionChanged) reasons.push("system-version-changed");
+  if (worldMigrationVersion < MYTHIC_WORLD_MIGRATION_VERSION) reasons.push("world-migration");
+  if (compendiumCanonicalMigrationVersion < MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION) reasons.push("compendium-migration");
+  if (weaponJsonMigrationVersion < MYTHIC_WEAPON_JSON_MIGRATION_VERSION) reasons.push("weapon-rebuild");
+  if (armorJsonMigrationVersion < MYTHIC_ARMOR_JSON_MIGRATION_VERSION) reasons.push("armor-rebuild");
+  if (vehicleCsvMigrationVersion < MYTHIC_VEHICLE_CSV_MIGRATION_VERSION) reasons.push("vehicle-refresh");
+  if (ammoWeightMigrationVersion < 1) reasons.push("ammo-setting-migration");
+  if (plasmaPistolPatchVersion < 1) reasons.push("plasma-pistol-patch");
+  if (changedSourceKeys.length > 0) reasons.push("changed-compendium-sources");
+  if (seedPrepNeeded) reasons.push("seed-prep");
+
+  return {
+    shouldShow: reasons.length > 0,
+    reasons,
+    firstSetup,
+    systemVersion,
+    currentSignatures,
+    changedSourceKeys,
+    seedPrepNeeded
+  };
+}
+
+async function markMythicStartupInitializationComplete(plan = {}) {
+  await game.settings.set("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_INITIALIZATION_SETTING_KEY, {
+    completed: true,
+    setupStateVersion: MYTHIC_STARTUP_SETUP_STATE_VERSION,
+    systemVersion: String(plan?.systemVersion ?? getMythicSystemVersion()),
+    completedAt: new Date().toISOString()
+  });
+}
+
+async function runMythicStartupCompendiumIntegrityPass(options = {}) {
+  if (!game.user?.isGM) return { refreshed: [], baselineOnly: false };
+
+  const skippedKeys = options?.skippedKeys instanceof Set ? options.skippedKeys : new Set();
+  const previous = foundry.utils.deepClone(
+    game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY) ?? {}
+  );
+  const current = options?.currentSignatures && typeof options.currentSignatures === "object"
+    ? foundry.utils.deepClone(options.currentSignatures)
+    : await buildMythicStartupCompendiumSignatures();
+  const hasPrevious = previous && Object.keys(previous).length > 0;
+  const changedKeys = Array.isArray(options?.changedKeys)
+    ? options.changedKeys
+    : await getMythicStartupChangedSourceKeys(previous, current);
+
+  const refreshed = [];
+  for (const key of changedKeys) {
+    if (skippedKeys.has(key)) continue;
+    switch (key) {
+      case "soldierTypes":
+        await importSoldierTypesFromJson({ silent: true });
+        refreshed.push(key);
+        break;
+      case "abilities":
+        await refreshAbilitiesCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "traits":
+        await refreshTraitsCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "bestiary":
+        await refreshBestiaryCompendiums({ silent: true });
+        refreshed.push(key);
+        break;
+      case "equipment":
+        await refreshGeneralEquipmentCompendiums({ silent: true });
+        refreshed.push(key);
+        break;
+      case "armor":
+        await refreshArmorCompendiums({ silent: true });
+        refreshed.push(key);
+        break;
+      case "rangedWeapons":
+        await refreshRangedWeaponCompendiums({ silent: true });
+        refreshed.push(key);
+        break;
+      case "meleeWeapons":
+        await refreshMeleeWeaponCompendiums({ silent: true });
+        refreshed.push(key);
+        break;
+      case "vehicles":
+        await refreshVehicleCompendiums({ silent: true });
+        refreshed.push(key);
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (refreshed.length > 0) {
+    await organizeEquipmentCompendiumFolders({ silent: true });
+  }
+
+  if (Object.keys(current).length > 0) {
+    await game.settings.set("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY, {
+      ...previous,
+      ...current
+    });
+  }
+
+  return { refreshed, baselineOnly: !hasPrevious };
 }
 
 export function registerAllHooks() {
@@ -781,6 +1091,24 @@ export function registerAllHooks() {
       default: 0
     });
 
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY, {
+      name: "Compendium Source Signatures",
+      hint: "Internal marker used to target startup compendium integrity refreshes.",
+      scope: "world",
+      config: false,
+      type: Object,
+      default: {}
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_INITIALIZATION_SETTING_KEY, {
+      name: "Startup Initialization State",
+      hint: "Internal marker used to show Mythic startup progress only for first setup or update work.",
+      scope: "world",
+      config: false,
+      type: Object,
+      default: {}
+    });
+
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY, {
       name: "Optional Rule: Basic Ammo Has Weight",
       hint: "If enabled, basic ammunition contributes to encumbrance. If disabled, basic ammo weight is ignored.",
@@ -1031,24 +1359,6 @@ export function registerAllHooks() {
       default: true
     });
 
-    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY, {
-      name: "Startup: Auto-Refresh Reference Compendiums",
-      hint: "If enabled, GM startup automatically refreshes reference compendiums. Disable for faster startup, but compendium updates may not be reflected until you refresh manually.",
-      scope: "world",
-      config: true,
-      type: Boolean,
-      default: true
-    });
-
-    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_SYNC_SILENT_SETTING_KEY, {
-      name: "Startup: Suppress Sync Notifications",
-      hint: "If enabled, startup compendium sync suppresses sync toasts while keeping migration/info notices.",
-      scope: "world",
-      config: true,
-      type: Boolean,
-      default: true
-    });
-
     await foundry.applications.handlebars.loadTemplates(MYTHIC_ACTOR_PARTIAL_TEMPLATES);
     await foundry.applications.handlebars.loadTemplates(MYTHIC_ITEM_PARTIAL_TEMPLATES);
 
@@ -1146,73 +1456,113 @@ export function registerAllHooks() {
   Hooks.once("ready", async () => {
     console.log("[mythic-system] Ready");
     registerVehicleBreakpointPermissionSocket();
-    void maybeRunWorldMigration();
-    await migrateAmmoWeightOptionalRuleSetting();
-    await migrateLegacyAiIconsToFoundryDefaults();
     await maybeShowAlphaPlaytestNotice();
 
+    let startupWorkPlan = { shouldShow: false };
+    let startupProgressVisible = false;
+    let startupInitializationFailed = false;
+    const updateStartupProgress = (progress, label) => {
+      if (!startupProgressVisible) return;
+      mythicStartupProgress.update({ progress, label });
+    };
+
     if (game.user?.isGM) {
-      await clearLegacyVehicleSheetOverrides();
-
-      const weaponJsonMigrationVersion = Number(
-        game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY) ?? 0
-      );
-      if (weaponJsonMigrationVersion < MYTHIC_WEAPON_JSON_MIGRATION_VERSION) {
-        await rebuildWeaponCompendiumsFromJson({ silent: true });
-        await game.settings.set(
-          "Halo-Mythic-Foundry-Updated",
-          MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY,
-          MYTHIC_WEAPON_JSON_MIGRATION_VERSION
-        );
+      try {
+        startupWorkPlan = await buildMythicStartupWorkPlan();
+        if (startupWorkPlan.shouldShow) {
+          startupProgressVisible = true;
+          mythicStartupProgress.begin({
+            progress: 5,
+            label: "Verifying combat package integrity..."
+          });
+        }
+      } catch (error) {
+        console.warn("[mythic-system] Failed to evaluate startup work plan.", error);
       }
+    }
 
-      const armorJsonMigrationVersion = Number(
-        game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY) ?? 0
-      );
-      if (armorJsonMigrationVersion < MYTHIC_ARMOR_JSON_MIGRATION_VERSION) {
-        await rebuildArmorCompendiumsFromJson({ silent: true });
-        await game.settings.set(
-          "Halo-Mythic-Foundry-Updated",
-          MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY,
-          MYTHIC_ARMOR_JSON_MIGRATION_VERSION
+    if (game.user?.isGM) {
+      const startupRefreshCoveredSources = new Set();
+
+      try {
+        updateStartupProgress(20, "Running Mythic migrations...");
+        await maybeRunWorldMigration({ silent: startupProgressVisible, throwOnError: startupProgressVisible });
+        await migrateAmmoWeightOptionalRuleSetting();
+        await migrateLegacyAiIconsToFoundryDefaults({ silent: startupProgressVisible });
+        await clearLegacyVehicleSheetOverrides();
+
+        updateStartupProgress(45, "Preparing tactical data...");
+        const weaponJsonMigrationVersion = Number(
+          game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY) ?? 0
         );
-      }
-
-      const vehicleCsvMigrationVersion = Number(
-        game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY) ?? 0
-      );
-      if (vehicleCsvMigrationVersion < MYTHIC_VEHICLE_CSV_MIGRATION_VERSION) {
-        const vehicleRefreshResult = await refreshVehicleCompendiums({ silent: true });
-        if (vehicleRefreshResult?.blocked !== true && vehicleRefreshResult?.applied === true) {
+        if (weaponJsonMigrationVersion < MYTHIC_WEAPON_JSON_MIGRATION_VERSION) {
+          await rebuildWeaponCompendiumsFromJson({ silent: true });
+          startupRefreshCoveredSources.add("rangedWeapons");
+          startupRefreshCoveredSources.add("meleeWeapons");
           await game.settings.set(
             "Halo-Mythic-Foundry-Updated",
-            MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY,
-            MYTHIC_VEHICLE_CSV_MIGRATION_VERSION
+            MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY,
+            MYTHIC_WEAPON_JSON_MIGRATION_VERSION
           );
         }
+
+        const armorJsonMigrationVersion = Number(
+          game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY) ?? 0
+        );
+        if (armorJsonMigrationVersion < MYTHIC_ARMOR_JSON_MIGRATION_VERSION) {
+          await rebuildArmorCompendiumsFromJson({ silent: true });
+          startupRefreshCoveredSources.add("armor");
+          await game.settings.set(
+            "Halo-Mythic-Foundry-Updated",
+            MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY,
+            MYTHIC_ARMOR_JSON_MIGRATION_VERSION
+          );
+        }
+
+        const vehicleCsvMigrationVersion = Number(
+          game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY) ?? 0
+        );
+        if (vehicleCsvMigrationVersion < MYTHIC_VEHICLE_CSV_MIGRATION_VERSION) {
+          const vehicleRefreshResult = await refreshVehicleCompendiums({ silent: true });
+          startupRefreshCoveredSources.add("vehicles");
+          if (vehicleRefreshResult?.blocked !== true && vehicleRefreshResult?.applied === true) {
+            await game.settings.set(
+              "Halo-Mythic-Foundry-Updated",
+              MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY,
+              MYTHIC_VEHICLE_CSV_MIGRATION_VERSION
+            );
+          }
+        }
+
+        await maybeRunCompendiumCanonicalMigration({
+          silent: true,
+          throwOnError: startupProgressVisible
+        });
+
+        updateStartupProgress(75, "Synchronizing compendium indexes...");
+        await runMythicStartupCompendiumIntegrityPass({
+          skippedKeys: startupRefreshCoveredSources,
+          currentSignatures: startupWorkPlan.currentSignatures,
+          changedKeys: startupWorkPlan.changedSourceKeys
+        });
+        if (startupRefreshCoveredSources.size > 0) {
+          await organizeEquipmentCompendiumFolders({ silent: true });
+        }
+        await patchCovenantPlasmaPistolChargeCompendiums({ silent: true });
+        await flushPendingCompendiumRefreshes();
+
+        updateStartupProgress(90, "Finalizing mission systems...");
+        await applyMythicTokenDefaultsToWorld();
+        initializeFloodContaminationHud();
+      } catch (error) {
+        startupInitializationFailed = true;
+        console.error("[mythic-system] Startup initialization failed.", error);
+        if (startupProgressVisible) {
+          mythicStartupProgress.fail({ label: "Initialization completed with issues." });
+        } else {
+          ui.notifications?.error("Mythic initialization failed. Check console for details.");
+        }
       }
-
-      await maybeRunCompendiumCanonicalMigration();
-
-      const shouldAutoRefresh = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY));
-      const silentStartupSync = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_STARTUP_SYNC_SILENT_SETTING_KEY));
-
-      if (shouldAutoRefresh) {
-        // Reconcile reference compendiums with canonical JSON only when startup auto-refresh is enabled.
-        await importSoldierTypesFromJson({ silent: silentStartupSync });
-        await refreshAbilitiesCompendium({ silent: silentStartupSync });
-        await refreshTraitsCompendium({ silent: silentStartupSync });
-        await refreshBestiaryCompendiums({ silent: silentStartupSync });
-        await refreshGeneralEquipmentCompendiums({ silent: silentStartupSync });
-        await refreshArmorCompendiums({ silent: silentStartupSync });
-        await refreshRangedWeaponCompendiums({ silent: silentStartupSync });
-        await refreshMeleeWeaponCompendiums({ silent: silentStartupSync });
-        await patchCovenantPlasmaPistolChargeCompendiums({ silent: silentStartupSync });
-      }
-
-      await organizeEquipmentCompendiumFolders({ silent: silentStartupSync });
-      await applyMythicTokenDefaultsToWorld();
-      initializeFloodContaminationHud();
     } else {
       destroyFloodContaminationHud();
     }
@@ -1281,7 +1631,9 @@ export function registerAllHooks() {
         }, {})
       };
     };
-    if (game.user?.isGM) {
+    if (game.user?.isGM && !startupInitializationFailed) {
+      try {
+        updateStartupProgress(86, "Preparing reference packs...");
       const buildWeaponSeedItemsForCollection = async (collectionName) => {
         const rows = await loadReferenceWeaponItems();
         return rows
@@ -1338,6 +1690,7 @@ export function registerAllHooks() {
 
         const wasLocked = Boolean(pack.locked);
         let unlockedForSeed = false;
+        let seeded = false;
 
         try {
           if (wasLocked) {
@@ -1345,6 +1698,7 @@ export function registerAllHooks() {
             unlockedForSeed = true;
           }
           await Item.createDocuments(itemsToCreate, { pack: pack.collection });
+          seeded = true;
           console.log(`[mythic-system] Seeded ${itemsToCreate.length} ${label} into compendium.`);
         } catch (error) {
           console.error(`[mythic-system] Failed seeding ${label} compendium ${collection}.`, error);
@@ -1356,6 +1710,10 @@ export function registerAllHooks() {
               console.error(`[mythic-system] Failed to relock compendium ${collection}.`, lockError);
             }
           }
+        }
+
+        if (seeded) {
+          void invalidateAndRerenderCompendiums([pack], { notify: false });
         }
       };
 
@@ -1399,6 +1757,7 @@ export function registerAllHooks() {
           }
           await Item.updateDocuments(updates, { pack: pack.collection });
           console.log(`[mythic-system] Normalized ${updates.length} ammo compendium item(s) to ammunition.`);
+          void invalidateAndRerenderCompendiums([pack], { notify: false });
         } catch (error) {
           console.error("[mythic-system] Failed normalizing ammo compendium item types.", error);
         } finally {
@@ -1684,6 +2043,26 @@ export function registerAllHooks() {
       });
 
       await syncCreationPathItemIcons();
+      await flushPendingCompendiumRefreshes();
+      } catch (error) {
+        startupInitializationFailed = true;
+        console.error("[mythic-system] Startup reference preparation failed.", error);
+        if (startupProgressVisible) {
+          mythicStartupProgress.fail({ label: "Initialization completed with issues." });
+        } else {
+          ui.notifications?.error("Mythic reference preparation failed. Check console for details.");
+        }
+      }
+    }
+
+    if (game.user?.isGM && startupProgressVisible && !startupInitializationFailed) {
+      try {
+        await markMythicStartupInitializationComplete(startupWorkPlan);
+        mythicStartupProgress.finish({ label: "Mythic system ready." });
+      } catch (error) {
+        console.error("[mythic-system] Failed to store startup initialization state.", error);
+        mythicStartupProgress.fail({ label: "Initialization completed with issues." });
+      }
     }
   });
 

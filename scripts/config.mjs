@@ -427,6 +427,8 @@ export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY = "compendiumCano
 export const MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY = "weaponJsonMigrationVersion";
 export const MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY = "armorJsonMigrationVersion";
 export const MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY = "vehicleCsvMigrationVersion";
+export const MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY = "compendiumSourceSignatures";
+export const MYTHIC_STARTUP_INITIALIZATION_SETTING_KEY = "startupInitializationState";
 export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY = "useAmmoWeightOptionalRule";
 export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY = "ammoWeightOptionalRuleMigrationVersion";
 export const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
@@ -450,8 +452,6 @@ export const MYTHIC_FLOOD_JUGGERNAUT_ACTIVE_SETTING_KEY = "floodJuggernautActive
 export const MYTHIC_FLOOD_ABOMINATION_ACTIVE_SETTING_KEY = "floodAbominationActive";
 export const MYTHIC_FLOOD_PROTO_GRAVEMIND_ACTIVE_SETTING_KEY = "floodProtoGravemindActive";
 export const MYTHIC_FLOOD_GRAVEMIND_ACTIVE_SETTING_KEY = "floodGravemindActive";
-export const MYTHIC_STARTUP_AUTO_REFRESH_SETTING_KEY = "startupAutoRefreshCompendiums";
-export const MYTHIC_STARTUP_SYNC_SILENT_SETTING_KEY = "startupCompendiumSyncSilent";
 
 export const MYTHIC_BESTIARY_DIFFICULTY_MODES = Object.freeze({
   global: "global",

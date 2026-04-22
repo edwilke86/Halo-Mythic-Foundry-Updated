@@ -126,9 +126,10 @@ export async function syncCreationPathItemIcons() {
 }
 
 export async function migrateLegacyAiIconsToFoundryDefaults(options = {}) {
-  if (!game.user?.isGM) return;
+  if (!game.user?.isGM) return { updated: 0 };
 
   const includeCompendiums = options?.includeCompendiums === true;
+  const silent = options?.silent === true;
 
   let actorUpdates = 0;
   let itemUpdates = 0;
@@ -232,8 +233,16 @@ export async function migrateLegacyAiIconsToFoundryDefaults(options = {}) {
   const totalUpdates = actorUpdates + itemUpdates + embeddedItemUpdates + compendiumUpdates;
   if (totalUpdates > 0) {
     console.log(`[mythic-system] Migrated ${totalUpdates} legacy AI icon references to Foundry defaults (actors: ${actorUpdates}, world items: ${itemUpdates}, actor items: ${embeddedItemUpdates}, compendium docs: ${compendiumUpdates}).`);
-    ui.notifications?.info(`Mythic: Updated ${totalUpdates} legacy icon references to Foundry defaults.`);
+    if (!silent) ui.notifications?.info(`Mythic: Updated ${totalUpdates} legacy icon references to Foundry defaults.`);
   }
+
+  return {
+    updated: totalUpdates,
+    actorUpdates,
+    itemUpdates,
+    embeddedItemUpdates,
+    compendiumUpdates
+  };
 }
 
 export function isHuragokCharacterSystem(systemData = {}) {

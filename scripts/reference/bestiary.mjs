@@ -5,6 +5,7 @@ import {
 
 import { splitCsvText, findHeaderRowIndex, buildHeaderMap } from "../utils/csv-parser.mjs";
 import { parseReferenceNumber } from "./ref-utils.mjs";
+import { invalidateAndRerenderCompendiums } from "./compendium-refresh-utils.mjs";
 import { normalizeBestiarySystemData } from "../data/normalization.mjs";
 import { getCanonicalBestiarySystemData } from "../data/canonical.mjs";
 import { toSlug } from "../utils/helpers.mjs";
@@ -327,7 +328,7 @@ export async function refreshBestiaryCompendiums(options = {}) {
     rows = await loadReferenceBestiaryActors();
   } catch (error) {
     console.error("[mythic-system] Failed to load bestiary CSV for compendium refresh.", error);
-    ui.notifications?.error("Failed to load bestiary CSV. See console for details.");
+    if (!silent) ui.notifications?.error("Failed to load bestiary CSV. See console for details.");
     return { created: 0, updated: 0, skipped: 0, dryRun, byPack: {} };
   }
 
@@ -356,6 +357,7 @@ export async function refreshBestiaryCompendiums(options = {}) {
   let createdFolders = 0;
   let folderAssigned = 0;
   const byPack = {};
+  const refreshedPacks = new Set();
 
   for (const { descriptor, actors } of grouped.values()) {
     const pack = getPackForFactionKey(descriptor.key);
@@ -448,6 +450,14 @@ export async function refreshBestiaryCompendiums(options = {}) {
         folderAssigned: packFolderAssigned
       };
     });
+    if (!dryRun && (
+      (result.created ?? 0) > 0
+      || (result.updated ?? 0) > 0
+      || (result.createdFolders ?? 0) > 0
+      || (result.folderAssigned ?? 0) > 0
+    )) {
+      refreshedPacks.add(pack);
+    }
 
     created += result.created;
     updated += result.updated;
@@ -457,8 +467,8 @@ export async function refreshBestiaryCompendiums(options = {}) {
     byPack[descriptor.name] = result;
   }
 
-  if (!dryRun && !silent) {
-    ui.notifications?.info(`Bestiary compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: !silent });
   }
 
   return { created, updated, skipped, createdFolders, folderAssigned, dryRun, byPack };

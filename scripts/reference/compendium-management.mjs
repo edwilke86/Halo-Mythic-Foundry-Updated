@@ -30,6 +30,7 @@ import {
 import {
   buildCompendiumCanonicalMap
 } from "./weapons.mjs";
+import { invalidateAndRerenderCompendiums } from "./compendium-refresh-utils.mjs";
 
 const MYTHIC_ARMOR_ROW_EXCLUSION_REGEX = /stink\s*machine|helldiver|secret\s*helldivers\s*test/i;
 const MYTHIC_SOLDIER_TYPES_SYSTEM_COLLECTION = "Halo-Mythic-Foundry-Updated.soldier-types";
@@ -682,8 +683,8 @@ export async function importSoldierTypesFromJson(options = {}) {
       await Item.createDocuments(createBatch, { pack: pack.collection });
     }
 
-    if (!dryRun && !silent) {
-      ui.notifications?.info(`Soldier type JSON import complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+    if (!dryRun && (created > 0 || updated > 0)) {
+      void invalidateAndRerenderCompendiums([pack], { notify: !silent });
     }
 
     return { created, updated, skipped };
@@ -804,8 +805,8 @@ export async function refreshTraitsCompendium(options = {}) {
     }
   }
 
-  if (!dryRun && !silent) {
-    ui.notifications?.info(`Traits compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  if (!dryRun && (created > 0 || updated > 0)) {
+    void invalidateAndRerenderCompendiums([pack], { notify: !silent });
   }
 
   return { created, updated, skipped, dryRun };
@@ -934,8 +935,8 @@ export async function refreshAbilitiesCompendium(options = {}) {
     }
   }
 
-  if (!dryRun && !silent) {
-    ui.notifications?.info(`Abilities compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  if (!dryRun && (created > 0 || updated > 0)) {
+    void invalidateAndRerenderCompendiums([pack], { notify: !silent });
   }
 
   return { created, updated, skipped, dryRun };
@@ -1023,6 +1024,7 @@ export async function refreshGeneralEquipmentCompendiums(options = {}) {
   let updated = 0;
   let skipped = 0;
   const byPack = {};
+  const refreshedPacks = new Set();
 
   for (const [collection, packRows] of rowsByCollection.entries()) {
     const pack = game.packs.get(collection);
@@ -1093,6 +1095,8 @@ export async function refreshGeneralEquipmentCompendiums(options = {}) {
       }
     }
 
+    if (!dryRun && (packCreated > 0 || packUpdated > 0)) refreshedPacks.add(pack);
+
     byPack[collection] = {
       created: packCreated,
       updated: packUpdated,
@@ -1105,8 +1109,8 @@ export async function refreshGeneralEquipmentCompendiums(options = {}) {
     skipped += packSkipped;
   }
 
-  if (!dryRun && !silent) {
-    ui.notifications?.info(`General equipment compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: !silent });
   }
 
   return { created, updated, skipped, dryRun, byPack };
@@ -1215,6 +1219,7 @@ export async function refreshArmorCompendiums(options = {}) {
   let updated = 0;
   let skipped = 0;
   const byPack = {};
+  const refreshedPacks = new Set();
 
   for (const [collection, packRows] of rowsByCollection.entries()) {
     const pack = game.packs.get(collection);
@@ -1285,6 +1290,8 @@ export async function refreshArmorCompendiums(options = {}) {
       }
     }
 
+    if (!dryRun && (packCreated > 0 || packUpdated > 0)) refreshedPacks.add(pack);
+
     byPack[collection] = {
       created: packCreated,
       updated: packUpdated,
@@ -1297,8 +1304,8 @@ export async function refreshArmorCompendiums(options = {}) {
     skipped += packSkipped;
   }
 
-  if (!dryRun && !silent) {
-    ui.notifications?.info(`Armor compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: !silent });
   }
 
   return { created, updated, skipped, dryRun, byPack };
@@ -1327,6 +1334,7 @@ export async function rebuildArmorCompendiumsFromJson(options = {}) {
   let created = 0;
   let skipped = 0;
   const byPack = {};
+  const refreshedPacks = new Set();
 
   for (const collection of Object.values(MYTHIC_ARMOR_COLLECTION_BY_FACTION)) {
     const pack = game.packs.get(collection);
@@ -1377,6 +1385,8 @@ export async function rebuildArmorCompendiumsFromJson(options = {}) {
       }
     }
 
+    if (!dryRun && (packDeleted > 0 || packCreated > 0)) refreshedPacks.add(pack);
+
     byPack[collection] = {
       deleted: packDeleted,
       created: packCreated,
@@ -1388,8 +1398,8 @@ export async function rebuildArmorCompendiumsFromJson(options = {}) {
     created += packCreated;
   }
 
-  if (!dryRun && !silent) {
-    ui.notifications?.info(`Armor compendium rebuild complete. Deleted ${deleted}, created ${created}.`);
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: !silent });
   }
 
   return { deleted, created, skipped, dryRun, byPack };
@@ -1416,9 +1426,13 @@ export async function removeEmbeddedArmorVariants(options = {}) {
 
   const armorPacks = Array.from(game.packs ?? []).filter((pack) => {
     const name = String(pack.metadata?.name ?? "").toLowerCase();
-    return name.startsWith("mythic-armor-");
+    const system = String(pack.metadata?.system ?? "").trim();
+    const collection = String(pack.collection ?? "").trim();
+    return name.startsWith("mythic-armor-")
+      && (system === "Halo-Mythic-Foundry-Updated" || collection.startsWith("Halo-Mythic-Foundry-Updated."));
   });
 
+  const refreshedPacks = new Set();
   for (const pack of armorPacks) {
     const docs = await pack.getDocuments();
     const updates = [];
@@ -1429,8 +1443,13 @@ export async function removeEmbeddedArmorVariants(options = {}) {
     if (!updates.length) continue;
     if (!dryRun) {
       await Item.updateDocuments(updates, { pack: pack.collection, diff: false });
+      refreshedPacks.add(pack);
     }
     removedCompendium += updates.length;
+  }
+
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: false });
   }
 
   ui.notifications?.info(
@@ -1448,11 +1467,15 @@ export async function removeArmorVariantRowsFromArmorCompendiums(options = {}) {
   const dryRun = options?.dryRun === true;
   const armorPacks = Array.from(game.packs ?? []).filter((pack) => {
     const name = String(pack.metadata?.name ?? "").toLowerCase();
-    return name.startsWith("mythic-armor-");
+    const system = String(pack.metadata?.system ?? "").trim();
+    const collection = String(pack.collection ?? "").trim();
+    return name.startsWith("mythic-armor-")
+      && (system === "Halo-Mythic-Foundry-Updated" || collection.startsWith("Halo-Mythic-Foundry-Updated."));
   });
 
   let removed = 0;
   let packsTouched = 0;
+  const refreshedPacks = new Set();
 
   // Heuristic for legacy imported variant docs from armor CSV.
   const variantNameRegex = /^gen\s*(i{1,3}|iv|v|vi|vii|viii|ix|x|\d+)\b/i;
@@ -1468,8 +1491,13 @@ export async function removeArmorVariantRowsFromArmorCompendiums(options = {}) {
     packsTouched += 1;
     if (!dryRun) {
       await Item.deleteDocuments(toDelete, { pack: pack.collection });
+      refreshedPacks.add(pack);
     }
     removed += toDelete.length;
+  }
+
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: false });
   }
 
   ui.notifications?.info(
@@ -1488,11 +1516,15 @@ export async function removeExcludedArmorRowsFromCompendiums(options = {}) {
   const dryRun = options?.dryRun === true;
   const armorPacks = Array.from(game.packs ?? []).filter((pack) => {
     const name = String(pack.metadata?.name ?? "").toLowerCase();
-    return name.startsWith("mythic-armor-");
+    const system = String(pack.metadata?.system ?? "").trim();
+    const collection = String(pack.collection ?? "").trim();
+    return name.startsWith("mythic-armor-")
+      && (system === "Halo-Mythic-Foundry-Updated" || collection.startsWith("Halo-Mythic-Foundry-Updated."));
   });
 
   let removed = 0;
   let packsTouched = 0;
+  const refreshedPacks = new Set();
 
   for (const pack of armorPacks) {
     const docs = await pack.getDocuments();
@@ -1512,8 +1544,13 @@ export async function removeExcludedArmorRowsFromCompendiums(options = {}) {
     packsTouched += 1;
     if (!dryRun) {
       await Item.deleteDocuments(toDelete, { pack: pack.collection });
+      refreshedPacks.add(pack);
     }
     removed += toDelete.length;
+  }
+
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: false });
   }
 
   ui.notifications?.info(
@@ -1723,13 +1760,17 @@ export async function patchCovenantPlasmaPistolChargeCompendiums(options = {}) {
 
   const packs = (game.packs ?? []).filter((pack) => {
     const documentName = String(pack?.documentName ?? pack?.metadata?.type ?? "");
-    return documentName === "Item";
+    const collection = String(pack?.collection ?? "").trim();
+    const system = String(pack?.metadata?.system ?? "").trim();
+    return documentName === "Item"
+      && (system === "Halo-Mythic-Foundry-Updated" || collection.startsWith("Halo-Mythic-Foundry-Updated."));
   });
 
   let updated = 0;
   let removed = 0;
   let packsTouched = 0;
   let foundAnyTargets = false;
+  const refreshedPacks = new Set();
 
   for (const pack of packs) {
     const index = await pack.getIndex();
@@ -1785,6 +1826,7 @@ export async function patchCovenantPlasmaPistolChargeCompendiums(options = {}) {
 
       if (updates.length || deleteIds.length) {
         packsTouched += 1;
+        if (!dryRun) refreshedPacks.add(pack);
       }
 
       if (!dryRun && updates.length) {
@@ -1826,12 +1868,12 @@ export async function patchCovenantPlasmaPistolChargeCompendiums(options = {}) {
     }
   }
 
-  if (!dryRun && foundAnyTargets) {
+  if (!dryRun) {
     await game.settings.set("Halo-Mythic-Foundry-Updated", MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY, 1);
   }
 
-  if (!dryRun && !silent && foundAnyTargets && (updated > 0 || removed > 0)) {
-    ui.notifications?.info(`[Mythic] Covenant plasma pistol patch applied: updated ${updated}, removed ${removed} duplicate charged-shot entries.`);
+  if (!dryRun && refreshedPacks.size > 0) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: !silent });
   }
 
   return { updated, removed, packsTouched, foundAnyTargets, dryRun };

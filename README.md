@@ -12,9 +12,9 @@ This project is actively in development and currently targets Foundry v13.
 
 ## Alpha Readiness
 
-Current build target: `0.4.0-alpha.2` (current playtest hotfix alpha)
+Current build target: `0.4.0-alpha.3` (current playtest hotfix alpha)
 
-Latest published release: `0.4.0-alpha.2` (2026-04-21)
+Latest published release: `0.4.0-alpha.3` (2026-04-22)
 
 Known alpha limitations:
 
@@ -41,11 +41,12 @@ Alpha bug reporting focus (important):
 
 Where to report:
 
-- Send bug reports by Discord DM to: `.neoshain`
+- Submit bug reports in the official bug report document:
+  <https://docs.google.com/document/d/1DTP78aZlpHavm1yx0r6jE9ZiM-i6RkjfNbfbsASmdKQ/edit?tab=t.0#heading=h.by73jlwz9a9n>
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.4.0-alpha.2` (or latest published build in use)
+1. Build/version: `0.4.0-alpha.3` (or latest published build in use)
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -64,8 +65,8 @@ Format:
 
 Current working version:
 
-- Development target: `0.4.0-alpha.2`
-- Latest published: `0.4.0-alpha.2`
+- Development target: `0.4.0-alpha.3`
+- Latest published: `0.4.0-alpha.3`
 
 Rules used:
 
@@ -76,6 +77,12 @@ Rules used:
 ## Progress Log (Keep Updated)
 
 Use this section for short public-facing updates as development progresses.
+
+### 0.4.0-alpha.3
+
+- Added a single startup/update readiness banner for meaningful first setup, migration, or post-update work.
+- Improved compendium refresh behavior so startup work stays quiet, debounced, targeted, and does not open compendium windows.
+- Replaced noisy per-pack refresh notices with restrained summary behavior when compendium data actually changes.
 
 ### 0.4.0-alpha.2
 

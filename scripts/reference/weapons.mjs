@@ -14,6 +14,7 @@ import {
 } from '../config.mjs';
 import { splitCsvText, findHeaderRowIndex, buildHeaderMap } from '../utils/csv-parser.mjs';
 import { parseReferenceNumber } from './ref-utils.mjs';
+import { invalidateAndRerenderCompendiums } from './compendium-refresh-utils.mjs';
 import { normalizeGearSystemData } from '../data/normalization.mjs';
 import { buildCanonicalItemId, normalizeStringList } from '../utils/helpers.mjs';
 
@@ -815,6 +816,7 @@ export async function refreshRangedWeaponCompendiums(options = {}) {
   let created = 0;
   let updated = 0;
   const byPack = {};
+  const refreshedPacks = new Set();
   for (const { descriptor, items } of grouped.values()) {
     let resolved = null;
     try {
@@ -883,6 +885,7 @@ export async function refreshRangedWeaponCompendiums(options = {}) {
 
       return { created: packCreated, updated: packUpdated, skipped: packSkipped };
     });
+    if (!dryRun && ((result.created ?? 0) > 0 || (result.updated ?? 0) > 0)) refreshedPacks.add(pack);
 
     created += result.created;
     updated += result.updated;
@@ -894,10 +897,8 @@ export async function refreshRangedWeaponCompendiums(options = {}) {
   }
 
   if (!dryRun) {
-    await organizeEquipmentCompendiumFolders({ silent });
-  }
-  if (!dryRun && !silent) {
-    ui.notifications?.info(`Ranged weapon compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+    if (refreshedPacks.size > 0) await organizeEquipmentCompendiumFolders({ silent });
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: !silent });
   }
 
   return { created, updated, skipped, dryRun, byPack };
@@ -937,6 +938,7 @@ export async function refreshMeleeWeaponCompendiums(options = {}) {
   let created = 0;
   let updated = 0;
   const byPack = {};
+  const refreshedPacks = new Set();
 
   for (const { descriptor, items } of grouped.values()) {
     let pack = null;
@@ -999,6 +1001,7 @@ export async function refreshMeleeWeaponCompendiums(options = {}) {
 
       return { created: packCreated, updated: packUpdated, skipped: packSkipped };
     });
+    if (!dryRun && ((result.created ?? 0) > 0 || (result.updated ?? 0) > 0)) refreshedPacks.add(pack);
 
     created += result.created;
     updated += result.updated;
@@ -1010,10 +1013,8 @@ export async function refreshMeleeWeaponCompendiums(options = {}) {
   }
 
   if (!dryRun) {
-    await organizeEquipmentCompendiumFolders({ silent });
-  }
-  if (!dryRun && !silent) {
-    ui.notifications?.info(`Melee weapon compendium refresh complete. Created ${created}, updated ${updated}, skipped ${skipped}.`);
+    if (refreshedPacks.size > 0) await organizeEquipmentCompendiumFolders({ silent });
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: !silent });
   }
 
   return { created, updated, skipped, dryRun, byPack };
@@ -1144,7 +1145,13 @@ export async function updateWeaponCompendiumIcons(options = {}) {
 
   const dryRun = options?.dryRun === true;
   const allPacks = Array.from(game.packs ?? []);
-  const weaponPacks = allPacks.filter((pack) => pack.metadata?.name?.startsWith("mythic-weapons-"));
+  const weaponPacks = allPacks.filter((pack) => {
+    const name = String(pack.metadata?.name ?? "").trim();
+    const system = String(pack.metadata?.system ?? "").trim();
+    const collection = String(pack.collection ?? "").trim();
+    return name.startsWith("mythic-weapons-")
+      && (system === "Halo-Mythic-Foundry-Updated" || collection.startsWith("Halo-Mythic-Foundry-Updated."));
+  });
 
   if (!weaponPacks.length) {
     ui.notifications?.warn("No weapon compendiums found. Run importReferenceWeapons first.");
@@ -1152,6 +1159,7 @@ export async function updateWeaponCompendiumIcons(options = {}) {
   }
 
   let total = 0;
+  const refreshedPacks = new Set();
   for (const pack of weaponPacks) {
     const docs = await pack.getDocuments();
     const updates = [];
@@ -1165,9 +1173,14 @@ export async function updateWeaponCompendiumIcons(options = {}) {
     if (!updates.length) continue;
     if (!dryRun) {
       await Item.updateDocuments(updates, { pack: pack.collection });
+      refreshedPacks.add(pack);
     }
     total += updates.length;
     console.log(`[mythic-system] ${dryRun ? "[DRY RUN] " : ""}Updated ${updates.length} icons in ${pack.metadata?.label ?? pack.collection}`);
+  }
+
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: false });
   }
 
   ui.notifications?.info(`[Mythic] ${dryRun ? "Would update" : "Updated"} ${total} weapon icons.`);
@@ -1182,7 +1195,13 @@ export async function removeNonMythicCompendiumWeapons(options = {}) {
 
   const dryRun = options?.dryRun === true;
   const allPacks = Array.from(game.packs ?? []);
-  const weaponPacks = allPacks.filter((pack) => pack.metadata?.name?.startsWith("mythic-weapons-"));
+  const weaponPacks = allPacks.filter((pack) => {
+    const name = String(pack.metadata?.name ?? "").trim();
+    const system = String(pack.metadata?.system ?? "").trim();
+    const collection = String(pack.collection ?? "").trim();
+    return name.startsWith("mythic-weapons-")
+      && (system === "Halo-Mythic-Foundry-Updated" || collection.startsWith("Halo-Mythic-Foundry-Updated."));
+  });
 
   if (!weaponPacks.length) {
     ui.notifications?.warn("No weapon compendiums found.");
@@ -1190,6 +1209,7 @@ export async function removeNonMythicCompendiumWeapons(options = {}) {
   }
 
   let total = 0;
+  const refreshedPacks = new Set();
   for (const pack of weaponPacks) {
     const docs = await pack.getDocuments();
     const toDelete = [];
@@ -1203,8 +1223,13 @@ export async function removeNonMythicCompendiumWeapons(options = {}) {
     if (!toDelete.length) continue;
     if (!dryRun) {
       await Item.deleteDocuments(toDelete, { pack: pack.collection });
+      refreshedPacks.add(pack);
     }
     total += toDelete.length;
+  }
+
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: false });
   }
 
   ui.notifications?.info(`[Mythic] ${dryRun ? "Would remove" : "Removed"} ${total} non-Mythic weapon entries from compendiums.`);

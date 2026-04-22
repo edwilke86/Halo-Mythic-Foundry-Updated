@@ -6,6 +6,7 @@ import {
 } from "../config.mjs";
 import { normalizeCharacterSystemData, normalizeSupportedItemSystemData } from "../data/normalization.mjs";
 import { coerceMigrationVersion } from "../utils/helpers.mjs";
+import { invalidateAndRerenderCompendiums } from "../reference/compendium-refresh-utils.mjs";
 
 export async function runWorldSchemaMigration() {
   let actorMigrations = 0;
@@ -203,6 +204,7 @@ export async function runCompendiumCanonicalMigration(options = {}) {
   let updated = 0;
   let packsTouched = 0;
   const duplicates = [];
+  const refreshedPacks = new Set();
 
   for (const pack of packs) {
     const wasLocked = Boolean(pack.locked);
@@ -237,6 +239,7 @@ export async function runCompendiumCanonicalMigration(options = {}) {
       if (updates.length) {
         packsTouched += 1;
         updated += updates.length;
+        if (!dryRun) refreshedPacks.add(pack);
         if (!dryRun) {
           await Item.updateDocuments(updates, {
             pack: pack.collection,
@@ -258,6 +261,7 @@ export async function runCompendiumCanonicalMigration(options = {}) {
       MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY,
       MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION
     );
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: options?.notify === true });
   }
 
   if (duplicates.length) {
@@ -272,7 +276,7 @@ export async function runCompendiumCanonicalMigration(options = {}) {
   };
 }
 
-export async function maybeRunCompendiumCanonicalMigration() {
+export async function maybeRunCompendiumCanonicalMigration(options = {}) {
   if (!game.user?.isGM) return;
 
   const storedVersion = coerceMigrationVersion(
@@ -284,26 +288,33 @@ export async function maybeRunCompendiumCanonicalMigration() {
     return;
   }
 
-  ui.notifications?.info(
-    `Halo Mythic: backfilling compendium canonical IDs ${storedVersion} -> ${MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION}.`
-  );
+  const silent = options?.silent === true;
+  if (!silent) {
+    ui.notifications?.info(
+      `Halo Mythic: backfilling compendium canonical IDs ${storedVersion} -> ${MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION}.`
+    );
+  }
 
   try {
-    const result = await runCompendiumCanonicalMigration();
+    const result = await runCompendiumCanonicalMigration({ notify: !silent });
     console.log(
       `[mythic-system] Compendium canonical migration ${storedVersion} -> ${MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION} complete: ${result.updated} items across ${result.packsTouched} packs.`
     );
-    ui.notifications?.info(
-      `Halo Mythic compendium canonical migration complete: ${result.updated} items updated across ${result.packsTouched} packs.`
-    );
+    if (!silent) {
+      ui.notifications?.info(
+        `Halo Mythic compendium canonical migration complete: ${result.updated} items updated across ${result.packsTouched} packs.`
+      );
+    }
   } catch (error) {
     console.error("[mythic-system] Compendium canonical migration failed.", error);
-    ui.notifications?.error("Halo Mythic compendium canonical migration failed. Check browser console for details.");
+    if (!silent) ui.notifications?.error("Halo Mythic compendium canonical migration failed. Check browser console for details.");
+    if (options?.throwOnError === true) throw error;
+    return { failed: true, error };
   }
 }
 
-export async function maybeRunWorldMigration() {
-  if (!game.user?.isGM) return;
+export async function maybeRunWorldMigration(options = {}) {
+  if (!game.user?.isGM) return { skipped: true, reason: "not-gm" };
 
   const storedVersion = coerceMigrationVersion(
     game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_WORLD_MIGRATION_SETTING_KEY),
@@ -311,12 +322,15 @@ export async function maybeRunWorldMigration() {
   );
 
   if (storedVersion >= MYTHIC_WORLD_MIGRATION_VERSION) {
-    return;
+    return { skipped: true, reason: "already-migrated", version: storedVersion };
   }
 
-  ui.notifications?.info(
-    `Halo Mythic: running world migration ${storedVersion} -> ${MYTHIC_WORLD_MIGRATION_VERSION}.`
-  );
+  const silent = options?.silent === true;
+  if (!silent) {
+    ui.notifications?.info(
+      `Halo Mythic: running world migration ${storedVersion} -> ${MYTHIC_WORLD_MIGRATION_VERSION}.`
+    );
+  }
 
   try {
     const result = await runWorldSchemaMigration();
@@ -330,11 +344,16 @@ export async function maybeRunWorldMigration() {
       `[mythic-system] World migration ${storedVersion} -> ${MYTHIC_WORLD_MIGRATION_VERSION} complete: ${result.actorMigrations} actors, ${result.itemMigrations} world items.`
     );
 
-    ui.notifications?.info(
-      `Halo Mythic migration complete: ${result.actorMigrations} actors and ${result.itemMigrations} world items updated.`
-    );
+    if (!silent) {
+      ui.notifications?.info(
+        `Halo Mythic migration complete: ${result.actorMigrations} actors and ${result.itemMigrations} world items updated.`
+      );
+    }
+    return { skipped: false, previousVersion: storedVersion, version: MYTHIC_WORLD_MIGRATION_VERSION, ...result };
   } catch (error) {
     console.error("[mythic-system] World migration failed.", error);
-    ui.notifications?.error("Halo Mythic migration failed. Check browser console for details.");
+    if (!silent) ui.notifications?.error("Halo Mythic migration failed. Check browser console for details.");
+    if (options?.throwOnError === true) throw error;
+    return { failed: true, error, previousVersion: storedVersion };
   }
 }

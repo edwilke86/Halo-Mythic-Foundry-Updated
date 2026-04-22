@@ -4,6 +4,22 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
+## [0.4.0-alpha.3] - 2026-04-22
+
+### Added (0.4.0-alpha.3)
+
+- Added a single polished startup/update progress banner for first-time setup, migrations, compendium prep, and other meaningful initialization work.
+
+### Changed (0.4.0-alpha.3)
+
+- Compendium refresh now runs as quiet background work with debounced batching, targeted changed-pack refreshes, and restrained summary notifications.
+- Startup/update initialization now records completion state so ordinary unchanged startups do not show progress UI or completion toasts.
+
+### Fixed (0.4.0-alpha.3)
+
+- Fixed startup refresh behavior that could spam notifications during compendium preparation.
+- Fixed refresh paths so closed compendium windows are not opened or rendered just because data refreshed.
+
 ## [0.4.0-alpha.2] - 2026-04-21
 
 ### Added (0.4.0-alpha.2)

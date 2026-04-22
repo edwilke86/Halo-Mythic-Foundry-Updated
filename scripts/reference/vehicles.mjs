@@ -16,6 +16,7 @@ import {
   toNonNegativeWhole
 } from "../utils/helpers.mjs";
 import { parseReferenceNumber } from "./ref-utils.mjs";
+import { invalidateAndRerenderCompendiums } from "./compendium-refresh-utils.mjs";
 
 const MYTHIC_VEHICLE_PACKS_BY_KEY = Object.freeze({
   unsc: {
@@ -900,14 +901,6 @@ function emitVehicleCompendiumReport(report, options = {}) {
     ui.notifications?.info("Vehicle compendium preview complete. See the console for the report.");
     return;
   }
-
-  const changed = (report?.results?.created ?? 0) + (report?.results?.updated ?? 0);
-  if (changed > 0) {
-    ui.notifications?.info(`Vehicle compendium refresh complete. Created ${report.results.created}, updated ${report.results.updated}, skipped ${report.results.skipped}.`);
-    return;
-  }
-
-  ui.notifications?.info("Vehicle compendium refresh complete. No changes were needed.");
 }
 
 function createVehicleReportSkeleton(options = {}) {
@@ -1510,6 +1503,7 @@ async function buildVehicleCanonicalMap(pack) {
 async function reconcileVehicleCompendiums(entries, report, options = {}) {
   const dryRun = options?.dryRun === true;
   const byPack = new Map();
+  const refreshedPacks = new Set();
 
   for (const entry of Array.isArray(entries) ? entries : []) {
     const packName = entry?.descriptor?.name;
@@ -1607,10 +1601,16 @@ async function reconcileVehicleCompendiums(entries, report, options = {}) {
 
       return true;
     });
+    const changed = (report.results.byPack[packName]?.created ?? 0) + (report.results.byPack[packName]?.updated ?? 0);
+    if (!dryRun && changed > 0) refreshedPacks.add(pack);
 
     if (!outcome) {
       report.validation.errors.push(`Vehicle pack '${packName}' could not be refreshed.`);
     }
+  }
+
+  if (!dryRun) {
+    void invalidateAndRerenderCompendiums(refreshedPacks, { notify: options?.notify === true });
   }
 
   report.blocked = report.validation.errors.length > 0 || report.validation.blockedVehicles.length > 0 || report.weaponLinks.invalidOverrides.length > 0;
@@ -1653,7 +1653,10 @@ export async function refreshVehicleCompendiums(options = {}) {
     let report = dataset.report;
 
     if (!report.blocked) {
-      report = await reconcileVehicleCompendiums(dataset.readyActors, report, { dryRun: options?.dryRun === true });
+      report = await reconcileVehicleCompendiums(dataset.readyActors, report, {
+        dryRun: options?.dryRun === true,
+        notify: !silent
+      });
     }
 
     const storedReport = storeVehicleCompendiumReport(report);

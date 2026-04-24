@@ -138,6 +138,7 @@ export const MYTHIC_ACTOR_PARTIAL_TEMPLATES = [
 ];
 
 export const MYTHIC_ITEM_PARTIAL_TEMPLATES = [
+  "systems/Halo-Mythic-Foundry-Updated/templates/item/container-sheet.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/armor-protection-grid.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-armor.hbs",
   "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-ammo.hbs",
@@ -365,7 +366,8 @@ export const MYTHIC_AMMO_COMPAT_CODES = Object.freeze({
   "DT":    { label: "Dual Tracer",                 description: "Dual-tagged tracer projectile families." },
   "SLAP":  { label: "Sabot Light Armor Piercing",  description: "Sub-caliber SLAP projectile families." },
   "SAP":   { label: "Semi-Armor Piercing",         description: "Semi-armor-piercing projectile families." },
-  "APFDS": { label: "APFDS (Sabot)",               description: "Armor-Piercing Fin-Stabilized Discarding Sabot families." },
+  "APFSDS": { label: "APFSDS (Sabot)",             description: "Armor-Piercing Fin-Stabilized Discarding Sabot families." },
+  "APFDS": { label: "APFSDS (Legacy Alias)",       description: "Legacy alias for APFSDS sabot projectile families." },
   "MG":    { label: "Match Grade",                 description: "Match-grade precision projectile families." },
   "DU":    { label: "Depleted Uranium",             description: "Depleted-uranium penetrator projectile families." },
   "DX":    { label: "Duplex",                      description: "Dual-projectile duplex round families." },
@@ -385,6 +387,99 @@ export const MYTHIC_AMMO_COMPAT_CODES = Object.freeze({
 
 export const MYTHIC_AMMO_COMPAT_CODE_SET = Object.freeze(new Set(Object.keys(MYTHIC_AMMO_COMPAT_CODES)));
 
+export const MYTHIC_SPECIAL_AMMO_FAMILIES = Object.freeze({
+  standardBallistic: "standard-ballistic",
+  shotgun: "shotgun",
+  flamethrowerFuel: "flamethrower-fuel",
+  cryosprayerFuel: "cryosprayer-fuel",
+  fortyMillimeter: "40mm",
+  explosive: "explosive",
+  missileRocketCannon: "missile-rocket-cannon",
+  bruteShot: "brute-shot"
+});
+
+export const MYTHIC_SPECIAL_AMMO_FAMILY_DEFINITIONS = Object.freeze([
+  Object.freeze({
+    value: MYTHIC_SPECIAL_AMMO_FAMILIES.standardBallistic,
+    label: "Standard Ammunition",
+    baseCategories: Object.freeze(["Standard", "Limited Standard"]),
+    costModel: "per100",
+    allowsMixedLoaders: true
+  }),
+  Object.freeze({
+    value: MYTHIC_SPECIAL_AMMO_FAMILIES.shotgun,
+    label: "Shotgun Ammunition",
+    baseCategories: Object.freeze(["Shotgun"]),
+    costModel: "per100",
+    allowsMixedLoaders: true
+  }),
+  Object.freeze({
+    value: MYTHIC_SPECIAL_AMMO_FAMILIES.flamethrowerFuel,
+    label: "Flamethrower Fuels",
+    baseCategories: Object.freeze(["Flamethrower or Cryosprayer"]),
+    costModel: "unit",
+    allowsMixedLoaders: false
+  }),
+  Object.freeze({
+    value: MYTHIC_SPECIAL_AMMO_FAMILIES.cryosprayerFuel,
+    label: "Cryosprayer Fuels",
+    baseCategories: Object.freeze(["Flamethrower or Cryosprayer"]),
+    costModel: "unit",
+    allowsMixedLoaders: false
+  }),
+  Object.freeze({
+    value: MYTHIC_SPECIAL_AMMO_FAMILIES.fortyMillimeter,
+    label: "40mm Grenades",
+    baseCategories: Object.freeze(["40mm Grenades"]),
+    costModel: "unit",
+    allowsMixedLoaders: false,
+    standaloneOnly: true
+  }),
+  Object.freeze({
+    value: MYTHIC_SPECIAL_AMMO_FAMILIES.explosive,
+    label: "Explosives",
+    baseCategories: Object.freeze([]),
+    costModel: "unit",
+    allowsMixedLoaders: false
+  }),
+  Object.freeze({
+    value: MYTHIC_SPECIAL_AMMO_FAMILIES.missileRocketCannon,
+    label: "Missile / Rocket / Cannon",
+    baseCategories: Object.freeze(["Missiles, Rockets & Cannon Shells"]),
+    costModel: "unit",
+    allowsMixedLoaders: false
+  }),
+  Object.freeze({
+    value: MYTHIC_SPECIAL_AMMO_FAMILIES.bruteShot,
+    label: "Brute Shot",
+    baseCategories: Object.freeze([]),
+    costModel: "unit",
+    allowsMixedLoaders: false
+  })
+]);
+
+export const MYTHIC_SPECIAL_AMMO_FAMILY_SET = Object.freeze(new Set(
+  MYTHIC_SPECIAL_AMMO_FAMILY_DEFINITIONS.map((entry) => String(entry.value ?? "").trim()).filter(Boolean)
+));
+
+export const MYTHIC_SPECIAL_AMMO_CAP_EXEMPT_CODES = Object.freeze(new Set([
+  "T",
+  "+P",
+  "+P+",
+  "-P",
+  "CL",
+  "MG"
+]));
+
+export const MYTHIC_BALLISTIC_LOADER_TYPES = Object.freeze([
+  "detachable-magazine",
+  "internal-magazine",
+  "belt",
+  "tube"
+]);
+
+export const MYTHIC_BALLISTIC_LOADER_TYPE_SET = Object.freeze(new Set(MYTHIC_BALLISTIC_LOADER_TYPES));
+
 export const MYTHIC_BASE_AMMO_TYPE_OPTIONS = Object.freeze([
   { value: "", label: "Select Ammo Type" },
   { value: "handgun", label: "Handgun" },
@@ -403,7 +498,7 @@ export const MYTHIC_BASE_AMMO_TYPE_SET = Object.freeze(new Set(
     .filter(Boolean)
 ));
 
-export const MYTHIC_GEAR_SCHEMA_VERSION = 1;
+export const MYTHIC_GEAR_SCHEMA_VERSION = 4;
 export const MYTHIC_ABILITY_SCHEMA_VERSION = 1;
 export const MYTHIC_TRAIT_SCHEMA_VERSION = 1;
 export const MYTHIC_EDUCATION_SCHEMA_VERSION = 1;
@@ -414,7 +509,7 @@ export const MYTHIC_UPBRINGING_SCHEMA_VERSION = 1;
 export const MYTHIC_ENVIRONMENT_SCHEMA_VERSION = 1;
 export const MYTHIC_LIFESTYLE_SCHEMA_VERSION = 1;
 export const MYTHIC_CONTENT_SYNC_VERSION = 1;
-export const MYTHIC_WORLD_MIGRATION_VERSION = 6;
+export const MYTHIC_WORLD_MIGRATION_VERSION = 11;
 export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION = 2;
 export const MYTHIC_WEAPON_JSON_MIGRATION_VERSION = 1;
 export const MYTHIC_ARMOR_JSON_MIGRATION_VERSION = 1;
@@ -427,12 +522,15 @@ export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_SETTING_KEY = "compendiumCano
 export const MYTHIC_WEAPON_JSON_MIGRATION_SETTING_KEY = "weaponJsonMigrationVersion";
 export const MYTHIC_ARMOR_JSON_MIGRATION_SETTING_KEY = "armorJsonMigrationVersion";
 export const MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY = "vehicleCsvMigrationVersion";
+export const MYTHIC_COMPENDIUM_DUPLICATE_CLEANUP_VERSION_SETTING_KEY = "compendiumDuplicateCleanupSystemVersion";
 export const MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY = "compendiumSourceSignatures";
 export const MYTHIC_STARTUP_INITIALIZATION_SETTING_KEY = "startupInitializationState";
 export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_SETTING_KEY = "useAmmoWeightOptionalRule";
 export const MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY = "ammoWeightOptionalRuleMigrationVersion";
 export const MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY = "ignoreBasicAmmoWeight";
 export const MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY = "ignoreBasicAmmoCounts";
+export const MYTHIC_SPECIAL_AMMO_AUTO_DEDUCT_SETTING_KEY = "autoDeductSpecialAmmoCredits";
+export const MYTHIC_DISALLOW_MAGAZINE_REORDER_IN_COMBAT_SETTING_KEY = "disallowMagazineRoundReorderInCombat";
 export const MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY = "tokenBarVisibilityDefault";
 export const MYTHIC_USE_FOUNDRY_DEFAULT_TOKEN_HUD_SETTING_KEY = "useFoundryDefaultTokenHud";
 export const MYTHIC_CHAR_BUILDER_CREATION_POINTS_SETTING_KEY = "charBuilderCreationPoints";
@@ -639,6 +737,8 @@ export const MYTHIC_REFERENCE_RANGED_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-
 export const MYTHIC_REFERENCE_MELEE_WEAPONS_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Melee Weps.csv";
 export const MYTHIC_REFERENCE_ARMOR_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Armor.csv";
 export const MYTHIC_REFERENCE_EQUIPMENT_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - CR costing items.csv";
+export const MYTHIC_REFERENCE_AMMO_COMPAT_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Ammo Compat.csv";
+export const MYTHIC_REFERENCE_AMMO_PRICING_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Ammo pricing sheet.csv";
 export const MYTHIC_REFERENCE_BESTIARY_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Bestiary.csv";
 export const MYTHIC_REFERENCE_VEHICLES_CSV = "systems/Halo-Mythic-Foundry-Updated/data/reference/Mythic Dev Sheet - Vehicles.csv";
 export const MYTHIC_REFERENCE_VEHICLE_WEAPON_OVERRIDES_JSON = "systems/Halo-Mythic-Foundry-Updated/data/reference/vehicle-weapon-link-overrides.json";
@@ -708,6 +808,7 @@ export const MYTHIC_MELEE_WEAPON_DEFAULT_ICON = "icons/svg/item-bag.svg";
 // These are the general armor special rules, power-armor traits, and armor abilities.
 // Keep keys stable so armor items can store references safely across updates.
 export {
+  getExplicitArmorPowerProfile,
   MYTHIC_ARMOR_SPECIAL_RULE_DEFINITIONS,
   MYTHIC_POWER_ARMOR_TRAIT_DEFINITIONS,
   MYTHIC_ARMOR_ABILITY_DEFINITIONS

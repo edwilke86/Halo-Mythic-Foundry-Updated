@@ -44,6 +44,18 @@
         <span class="gear-stat-unit">qty</span>
       </div>
       {{/if}}
+      <div class="gear-item-stat mythic-storage-unit-stat" title="{{#if gear.storage.storageUnitsRuleKey}}{{gear.storage.storageUnitsRuleKey}}{{else}}No carrying-unit table match{{/if}}">
+        <input class="mythic-storage-units-input" type="number" min="0" step="0.1" value="{{gear.storage.storageUnits}}"
+          {{#unless canEditFields}}disabled{{/unless}} />
+        <span class="gear-stat-unit">U</span>
+        <button type="button" class="mythic-storage-units-reset" title="Reset carrying units to auto" aria-label="Reset carrying units to auto"
+          {{#unless canEditFields}}disabled{{/unless}}>
+          <i class="fas fa-rotate-left"></i>
+        </button>
+      </div>
+      <div class="mythic-storage-unit-source {{#if (eq gear.storage.storageUnitsSource "manual")}}is-manual{{/if}}">
+        {{gear.storage.storageUnitsSource}}
+      </div>
     </div>
   </header>
 

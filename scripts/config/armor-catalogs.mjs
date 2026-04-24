@@ -2,6 +2,82 @@
 
 // These are the general armor special rules (not power armor traits).
 // Keep keys stable so armor items can store references safely across updates.
+function normalizeArmorPowerProfileMatchName(name = "") {
+  const raw = String(name ?? "");
+  const normalized = typeof raw.normalize === "function"
+    ? raw.normalize("NFKD")
+    : raw;
+
+  return normalized
+    // Common mojibake for curly apostrophes in reference data exports.
+    .replace(/\u00e2\u20ac[\u02dc\u2122]/gu, "'")
+    .replace(/[\u2018\u2019`´]/gu, "'")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+const MYTHIC_SEMI_POWERED_ARMOR_NAMES = Object.freeze([
+  "ODST SPI BDU",
+  "Mark I Semi-Powered Infiltration Armor",
+  "Mark II Semi-Powered Infiltration Armor",
+  "Headhunter Variant Mark II Semi-Powered Infiltration Armor"
+]);
+
+const MYTHIC_POWERED_ARMOR_NAMES = Object.freeze([
+  "Mjolnir Materials Prototype Mark 1 Exoskeleton",
+  "Mjolnir Materials Prototype Mark 2 Exoskeleton",
+  "Mjolnir Materials Prototype Mark 3 Exoskeleton",
+  "Mjolnir mark IV powered assault armor",
+  "Mjolnir mark V powered assault armor",
+  "Mjolnir mark VI powered assault armor",
+  "Mjolnir mark VII powered assault armor",
+  "Mjolnir gen II mark I powered assault armor",
+  "Mjolnir gen III mark I powered assault armor",
+  "Sangheili Minor Combat Harness",
+  "Sangheili Major Combat Harness",
+  "Sangheili Ultra Combat Harness",
+  "Sangheili Honor Guard Harness",
+  "Sangheili Infiltration Harness",
+  "Sangheili Field Marshal Harness",
+  "Sangheili Kaidon",
+  "San'Shyuum Combat Harness",
+  "San'Shyuum Prophet Harness",
+  "Schism Jiralhanae Minor Armor",
+  "Schism Jiralhanae Major Armor",
+  "Schism Jiralhanae Captain Major Armor",
+  "Schism Jiralhanae Captain Ultra Armor",
+  "Schism Jiralhanae Honor Guard Harness",
+  "Schism Jiralhanae Stalker Armor",
+  "Schism Jiralhanae Chieftain Armor",
+  "Schism Jiralhanae War Chieftain Armor"
+]);
+
+const MYTHIC_EXPLICIT_ARMOR_POWER_PROFILE_BY_NAME = new Map(
+  [
+    ...MYTHIC_SEMI_POWERED_ARMOR_NAMES.map((name) => [name, "semi-powered"]),
+    ...MYTHIC_POWERED_ARMOR_NAMES.map((name) => [name, "powered"])
+  ].map(([name, profile]) => [normalizeArmorPowerProfileMatchName(name), profile])
+);
+
+const MYTHIC_LEGACY_HUMAN_MJOLNIR_VARIANT_NAME_REGEX = /^gen\s+(?:i|ii|1|2)\b/u;
+
+export function getExplicitArmorPowerProfile(name = "", options = {}) {
+  const normalized = normalizeArmorPowerProfileMatchName(name);
+  if (!normalized) return "";
+
+  const explicitProfile = MYTHIC_EXPLICIT_ARMOR_POWER_PROFILE_BY_NAME.get(normalized);
+  if (explicitProfile) return explicitProfile;
+
+  if (options?.includeLegacyHumanMjolnir === true && MYTHIC_LEGACY_HUMAN_MJOLNIR_VARIANT_NAME_REGEX.test(normalized)) {
+    return "powered";
+  }
+
+  return "";
+}
+
 export const MYTHIC_ARMOR_SPECIAL_RULE_DEFINITIONS = Object.freeze([
   { key: "biofoam-injector-port", label: "Biofoam Injector Port" },
   { key: "bulky-special-rule", label: "Bulky Special Rule" },

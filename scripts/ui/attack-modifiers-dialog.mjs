@@ -1610,6 +1610,7 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
         {
           action: "roll",
           label: "Roll Attack",
+          default: true,
           callback: () => ({
             action: "roll",
             formState: readAttackModifierFormState({ showRangeField })

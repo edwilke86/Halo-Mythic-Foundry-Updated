@@ -1,4 +1,8 @@
 import { browseImage } from "../utils/file-picker.mjs";
+import {
+  resetItemStorageUnitsToAuto,
+  setItemStorageUnitsManual
+} from "../mechanics/storage.mjs";
 
 function bindTabGroup(sheet, root, group, initialTab) {
   const tabNav = root?.querySelector(`.gear-item-tabs-nav[data-group='${group}']`);
@@ -290,6 +294,28 @@ function bindCopySyncButton(root) {
   });
 }
 
+function bindStorageUnitControls(sheet, root) {
+  const unitsInput = root?.querySelector(".mythic-storage-units-input");
+  if (unitsInput) {
+    unitsInput.addEventListener("change", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      await setItemStorageUnitsManual(sheet.item, unitsInput.value);
+      sheet.render(false);
+    });
+  }
+
+  const resetButton = root?.querySelector(".mythic-storage-units-reset");
+  if (resetButton) {
+    resetButton.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      await resetItemStorageUnitsToAuto(sheet.item);
+      sheet.render(false);
+    });
+  }
+}
+
 function attachSizeDebugObserver(sheet, appWindow, width) {
   if (!sheet.constructor.SIZE_DEBUG || !appWindow || typeof MutationObserver === "undefined") return;
 
@@ -439,6 +465,7 @@ export async function runMythicItemSheetRender(sheet, context) {
   bindPoweredArmorHandler(sheet, root, context);
   bindImagePicker(sheet, root);
   bindVariantAttackButtons(sheet, root);
+  bindStorageUnitControls(sheet, root);
 
   // Fire mode direct save handlers bypass submitOnChange to prevent cross-tab data loss.
   bindFireModeInputs(sheet, root);

@@ -14,7 +14,9 @@ import {
   MYTHIC_DEFAULT_WEIGHT_RANGE_KG, MYTHIC_SIZE_CATEGORIES,
   MYTHIC_ADVANCEMENT_TIERS,
   MYTHIC_AMMO_COMPAT_CODE_SET,
-  MYTHIC_MELEE_WEAPON_TYPE_OPTIONS
+  MYTHIC_SPECIAL_AMMO_FAMILY_SET,
+  MYTHIC_MELEE_WEAPON_TYPE_OPTIONS,
+  getExplicitArmorPowerProfile
 } from '../config.mjs';
 import {
   toNonNegativeNumber, toNonNegativeWhole, toSlug,
@@ -26,6 +28,11 @@ import { normalizeSheetAppearanceData } from '../utils/sheet-appearance.mjs';
 import { getCanonicalTrainingData, normalizeTrainingData } from '../mechanics/training.mjs';
 import { buildSkillRankDefaults } from '../mechanics/skills.mjs';
 import { computeCharacterDerivedValues } from '../mechanics/derived.mjs';
+import {
+  coerceMythicCharacteristicMap,
+  getCharacterEffectiveMythicCharacteristics,
+  getCharacterOutlierMythicCharacteristicModifiers
+} from '../mechanics/mythic-characteristics.mjs';
 import { normalizePerceptiveLighting } from '../mechanics/perceptive-range.mjs';
 import { getCanonicalCharacterSystemData, getCanonicalBestiarySystemData, getCanonicalVehicleSystemData } from './canonical.mjs';
 import { normalizeSkillEntry, normalizeSkillsData } from './normalization-skills.mjs';
@@ -65,6 +72,10 @@ import {
   normalizeChoiceGroup,
   choiceGroupToModifierGroup
 } from './normalization-creation-paths.mjs';
+import {
+  normalizeMythicMagazineData,
+  normalizeMythicStorageData
+} from '../reference/mythic-storage-rules.mjs';
 
 export {
   normalizeChoiceGroup,
@@ -1306,16 +1317,25 @@ export function normalizeCharacterSystemData(systemData) {
   merged.sheetAppearance = normalizeSheetAppearanceData(merged.sheetAppearance);
 
   merged.mythic ??= {};
-  merged.mythic.characteristics ??= {};
-  for (const key of ["str", "tou", "agi"]) {
-    const value = Number(merged.mythic.characteristics?.[key] ?? 0);
-    merged.mythic.characteristics[key] = Number.isFinite(value) ? Math.max(0, value) : 0;
-  }
-  merged.mythic.characteristicModifiers ??= {};
-  for (const key of ["str", "tou", "agi"]) {
-    const value = Number(merged.mythic.characteristicModifiers?.[key] ?? 0);
-    merged.mythic.characteristicModifiers[key] = Number.isFinite(value) ? Math.trunc(value) : 0;
-  }
+  merged.mythic.baseCharacteristics = coerceMythicCharacteristicMap(
+    merged.mythic?.baseCharacteristics ?? merged.mythic?.characteristics ?? {},
+    { allowNegative: false }
+  );
+  merged.mythic.characteristicModifiers = coerceMythicCharacteristicMap(
+    merged.mythic?.characteristicModifiers ?? {},
+    { allowNegative: true }
+  );
+  merged.mythic.equipmentCharacteristicModifiers = coerceMythicCharacteristicMap(
+    merged.mythic?.equipmentCharacteristicModifiers ?? {},
+    { allowNegative: true }
+  );
+  merged.mythic.outlierCharacteristicModifiers = getCharacterOutlierMythicCharacteristicModifiers(merged);
+  merged.mythic.characteristics = getCharacterEffectiveMythicCharacteristics(merged, {
+    base: merged.mythic.baseCharacteristics,
+    manual: merged.mythic.characteristicModifiers,
+    equipment: merged.mythic.equipmentCharacteristicModifiers,
+    outliers: merged.mythic.outlierCharacteristicModifiers
+  });
   const legacyCarryMultiplierRaw = Number(merged.mythic?.soldierTypeCarryMultiplier ?? 1);
   const legacyCarryMultiplier = Number.isFinite(legacyCarryMultiplierRaw) ? Math.max(0, legacyCarryMultiplierRaw) : 1;
   const strCarryMultiplierRaw = Number(merged.mythic?.soldierTypeStrCarryMultiplier ?? legacyCarryMultiplier);
@@ -1640,6 +1660,12 @@ export function normalizeCharacterSystemData(systemData) {
       const numeric = Number(value ?? 0);
       return Number.isFinite(numeric) ? Math.round(numeric) : 0;
     };
+    const specialAmmoPatternOptionIds = Array.isArray(state.specialAmmoPatternOptionIds)
+      ? state.specialAmmoPatternOptionIds.map((entry) => String(entry ?? "").trim())
+      : [];
+    const specialAmmoPatternNextIndex = specialAmmoPatternOptionIds.length > 0
+      ? (toNonNegativeWhole(state.specialAmmoPatternNextIndex, 0) % specialAmmoPatternOptionIds.length)
+      : 0;
     normalizedWeaponState[itemId] = {
       magazineCurrent: toNonNegativeWhole(state.magazineCurrent, 0),
       ammoTotal: toNonNegativeWhole(state.ammoTotal, 0),
@@ -1652,6 +1678,9 @@ export function normalizeCharacterSystemData(systemData) {
       variantIndex: toNonNegativeWhole(state.variantIndex, 0),
       scopeMode: String(state.scopeMode ?? "none").trim().toLowerCase() || "none",
       fireMode: String(state.fireMode ?? "").trim().toLowerCase(),
+      useSpecialAmmo: state.useSpecialAmmo === true,
+      specialAmmoPatternOptionIds,
+      specialAmmoPatternNextIndex,
       toHitModifier: toModifier(state.toHitModifier),
       damageModifier: toModifier(state.damageModifier)
     };
@@ -2227,6 +2256,7 @@ export function normalizeBestiarySystemData(systemData) {
 
   const recalculated = normalizeCharacterSystemData(merged);
   recalculated.bestiary = merged.bestiary;
+  recalculated.mythic.characteristics = foundry.utils.deepClone(merged.mythic.characteristics);
   recalculated.combat.wounds.current = finalWoundsCurrent;
   recalculated.combat.wounds.max = finalWoundsMax;
   recalculated.combat.woundsBar ??= {};
@@ -3132,6 +3162,21 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     ammoId: null,
     ammoName: "",
     specialAmmoCategory: "Standard",
+    ammoClass: "ballistic",
+    family: "",
+    caliberOrType: "",
+    baseAmmoUuid: "",
+    baseAmmoName: "",
+    isSpecial: false,
+    modifierCodes: [],
+    modifierIds: [],
+    displayLabel: "",
+    displaySymbol: "",
+    costModel: "per100",
+    costPerRoundDerived: 0,
+    quantityOwned: 1,
+    stackKey: "",
+    effectSnapshot: {},
     ammoMode: "magazine",
     batteryType: "plasma",
     singleLoading: false,
@@ -3242,8 +3287,16 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     damageDelta: 0,
     pierceDelta: 0,
     compatibilityCodes: [],
+    compatibilityBlockedCodes: [],
     compatibilityMode: "allowlist",
     compatibilityRaw: "",
+    countsAgainstCap: true,
+    standaloneOnly: false,
+    slugOnly: false,
+    cannotBeAlone: false,
+    addSpecialRules: [],
+    removeSpecialRules: [],
+    specialRuleValues: {},
     abilityText: "",
     costMultiplier: 1,
     costMode: "per100",
@@ -3265,6 +3318,8 @@ export function normalizeGearSystemData(systemData, itemName = "") {
       table: "",
       rowNumber: 0
     },
+    storage: {},
+    magazine: {},
     vehicleMount: {
       isMounted: false,
       emplacementId: "",
@@ -3303,7 +3358,7 @@ export function normalizeGearSystemData(systemData, itemName = "") {
 
   const schemaRaw = Number(merged.schemaVersion ?? MYTHIC_GEAR_SCHEMA_VERSION);
   merged.schemaVersion = Number.isFinite(schemaRaw)
-    ? Math.max(1, Math.floor(schemaRaw))
+    ? Math.max(MYTHIC_GEAR_SCHEMA_VERSION, Math.floor(schemaRaw))
     : MYTHIC_GEAR_SCHEMA_VERSION;
 
   const itemClass = String(merged.itemClass ?? "weapon").trim().toLowerCase();
@@ -3355,6 +3410,31 @@ export function normalizeGearSystemData(systemData, itemName = "") {
   const requestedSpecialAmmoCategory = String(merged.specialAmmoCategory ?? legacyAmmoType).trim();
   merged.specialAmmoCategory = requestedSpecialAmmoCategory || "Standard";
   if (Object.hasOwn(merged, "ammoType")) delete merged.ammoType;
+  merged.ammoClass = String(merged.ammoClass ?? "ballistic").trim().toLowerCase() || "ballistic";
+  const requestedAmmoFamily = String(merged.family ?? "").trim();
+  merged.family = MYTHIC_SPECIAL_AMMO_FAMILY_SET.has(requestedAmmoFamily) ? requestedAmmoFamily : "";
+  merged.caliberOrType = String(merged.caliberOrType ?? merged.ammoName ?? itemName).trim();
+  merged.baseAmmoUuid = String(merged.baseAmmoUuid ?? "").trim();
+  merged.baseAmmoName = String(merged.baseAmmoName ?? "").trim();
+  merged.modifierCodes = normalizeStringList(
+    (Array.isArray(merged.modifierCodes) ? merged.modifierCodes : parseFlexibleList(merged.modifierCodes))
+      .map((entry) => String(entry ?? "").trim().toUpperCase().replace(/\s+/gu, ""))
+  );
+  merged.modifierIds = normalizeStringList(Array.isArray(merged.modifierIds) ? merged.modifierIds : parseFlexibleList(merged.modifierIds));
+  merged.isSpecial = merged.isSpecial === true || merged.modifierCodes.length > 0;
+  merged.displayLabel = String(merged.displayLabel ?? itemName ?? "").trim();
+  merged.displaySymbol = String(merged.displaySymbol ?? "").trim();
+  const requestedCostModel = String(merged.costModel ?? "per100").trim().toLowerCase();
+  merged.costModel = ["per100", "per-round", "flat", "unit", "per-quantity"].includes(requestedCostModel)
+    ? requestedCostModel
+    : "per100";
+  const rawCostPerRoundDerived = Number(merged.costPerRoundDerived ?? 0);
+  merged.costPerRoundDerived = Number.isFinite(rawCostPerRoundDerived) ? Math.max(0, rawCostPerRoundDerived) : 0;
+  merged.quantityOwned = toNonNegativeWhole(merged.quantityOwned ?? merged.quantity ?? 1, 1);
+  merged.stackKey = String(merged.stackKey ?? "").trim();
+  merged.effectSnapshot = (merged.effectSnapshot && typeof merged.effectSnapshot === "object" && !Array.isArray(merged.effectSnapshot))
+    ? foundry.utils.deepClone(merged.effectSnapshot)
+    : {};
   merged.ammoName = String(merged.ammoName ?? "").trim();
   const rawWeightPerRoundKg = Number(merged.weightPerRoundKg ?? merged.weightKg ?? 0);
   merged.weightPerRoundKg = Number.isFinite(rawWeightPerRoundKg)
@@ -3556,7 +3636,10 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     merged.modifiers,
     merged.description
   ].map((entry) => String(entry ?? "").trim().toLowerCase()).join(" ");
-  if (["standard", "semi-powered", "powered"].includes(armorProfileRaw)) {
+  const explicitArmorPowerProfile = getExplicitArmorPowerProfile(itemName);
+  if (explicitArmorPowerProfile) {
+    merged.armorWeightProfile = explicitArmorPowerProfile;
+  } else if (["standard", "semi-powered", "powered"].includes(armorProfileRaw)) {
     merged.armorWeightProfile = armorProfileRaw;
   } else if (/(semi\s*-?\s*powered|semi\s+power)/u.test(armorProfileHint)) {
     merged.armorWeightProfile = "semi-powered";
@@ -3584,6 +3667,7 @@ export function normalizeGearSystemData(systemData, itemName = "") {
   merged.armorAbilityKeys = normalizeStringList(parseFlexibleList(merged.armorAbilityKeys));
   merged.powerArmorTraitKeys = normalizeStringList(parseFlexibleList(merged.powerArmorTraitKeys));
   merged.quantity = toNonNegativeWhole(merged.quantity ?? 1, 1);
+  merged.quantityOwned = merged.quantity;
   merged.builtInItemIds = normalizeStringList(parseFlexibleList(merged.builtInItemIds));
   merged.powerArmorTraitIds = normalizeStringList(parseFlexibleList(merged.powerArmorTraitIds));
   merged.photoReactivePanelsBonus = Math.max(0, Math.min(99, toNonNegativeWhole(merged.photoReactivePanelsBonus, 0)));
@@ -3671,21 +3755,49 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     ? merged.compatibilityCodes
     : String(merged.compatibilityCodes ?? "").split(/[,\s]+/u).filter(Boolean);
   merged.compatibilityCodes = rawCompatCodes
-    .map((c) => String(c).trim().toUpperCase())
+    .map((c) => {
+      const normalized = String(c).trim().toUpperCase().replace(/\s+/gu, "");
+      return normalized === "APFDS" ? "APFSDS" : normalized;
+    })
     .filter((c) => MYTHIC_AMMO_COMPAT_CODE_SET.has(c));
-  merged.compatibilityMode = ["allowlist", "blocklist"].includes(merged.compatibilityMode)
+  const rawBlockedCompatCodes = Array.isArray(merged.compatibilityBlockedCodes)
+    ? merged.compatibilityBlockedCodes
+    : String(merged.compatibilityBlockedCodes ?? "").split(/[,\s]+/u).filter(Boolean);
+  merged.compatibilityBlockedCodes = rawBlockedCompatCodes
+    .map((c) => {
+      const normalized = String(c).trim().toUpperCase().replace(/\s+/gu, "");
+      return normalized === "APFDS" ? "APFSDS" : normalized;
+    })
+    .filter((c) => MYTHIC_AMMO_COMPAT_CODE_SET.has(c));
+  merged.compatibilityMode = ["allowlist", "blocklist", "all", "none", "matrix", "all-shot-shells"].includes(merged.compatibilityMode)
     ? merged.compatibilityMode
     : "allowlist";
   merged.compatibilityRaw = String(merged.compatibilityRaw ?? "").trim();
+  merged.countsAgainstCap = merged.countsAgainstCap !== false;
+  merged.standaloneOnly = merged.standaloneOnly === true;
+  merged.slugOnly = merged.slugOnly === true;
+  merged.cannotBeAlone = merged.cannotBeAlone === true;
+  merged.addSpecialRules = normalizeStringList(Array.isArray(merged.addSpecialRules) ? merged.addSpecialRules : parseFlexibleList(merged.addSpecialRules));
+  merged.removeSpecialRules = normalizeStringList(Array.isArray(merged.removeSpecialRules) ? merged.removeSpecialRules : parseFlexibleList(merged.removeSpecialRules));
+  merged.specialRuleValues = (merged.specialRuleValues && typeof merged.specialRuleValues === "object" && !Array.isArray(merged.specialRuleValues))
+    ? Object.fromEntries(
+      Object.entries(merged.specialRuleValues)
+        .map(([key, value]) => [String(key ?? "").trim(), String(value ?? "").trim()])
+        .filter(([key, value]) => key && value)
+    )
+    : {};
   merged.abilityText = String(merged.abilityText ?? "").trim();
   const rawCostMultiplier = Number(merged.costMultiplier ?? 1);
   merged.costMultiplier = Number.isFinite(rawCostMultiplier) && rawCostMultiplier > 0
     ? Math.round(rawCostMultiplier * 1000) / 1000
     : 1;
-  merged.costMode = ["per100", "per-round", "flat"].includes(merged.costMode)
+  merged.costMode = ["per100", "per-round", "flat", "unit", "per-quantity"].includes(merged.costMode)
     ? merged.costMode
     : "per100";
   merged.sourceCategory = String(merged.sourceCategory ?? "").trim();
+
+  merged.storage = normalizeMythicStorageData(merged.storage, merged, itemName);
+  merged.magazine = normalizeMythicMagazineData(merged.magazine, merged.storage, merged, itemName);
 
   const rawVehicleMount = (merged.vehicleMount && typeof merged.vehicleMount === "object")
     ? merged.vehicleMount

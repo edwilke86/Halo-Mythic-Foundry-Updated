@@ -12,12 +12,16 @@
         <span>EFF.<br>WEIGHT</span>
       </div>
       {{#each mythicEquipment.weaponItems as |item|}}
-      <div class="mythic-equipment-row mythic-equipment-data-row">
+      <div class="mythic-equipment-row mythic-equipment-data-row {{item.storageRowClass}}" data-item-id="{{item.id}}" draggable="true">
         <span class="mythic-equipment-name-cell">
-          <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
-          <span class="mythic-equipment-name">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
+          <img class="mythic-equipment-icon {{#if item.isStorageContainer}}mythic-storage-container-open-trigger{{/if}}" data-item-id="{{item.id}}" src="{{item.img}}" alt="{{item.name}}" />
+          <span class="mythic-equipment-name {{#if item.isStorageContainer}}mythic-storage-container-open-trigger{{/if}}" data-item-id="{{item.id}}">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
           <span class="mythic-equipment-meta">{{item.weaponClass}}</span>
+          {{#if item.isStorageContainer}}<span class="mythic-storage-capacity-badge {{#if item.storageOverCapacity}}is-over{{/if}}" title="{{item.storageWarningText}}">{{item.storageCapacityLabel}}</span>{{/if}}
+          {{#if item.storedInLabel}}<span class="mythic-storage-location-badge" title="{{item.storageBreadcrumb}}">Stored: {{item.storedInLabel}}</span>{{/if}}
+          {{#if item.storageWarningText}}<span class="mythic-storage-warning-badge" title="{{item.storageWarningText}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
           <span class="mythic-equipment-actions-inline">
+            {{#if item.isStorageContainer}}<button type="button" class="action-btn container-open-btn" data-item-id="{{item.id}}" title="Open container" aria-label="Open container"><i class="fas fa-box-open"></i></button>{{/if}}
             <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
             <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
           </span>
@@ -50,12 +54,16 @@
         <span>EFF.<br>WEIGHT</span>
       </div>
       {{#each mythicEquipment.armorItems as |item|}}
-      <div class="mythic-equipment-row mythic-equipment-data-row">
+      <div class="mythic-equipment-row mythic-equipment-data-row {{item.storageRowClass}}" data-item-id="{{item.id}}" draggable="true">
         <span class="mythic-equipment-name-cell">
-          <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
-          <span class="mythic-equipment-name">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
+          <img class="mythic-equipment-icon {{#if item.isStorageContainer}}mythic-storage-container-open-trigger{{/if}}" data-item-id="{{item.id}}" src="{{item.img}}" alt="{{item.name}}" />
+          <span class="mythic-equipment-name {{#if item.isStorageContainer}}mythic-storage-container-open-trigger{{/if}}" data-item-id="{{item.id}}">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
           <span class="mythic-equipment-meta">armor</span>
+          {{#if item.isStorageContainer}}<span class="mythic-storage-capacity-badge {{#if item.storageOverCapacity}}is-over{{/if}}" title="{{item.storageWarningText}}">{{item.storageCapacityLabel}}</span>{{/if}}
+          {{#if item.storedInLabel}}<span class="mythic-storage-location-badge" title="{{item.storageBreadcrumb}}">Stored: {{item.storedInLabel}}</span>{{/if}}
+          {{#if item.storageWarningText}}<span class="mythic-storage-warning-badge" title="{{item.storageWarningText}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
           <span class="mythic-equipment-actions-inline">
+            {{#if item.isStorageContainer}}<button type="button" class="action-btn container-open-btn" data-item-id="{{item.id}}" title="Open container" aria-label="Open container"><i class="fas fa-box-open"></i></button>{{/if}}
             <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
             <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
           </span>
@@ -88,12 +96,16 @@
       <span>EFF.<br>WEIGHT</span>
     </div>
     {{#each mythicEquipment.otherItems as |item|}}
-    <div class="mythic-equipment-row mythic-equipment-data-row">
+    <div class="mythic-equipment-row mythic-equipment-data-row {{item.storageRowClass}}" data-item-id="{{item.id}}" draggable="true">
       <span class="mythic-equipment-name-cell">
-        <img class="mythic-equipment-icon" src="{{item.img}}" alt="{{item.name}}" />
-        <span class="mythic-equipment-name">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
+        <img class="mythic-equipment-icon {{#if item.isStorageContainer}}mythic-storage-container-open-trigger{{/if}}" data-item-id="{{item.id}}" src="{{item.img}}" alt="{{item.name}}" />
+        <span class="mythic-equipment-name {{#if item.isStorageContainer}}mythic-storage-container-open-trigger{{/if}}" data-item-id="{{item.id}}">{{item.name}}{{#if item.epBadgeLabel}} <span class="mythic-equipment-ep-tag" title="{{item.epTooltip}}" aria-label="{{item.epTooltip}}">{{item.epBadgeLabel}}</span>{{/if}}</span>
         <span class="mythic-equipment-meta">{{item.itemClass}}</span>
+        {{#if item.isStorageContainer}}<span class="mythic-storage-capacity-badge {{#if item.storageOverCapacity}}is-over{{/if}}" title="{{item.storageWarningText}}">{{item.storageCapacityLabel}}</span>{{/if}}
+        {{#if item.storedInLabel}}<span class="mythic-storage-location-badge" title="{{item.storageBreadcrumb}}">Stored: {{item.storedInLabel}}</span>{{/if}}
+        {{#if item.storageWarningText}}<span class="mythic-storage-warning-badge" title="{{item.storageWarningText}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
         <span class="mythic-equipment-actions-inline">
+          {{#if item.isStorageContainer}}<button type="button" class="action-btn container-open-btn" data-item-id="{{item.id}}" title="Open container" aria-label="Open container"><i class="fas fa-box-open"></i></button>{{/if}}
           <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
           <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
         </span>

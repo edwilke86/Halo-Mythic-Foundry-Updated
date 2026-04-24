@@ -363,10 +363,16 @@
               </div>
               {{else}}
               <div class="mythic-ready-weapon-row-inline">
+                {{#if weapon.showReadOnlyAmmoState}}
+                <span><strong>{{weapon.ammoLoadLabel}}:</strong> {{weapon.magazineCurrent}} / {{weapon.magazineMax}}</span>
+                {{#if weapon.activeLoaderLabel}}<span><strong>Loader:</strong> {{weapon.activeLoaderLabel}}</span>{{/if}}
+                {{#if weapon.nextRoundLabel}}<span><strong>Next:</strong> {{weapon.nextRoundLabel}}{{#if weapon.nextRoundSymbol}} <span class="mythic-special-ammo-symbol" title="{{weapon.nextRoundLabel}}">{{weapon.nextRoundSymbol}}</span>{{/if}}</span>{{/if}}
+                {{else}}
                 <label>Ammo ({{weapon.ammoLabel}})
                   <input type="number" min="0" max="{{weapon.magazineMax}}" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="magazineCurrent" value="{{weapon.magazineCurrent}}" />
                 </label>
                 <span><strong>{{weapon.ammoLoadLabel}}:</strong> {{weapon.magazineCurrent}} / {{weapon.magazineMax}}</span>
+                {{/if}}
                 <span><strong>Inventory:</strong> {{weapon.ammoInventoryTotal}}</span>
                 <button type="button" class="action-btn weapon-reload-btn" data-item-id="{{weapon.id}}">Reload</button>
                 <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>

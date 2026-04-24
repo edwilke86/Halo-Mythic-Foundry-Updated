@@ -761,6 +761,11 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
         }
       });
     });
+    root.querySelectorAll(".weapon-use-special-ammo-toggle[data-item-id]").forEach((input) => {
+      input.addEventListener("change", (e) => {
+        void this._onWeaponSpecialAmmoToggle(e);
+      });
+    });
     root.querySelectorAll(".weapon-fire-mode-btn[data-item-id][data-fire-mode]").forEach((b) => {
       b.addEventListener("click", (e) => {
         if (e.currentTarget?.dataset?.vehicleActorId || e.currentTarget?.dataset?.vehicleUuid) {
@@ -2337,7 +2342,11 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
           activeMagazineId: "",
           chamberRoundCount: 0,
           ammoKey: "",
-          ammoId: String(gear.ammoId ?? "").trim()
+          ammoId: String(gear.ammoId ?? "").trim(),
+          canUseSpecialAmmo: !isMelee
+            && !_isEnergyAmmoMode(ammoMode)
+            && Boolean(String(gear.ammoId ?? "").trim()),
+          useSpecialAmmo: Boolean(state.useSpecialAmmo)
         };
       });
   }
@@ -2362,6 +2371,21 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     if (!id || !field) return;
     const value = input.tagName === "SELECT" ? String(input.value ?? "") : Number(input.value ?? 0);
     await this.actor.update({ [`system.equipment.weaponState.${id}.${field}`]: value });
+  }
+
+  async _onWeaponSpecialAmmoToggle(event) {
+    const input = event.currentTarget;
+    const id = String(input?.dataset?.itemId ?? "").trim();
+    if (!id) return;
+    try {
+      await this.actor.update({ [`system.equipment.weaponState.${id}.useSpecialAmmo`]: Boolean(input?.checked) });
+    } catch (error) {
+      console.error("[Mythic] Bestiary | Failed to toggle useSpecialAmmo", { actorId: this.actor?.id, weaponId: id, error });
+      ui.notifications?.error("Failed to update special ammo toggle (permission or data error).");
+      try {
+        input.checked = !Boolean(input?.checked);
+      } catch (_err) {}
+    }
   }
 
   async _onWeaponCharge(event) {
@@ -2452,16 +2476,26 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
   async _onWeaponAttack(event) {
     event.preventDefault();
     const button = event.currentTarget;
+    const buttonDataset = button?.dataset
+      ? Object.fromEntries(Object.entries(button.dataset))
+      : {};
     const id = String(button.dataset.itemId ?? "").trim();
     const attackAction = String(button.dataset.action ?? "single").trim().toLowerCase();
     if (!id) return;
+    if (event.shiftKey) {
+      ui.notifications?.info(`[Mythic] Bestiary attack click: ${id} (${attackAction})`);
+    }
     const item = this.actor.items.get(id);
     if (!item) return;
     const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
     const normalizedAmmoMode = String(gear.ammoMode ?? "").trim().toLowerCase();
     const isEnergyWeapon = _isEnergyAmmoMode(normalizedAmmoMode) || toNonNegativeWhole(gear.batteryCapacity, 0) > 0;
     if (isEnergyWeapon) {
-      await this._ensureBestiaryEnergyCellState(id, gear);
+      try {
+        await this._ensureBestiaryEnergyCellState(id, gear);
+      } catch (error) {
+        console.error("[Mythic] Bestiary | Failed to ensure energy cell state before attack", { actorId: this.actor?.id, weaponId: id, error });
+      }
     }
     const weaponState = (this.actor.system?.equipment?.weaponState?.[id] && typeof this.actor.system.equipment.weaponState[id] === "object")
       ? this.actor.system.equipment.weaponState[id]
@@ -2483,8 +2517,35 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
           })()
     };
 
-    await this._ensureBestiaryWeaponCountsAsWielded(id);
-    const attackResult = await MythicActorSheet.prototype._onWeaponAttack.call(this._createCharacterAttackBridgeContext(), event);
+    try {
+      await this._ensureBestiaryWeaponCountsAsWielded(id);
+    } catch (error) {
+      // Bestiary attacks should still function even if the actor cannot be updated (limited permissions).
+      console.error("[Mythic] Bestiary | Failed to mark weapon as wielded before attack", { actorId: this.actor?.id, weaponId: id, error });
+    }
+    const bridge = this._createCharacterAttackBridgeContext();
+    const wantsSpecialAmmoPrompt = Boolean(weaponState?.useSpecialAmmo)
+      && gear.weaponClass !== "melee"
+      && !isEnergyWeapon
+      && Boolean(String(gear.ammoId ?? "").trim());
+    if (wantsSpecialAmmoPrompt) {
+      bridge._mythicSpecialAmmoPromptRequest = {
+        kind: "per-attack",
+        source: "bestiary",
+        ignoreInventory: true
+      };
+    }
+    const preservedEvent = {
+      preventDefault: () => {},
+      currentTarget: {
+        dataset: buttonDataset
+      },
+      shiftKey: event.shiftKey === true,
+      altKey: event.altKey === true,
+      ctrlKey: event.ctrlKey === true,
+      metaKey: event.metaKey === true
+    };
+    const attackResult = await MythicActorSheet.prototype._onWeaponAttack.call(bridge, preservedEvent);
     if (!attackResult?.attackResolved) return;
     await this._applyBestiaryBallisticTotalAmmoDelta(id, ammoSnapshot, gear, attackResult);
   }

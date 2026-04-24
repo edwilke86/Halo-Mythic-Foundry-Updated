@@ -3,6 +3,13 @@ import {
   MYTHIC_SIZE_CATEGORIES
 } from "../config.mjs";
 import { toNonNegativeWhole, toWholeNumber } from "../utils/helpers.mjs";
+import {
+  getCharacterBaseMythicCharacteristics,
+  getCharacterEffectiveMythicCharacteristics,
+  getCharacterEquipmentMythicCharacteristicModifiers,
+  getCharacterManualMythicCharacteristicModifiers,
+  getCharacterOutlierMythicCharacteristicModifiers
+} from "./mythic-characteristics.mjs";
 
 const OUTLIER_CHOICE_OPTIONS = Object.freeze({
   characteristic: Object.freeze([
@@ -318,8 +325,20 @@ export function buildOutlierCompatibilityUpdate(systemData = {}, definitionOrKey
   }
 
   if (definition.key === "forte" && choiceKey) {
-    const current = toNonNegativeWhole(systemData?.mythic?.characteristics?.[choiceKey], 0);
-    updateData[`system.mythic.characteristics.${choiceKey}`] = Math.max(0, current + direction);
+    const nextOutliers = getCharacterOutlierMythicCharacteristicModifiers(systemData);
+    nextOutliers[choiceKey] = Math.max(0, Number(nextOutliers?.[choiceKey] ?? 0) + direction);
+    for (const key of ["str", "tou", "agi"]) {
+      updateData[`system.mythic.outlierCharacteristicModifiers.${key}`] = Math.max(0, Number(nextOutliers?.[key] ?? 0));
+    }
+    const totals = getCharacterEffectiveMythicCharacteristics(systemData, {
+      base: getCharacterBaseMythicCharacteristics(systemData),
+      manual: getCharacterManualMythicCharacteristicModifiers(systemData),
+      equipment: getCharacterEquipmentMythicCharacteristicModifiers(systemData),
+      outliers: nextOutliers
+    });
+    for (const key of ["str", "tou", "agi"]) {
+      updateData[`system.mythic.characteristics.${key}`] = totals[key];
+    }
     return updateData;
   }
 

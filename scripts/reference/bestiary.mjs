@@ -218,7 +218,7 @@ function parseCreatureGroupToActor(creatureName, group) {
   };
 }
 
-async function loadReferenceBestiaryActors() {
+export async function loadReferenceBestiaryActors() {
   const response = await fetch(MYTHIC_REFERENCE_BESTIARY_CSV);
   if (!response.ok) {
     throw new Error(`Failed to load bestiary CSV from ${MYTHIC_REFERENCE_BESTIARY_CSV}`);

@@ -9,6 +9,7 @@ import {
   computeMeleeReach, computeToHitModifierVsSize, computeMeleeDamageBonus
 } from './size.mjs';
 import { getOutlierEffectSummary } from './outliers.mjs';
+import { getCharacterEffectiveMythicCharacteristics } from './mythic-characteristics.mjs';
 import { calculatePerceptiveRange } from './perceptive-range.mjs';
 
 function roundToOne(n) { return Math.round(Number(n ?? 0) * 10) / 10; }
@@ -42,8 +43,7 @@ export function isGoodFortuneModeEnabled() {
 
 export function computeCharacterDerivedValues(systemData = {}) {
   const characteristics = systemData?.characteristics ?? {};
-  const mythic = systemData?.mythic?.characteristics ?? {};
-  const mythicModifiers = systemData?.mythic?.characteristicModifiers ?? {};
+  const mythic = getCharacterEffectiveMythicCharacteristics(systemData);
   const modifiers = computeCharacteristicModifiers(characteristics);
   const outlierEffects = getOutlierEffectSummary(systemData);
 
@@ -54,17 +54,12 @@ export function computeCharacterDerivedValues(systemData = {}) {
   const safeGravity = isZeroG ? 1.0 : gravity;
   const gravDist = (value) => (isZeroG ? value : (value / safeGravity));
 
-  const signedWhole = (value) => {
-    const numeric = Number(value ?? 0);
-    return Number.isFinite(numeric) ? Math.trunc(numeric) : 0;
-  };
-
   const baseMythicStr = toNonNegativeNumber(mythic?.str, 0);
   const baseMythicTou = toNonNegativeNumber(mythic?.tou, 0);
   const baseMythicAgi = toNonNegativeNumber(mythic?.agi, 0);
-  const mythicStr = Math.max(0, baseMythicStr + signedWhole(mythicModifiers?.str));
-  const mythicTou = Math.max(0, baseMythicTou + signedWhole(mythicModifiers?.tou));
-  const mythicAgi = Math.max(0, baseMythicAgi + signedWhole(mythicModifiers?.agi));
+  const mythicStr = Math.max(0, baseMythicStr);
+  const mythicTou = Math.max(0, baseMythicTou);
+  const mythicAgi = Math.max(0, baseMythicAgi);
 
   const touModifier = toNonNegativeWhole(modifiers.tou, 0);
   const touCombined = touModifier + mythicTou;

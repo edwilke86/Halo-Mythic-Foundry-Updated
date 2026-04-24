@@ -377,6 +377,12 @@
                       </label>
                       <span><strong>{{weapon.ammoLoadLabel}}:</strong> {{weapon.magazineCurrent}} / {{weapon.magazineMax}}</span>
                       <button type="button" class="action-btn weapon-reload-btn" data-item-id="{{weapon.id}}">Reload</button>
+                      {{#if weapon.canUseSpecialAmmo}}
+                      <label class="mythic-toggle-row" title="When enabled, attacks will prompt for per-attack special ammo selection.">
+                        <input type="checkbox" class="weapon-use-special-ammo-toggle" data-item-id="{{weapon.id}}" {{checked weapon.useSpecialAmmo}} />
+                        Use Special Ammo
+                      </label>
+                      {{/if}}
                       <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>
                     </div>
                     {{/if}}
@@ -742,7 +748,7 @@
               <div class="mythic-bestiary-controls-row">
                 <label>
                   <input type="checkbox" name="system.bestiary.advanceMythicStats" {{#if system.bestiary.advanceMythicStats}}checked{{/if}} />
-                  Advance Mythic Stats
+                  Advance Mythic Characteristics
                 </label>
               </div>
               <table class="mythic-bestiary-stat-table mythic-bestiary-mythic-table">

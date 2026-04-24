@@ -158,6 +158,61 @@ function isMedicalAutomationEnabled() {
   }
 }
 
+function normalizeSpecialAmmoSymbols(values = []) {
+  const rawValues = Array.isArray(values)
+    ? values
+    : String(values ?? "")
+      .split(/[|,]/u)
+      .map((entry) => String(entry ?? "").trim());
+  return Array.from(new Set(rawValues
+    .map((entry) => String(entry ?? "").trim())
+    .filter(Boolean)));
+}
+
+function buildAmmoMiniBadgeHtml(symbol = "") {
+  const raw = String(symbol ?? "").trim();
+  if (!raw) return "";
+  const clean = raw.replace(/^\[|\]$/gu, "");
+  const parts = clean.split("+").map((entry) => String(entry ?? "").trim()).filter(Boolean);
+  const primary = String(parts[0] ?? clean).trim().toUpperCase();
+  const esc = foundry.utils.escapeHTML;
+  return `<span class="mythic-ammo-mini-badge" data-code="${esc(primary)}" title="${esc(raw)}">${esc(clean || raw)}</span>`;
+}
+
+function buildSpecialAmmoBadgeRowHtml(options = {}) {
+  const directSymbols = normalizeSpecialAmmoSymbols(options?.specialAmmoSymbols);
+  const roundSymbols = Array.isArray(options?.specialAmmoRounds)
+    ? normalizeSpecialAmmoSymbols(options.specialAmmoRounds.map((round) => String(round?.displaySymbol ?? "").trim()))
+    : [];
+  const symbols = directSymbols.length ? directSymbols : roundSymbols;
+  if (!symbols.length) {
+    const anySpecialRounds = Array.isArray(options?.specialAmmoRounds)
+      && options.specialAmmoRounds.some((round) => round?.isSpecial === true || (Array.isArray(round?.modifierCodes) && round.modifierCodes.length > 0));
+    if (!anySpecialRounds) return "";
+    return `<div class="mythic-attack-badge-row">${buildAmmoMiniBadgeHtml("SA")}</div>`;
+  }
+  return `<div class="mythic-attack-badge-row">${symbols.map((entry) => buildAmmoMiniBadgeHtml(entry)).join(" ")}</div>`;
+}
+
+function resolveAppliedHitSpecialAmmoSymbols(inst = null, incoming = null, attackData = null) {
+  const instanceSymbols = normalizeSpecialAmmoSymbols([
+    ...(Array.isArray(inst?.specialAmmoSymbols) ? inst.specialAmmoSymbols : []),
+    ...(Array.isArray(incoming?.specialAmmoSymbols) ? incoming.specialAmmoSymbols : [])
+  ]);
+  if (instanceSymbols.length) return instanceSymbols;
+
+  for (const round of [inst?.ammoRound, incoming?.ammoRound]) {
+    const roundSymbols = normalizeSpecialAmmoSymbols([String(round?.displaySymbol ?? "").trim()]);
+    if (roundSymbols.length) return roundSymbols;
+    const hasSpecialModifiers = round?.isSpecial === true
+      || (Array.isArray(round?.modifierCodes) && round.modifierCodes.length > 0);
+    if (hasSpecialModifiers) return ["SA"];
+  }
+
+  const attackSymbols = normalizeSpecialAmmoSymbols(attackData?.specialAmmoSymbols);
+  return attackSymbols.length <= 1 ? attackSymbols : [];
+}
+
 function resolveIncomingDamageAgainstDefenses(targetActor, incoming = {}) {
   const baseDamage = Math.max(0, Number(incoming.damageTotal ?? 0) || 0);
   const basePierce = Math.max(0, Number(incoming.damagePierce ?? 0) || 0);
@@ -440,7 +495,8 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
           ? "action-btn mythic-apply-dmg-btn is-shield-pierce-active"
           : "action-btn mythic-apply-dmg-btn";
         const label = applyInstances.length > 1 ? `Apply Hit ${instIdx + 1} (${inst.damageTotal})` : "Apply";
-        return `<button type="button" class="${btnClass}" data-actor-id="${esc(targetActor.id)}" data-token-id="${esc(targetToken?.id ?? "")}" data-scene-id="${esc(attackData.sceneId ?? canvas?.scene?.id ?? "")}" data-damage="${esc(String(inst.damageTotal ?? 0))}" data-pierce="${esc(String(inst.damagePierce ?? 0))}" data-dr-key="${esc(String(inst.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""))}" data-hit-zone="${esc(String(inst.hitLoc?.zone ?? incoming.hitLoc?.zone ?? ""))}" data-hit-subzone="${esc(String(inst.hitLoc?.subZone ?? incoming.hitLoc?.subZone ?? ""))}" data-ignore-shields="${(inst.ignoresShields ?? false) ? "true" : "false"}" data-shield-pierce="${(inst.appliesShieldPierce ?? false) ? "true" : "false"}" data-explosive-shield="${(inst.explosiveShieldPierce ?? false) ? "true" : "false"}" data-penetrating="${(inst.isPenetrating ?? false) ? "true" : "false"}" data-headshot="${(inst.isHeadshot ?? false) ? "true" : "false"}" data-blast-kill="${(inst.hasBlastOrKill ?? false) ? "true" : "false"}" data-kinetic="${(inst.isKinetic ?? false) ? "true" : "false"}" data-hardlight="${(inst.isHardlight ?? false) ? "true" : "false"}" data-special-damage="${(inst.hasSpecialDamage ?? false) ? "true" : "false"}">${esc(label)}</button>`;
+        const specialAmmoSymbols = resolveAppliedHitSpecialAmmoSymbols(inst, incoming, attackData);
+        return `<button type="button" class="${btnClass}" data-actor-id="${esc(targetActor.id)}" data-token-id="${esc(targetToken?.id ?? "")}" data-scene-id="${esc(attackData.sceneId ?? canvas?.scene?.id ?? "")}" data-damage="${esc(String(inst.damageTotal ?? 0))}" data-pierce="${esc(String(inst.damagePierce ?? 0))}" data-dr-key="${esc(String(inst.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""))}" data-hit-zone="${esc(String(inst.hitLoc?.zone ?? incoming.hitLoc?.zone ?? ""))}" data-hit-subzone="${esc(String(inst.hitLoc?.subZone ?? incoming.hitLoc?.subZone ?? ""))}" data-ignore-shields="${(inst.ignoresShields ?? false) ? "true" : "false"}" data-shield-pierce="${(inst.appliesShieldPierce ?? false) ? "true" : "false"}" data-explosive-shield="${(inst.explosiveShieldPierce ?? false) ? "true" : "false"}" data-penetrating="${(inst.isPenetrating ?? false) ? "true" : "false"}" data-headshot="${(inst.isHeadshot ?? false) ? "true" : "false"}" data-blast-kill="${(inst.hasBlastOrKill ?? false) ? "true" : "false"}" data-kinetic="${(inst.isKinetic ?? false) ? "true" : "false"}" data-hardlight="${(inst.isHardlight ?? false) ? "true" : "false"}" data-special-damage="${(inst.hasSpecialDamage ?? false) ? "true" : "false"}" data-special-ammo-symbols="${esc(specialAmmoSymbols.join("|"))}">${esc(label)}</button>`;
       }).join("");
       const line = `<div class="${lineClass}">
         <details class="mythic-evasion-detail-row">
@@ -591,7 +647,12 @@ export async function mythicApplyDirectAttackDamage(messageId, targetMode, attac
             isPenetrating: Boolean(inst.isPenetrating ?? incoming.isPenetrating),
             isHeadshot: Boolean(inst.isHeadshot ?? incoming.isHeadshot),
             hasBlastOrKill: Boolean(inst.hasBlastOrKill ?? incoming.hasBlastOrKill),
-            isKinetic: Boolean(inst.isKinetic ?? incoming.isKinetic)
+            isKinetic: Boolean(inst.isKinetic ?? incoming.isKinetic),
+            specialAmmoSymbols: resolveAppliedHitSpecialAmmoSymbols(inst, incoming, attackData),
+            specialAmmoRounds: (() => {
+              const round = inst?.ammoRound ?? incoming?.ammoRound ?? null;
+              return round ? [foundry.utils.deepClone(round)] : [];
+            })()
           }
         );
         applications += 1;
@@ -715,13 +776,17 @@ export async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sc
   const headshotLine = resolveHit && Boolean(options?.isHeadshot) && String(options?.drKey ?? "").trim() === "head"
     ? `<div>Headshot: TOU modifier ignored for head DR.</div>`
     : "";
+  const specialAmmoBadgeLine = buildSpecialAmmoBadgeRowHtml({
+    specialAmmoSymbols: options?.specialAmmoSymbols,
+    specialAmmoRounds: options?.specialAmmoRounds
+  });
   const woundLine = `<div>Wound Damage: <strong>${woundDamage}</strong> (${currentWounds} -> ${newWounds} / ${maxWounds})</div>`;
   const specialDamageLine = appliedSpecialEffects.length
     ? `<div>Special Damage Effects: <strong>${appliedSpecialEffects.map((entry) => foundry.utils.escapeHTML(entry.displayName)).join(", ")}</strong></div>`
     : "";
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor: targetActor }),
-    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(targetName)}</strong>${shieldLine}${defenseLine}${hitLocationLine}${shieldPierceLine}${kineticLine}${headshotLine}${woundLine}${specialDamageLine}</div>`,
+    content: `<div class="mythic-damage-applied"><strong>${foundry.utils.escapeHTML(targetName)}</strong>${specialAmmoBadgeLine}${shieldLine}${defenseLine}${hitLocationLine}${shieldPierceLine}${kineticLine}${headshotLine}${woundLine}${specialDamageLine}</div>`,
     type: CONST.CHAT_MESSAGE_STYLES.OTHER
   });
 
@@ -871,10 +936,14 @@ async function applyCompactGrenadeDamage(messageId, attackData, targetMode = "se
       <div class="mythic-evasion-roll-detail">${foundry.utils.escapeHTML(row.details)}</div>
     </details>
   `).join("");
+  const specialAmmoBadgeLine = buildSpecialAmmoBadgeRowHtml({
+    specialAmmoSymbols: attackData?.specialAmmoSymbols,
+    specialAmmoRounds: attackData?.specialAmmoRounds
+  });
 
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ alias: "Grenade" }),
-    content: `<div class="mythic-evasion-card"><div class="mythic-evasion-header">${damageKind === "kill" ? "Kill Damage" : "Blast Damage"}</div>${body}</div>`,
+    content: `<div class="mythic-evasion-card"><div class="mythic-evasion-header">${damageKind === "kill" ? "Kill Damage" : "Blast Damage"}</div>${specialAmmoBadgeLine}${body}</div>`,
     type: CONST.CHAT_MESSAGE_STYLES.OTHER,
     flags: {
       "Halo-Mythic-Foundry-Updated": {

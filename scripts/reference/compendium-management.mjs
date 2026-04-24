@@ -5,7 +5,8 @@ import {
   MYTHIC_ADVANCEMENT_TIERS,
   MYTHIC_CHARACTERISTIC_KEYS,
   MYTHIC_REFERENCE_SOLDIER_TYPES_JSON,
-  MYTHIC_ABILITY_DEFAULT_ICON
+  MYTHIC_ABILITY_DEFAULT_ICON,
+  getExplicitArmorPowerProfile
 } from "../config.mjs";
 
 import { toNonNegativeWhole, buildCanonicalItemId } from "../utils/helpers.mjs";
@@ -142,6 +143,45 @@ export function normalizeReferenceTextArtifacts(text) {
     .replace(/[\uFFFD\u00A0]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function getArmorPowerBackfillProfile(name = "", options = {}) {
+  const cleanedName = normalizeReferenceTextArtifacts(name);
+  return getExplicitArmorPowerProfile(cleanedName, {
+    includeLegacyHumanMjolnir: options?.includeLegacyHumanMjolnir === true
+  });
+}
+
+async function backfillExplicitArmorPowerProfilesInPack(pack, options = {}) {
+  const dryRun = options?.dryRun === true;
+  const includeLegacyHumanMjolnir = options?.includeLegacyHumanMjolnir === true;
+  const docs = await pack.getDocuments();
+  let updated = 0;
+
+  for (const doc of docs) {
+    if (String(doc?.type ?? "").trim() !== "gear") continue;
+
+    const nextProfile = getArmorPowerBackfillProfile(doc?.name ?? "", { includeLegacyHumanMjolnir });
+    if (!nextProfile) continue;
+
+    const currentProfile = String(doc?.system?.armorWeightProfile ?? "").trim().toLowerCase();
+    const nextPowered = ["powered", "semi-powered"].includes(nextProfile);
+    const currentPowered = Boolean(doc?.system?.isPoweredArmor);
+    if (currentProfile === nextProfile && currentPowered === nextPowered) continue;
+
+    if (!dryRun) {
+      const nextSystem = foundry.utils.deepClone(doc?.system ?? {});
+      nextSystem.armorWeightProfile = nextProfile;
+      nextSystem.isPoweredArmor = nextPowered;
+      await doc.update({
+        system: nextSystem
+      }, { diff: false, recursive: false });
+    }
+
+    updated += 1;
+  }
+
+  return { updated };
 }
 
 export function isLikelySoldierTypeHeading(line) {
@@ -1280,6 +1320,12 @@ export async function refreshArmorCompendiums(options = {}) {
       if (!dryRun && createBatch.length) {
         await Item.createDocuments(createBatch, { pack: pack.collection });
       }
+
+      const backfill = await backfillExplicitArmorPowerProfilesInPack(pack, {
+        dryRun,
+        includeLegacyHumanMjolnir: collection === MYTHIC_ARMOR_COLLECTION_BY_FACTION.UNSC
+      });
+      packUpdated += backfill.updated;
     } finally {
       if (wasLocked && unlockedForRefresh) {
         try {

@@ -46,12 +46,27 @@ export function getCanonicalCharacterSystemData() {
       soldierTypeAdvancementsRow: { str: 0, tou: 0, agi: 0, wfm: 0, wfr: 0, int: 0, per: 0, crg: 0, cha: 0, ldr: 0 }
     },
     mythic: {
+      baseCharacteristics: {
+        str: 0,
+        tou: 0,
+        agi: 0
+      },
       characteristics: {
         str: 0,
         tou: 0,
         agi: 0
       },
       characteristicModifiers: {
+        str: 0,
+        tou: 0,
+        agi: 0
+      },
+      equipmentCharacteristicModifiers: {
+        str: 0,
+        tou: 0,
+        agi: 0
+      },
+      outlierCharacteristicModifiers: {
         str: 0,
         tou: 0,
         agi: 0

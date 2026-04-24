@@ -4,6 +4,22 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
+## [0.5.0-alpha.1] - 2026-04-24
+
+### Added (0.5.0-alpha.1)
+
+- Added special ammunition support for ballistic ammo families, including modifier compatibility rules, stacked modifier labels, and derived round effects.
+- Added Mythic container workflows for storage items and magazines, including dedicated container sheets, round sequencing, quick-fill patterns, and loose-ammo drop handling.
+
+### Changed (0.5.0-alpha.1)
+
+- Character and item equipment flows now understand carrying-unit storage rules, nested container state, and item-backed ballistic ammo data instead of relying on flatter inventory assumptions.
+- Reference content loading, normalization, and migration paths now prepare special ammo, containers, and related compendium/state updates as part of system startup.
+
+### Fixed (0.5.0-alpha.1)
+
+- Fixed equipment and sheet interactions that previously could not represent or preserve containerized ammo/storage behavior cleanly.
+
 ## [0.4.0-alpha.3] - 2026-04-22
 
 ### Added (0.4.0-alpha.3)

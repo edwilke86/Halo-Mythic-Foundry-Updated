@@ -12,9 +12,9 @@ This project is actively in development and currently targets Foundry v13.
 
 ## Alpha Readiness
 
-Current build target: `0.4.0-alpha.3` (current playtest hotfix alpha)
+Current build target: `0.5.0-alpha.1` (current feature alpha)
 
-Latest published release: `0.4.0-alpha.3` (2026-04-22)
+Latest published release: `0.5.0-alpha.1` (2026-04-24)
 
 Known alpha limitations:
 
@@ -46,7 +46,7 @@ Where to report:
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.4.0-alpha.3` (or latest published build in use)
+1. Build/version: `0.5.0-alpha.1` (or latest published build in use)
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -65,8 +65,8 @@ Format:
 
 Current working version:
 
-- Development target: `0.4.0-alpha.3`
-- Latest published: `0.4.0-alpha.3`
+- Development target: `0.5.0-alpha.1`
+- Latest published: `0.5.0-alpha.1`
 
 Rules used:
 
@@ -77,6 +77,12 @@ Rules used:
 ## Progress Log (Keep Updated)
 
 Use this section for short public-facing updates as development progresses.
+
+### 0.5.0-alpha.1
+
+- Added special ammunition support with modifier compatibility, stacked labels, and derived round effects for supported ballistic ammo families.
+- Added Mythic container workflows for storage items and magazines, including dedicated container sheets, round sequencing, and loose-ammo handling.
+- Updated startup/content preparation so special ammo, storage rules, and related migrations load coherently with the rest of the system.
 
 ### 0.4.0-alpha.3
 

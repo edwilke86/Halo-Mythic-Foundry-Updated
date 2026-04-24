@@ -8,6 +8,7 @@ Standard Ammo - High-Explosive (HE) TEST CHANGE,UNSC,Mythic,,1,0,-3,0,0,,,0,0,0,
 Standard Ammo - Shredder (JHP),UNSC,Mythic,,0,6,-9,1,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,9,cR,10,,,0.0,3.4,,1.0,7,,"HV, HYV, MG, T",+1D10 Special Damage Bonus,
 Standard Ammo - Soft Point (JSP),UNSC,Mythic,,0,5,-8,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,2,cR,10,,,0.0,0.5,,1.0,1,,"HV, HYV, MG, T",,
 Standard Ammo - Incendiary (IN),UNSC,Mythic,,0,-3,-3,0,0,,,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,10,cR,10,10,,0.0,3.3,,1.0,7,,"AP, HE, SAP, HV, HYV, MG, DU, T, HP",Flame (2) Special Rule.,
+Standard Ammo - Cryonic (CYN),UNSC,Mythic,,0,-3,-3,0,0,,,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,10,cR,10,10,,0.0,3.3,,1.0,7,,"AP, HE, HP, HV, HYV, T, DT, SAP, CL, MG, DU, EG, +P, +P+, -P",Cryo (2) Special Rule.,
 Standard Ammo - Hollow Point (HP),UNSC,Mythic,,0,5,-8,1,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,8,cR,10,,,0.0,3.1,,1.0,7,,"HE, IN, HV, HYV, T, CL, MG",+1D10 Special Damage Bonus,Cannot Pierce Through Characters.
 Standard Ammo - High Velocity (HV),UNSC,Mythic,,0,3,3,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,6,cR,10,,,0.0,2.2,,1.0,5,,All except HYV and CL,,+10 to Perception Tests to spot this weapon fire.
 Standard Ammo - Hyper velocity (HYV),UNSC,Mythic,,0,6,6,0,0,,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,11,cR,10,,,0.0,4.3,,1.0,9,,All except HV and CL,,+30 to Perception Tests to spot this weapon fire.

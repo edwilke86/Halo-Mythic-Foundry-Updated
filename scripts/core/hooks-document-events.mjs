@@ -39,6 +39,12 @@ import { isGoodFortuneModeEnabled } from "../mechanics/derived.mjs";
 import { computeAttackDOS, resolveHitLocationForMode } from "../mechanics/combat.mjs";
 import { applyCombatTurnStart } from "../mechanics/action-economy.mjs";
 import { advanceFarSightForCombatTurn, clearActorFarSightState } from "../mechanics/perceptive-range.mjs";
+import { clearStorageForDeletedItems } from "../mechanics/storage.mjs";
+import {
+  ensureWeaponBallisticLoaderItem,
+  isBallisticLoaderItem,
+  syncActorBallisticLegacyMirrors
+} from "../mechanics/ballistic-item-backed.mjs";
 
 import { getMythicTokenDefaultsForCharacter } from "../core/token-defaults.mjs";
 import { promptAttackModifiersDialog } from "../ui/attack-modifiers-dialog.mjs";
@@ -4301,17 +4307,25 @@ export function registerMythicDocumentAndChatHooks({
     }
 
     if (!isBallisticAmmoMode(gear.ammoMode)) return;
-    if (!isDetachableBallisticAmmoMode(gear.ammoMode)) {
-      const stateEntry = buildDefaultWeaponStateEntry(nextWeaponState[item.id]);
-      const capacity = getWeaponBallisticCapacity(gear);
-      stateEntry.activeMagazineId = "";
-      if (!stateEntry.magazineCurrent && capacity > 0) {
-        stateEntry.magazineCurrent = capacity;
-      }
-      nextWeaponState[item.id] = stateEntry;
+
+    const itemBackedStateEntry = buildDefaultWeaponStateEntry(nextWeaponState[item.id]);
+    const itemBackedCapacity = getWeaponBallisticCapacity(gear);
+    const requestedLegacyCount = toNonNegativeWhole(itemBackedStateEntry.magazineCurrent, 0);
+    const itemBackedInitialRoundCount = itemBackedCapacity > 0
+      ? Math.max(0, Math.min(itemBackedCapacity, requestedLegacyCount > 0 ? requestedLegacyCount : itemBackedCapacity))
+      : 0;
+    const itemBackedLoader = await ensureWeaponBallisticLoaderItem(actor, item, {
+      forceCreate: true,
+      initialRoundCount: itemBackedInitialRoundCount
+    });
+    if (itemBackedLoader) {
+      itemBackedStateEntry.activeMagazineId = String(itemBackedLoader.id ?? "").trim();
+      itemBackedStateEntry.magazineCurrent = itemBackedInitialRoundCount;
+      nextWeaponState[item.id] = itemBackedStateEntry;
       await actor.update({
         "system.equipment.weaponState": nextWeaponState
       });
+      await syncActorBallisticLegacyMirrors(actor, { render: false });
       return;
     }
 
@@ -4368,6 +4382,13 @@ export function registerMythicDocumentAndChatHooks({
     const actor = item?.parent;
     if (!actor || actor.documentName !== "Actor" || actor.type !== "character") return;
     if (item.type !== "gear") return;
+    const deletedGear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    const deletedWasItemBackedBallistic = String(deletedGear.equipmentType ?? "").trim().toLowerCase() === "ammunition"
+      || isBallisticLoaderItem(item);
+
+    await clearStorageForDeletedItems(actor, [item.id]).catch((error) => {
+      console.warn("[mythic-system] Failed to clear storage references for deleted item.", error);
+    });
 
     const nextEnergyCells = foundry.utils.deepClone(actor.system?.equipment?.energyCells ?? {});
     const nextWeaponState = foundry.utils.deepClone(actor.system?.equipment?.weaponState ?? {});
@@ -4392,7 +4413,12 @@ export function registerMythicDocumentAndChatHooks({
       }
     }
 
-    if (!changed && !hadWeaponState && !ballisticChanged) return;
+    if (!changed && !hadWeaponState && !ballisticChanged) {
+      if (deletedWasItemBackedBallistic) {
+        await syncActorBallisticLegacyMirrors(actor, { render: false });
+      }
+      return;
+    }
 
     const updateData = {
       "system.equipment.energyCells": nextEnergyCells,
@@ -4402,6 +4428,9 @@ export function registerMythicDocumentAndChatHooks({
       updateData["system.equipment.ballisticContainers"] = nextBallisticContainers;
     }
     await actor.update(updateData);
+    if (deletedWasItemBackedBallistic) {
+      await syncActorBallisticLegacyMirrors(actor, { render: false });
+    }
   });
 
   Hooks.on("preCreateToken", (tokenDocument, createData) => {
@@ -5252,7 +5281,11 @@ export function registerMythicDocumentAndChatHooks({
                 isPenetrating: String(btn.dataset.penetrating ?? "").trim().toLowerCase() === "true",
                 isHeadshot: String(btn.dataset.headshot ?? "").trim().toLowerCase() === "true",
                 hasBlastOrKill: String(btn.dataset.blastKill ?? "").trim().toLowerCase() === "true",
-                isKinetic: String(btn.dataset.kinetic ?? "").trim().toLowerCase() === "true"
+                isKinetic: String(btn.dataset.kinetic ?? "").trim().toLowerCase() === "true",
+                specialAmmoSymbols: String(btn.dataset.specialAmmoSymbols ?? "")
+                  .split("|")
+                  .map((entry) => String(entry ?? "").trim())
+                  .filter(Boolean)
               }
             );
           }

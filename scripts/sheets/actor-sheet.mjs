@@ -25,7 +25,10 @@ import {
   MYTHIC_EDUCATION_DEFAULT_ICON,
   MYTHIC_SPECIALIZATION_SKILL_TIER_STEPS,
   MYTHIC_WEAPON_TAG_DEFINITIONS,
-  MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS
+  MYTHIC_MELEE_SPECIAL_RULE_DEFINITIONS,
+  MYTHIC_SPECIAL_AMMO_AUTO_DEDUCT_SETTING_KEY,
+  MYTHIC_SPECIAL_AMMO_FAMILIES,
+  MYTHIC_SPECIAL_AMMO_FAMILY_DEFINITIONS
 } from "../config.mjs";
 
 import {
@@ -65,6 +68,7 @@ import {
   substituteSoldierTypeInTraitText,
   loadMythicAbilityDefinitions,
   loadMythicEquipmentPackDefinitions,
+  loadMythicAmmoModifierRules,
   loadMythicAmmoTypeDefinitions,
   loadMythicMedicalEffectDefinitions,
   loadMythicEnvironmentalEffectDefinitions,
@@ -82,6 +86,50 @@ import {
   computeCharacteristicModifiers,
   getWorldGravity
 } from "../mechanics/derived.mjs";
+import {
+  coerceMythicCharacteristicMap,
+  getActorEquippedGearMythicCharacteristicModifiers,
+  getCharacterBaseMythicCharacteristics,
+  getCharacterEffectiveMythicCharacteristics,
+  getCharacterOutlierMythicCharacteristicModifiers
+} from "../mechanics/mythic-characteristics.mjs";
+import {
+  addMagazineRounds,
+  buildActorStorageView,
+  clearStorageForDeletedItems,
+  consumeMagazineRounds,
+  getStorageProfileForItem,
+  isLooseAmmoStackDropData,
+  isMagazineContainerItem,
+  isStorageContainerItem,
+  materializeLooseAmmoStackDrop,
+  notifyStorageValidation,
+  prepareLooseAmmoStackDrop,
+  removeItemFromContainer,
+  storeItemInContainer,
+  validateStoreItemInContainer
+} from "../mechanics/storage.mjs";
+import { openMythicContainerSheet } from "./container-sheet.mjs";
+import {
+  buildAmmoEffectSnapshot,
+  buildAmmoModifierDisplaySymbol,
+  buildLoadedRoundSnapshotFromAmmoItem,
+  buildSpecialAmmoItemUpdate,
+  calculateSpecialAmmoPurchasePreview,
+  deriveAmmoFamilyFromItem,
+  getAmmoModifierDefinitionsForFamily,
+  mergeAmmoEffectSnapshotWithAttack,
+  validateAmmoModifierSelection
+} from "../mechanics/ammo-special.mjs";
+import {
+  buildBallisticLoaderItemData,
+  ensureWeaponBallisticLoaderItem,
+  getWeaponBallisticLoaderType,
+  isBallisticLoaderItem,
+  isTrackableBallisticWeapon,
+  resolveWeaponBallisticAmmoContext,
+  syncActorBallisticLegacyMirrors
+} from "../mechanics/ballistic-item-backed.mjs";
 
 import {
   normalizeRangeObject,
@@ -1246,6 +1294,12 @@ function buildDefaultWeaponStateEntry(state = {}) {
     const numeric = Number(value ?? 0);
     return Number.isFinite(numeric) ? Math.round(numeric) : 0;
   };
+  const specialAmmoPatternOptionIds = Array.isArray(source.specialAmmoPatternOptionIds)
+    ? source.specialAmmoPatternOptionIds.map((entry) => String(entry ?? "").trim())
+    : [];
+  const specialAmmoPatternNextIndex = specialAmmoPatternOptionIds.length > 0
+    ? (toNonNegativeWhole(source.specialAmmoPatternNextIndex, 0) % specialAmmoPatternOptionIds.length)
+    : 0;
   return {
     magazineCurrent: toNonNegativeWhole(source.magazineCurrent, 0),
     magazineTrackingMode: String(source.magazineTrackingMode ?? "abstract").trim().toLowerCase() || "abstract",
@@ -1257,9 +1311,37 @@ function buildDefaultWeaponStateEntry(state = {}) {
     variantIndex: toNonNegativeWhole(source.variantIndex, 0),
     scopeMode: String(source.scopeMode ?? "none").trim().toLowerCase() || "none",
     fireMode: String(source.fireMode ?? "single").trim().toLowerCase() || "single",
+    useSpecialAmmo: source.useSpecialAmmo === true,
+    specialAmmoPatternOptionIds,
+    specialAmmoPatternNextIndex,
     toHitModifier: toModifier(source.toHitModifier),
     damageModifier: toModifier(source.damageModifier)
   };
+}
+
+function inferRepeatingSpecialAmmoPattern(optionIds = []) {
+  const normalizedIds = Array.isArray(optionIds)
+    ? optionIds.map((entry) => String(entry ?? "").trim())
+    : [];
+  if (!normalizedIds.length) return [];
+  for (let patternLength = 1; patternLength <= normalizedIds.length; patternLength += 1) {
+    const candidate = normalizedIds.slice(0, patternLength);
+    const matches = normalizedIds.every((entry, index) => entry === candidate[index % patternLength]);
+    if (matches) return candidate;
+  }
+  return normalizedIds;
+}
+
+function buildSpecialAmmoPatternContinuation(patternOptionIds = [], nextIndex = 0, count = 0) {
+  const normalizedPattern = Array.isArray(patternOptionIds)
+    ? patternOptionIds.map((entry) => String(entry ?? "").trim())
+    : [];
+  const total = Math.max(0, toNonNegativeWhole(count, 0));
+  if (!normalizedPattern.length || total <= 0) {
+    return Array.from({ length: total }, () => "");
+  }
+  const startIndex = toNonNegativeWhole(nextIndex, 0) % normalizedPattern.length;
+  return Array.from({ length: total }, (_entry, index) => normalizedPattern[(startIndex + index) % normalizedPattern.length] ?? "");
 }
 
 function ensureWeaponEnergyCells(energyCells = {}, weaponState = {}, weaponId = "", gear = {}, weaponNameOverride = "") {
@@ -9453,10 +9535,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return b > 0 ? Math.max(1, b - _reloadReduction) : 0;
     };
 
+    const actorStorageView = buildActorStorageView(this.actor);
+
     const baseGearItems = (this.actor?.items ?? [])
       .filter((item) => item.type === "gear")
       .map((item) => {
         const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+        const storageView = actorStorageView.rowsByItemId.get(String(item.id ?? "").trim()) ?? {};
         const grantFlag = item.getFlag("Halo-Mythic-Foundry-Updated", "equipmentPackGrant") ?? {};
         const isEquipmentPackGranted = activePackItemIds.has(String(item.id ?? "")) || Boolean(grantFlag?.packKey || grantFlag?.source);
         return {
@@ -9464,6 +9549,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           name: item.name,
           img: item.img,
           equipmentType: String(gear.equipmentType ?? "").trim().toLowerCase(),
+          ammoClass: String(gear.ammoClass ?? "").trim().toLowerCase(),
+          ammoFamily: String(gear.family ?? deriveAmmoFamilyFromItem(item)).trim(),
+          caliberOrType: String(gear.caliberOrType ?? item.name ?? "").trim(),
+          baseAmmoUuid: String(gear.baseAmmoUuid ?? "").trim(),
+          baseAmmoName: String(gear.baseAmmoName ?? "").trim(),
+          isSpecialAmmo: gear.isSpecial === true,
+          modifierCodes: normalizeStringList(Array.isArray(gear.modifierCodes) ? gear.modifierCodes : []),
+          displayLabel: String(gear.displayLabel ?? item.name ?? "").trim() || item.name,
+          displaySymbol: String(gear.displaySymbol ?? buildAmmoModifierDisplaySymbol(Array.isArray(gear.modifierCodes) ? gear.modifierCodes.map((code) => ({ modifierCode: code })) : [])).trim(),
+          stackKey: String(gear.stackKey ?? "").trim(),
+          quantity: toNonNegativeWhole(gear.quantity ?? 1, 1),
           itemClass: gear.itemClass,
           weaponClass: gear.weaponClass,
           training: String(gear.training ?? "").trim(),
@@ -9504,7 +9600,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           modifiers: String(gear.modifiers ?? "").trim(),
           armorWeightProfile: String(gear.armorWeightProfile ?? "").trim().toLowerCase(),
           isEquipmentPackGranted,
-          equipmentPackTag: isEquipmentPackGranted ? "EP" : ""
+          equipmentPackTag: isEquipmentPackGranted ? "EP" : "",
+          ...storageView
         };
       });
 
@@ -9576,7 +9673,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const stackItemGroup = (rows, repSelector, mergeState) => {
       const groups = new Map();
       for (const row of rows) {
-        const key = normalizeLookupText(row?.name ?? "");
+        const storageDistinct = row?.isStorageContainer || row?.parentContainerId;
+        const key = storageDistinct
+          ? `${normalizeLookupText(row?.name ?? "")}::${String(row?.id ?? "")}`
+          : normalizeLookupText(row?.name ?? "");
         if (!key) continue;
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(row);
@@ -9624,12 +9724,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const rawWeaponItems = sortedGearItems.filter((entry) => entry.itemClass === "weapon");
     const rawArmorItems = sortedGearItems.filter((entry) => entry.itemClass === "armor");
+    const isItemBackedAmmoEntry = (entry) => String(entry?.equipmentType ?? "").trim().toLowerCase() === "ammunition";
+    const isItemBackedLoaderEntry = (entry) => {
+      const itemDoc = this.actor.items.get(String(entry?.id ?? "").trim());
+      return Boolean(itemDoc && isBallisticLoaderItem(itemDoc));
+    };
+    const resolveLoadedRoundWeightKg = (round = {}) => {
+      const snapshotWeight = Math.max(0, Number(round?.unitWeightKg ?? 0) || 0);
+      if (snapshotWeight > 0) return snapshotWeight;
+      const ammoItemId = String(round?.ammoItemId ?? round?.specialAmmoItemId ?? round?.baseAmmoItemId ?? "").trim();
+      if (!ammoItemId) return 0;
+      const ammoDoc = this.actor.items.get(ammoItemId);
+      if (!ammoDoc) return 0;
+      const ammoGear = normalizeGearSystemData(ammoDoc.system ?? {}, ammoDoc.name ?? "");
+      return Math.max(0, Number(ammoGear.weightPerRoundKg ?? ammoGear.weightKg ?? 0) || 0);
+    };
     const isGeneralGearEntry = (entry) => {
       if (entry.itemClass === "weapon" || entry.itemClass === "armor") return false;
-      return !entry.equipmentType || entry.equipmentType === "general";
+      if (isItemBackedLoaderEntry(entry)) return false;
+      return !entry.equipmentType || entry.equipmentType === "general" || entry.equipmentType === "container";
     };
     const rawGeneralItems = sortedGearItems.filter((entry) => isGeneralGearEntry(entry));
-    const rawOtherItems = sortedGearItems.filter((entry) => entry.itemClass !== "weapon" && entry.itemClass !== "armor" && !isGeneralGearEntry(entry));
+    const rawOtherItems = sortedGearItems.filter((entry) => (
+      entry.itemClass !== "weapon"
+      && entry.itemClass !== "armor"
+      && !isGeneralGearEntry(entry)
+      && !isItemBackedAmmoEntry(entry)
+      && !isItemBackedLoaderEntry(entry)
+    ));
 
     const weaponItems = stackItemGroup(
       rawWeaponItems,
@@ -9896,6 +10018,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
 
     const readyWeaponCards = equippedWeaponItems.map((item) => {
+      const weaponDocument = this.actor.items.get(String(item.id ?? "").trim()) ?? null;
       const state = (rawWeaponState[item.id] && typeof rawWeaponState[item.id] === "object")
         ? rawWeaponState[item.id]
         : {};
@@ -9907,6 +10030,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ? String(item.ammoMode ?? "").trim().toLowerCase()
         : (isGrenadeWeapon ? "grenade" : normalizeBallisticAmmoMode(item.ammoMode));
       const isEnergyWeapon = !isMelee && !isInfusionRadius && isEnergyCellAmmoMode(ammoMode);
+      const itemBackedBallisticContext = (!isMelee && !isInfusionRadius && !isGrenadeWeapon && !isEnergyWeapon && weaponDocument)
+        ? resolveWeaponBallisticAmmoContext(this.actor, weaponDocument, { weaponState: state })
+        : null;
+      const usesItemBackedBallisticAmmo = itemBackedBallisticContext?.usesItemBackedAmmo === true;
       const weaponEnergyCells = Array.isArray(rawEnergyCells[item.id]) ? rawEnergyCells[item.id] : [];
       const activeEnergyCellId = String(state.activeEnergyCellId ?? "").trim();
       const activeEnergyCell = weaponEnergyCells.find((entry) => String(entry?.id ?? "").trim() === activeEnergyCellId)
@@ -9939,7 +10066,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const fallbackMag = 0;
       const magazineCurrent = isMelee
         ? 0
-        : toNonNegativeWhole(state.magazineCurrent, fallbackMag);
+        : (usesItemBackedBallisticAmmo
+            ? Math.max(0, toNonNegativeWhole(itemBackedBallisticContext?.currentCount, 0))
+            : toNonNegativeWhole(state.magazineCurrent, fallbackMag));
       const looseAmmoInventoryTotal = toNonNegativeWhole(
         looseAmmoTotals.get(normalizeAmmoCounterKey(item.ammoName)) ?? 0,
         0
@@ -9949,7 +10078,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         0
       );
       const loadedCombatRounds = Math.max(loadedMagazineInventoryTotal, toNonNegativeWhole(state?.magazineCurrent, 0));
-      const ammoInventoryTotal = isSingleLoadWeapon ? looseAmmoInventoryTotal : loadedCombatRounds;
+      const ammoInventoryTotal = usesItemBackedBallisticAmmo
+        ? Math.max(0, toNonNegativeWhole(itemBackedBallisticContext?.ammoInventoryTotal, 0))
+        : (isSingleLoadWeapon ? looseAmmoInventoryTotal : loadedCombatRounds);
       const ammoLoadLabel = ammoMode === "tube"
         ? "Tube"
         : (isSingleLoadWeapon ? "Load" : "Mag");
@@ -10092,8 +10223,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         activeEnergyCellId: String(activeEnergyCell?.id ?? "").trim(),
         magazineMax,
         magazineCurrent,
+        usesItemBackedBallisticAmmo,
+        showReadOnlyAmmoState: usesItemBackedBallisticAmmo,
         magazineTrackingMode: String(state.magazineTrackingMode ?? "abstract").trim().toLowerCase() || "abstract",
-        activeMagazineId: String(state.activeMagazineId ?? "").trim(),
+        activeMagazineId: usesItemBackedBallisticAmmo
+          ? String(itemBackedBallisticContext?.activeLoaderId ?? "").trim()
+          : String(state.activeMagazineId ?? "").trim(),
+        activeLoaderLabel: String(itemBackedBallisticContext?.activeLoader?.name ?? "").trim(),
+        activeLoaderSequenceSummary: String(itemBackedBallisticContext?.sequenceSummary ?? "").trim(),
+        nextRoundLabel: String(itemBackedBallisticContext?.nextRound?.displayLabel ?? itemBackedBallisticContext?.nextRound?.label ?? "").trim(),
+        nextRoundSymbol: String(itemBackedBallisticContext?.nextRound?.displaySymbol ?? "").trim(),
+        spareLoaderCount: Math.max(0, toNonNegativeWhole(itemBackedBallisticContext?.spareLoaderCount, 0)),
         chamberRoundCount: toNonNegativeWhole(state.chamberRoundCount, 0),
         fireModes,
         selectedFireMode: fireModes.find((mode) => mode.isSelected)?.value ?? fireModes[0]?.value ?? "single",
@@ -10630,6 +10770,108 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const sortedBatteryEntries = batteryEntries
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
+      const itemBackedAmmoEntries = sortedGearItems
+        .filter((entry) => isItemBackedAmmoEntry(entry))
+        .map((entry) => {
+          const quantity = Math.max(0, toNonNegativeWhole(entry.quantity, 0));
+          if (quantity <= 0) return null;
+          const familyLabel = String(entry.ammoFamily ?? "").trim() || "Uncategorized";
+          const caliberLabel = String(entry.caliberOrType ?? entry.baseAmmoName ?? entry.name ?? "").trim() || entry.name;
+          const unitWeightKg = Math.max(0, Number(entry.weightKg ?? 0) || 0);
+          const totalWeightKg = roundWeight(unitWeightKg * quantity);
+          const effectiveWeightKg = (ammoConfig.useAmmoWeightOptionalRule && entry.isCarried) ? totalWeightKg : 0;
+          const modifierLabel = Array.isArray(entry.modifierCodes) && entry.modifierCodes.length
+            ? entry.modifierCodes.join(" + ")
+            : "";
+          return {
+            id: entry.id,
+            name: String(entry.displayLabel ?? entry.name ?? "Ammo").trim() || "Ammo",
+            img: entry.img,
+            quantity,
+            isCarried: entry.isCarried,
+            totalWeightKg,
+            effectiveWeightKg,
+            totalWeightLabel: `${formatWeight(totalWeightKg)} kg`,
+            effectiveWeightLabel: `${formatWeight(effectiveWeightKg)} kg`,
+            familyLabel,
+            caliberLabel,
+            displaySymbol: String(entry.displaySymbol ?? "").trim(),
+            isSpecial: entry.isSpecialAmmo === true,
+            modifierLabel,
+            metaLabel: `${familyLabel} · ${caliberLabel}`,
+            itemClass: "ammunition",
+            storedInLabel: String(entry.storedInLabel ?? "").trim(),
+            storageBreadcrumb: String(entry.storageBreadcrumb ?? "").trim(),
+            storageWarningText: String(entry.storageWarningText ?? "").trim(),
+            storageRowClass: String(entry.storageRowClass ?? "").trim()
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+
+      const itemBackedLoaderEntries = sortedGearItems
+        .filter((entry) => isItemBackedLoaderEntry(entry))
+        .map((entry) => {
+          const itemDoc = this.actor.items.get(String(entry.id ?? "").trim());
+          if (!itemDoc) return null;
+          const profile = getStorageProfileForItem(itemDoc);
+          const loaderType = String(profile.gear?.magazine?.loaderType ?? "detachable-magazine").trim();
+          const loadedRounds = Array.isArray(profile.gear?.magazine?.loadedRounds) ? profile.gear.magazine.loadedRounds : [];
+          const ammoCapacity = toNonNegativeWhole(profile.gear?.magazine?.ammoCapacity, 0);
+          const linkedWeaponId = String(profile.gear?.magazine?.linkedWeaponId ?? "").trim();
+          const activeLoaderId = linkedWeaponId
+            ? String(rawWeaponState?.[linkedWeaponId]?.activeMagazineId ?? "").trim()
+            : "";
+          const isActive = Boolean(activeLoaderId) && activeLoaderId === String(entry.id ?? "").trim();
+          const nextRound = loadedRounds[0] ?? null;
+          const sequenceSummary = loadedRounds.slice(0, 6).map((round) => {
+            const symbol = String(round?.displaySymbol ?? "").trim();
+            const label = String(round?.displayLabel ?? round?.label ?? "Round").trim() || "Round";
+            return symbol || label;
+          }).join(", ");
+          const loaderTypeLabel = loaderType === "belt"
+            ? "Belt"
+            : loaderType === "tube"
+              ? "Tube"
+              : loaderType === "internal-magazine"
+                ? "Internal Magazine"
+                : "Magazine";
+          const loadedAmmoWeightKg = roundWeight(
+            loadedRounds.reduce((sum, round) => sum + resolveLoadedRoundWeightKg(round), 0)
+          );
+          const bodyWeightKg = roundWeight(Math.max(0, Number(entry.weightKg ?? 0) || 0));
+          const totalWeightKg = roundWeight(bodyWeightKg + loadedAmmoWeightKg);
+          const effectiveWeightKg = entry.isCarried ? totalWeightKg : 0;
+          return {
+            id: entry.id,
+            name: entry.name,
+            img: entry.img,
+            loaderType,
+            loaderTypeLabel,
+            linkedWeaponId,
+            currentCount: loadedRounds.length,
+            ammoCapacity,
+            countLabel: ammoCapacity > 0 ? `${loadedRounds.length}/${ammoCapacity}` : String(loadedRounds.length),
+            nextRoundLabel: nextRound ? String(nextRound.displayLabel ?? nextRound.label ?? "Round").trim() || "Round" : "",
+            nextRoundSymbol: nextRound ? String(nextRound.displaySymbol ?? "").trim() : "",
+            sequenceSummary,
+            isActive,
+            isCarried: entry.isCarried,
+            bodyWeightKg,
+            loadedAmmoWeightKg,
+            totalWeightKg,
+            effectiveWeightKg,
+            totalWeightLabel: `${formatWeight(totalWeightKg)} kg`,
+            effectiveWeightLabel: `${formatWeight(effectiveWeightKg)} kg`,
+            storedInLabel: String(entry.storedInLabel ?? "").trim(),
+            storageBreadcrumb: String(entry.storageBreadcrumb ?? "").trim(),
+            storageWarningText: String(entry.storageWarningText ?? "").trim(),
+            storageRowClass: String(entry.storageRowClass ?? "").trim()
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+
     const packSelection = await this._getEquipmentPackSelectionViewData(systemData);
 
     const computedCarriedWeight = roundWeight([
@@ -10638,9 +10880,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ...generalItems,
       ...otherItems
     ].reduce((sum, entry) => sum + Math.max(0, Number(entry?.effectiveWeightKg ?? 0) || 0), 0));
+      const displayedAmmoEntries = itemBackedAmmoEntries.length ? itemBackedAmmoEntries : ballisticAmmoEntries;
+      const displayedLoaderEntries = itemBackedLoaderEntries.length ? itemBackedLoaderEntries : sortedBallisticContainerEntries;
       const ammoEffectiveWeight = roundWeight(
-        ballisticAmmoEntries.reduce((sum, entry) => sum + Math.max(0, Number(entry?.effectiveWeightKg ?? 0) || 0), 0)
-        + sortedBallisticContainerEntries.reduce((sum, entry) => sum + (Number(entry?.effectiveWeightKg ?? 0) || 0), 0)
+        displayedAmmoEntries.reduce((sum, entry) => sum + Math.max(0, Number(entry?.effectiveWeightKg ?? 0) || 0), 0)
+        + displayedLoaderEntries.reduce((sum, entry) => sum + (Number(entry?.effectiveWeightKg ?? 0) || 0), 0)
         + sortedBatteryEntries.reduce((sum, entry) => sum + (Number(entry?.effectiveWeightKg ?? 0) || 0), 0)
       );
 
@@ -10665,6 +10909,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       readyWeaponCards,
         ballisticAmmoEntries,
         ballisticContainerEntries: sortedBallisticContainerEntries,
+        itemBackedAmmoEntries,
+        itemBackedLoaderEntries,
+        usesItemBackedAmmoInventory: itemBackedAmmoEntries.length > 0 || itemBackedLoaderEntries.length > 0,
         batteryEntries: sortedBatteryEntries,
         totalBallisticAmmoWeight: formatWeight(ammoEffectiveWeight),
       ammoConfig,
@@ -10885,6 +11132,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const source = foundry.utils.deepClone(systemData ?? {});
     const scope = "Halo-Mythic-Foundry-Updated";
     source.flags ??= {};
+    source.mythic ??= {};
 
     const currentScopeFlags = (source.flags?.[scope] && typeof source.flags[scope] === "object")
       ? source.flags[scope]
@@ -10918,6 +11166,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ?? currentScopeFlags?.mgalekgoloPhenome
         ?? {}
     };
+
+    source.mythic.baseCharacteristics = getCharacterBaseMythicCharacteristics(source);
+    source.mythic.equipmentCharacteristicModifiers = getActorEquippedGearMythicCharacteristicModifiers(
+      this.actor,
+      source?.equipment?.equipped ?? {}
+    );
+    source.mythic.outlierCharacteristicModifiers = getCharacterOutlierMythicCharacteristicModifiers(source);
+    source.mythic.characteristics = getCharacterEffectiveMythicCharacteristics(source, {
+      base: source.mythic.baseCharacteristics,
+      equipment: source.mythic.equipmentCharacteristicModifiers,
+      outliers: source.mythic.outlierCharacteristicModifiers
+    });
 
     return source;
   }
@@ -12898,6 +13158,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           : String(currentEquipped?.wieldedWeaponId ?? "").trim()
       };
       const equipmentRow = this._getEquippedCharacteristicRowFromEquippedState(effectiveEquipped);
+      const effectiveEquippedMythicRow = this._getEquippedCharacteristicModsFromEquippedState(effectiveEquipped).mythic;
 
       for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
         // Write back capped/validated values
@@ -12914,6 +13175,22 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           + getBuilderStat("misc", key);
         foundry.utils.setProperty(submitData, `system.characteristics.${key}`, Math.max(0, Math.floor(total)));
       }
+
+      const effectiveManualMythicRow = Object.fromEntries(["str", "tou", "agi"].map((key) => [
+        key,
+        Number(
+          foundry.utils.getProperty(submitData, `system.mythic.characteristicModifiers.${key}`)
+          ?? this.actor.system?.mythic?.characteristicModifiers?.[key]
+          ?? 0
+        ) || 0
+      ]));
+      this._applyMythicCharacteristicSourceUpdate(submitData, this.actor.system, {
+        manual: effectiveManualMythicRow,
+        equipment: effectiveEquippedMythicRow,
+        outliers: this._getOutlierMythicCharacteristicRowFromSystemData(this.actor.system),
+        persistEquipment: true,
+        persistOutliers: true
+      });
     }
 
     return submitData;
@@ -13770,6 +14047,46 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".container-open-btn[data-item-id], .mythic-storage-container-open-trigger").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const itemId = String(event.currentTarget.dataset.itemId ?? "")
+          || String(event.currentTarget.closest?.("[data-item-id]")?.dataset?.itemId ?? "");
+        if (!itemId) return;
+        const item = this.actor.items.get(itemId);
+        if (!item || !isStorageContainerItem(item)) return;
+        openMythicContainerSheet(item);
+      });
+    });
+
+    root.querySelectorAll(".mythic-equipment-data-row[data-item-id]").forEach((row) => {
+      row.addEventListener("dragstart", (event) => {
+        this._onGearRowDragStart(event);
+      });
+    });
+
+    root.querySelectorAll(".mythic-loose-ammo-row[draggable='true']").forEach((row) => {
+      row.addEventListener("dragstart", (event) => {
+        this._onLooseAmmoRowDragStart(event);
+      });
+    });
+
+    root.querySelectorAll(".mythic-storage-container-row[data-item-id]").forEach((row) => {
+      row.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        row.classList.add("is-storage-drag-over");
+      });
+      row.addEventListener("dragleave", () => {
+        row.classList.remove("is-storage-drag-over");
+      });
+      row.addEventListener("drop", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        row.classList.remove("is-storage-drag-over");
+        void this._onDropItem(event, null);
+      });
+    });
+
     root.querySelectorAll(".gear-remove-btn[data-item-id]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onRemoveGearItem(event);
@@ -13815,6 +14132,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     root.querySelectorAll(".ballistic-container-buy-btn[data-group-key]").forEach((button) => {
       button.addEventListener("click", (event) => {
         void this._onPurchaseBallisticContainer(event);
+      });
+    });
+
+    root.querySelectorAll(".special-ammo-designer-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onOpenSpecialAmmoDesigner(event);
+      });
+    });
+
+    root.querySelectorAll(".item-backed-loader-buy-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onPurchaseItemBackedBallisticLoader(event);
       });
     });
 
@@ -16456,6 +16785,144 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return false;
   }
 
+  _onGearRowDragStart(event) {
+    const row = event.currentTarget instanceof HTMLElement
+      ? event.currentTarget
+      : event.target?.closest?.(".mythic-equipment-data-row[data-item-id]");
+    const itemId = String(row?.dataset?.itemId ?? "").trim();
+    if (!itemId) return;
+    const item = this.actor.items.get(itemId);
+    if (!item) return;
+    const dragData = JSON.stringify({
+      type: "Item",
+      uuid: item.uuid,
+      id: item.id
+    });
+    event.dataTransfer?.setData("text/plain", dragData);
+    event.dataTransfer?.setData("application/json", dragData);
+  }
+
+  _onLooseAmmoRowDragStart(event) {
+    const row = event.currentTarget instanceof HTMLElement
+      ? event.currentTarget
+      : event.target?.closest?.(".mythic-loose-ammo-row");
+    if (!(row instanceof HTMLElement)) return;
+
+    const ammoSource = String(row.dataset.ammoSource ?? "").trim().toLowerCase();
+    const ammoKey = String(row.dataset.ammoKey ?? "").trim();
+    const ammoName = String(row.dataset.ammoName ?? "").trim();
+    const ammoCount = toNonNegativeWhole(row.dataset.ammoCount ?? 0, 0);
+    if (!ammoSource || !ammoKey || ammoCount <= 0) return;
+
+    const rawUnitWeightKg = Number(row.dataset.ammoUnitWeightKg ?? 0);
+    const ammoUnitWeightKg = Number.isFinite(rawUnitWeightKg) ? Math.max(0, rawUnitWeightKg) : 0;
+    const dragData = JSON.stringify({
+      type: "mythic-loose-ammo-stack",
+      mythicDropKind: "loose-ammo-stack",
+      ammoSource,
+      ammoKey,
+      ammoName,
+      ammoCount,
+      ammoReference: String(row.dataset.ammoReference ?? "").trim(),
+      ammoImg: String(row.dataset.ammoImg ?? "").trim(),
+      ammoUnitWeightKg,
+      ammoIsCarried: String(row.dataset.ammoIsCarried ?? "").trim().toLowerCase() !== "false"
+    });
+
+    event.dataTransfer?.setData("text/plain", dragData);
+    event.dataTransfer?.setData("application/json", dragData);
+  }
+
+  _getStorageDropTarget(event) {
+    const directTarget = event?.target instanceof HTMLElement ? event.target : null;
+    const pointTarget = (Number.isFinite(Number(event?.clientX)) && Number.isFinite(Number(event?.clientY)))
+      ? document.elementFromPoint(Number(event.clientX), Number(event.clientY))
+      : null;
+    return directTarget?.closest(".mythic-storage-container-row[data-item-id]")
+      ?? (pointTarget instanceof HTMLElement ? pointTarget.closest(".mythic-storage-container-row[data-item-id]") : null);
+  }
+
+  async _ensureDroppedGearOwnedForStorage(item) {
+    if (!item || item.type !== "gear") {
+      ui.notifications?.warn("Only gear items can be stored in containers.");
+      return null;
+    }
+    if (item.parent?.documentName === "Actor" && item.parent.id === this.actor.id) return item;
+
+    const itemData = item.toObject ? item.toObject() : foundry.utils.deepClone(item);
+    delete itemData._id;
+    itemData.system = normalizeGearSystemData(itemData.system ?? {}, itemData.name ?? item.name ?? "");
+    const created = await this.actor.createEmbeddedDocuments("Item", [itemData]);
+    return created?.[0] ?? null;
+  }
+
+  async _onDropItemToStorageContainer(event, dropData, containerId) {
+    event?.preventDefault?.();
+    const targetId = String(containerId ?? "").trim();
+    const container = targetId ? this.actor.items.get(targetId) : null;
+    if (!container || !isStorageContainerItem(container)) {
+      ui.notifications?.warn("Drop target is not a storage container.");
+      return false;
+    }
+
+    let ownedItem = null;
+    if (isLooseAmmoStackDropData(dropData)) {
+      if (isMagazineContainerItem(container)) {
+        ui.notifications?.warn("Loose ammo stacks can only be dropped into non-loader containers.");
+        return false;
+      }
+
+      const preparedDrop = await prepareLooseAmmoStackDrop({ actor: this.actor, dropData });
+      if (!preparedDrop.ok) {
+        ui.notifications?.warn(preparedDrop.error ?? "Could not resolve the loose ammo stack.");
+        return false;
+      }
+
+      const validation = validateStoreItemInContainer({
+        actor: this.actor,
+        item: preparedDrop.previewItem,
+        container
+      });
+      if (!validation.valid) {
+        notifyStorageValidation(validation);
+        return false;
+      }
+
+      const materialized = await materializeLooseAmmoStackDrop({ actor: this.actor, preparedDrop });
+      if (!materialized.ok || !materialized.item) {
+        ui.notifications?.warn(materialized.error ?? "Could not move the loose ammo stack into the container.");
+        return false;
+      }
+      ownedItem = materialized.item;
+    } else {
+      const droppedItem = await this._resolveDroppedItemFromData(dropData);
+      if (!droppedItem) {
+        ui.notifications?.warn("Could not resolve dropped item data.");
+        return false;
+      }
+
+      const validation = validateStoreItemInContainer({
+        actor: this.actor,
+        item: droppedItem,
+        container
+      });
+      if (!validation.valid) {
+        notifyStorageValidation(validation);
+        return false;
+      }
+
+      ownedItem = await this._ensureDroppedGearOwnedForStorage(droppedItem);
+      if (!ownedItem) return false;
+    }
+
+    await storeItemInContainer({
+      actor: this.actor,
+      item: ownedItem,
+      container
+    });
+    return false;
+  }
+
   async _onDropItem(event, data) {
     if (!this.isEditable) return false;
 
@@ -16475,6 +16942,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       await this._addIndependentAmmoFromDroppedItem(droppedItem);
       return false;
+    }
+
+    const storageDropTarget = this._getStorageDropTarget(event);
+    if (storageDropTarget instanceof HTMLElement) {
+      return this._onDropItemToStorageContainer(event, dropData, storageDropTarget.dataset.itemId);
     }
 
     const queueDropTarget = event?.target instanceof HTMLElement
@@ -16508,6 +16980,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ui.notifications?.warn("Could not resolve dropped item data.");
       }
       return fallback.result;
+    }
+
+    if (
+      item.type === "gear"
+      && item.parent?.documentName === "Actor"
+      && item.parent.id === this.actor.id
+      && String(getStorageProfileForItem(item).storage.parentContainerId ?? "").trim()
+    ) {
+      await removeItemFromContainer(item);
+      return false;
     }
 
     if (this._isVehicleActor() && item.type === "gear") {
@@ -18206,12 +18688,22 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       updateData[`system.characteristics.${key}`] = next;
       updateData[`system.charBuilder.soldierTypeRow.${key}`] = next;
     }
-    for (const key of ["str", "tou", "agi"]) {
+      const nextBaseMythic = this._getBaseMythicCharacteristicRowFromSystemData(this.actor.system);
+      let mythicBaseUpdated = false;
+      for (const key of ["str", "tou", "agi"]) {
       const deltaRaw = Number(selected?.mythic?.[key] ?? 0);
       const delta = Number.isFinite(deltaRaw) ? deltaRaw : 0;
       if (!delta) continue;
-      const current = Number(this.actor.system?.mythic?.characteristics?.[key] ?? 0);
-      updateData[`system.mythic.characteristics.${key}`] = Math.max(0, current + delta);
+        nextBaseMythic[key] = Math.max(0, Number(nextBaseMythic?.[key] ?? 0) + delta);
+        updateData[`system.mythic.baseCharacteristics.${key}`] = nextBaseMythic[key];
+        mythicBaseUpdated = true;
+      }
+      if (mythicBaseUpdated) {
+        this._applyMythicCharacteristicSourceUpdate(updateData, this.actor.system, {
+          base: nextBaseMythic,
+          persistEquipment: true,
+          persistOutliers: true
+        });
     }
     if (!foundry.utils.isEmpty(updateData)) {
       await this.actor.update(updateData);
@@ -18728,7 +19220,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         setField(`system.charBuilder.soldierTypeAdvancementsRow.${key}`, 0);
       }
       for (const key of ["str", "tou", "agi"]) {
-        setField(`system.mythic.characteristics.${key}`, 0);
+          setField(`system.mythic.baseCharacteristics.${key}`, 0);
       }
     }
 
@@ -18827,17 +19319,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
-    const equippedMythicRow = this._getEquippedMythicCharacteristicRowFromSystemData(actorSystem);
+    const nextBaseMythic = this._getBaseMythicCharacteristicRowFromSystemData(actorSystem);
     for (const key of ["str", "tou", "agi"]) {
       const incoming = toNonNegativeWhole(templateSystem?.mythic?.[key], 0);
       if (incoming <= 0) continue;
-      const current = toNonNegativeWhole(actorSystem?.mythic?.characteristics?.[key], 0);
-      const equippedBonus = Math.max(0, Number(equippedMythicRow?.[key] ?? 0) || 0);
-      const stackedTarget = incoming + equippedBonus;
-      if (mode === "overwrite" || current <= 0 || current < stackedTarget) {
-        setField(`system.mythic.characteristics.${key}`, stackedTarget);
+      const current = toNonNegativeWhole(actorSystem?.mythic?.baseCharacteristics?.[key] ?? actorSystem?.mythic?.characteristics?.[key], 0);
+      if (mode === "overwrite" || current <= 0 || current < incoming) {
+        nextBaseMythic[key] = incoming;
+        setField(`system.mythic.baseCharacteristics.${key}`, incoming);
       }
     }
+    this._applyMythicCharacteristicSourceUpdate(updateData, actorSystem, {
+      base: nextBaseMythic,
+      equipment: this._getEquippedMythicCharacteristicRowFromSystemData(actorSystem),
+      outliers: this._getOutlierMythicCharacteristicRowFromSystemData(actorSystem),
+      manual: coerceMythicCharacteristicMap(actorSystem?.mythic?.characteristicModifiers ?? {}, { allowNegative: true }),
+      persistEquipment: true,
+      persistOutliers: true
+    });
 
     const equipmentStringKeys = ["primaryWeapon", "secondaryWeapon", "armorName", "utilityLoadout", "inventoryNotes"];
     for (const key of equipmentStringKeys) {
@@ -19766,6 +20265,60 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return this._getEquippedCharacteristicModsFromEquippedState(source?.equipment?.equipped ?? {}).mythic;
   }
 
+  _getBaseMythicCharacteristicRowFromSystemData(systemData = null) {
+    const source = (systemData && typeof systemData === "object") ? systemData : (this.actor.system ?? {});
+    return getCharacterBaseMythicCharacteristics(source);
+  }
+
+  _getOutlierMythicCharacteristicRowFromSystemData(systemData = null) {
+    const source = (systemData && typeof systemData === "object") ? systemData : (this.actor.system ?? {});
+    return getCharacterOutlierMythicCharacteristicModifiers(source);
+  }
+
+  _applyMythicCharacteristicSourceUpdate(updateData, systemData = null, overrides = {}) {
+    const source = (systemData && typeof systemData === "object") ? systemData : (this.actor.system ?? {});
+    const base = overrides.base
+      ? coerceMythicCharacteristicMap(overrides.base, { allowNegative: false })
+      : this._getBaseMythicCharacteristicRowFromSystemData(source);
+    const manual = overrides.manual
+      ? coerceMythicCharacteristicMap(overrides.manual, { allowNegative: true })
+      : coerceMythicCharacteristicMap(source?.mythic?.characteristicModifiers ?? {}, { allowNegative: true });
+    const equipment = overrides.equipment
+      ? coerceMythicCharacteristicMap(overrides.equipment, { allowNegative: true })
+      : getActorEquippedGearMythicCharacteristicModifiers(this.actor, source?.equipment?.equipped ?? {});
+    const outliers = overrides.outliers
+      ? coerceMythicCharacteristicMap(overrides.outliers, { allowNegative: true })
+      : this._getOutlierMythicCharacteristicRowFromSystemData(source);
+
+    if (overrides.base) {
+      for (const key of ["str", "tou", "agi"]) {
+        updateData[`system.mythic.baseCharacteristics.${key}`] = base[key];
+      }
+    }
+    if (overrides.equipment || overrides.persistEquipment === true) {
+      for (const key of ["str", "tou", "agi"]) {
+        updateData[`system.mythic.equipmentCharacteristicModifiers.${key}`] = equipment[key];
+      }
+    }
+    if (overrides.outliers || overrides.persistOutliers === true) {
+      for (const key of ["str", "tou", "agi"]) {
+        updateData[`system.mythic.outlierCharacteristicModifiers.${key}`] = outliers[key];
+      }
+    }
+
+    const total = getCharacterEffectiveMythicCharacteristics(source, {
+      base,
+      manual,
+      equipment,
+      outliers
+    });
+    for (const key of ["str", "tou", "agi"]) {
+      updateData[`system.mythic.characteristics.${key}`] = total[key];
+    }
+
+    return { base, manual, equipment, outliers, total };
+  }
+
   _applyArmorCharacteristicDelta(updateData, previousArmorItem, nextArmorItem) {
     const previousMods = this._getArmorCharacteristicMods(previousArmorItem);
     const nextMods = this._getArmorCharacteristicMods(nextArmorItem);
@@ -19778,13 +20331,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       updateData[`system.characteristics.${key}`] = next;
     }
 
-    for (const key of ["str", "tou", "agi"]) {
-      const delta = Number(nextMods.mythic?.[key] ?? 0) - Number(previousMods.mythic?.[key] ?? 0);
-      if (!delta) continue;
-      const current = Number(this.actor.system?.mythic?.characteristics?.[key] ?? 0);
-      const next = Number.isFinite(current) ? Math.max(0, current + delta) : Math.max(0, delta);
-      updateData[`system.mythic.characteristics.${key}`] = next;
-    }
+    const currentEquipped = foundry.utils.deepClone(this.actor.system?.equipment?.equipped ?? {});
+    currentEquipped.armorId = String(nextArmorItem?.id ?? "").trim();
+    const equipmentMythic = this._getEquippedCharacteristicModsFromEquippedState(currentEquipped).mythic;
+    this._applyMythicCharacteristicSourceUpdate(updateData, this.actor.system, {
+      equipment: equipmentMythic,
+      persistEquipment: true
+    });
 
     const previousEffects = this._getArmorSpecialRuleEffects(previousArmorItem);
     const nextEffects = this._getArmorSpecialRuleEffects(nextArmorItem);
@@ -19987,6 +20540,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const existingIds = removable.filter((id) => this.actor.items.has(id));
     if (existingIds.length) {
+      await clearStorageForDeletedItems(this.actor, existingIds);
       await this.actor.deleteEmbeddedDocuments("Item", existingIds);
     }
   }
@@ -20168,6 +20722,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this._removeLinkedBuiltInItemsForArmor(removedArmorId);
     }
 
+    await clearStorageForDeletedItems(this.actor, [itemId]);
     await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
     if (this._isVehicleActor()) {
       const vehicleSystem = normalizeVehicleSystemData(this.actor.system ?? {});
@@ -20560,6 +21115,362 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     } else {
       ui.notifications?.info(`Added 1 ${cellLabel}.`);
     }
+  }
+
+  _getItemBackedBallisticLoaderPurchaseCandidates() {
+    return Array.from(this.actor.items ?? [])
+      .filter((item) => item?.type === "gear" && isTrackableBallisticWeapon(item))
+      .map((item) => {
+        const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+        const loaderType = getWeaponBallisticLoaderType(gear);
+        if (!["detachable-magazine", "belt"].includes(loaderType)) return null;
+        const context = resolveWeaponBallisticAmmoContext(this.actor, item);
+        return {
+          item,
+          id: String(item.id ?? "").trim(),
+          name: String(item.name ?? "").trim() || "Weapon",
+          loaderType,
+          loaderLabel: loaderType === "belt" ? "Belt" : "Magazine",
+          ammoName: String(gear.ammoName ?? "").trim(),
+          capacity: getWeaponBallisticCapacity(gear),
+          loaderCount: Array.isArray(context.loaders) ? context.loaders.length : 0
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => String(left.name ?? "").localeCompare(String(right.name ?? "")));
+  }
+
+  async _promptItemBackedBallisticLoaderWeapon(candidates = []) {
+    const options = Array.isArray(candidates) ? candidates : [];
+    if (!options.length) return null;
+    if (options.length === 1) return options[0];
+
+    const esc = foundry.utils.escapeHTML;
+    const selectOptions = options.map((entry) => {
+      const label = `${entry.name} (${entry.loaderLabel}, ${entry.capacity} rds, ${entry.loaderCount} owned)`;
+      return `<option value="${esc(entry.id)}">${esc(label)}</option>`;
+    }).join("");
+
+    const selectedWeaponId = await foundry.applications.api.DialogV2.prompt({
+      window: { title: "Choose Loader Weapon" },
+      content: `
+        <form class="mythic-modal-body">
+          <label style="display:grid; gap:4px;">
+            <span>Select the weapon to buy a loader for.</span>
+            <select name="weapon-id">${selectOptions}</select>
+          </label>
+        </form>
+      `,
+      ok: {
+        label: "Continue",
+        callback: (_event, _button, dialogApp) => {
+          const dialogElement = dialogApp?.element instanceof HTMLElement
+            ? dialogApp.element
+            : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+          return dialogElement?.querySelector("[name='weapon-id']")?.value ?? "";
+        }
+      },
+      rejectClose: false,
+      modal: true
+    }).catch(() => "");
+
+    if (!selectedWeaponId) return null;
+    return options.find((entry) => entry.id === String(selectedWeaponId).trim()) ?? null;
+  }
+
+  async _buildItemBackedBallisticLoaderPurchaseContext(weaponItem) {
+    if (!weaponItem || weaponItem.type !== "gear" || !isTrackableBallisticWeapon(weaponItem)) return null;
+
+    const gear = normalizeGearSystemData(weaponItem.system ?? {}, weaponItem.name ?? "");
+    const loaderType = getWeaponBallisticLoaderType(gear);
+    if (!["detachable-magazine", "belt"].includes(loaderType)) return null;
+
+    const ammoMode = loaderType === "belt" ? "belt" : normalizeBallisticAmmoMode(gear.ammoMode);
+    const baseCapacity = getWeaponBallisticCapacity(gear);
+    if (!isBallisticAmmoMode(ammoMode) || baseCapacity <= 0) {
+      ui.notifications?.warn(`${weaponItem.name} does not have a purchasable ballistic loader configured.`);
+      return null;
+    }
+
+    const ammoDoc = gear.ammoId ? await fromUuid(gear.ammoId).catch(() => null) : null;
+    const ammoData = ammoDoc?.type === "gear"
+      ? normalizeGearSystemData(ammoDoc.system ?? {}, ammoDoc.name ?? "")
+      : null;
+    const ammoName = String(ammoDoc?.name ?? gear.ammoName ?? "Ammo").trim() || "Ammo";
+    const ammoFamily = String(deriveAmmoFamilyFromItem(ammoDoc ?? { name: ammoName, system: ammoData ?? {} })).trim();
+    const ammoWeightPerRoundKg = Math.max(0, Number(ammoData?.weightPerRoundKg ?? ammoData?.weightKg ?? 0) || 0);
+    const containerLabel = getBallisticContainerLabel(ammoMode, loaderType === "belt" ? "belt" : "magazine");
+    const weaponName = String(weaponItem.name ?? "").trim() || "Weapon";
+    const weaponPrice = Math.max(0, Number(gear?.price?.amount ?? 0) || 0);
+    const baseAmmoUuid = String(ammoDoc?.uuid ?? gear.ammoId ?? "").trim();
+    const baseAmmoLike = ammoDoc?.type === "gear"
+      ? ammoDoc
+      : {
+          name: ammoName,
+          uuid: baseAmmoUuid,
+          img: String(weaponItem.img ?? "icons/weapons/ammunition/box-of-bullets.webp").trim(),
+          system: {
+            equipmentType: "ammunition",
+            ammoClass: "ballistic",
+            family: ammoFamily,
+            caliberOrType: ammoName,
+            baseAmmoUuid,
+            baseAmmoName: ammoName,
+            displayLabel: ammoName,
+            weightKg: ammoWeightPerRoundKg,
+            costPer100: Math.max(0, Number(ammoData?.costPer100 ?? 0) || 0)
+          }
+        };
+
+    return {
+      weaponItem,
+      gear,
+      loaderType,
+      ammoMode,
+      baseCapacity,
+      containerLabel,
+      weaponName,
+      weaponPrice,
+      ammoName,
+      ammoFamily,
+      ammoWeightPerRoundKg,
+      costPer100: Math.max(0, Number(ammoData?.costPer100 ?? ammoData?.price?.amount ?? 0) || 0),
+      baseAmmoUuid,
+      baseAmmoLike
+    };
+  }
+
+  async _promptItemBackedBallisticLoaderOption(context) {
+    if (!context) return null;
+    const availableOptions = getAvailableBallisticOptions(context.ammoMode);
+    if (!availableOptions.length) return "standard";
+    if (availableOptions.length === 1) return String(availableOptions[0]?.id ?? "standard").trim() || "standard";
+
+    const esc = foundry.utils.escapeHTML;
+    const radioRows = availableOptions.map((opt, index) => {
+      const checked = index === 0 ? " checked" : "";
+      const unlicensed = opt.unlicensed ? " [U]" : "";
+      const metrics = getBallisticContainerMetrics({
+        ammoMode: context.ammoMode,
+        optionId: opt.id,
+        baseCapacity: context.baseCapacity,
+        currentRounds: 0,
+        currentCapacity: opt.capacityFn(context.baseCapacity),
+        ammoPerRoundWeightKg: context.ammoWeightPerRoundKg,
+        includeAmmoWeight: false
+      });
+      return `<tr style="cursor:pointer;" onclick="this.querySelector('input').checked=true">
+        <td style="padding:6px 8px; text-align:center; vertical-align:middle; width:24px;">
+          <input type="radio" name="containerOption" value="${esc(opt.id)}"${checked} style="cursor:pointer;" />
+        </td>
+        <td style="padding:6px 8px; vertical-align:middle;"><strong>${esc(opt.label)}${unlicensed}</strong></td>
+        <td style="padding:6px 8px; text-align:right; vertical-align:middle; white-space:nowrap; color:#b8d4f0;">${metrics.capacity} rounds</td>
+        <td style="padding:6px 8px; text-align:right; vertical-align:middle; white-space:nowrap; color:#f0d48b;">${metrics.cost} cR</td>
+      </tr>`;
+    }).join("");
+
+    return foundry.applications.api.DialogV2.prompt({
+      window: { title: `Choose ${context.containerLabel} Type — ${esc(context.weaponName)}` },
+      content: `<div class="mythic-modal-body" style="min-width:380px;">
+        <p style="margin-bottom:10px;">Select the variant to purchase for <strong>${esc(context.weaponName)}</strong>:</p>
+        <table style="width:100%; border-collapse:collapse; font-size:0.95em;">
+          <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.25);">
+            <th style="padding:4px 8px; width:24px;"></th>
+            <th style="padding:4px 8px; text-align:left;">Type</th>
+            <th style="padding:4px 8px; text-align:right;">Rounds</th>
+            <th style="padding:4px 8px; text-align:right;">Price</th>
+          </tr></thead>
+          <tbody>${radioRows}</tbody>
+        </table>
+      </div>`,
+      ok: {
+        label: "Continue",
+        callback: (_event, _button, dialogApp) => {
+          const dialogElement = dialogApp?.element instanceof HTMLElement
+            ? dialogApp.element
+            : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+          return dialogElement?.querySelector("[name='containerOption']:checked")?.value ?? "standard";
+        }
+      },
+      rejectClose: false,
+      modal: true
+    }).catch(() => null);
+  }
+
+  async _promptItemBackedBallisticLoaderPurchaseChoice(context, optionId = "standard") {
+    if (!context) return null;
+    const optionData = BALLISTIC_CONTAINER_OPTIONS[String(optionId ?? "standard").trim().toLowerCase() || "standard"]
+      ?? BALLISTIC_CONTAINER_OPTIONS.standard;
+    const purchaseMetrics = getBallisticContainerMetrics({
+      ammoMode: context.ammoMode,
+      optionId,
+      baseCapacity: context.baseCapacity,
+      currentRounds: 0,
+      currentCapacity: optionData.capacityFn(context.baseCapacity),
+      ammoPerRoundWeightKg: context.ammoWeightPerRoundKg,
+      includeAmmoWeight: false
+    });
+    const effectiveCapacity = purchaseMetrics.capacity;
+    const effectiveLabel = String(optionId ?? "standard").trim().toLowerCase() === "standard"
+      ? context.containerLabel
+      : optionData.label;
+    const magCost = purchaseMetrics.cost;
+    const ammoCost = context.costPer100 > 0
+      ? Math.max(1, Math.ceil(context.costPer100 * effectiveCapacity / 100))
+      : 0;
+    const currentCredits = toNonNegativeWhole(this.actor.system?.equipment?.credits, 0);
+    const totalLoadedCost = magCost + ammoCost;
+    const canSeedLoadedRounds = effectiveCapacity > 0 && Boolean(context.ammoName);
+
+    const buttons = [
+      {
+        action: "buy-loader",
+        label: `Buy ${effectiveLabel} (${magCost} cR)`,
+        default: currentCredits >= magCost
+      }
+    ];
+    if (canSeedLoadedRounds && ammoCost > 0) {
+      buttons.push({
+        action: "buy-loaded",
+        label: `Buy Loaded ${effectiveLabel} (${totalLoadedCost} cR)`,
+        default: currentCredits >= totalLoadedCost
+      });
+    }
+    buttons.push({
+      action: "free-loader",
+      label: `Add ${effectiveLabel} for Free`,
+      default: currentCredits < magCost
+    });
+    if (canSeedLoadedRounds) {
+      buttons.push({
+        action: "free-loaded",
+        label: `Add Loaded ${effectiveLabel} for Free`,
+        default: false
+      });
+    }
+    buttons.push({ action: "cancel", label: "Cancel", default: false });
+
+    const ammoLine = ammoCost > 0
+      ? `<p style="margin-top:6px;font-size:0.85em;">Standard load: <em>${foundry.utils.escapeHTML(context.ammoName)}</em> × ${effectiveCapacity} rounds = ${ammoCost} cR</p>`
+      : "";
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: `Add ${effectiveLabel}` },
+      content: `<p>Add one <strong>${foundry.utils.escapeHTML(effectiveLabel)}</strong> (${effectiveCapacity} rounds) for <em>${foundry.utils.escapeHTML(context.weaponName)}</em>?</p>${ammoLine}`,
+      buttons,
+      rejectClose: false,
+      modal: true
+    });
+    if (!choice || choice === "cancel") return null;
+
+    const isBuy = choice === "buy-loader" || choice === "buy-loaded";
+    const seedLoadedRounds = choice === "buy-loaded" || choice === "free-loaded";
+    const effectiveCost = choice === "buy-loaded"
+      ? totalLoadedCost
+      : (choice === "buy-loader" ? magCost : 0);
+    if (isBuy && currentCredits < effectiveCost) {
+      ui.notifications?.warn(`Not enough credits. Need ${effectiveCost} cR.`);
+      return null;
+    }
+
+    return {
+      choice,
+      optionId: String(optionId ?? "standard").trim().toLowerCase() || "standard",
+      optionData,
+      purchaseMetrics,
+      effectiveCapacity,
+      effectiveLabel,
+      isBuy,
+      effectiveCost,
+      seedLoadedRounds
+    };
+  }
+
+  async _onPurchaseItemBackedBallisticLoader(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const candidates = this._getItemBackedBallisticLoaderPurchaseCandidates();
+    if (!candidates.length) {
+      ui.notifications?.warn("This actor has no detachable-magazine or belt-fed ballistic weapons to add loaders for.");
+      return;
+    }
+
+    const selectedCandidate = await this._promptItemBackedBallisticLoaderWeapon(candidates);
+    if (!selectedCandidate?.item) return;
+
+    const context = await this._buildItemBackedBallisticLoaderPurchaseContext(selectedCandidate.item);
+    if (!context) return;
+
+    const optionId = await this._promptItemBackedBallisticLoaderOption(context);
+    if (!optionId) return;
+
+    const purchase = await this._promptItemBackedBallisticLoaderPurchaseChoice(context, optionId);
+    if (!purchase) return;
+
+    const seedRound = buildLoadedRoundSnapshotFromAmmoItem(context.baseAmmoLike, {
+      ammoTypeKey: toSlug(context.ammoName) || "ammo"
+    });
+    const loadedRounds = purchase.seedLoadedRounds
+      ? Array.from({ length: purchase.effectiveCapacity }, () => foundry.utils.deepClone(seedRound))
+      : [];
+    const loaderName = `${context.weaponName} ${purchase.effectiveLabel}`.trim();
+    const loaderData = buildBallisticLoaderItemData({
+      weaponItem: context.weaponItem,
+      gear: context.gear,
+      loaderType: context.loaderType,
+      ammoCapacity: purchase.effectiveCapacity,
+      ammoName: context.ammoName,
+      ammoFamily: context.ammoFamily,
+      baseAmmoUuid: context.baseAmmoUuid,
+      loadedRounds,
+      quickFillPattern: purchase.seedLoadedRounds ? [foundry.utils.deepClone(seedRound)] : [],
+      name: loaderName,
+      img: context.weaponItem.img,
+      weightKg: purchase.purchaseMetrics.magBodyWeightKg,
+      acceptedAmmoTypeKeys: [toSlug(context.ammoName) || "ammo"],
+      allowedCalibers: [context.ammoName],
+      allowedAmmoFamilies: context.ammoFamily ? [context.ammoFamily] : [],
+      containerOption: purchase.optionId,
+      reloadMod: purchase.optionData?.reloadMod ?? 0,
+      pronePenalty: purchase.optionData?.pronePenalty ?? 0
+    });
+    const created = await this.actor.createEmbeddedDocuments("Item", [loaderData]);
+    const loaderItem = Array.isArray(created) ? (created[0] ?? null) : null;
+    if (!loaderItem?.id) return;
+
+    const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+      ? [...this.actor.system.equipment.carriedIds.map((entry) => String(entry ?? "").trim()).filter(Boolean)]
+      : [];
+    if (!carriedIds.includes(String(loaderItem.id ?? "").trim())) {
+      carriedIds.push(String(loaderItem.id ?? "").trim());
+    }
+
+    const weaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+    const stateEntry = buildDefaultWeaponStateEntry(weaponState[context.weaponItem.id]);
+    const activeLoaderId = String(stateEntry.activeMagazineId ?? "").trim();
+    if (!activeLoaderId || !this.actor.items.get(activeLoaderId)) {
+      stateEntry.activeMagazineId = String(loaderItem.id ?? "").trim();
+      stateEntry.magazineCurrent = loadedRounds.length;
+    }
+    weaponState[context.weaponItem.id] = stateEntry;
+
+    const updateData = {
+      "system.equipment.carriedIds": carriedIds,
+      "system.equipment.weaponState": weaponState
+    };
+    if (purchase.isBuy) {
+      updateData["system.equipment.credits"] = Math.max(0, toNonNegativeWhole(this.actor.system?.equipment?.credits, 0) - purchase.effectiveCost);
+    }
+
+    await this.actor.update(updateData);
+    await syncActorBallisticLegacyMirrors(this.actor, { render: false });
+
+    const loadedNote = purchase.seedLoadedRounds ? `, preloaded with ${purchase.effectiveCapacity} ${context.ammoName} rounds` : "";
+    if (purchase.isBuy) {
+      ui.notifications?.info(`Purchased 1 ${purchase.effectiveLabel}${loadedNote} for ${purchase.effectiveCost} cR.`);
+      return;
+    }
+    ui.notifications?.info(`Added 1 ${purchase.effectiveLabel}${loadedNote}.`);
   }
 
   async _onPurchaseBallisticContainer(event) {
@@ -21145,6 +22056,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (field === "magazineCurrent" && itemId) {
       const item = this.actor.items.get(itemId);
       if (item?.type === "gear") {
+        const itemBackedAmmoContext = resolveWeaponBallisticAmmoContext(this.actor, item);
+        if (itemBackedAmmoContext?.usesItemBackedAmmo === true) {
+          ui.notifications?.info("Ammo count is derived from the active item-backed loader.");
+          this.render(false);
+          return;
+        }
         const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
         const maxMagazine = toNonNegativeWhole(gear.range?.magazine, 0);
         value = Math.max(0, Math.min(maxMagazine, Number(value ?? 0)));
@@ -21678,6 +22595,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const existingIds = removable.filter((id) => this.actor.items.has(id));
     if (existingIds.length) {
+      await clearStorageForDeletedItems(this.actor, existingIds);
       await this.actor.deleteEmbeddedDocuments("Item", existingIds);
     }
     return existingIds;
@@ -22975,6 +23893,150 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : normalizeBallisticAmmoMode(gear.ammoMode);
     const isTubeAmmoMode = ammoMode === "tube";
     const isSingleLoading = Boolean(gear.singleLoading) || isTubeAmmoMode;
+    const isTrackableBallisticWeapon = !isEnergyCellAmmoMode(ammoMode)
+      && String(gear.itemClass ?? "").trim().toLowerCase() === "weapon"
+      && String(gear.weaponClass ?? "").trim().toLowerCase() === "ranged"
+      && String(gear.equipmentType ?? "").trim().toLowerCase() !== "explosives-and-grenades"
+      && ammoMode !== "grenade";
+    let itemBackedBallisticContext = isTrackableBallisticWeapon
+      ? resolveWeaponBallisticAmmoContext(this.actor, item)
+      : null;
+
+    if (isTrackableBallisticWeapon && itemBackedBallisticContext?.usesItemBackedAmmo !== true && isSingleLoading) {
+      const legacyLoadedCount = toNonNegativeWhole(this.actor.system?.equipment?.weaponState?.[itemId]?.magazineCurrent, 0);
+      await ensureWeaponBallisticLoaderItem(this.actor, item, {
+        forceCreate: true,
+        initialRoundCount: legacyLoadedCount
+      });
+      itemBackedBallisticContext = resolveWeaponBallisticAmmoContext(this.actor, item);
+    }
+
+    if (isTrackableBallisticWeapon && itemBackedBallisticContext?.usesItemBackedAmmo === true) {
+      const loaderType = String(itemBackedBallisticContext.loaderType ?? "").trim();
+      const activeLoader = itemBackedBallisticContext.activeLoader ?? null;
+      const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+
+      if (loaderType === "internal-magazine" || loaderType === "tube") {
+        const capacity = Math.max(0, toNonNegativeWhole(itemBackedBallisticContext.capacity, 0));
+        const currentLoaded = Math.max(0, toNonNegativeWhole(itemBackedBallisticContext.currentCount, 0));
+        if (!activeLoader) {
+          ui.notifications?.warn(`No item-backed loader is configured for ${item.name}.`);
+          return;
+        }
+        if (capacity <= 0) {
+          ui.notifications?.warn(`${item.name} has no ${loaderType === "tube" ? "tube" : "internal magazine"} capacity configured.`);
+          return;
+        }
+        if (currentLoaded >= capacity) {
+          ui.notifications?.info(`${item.name} is already full (${currentLoaded}/${capacity}).`);
+          return;
+        }
+
+        const characteristicRuntime = await this._getLiveCharacteristicRuntime();
+        const agiScore = Number.isFinite(Number(characteristicRuntime?.scores?.agi))
+          ? Number(characteristicRuntime.scores.agi)
+          : 0;
+        const wfrScore = Number.isFinite(Number(characteristicRuntime?.scores?.wfr))
+          ? Number(characteristicRuntime.scores.wfr)
+          : 0;
+        const roundsPerHalfAction = Math.max(0, Math.floor(agiScore / 20) + Math.floor(wfrScore / 20));
+        if (roundsPerHalfAction <= 0) {
+          ui.notifications?.warn(`${item.name} cannot currently reload any rounds per Half Action.`);
+          return;
+        }
+
+        const compatibleAmmoItems = Array.isArray(itemBackedBallisticContext.compatibleAmmoItems)
+          ? itemBackedBallisticContext.compatibleAmmoItems
+          : [];
+        if (!compatibleAmmoItems.length) {
+          ui.notifications?.warn(`No compatible carried ammunition is available to load into ${item.name}.`);
+          return;
+        }
+
+        const selectedAmmoId = await this._promptBallisticAmmoStackReloadSource(item.name ?? "Weapon", compatibleAmmoItems);
+        if (!selectedAmmoId) return;
+        const selectedAmmoItem = compatibleAmmoItems.find((entry) => String(entry?.id ?? "").trim() === selectedAmmoId)
+          ?? compatibleAmmoItems[0]
+          ?? null;
+        if (!selectedAmmoItem) return;
+
+        const selectedAmmoGear = normalizeGearSystemData(selectedAmmoItem.system ?? {}, selectedAmmoItem.name ?? "");
+        const selectedQuantity = Math.max(0, toNonNegativeWhole(selectedAmmoGear.quantity ?? selectedAmmoGear.quantityOwned, 0));
+        const roundsNeeded = Math.max(0, capacity - currentLoaded);
+        const roundsToLoad = Math.min(roundsNeeded, roundsPerHalfAction, selectedQuantity);
+        if (roundsToLoad <= 0) {
+          ui.notifications?.warn(`No ${selectedAmmoItem.name} rounds are available to load.`);
+          return;
+        }
+
+        const loadResult = await addMagazineRounds(activeLoader, selectedAmmoItem, {
+          actor: this.actor,
+          quantity: roundsToLoad,
+          notify: false
+        });
+        if (!loadResult?.ok) {
+          ui.notifications?.warn(`Could not load ${selectedAmmoItem.name}.`);
+          return;
+        }
+
+        const nextContext = resolveWeaponBallisticAmmoContext(this.actor, item);
+        await ChatMessage.create({
+          speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+          content: `<p><strong>${esc(this.actor.name)}</strong> single-loads <strong>${esc(item.name)}</strong>: +${roundsToLoad} ${esc(selectedAmmoItem.name)} (${esc(String(nextContext.currentCount))}/${esc(String(capacity))}, max ${esc(String(roundsPerHalfAction))}/Half Action).</p>`,
+          type: CONST.CHAT_MESSAGE_STYLES.OTHER
+        });
+        return;
+      }
+
+      const carriedLoaders = (Array.isArray(itemBackedBallisticContext.loaders) ? itemBackedBallisticContext.loaders : [])
+        .filter((loader) => this.actor.system?.equipment?.carriedIds?.includes?.(String(loader?.id ?? "")));
+      if (!carriedLoaders.length) {
+        ui.notifications?.warn(`No carried loaders are available for ${item.name}.`);
+        return;
+      }
+
+      const activeLoaderId = String(itemBackedBallisticContext.activeLoaderId ?? "").trim();
+      const alternateLoaders = carriedLoaders
+        .map((loader) => {
+          const loaderProfile = getStorageProfileForItem(loader);
+          const loadedCount = Array.isArray(loaderProfile.gear?.magazine?.loadedRounds) ? loaderProfile.gear.magazine.loadedRounds.length : 0;
+          return {
+            item: loader,
+            count: loadedCount,
+            capacity: Math.max(0, toNonNegativeWhole(loaderProfile.gear?.magazine?.ammoCapacity, 0)),
+            label: String(loader.name ?? "Loader").trim() || "Loader"
+          };
+        })
+        .filter((entry) => String(entry.item?.id ?? "").trim() !== activeLoaderId && entry.count > 0);
+
+      if (!alternateLoaders.length) {
+        ui.notifications?.info(`${item.name} has no alternate loaded ${loaderType === "belt" ? "belt" : "magazine"} to swap to.`);
+        return;
+      }
+
+      const selectedLoaderId = await this._promptBallisticLoaderReloadSource(item.name ?? "Weapon", alternateLoaders, activeLoaderId);
+      if (!selectedLoaderId) return;
+      const selectedLoader = alternateLoaders.find((entry) => String(entry.item?.id ?? "").trim() === selectedLoaderId) ?? alternateLoaders[0];
+      if (!selectedLoader?.item) return;
+
+      const currentWeaponState = foundry.utils.deepClone(this.actor.system?.equipment?.weaponState ?? {});
+      currentWeaponState[itemId] = {
+        ...(currentWeaponState[itemId] && typeof currentWeaponState[itemId] === "object" ? currentWeaponState[itemId] : {}),
+        activeMagazineId: String(selectedLoader.item.id ?? "").trim(),
+        magazineCurrent: Math.max(0, toNonNegativeWhole(selectedLoader.count, 0))
+      };
+      await this.actor.update({
+        "system.equipment.weaponState": currentWeaponState
+      });
+      await syncActorBallisticLegacyMirrors(this.actor, { render: false });
+
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+        content: `<p><strong>${esc(this.actor.name)}</strong> swaps to <strong>${esc(selectedLoader.label)}</strong> for <strong>${esc(item.name)}</strong> (${esc(String(selectedLoader.count))}/${esc(String(selectedLoader.capacity))}).</p>`,
+        type: CONST.CHAT_MESSAGE_STYLES.OTHER
+      });
+      return;
+    }
 
     if (isSingleLoading && !isEnergyCellAmmoMode(ammoMode)) {
       const stateEntry = this.actor.system?.equipment?.weaponState?.[itemId] ?? {};
@@ -23248,6 +24310,103 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  async _promptBallisticLoaderReloadSource(weaponName = "Weapon", loaders = [], activeLoaderId = "") {
+    const options = (Array.isArray(loaders) ? loaders : []).map((loader, index) => {
+      const id = String(loader?.id ?? "").trim();
+      const count = Math.max(0, toNonNegativeWhole(loader?.count ?? loader?.currentCount ?? 0, 0));
+      const capacity = Math.max(0, toNonNegativeWhole(loader?.capacity ?? loader?.ammoCapacity ?? 0, 0));
+      const activeMarker = id && id === String(activeLoaderId ?? "").trim() ? " (active)" : "";
+      const label = String(loader?.label ?? loader?.name ?? `Loader ${index + 1}`).trim() || `Loader ${index + 1}`;
+      return {
+        id,
+        label: `${label}: ${count}/${capacity}${activeMarker}`
+      };
+    }).filter((entry) => entry.id);
+
+    if (!options.length) return null;
+    if (options.length === 1) return options[0].id;
+
+    const esc = foundry.utils.escapeHTML;
+    const optionsHtml = options.map((opt) => `<option value="${esc(opt.id)}">${esc(opt.label)}</option>`).join("");
+
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: `Select Reload Source - ${esc(String(weaponName ?? "Weapon"))}`
+      },
+      content: `
+        <form>
+          <div class="form-group">
+            <label for="mythic-reload-loader">Loader</label>
+            <select id="mythic-reload-loader">${optionsHtml}</select>
+            <p class="hint">Choose which loader to seat in this weapon.</p>
+          </div>
+        </form>
+      `,
+      buttons: [
+        {
+          action: "load",
+          label: "Load",
+          callback: () => String(document.getElementById("mythic-reload-loader")?.value ?? "").trim() || null
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  }
+
+  async _promptBallisticAmmoStackReloadSource(weaponName = "Weapon", ammoItems = []) {
+    const options = (Array.isArray(ammoItems) ? ammoItems : []).map((ammo, index) => {
+      const id = String(ammo?.id ?? "").trim();
+      const gear = normalizeGearSystemData(ammo?.system ?? {}, ammo?.name ?? "");
+      const quantity = Math.max(0, toNonNegativeWhole(gear.quantity ?? gear.quantityOwned, 0));
+      const label = String(gear.displayLabel ?? ammo?.name ?? `Ammo ${index + 1}`).trim() || `Ammo ${index + 1}`;
+      return {
+        id,
+        label: `${label}: ${quantity}`
+      };
+    }).filter((entry) => entry.id);
+
+    if (!options.length) return null;
+    if (options.length === 1) return options[0].id;
+
+    const esc = foundry.utils.escapeHTML;
+    const optionsHtml = options.map((opt) => `<option value="${esc(opt.id)}">${esc(opt.label)}</option>`).join("");
+
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: `Select Ammo - ${esc(String(weaponName ?? "Weapon"))}`
+      },
+      content: `
+        <form>
+          <div class="form-group">
+            <label for="mythic-reload-ammo-stack">Ammunition</label>
+            <select id="mythic-reload-ammo-stack">${optionsHtml}</select>
+            <p class="hint">Choose which round stack to load next.</p>
+          </div>
+        </form>
+      `,
+      buttons: [
+        {
+          action: "load",
+          label: "Load",
+          callback: () => String(document.getElementById("mythic-reload-ammo-stack")?.value ?? "").trim() || null
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+  }
+
   /**
    * Check if actor has Pacifist trait and if so, perform a Courage test.
    * Returns true if attack should proceed, false if blocked by failed Pacifist test.
@@ -23365,6 +24524,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!pacifistTestPassed) return;
 
     const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+    let specialAmmoPromptRequest = (this._mythicSpecialAmmoPromptRequest && typeof this._mythicSpecialAmmoPromptRequest === "object")
+      ? this._mythicSpecialAmmoPromptRequest
+      : null;
+    if (specialAmmoPromptRequest) {
+      try {
+        delete this._mythicSpecialAmmoPromptRequest;
+      } catch (_err) {
+        this._mythicSpecialAmmoPromptRequest = null;
+      }
+    }
+    let specialAmmoPerAttackPlan = null;
+    let specialAmmoPatternMemory = null;
     const vehicleAmmoContext = isVehicleWeaponAttack
       ? this._getVehicleWeaponAmmoContext(vehicleEmplacement ?? {}, item, vehicleSystem)
       : null;
@@ -23425,6 +24596,19 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const state = isVehicleWeaponAttack
       ? (vehicleEmplacement?.weaponState ?? {})
       : (weaponOwnerActor.system?.equipment?.weaponState?.[itemId] ?? {});
+    if (!specialAmmoPromptRequest
+      && weaponOwnerActor?.type === "bestiary"
+      && state
+      && typeof state === "object"
+      && Boolean(state.useSpecialAmmo)
+    ) {
+      // Bestiary sheets can enable special ammo prompting without item-backed ammo consumption.
+      specialAmmoPromptRequest = {
+        kind: "per-attack",
+        source: "bestiary",
+        ignoreInventory: true
+      };
+    }
     const isCookGrenadeWeapon = String(gear.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades"
       || String(gear.ammoMode ?? "").trim().toLowerCase() === "grenade";
     if (isCookGrenadeWeapon && grenadeArmAction === "cook") {
@@ -23457,6 +24641,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ? "grenade"
           : normalizeBallisticAmmoMode(gear.ammoMode));
     const isEnergyWeapon = !isMelee && !isInfusionRadiusWeapon && isEnergyCellAmmoMode(ammoMode);
+    const itemBackedBallisticContext = (!isVehicleWeaponAttack && !isMelee && !isInfusionRadiusWeapon && !isGrenadeWeapon && !isEnergyWeapon)
+      ? resolveWeaponBallisticAmmoContext(weaponOwnerActor, item, { weaponState: state })
+      : null;
     const ammoConfig = getAmmoConfig();
     const tracksBasicAmmo = !isMelee && !isInfusionRadiusWeapon && !isGrenadeWeapon && !ammoConfig.ignoreBasicAmmoCounts;
     const usesVehicleAmmoTracking = Boolean(isVehicleWeaponAttack && vehicleAmmoContext?.usesTracking);
@@ -23475,8 +24662,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? Math.max(0, toNonNegativeWhole(vehicleAmmoContext?.loadedAmmoCurrent, magazineMax))
       : (isEnergyWeapon
           ? toNonNegativeWhole(activeEnergyCell?.current, 0)
-          : toNonNegativeWhole(state?.magazineCurrent, 0));
-    const totalTrackedAmmoBefore = !isVehicleWeaponAttack && tracksBasicAmmo ? this._getTrackedAmmoTotalByName(ammoName) : 0;
+          : (itemBackedBallisticContext?.usesItemBackedAmmo === true
+              ? Math.max(0, toNonNegativeWhole(itemBackedBallisticContext.currentCount, 0))
+              : toNonNegativeWhole(state?.magazineCurrent, 0)));
+    const totalTrackedAmmoBefore = !isVehicleWeaponAttack && tracksBasicAmmo
+      ? (itemBackedBallisticContext?.usesItemBackedAmmo === true
+          ? Math.max(0, toNonNegativeWhole(itemBackedBallisticContext.ammoInventoryTotal, 0))
+          : this._getTrackedAmmoTotalByName(ammoName))
+      : 0;
     const isChargeMode = modeProfile.kind === "charge" || modeProfile.kind === "drawback";
     const isChargeFireAction = actionType === "chargeFire";
     if (isChargeFireAction && !isChargeMode) {
@@ -23646,6 +24839,173 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (rollIterations <= 0) {
       ui.notifications.warn(`${modeLabel} cannot be used as a ${actionType} action.`);
       return;
+    }
+
+    if (specialAmmoPromptRequest?.kind === "per-attack"
+      && specialAmmoPromptRequest?.source === "bestiary"
+      && !isVehicleWeaponAttack
+      && !isMelee
+      && !isInfusionRadiusWeapon
+      && !isGrenadeWeapon
+      && !isEnergyWeapon
+      && Boolean(String(gear.ammoId ?? "").trim())
+    ) {
+      const baseAmmoUuid = String(gear.ammoId ?? "").trim();
+      const ammoDoc = baseAmmoUuid ? await fromUuid(baseAmmoUuid).catch(() => null) : null;
+      const family = ammoDoc ? String(deriveAmmoFamilyFromItem(ammoDoc)).trim() : "";
+      const modifierDefsRaw = family ? await getAmmoModifierDefinitionsForFamily(family) : [];
+      const modifierDefs = (Array.isArray(modifierDefsRaw) ? modifierDefsRaw : [])
+        .filter((entry) => entry && typeof entry === "object")
+        .filter((entry) => Boolean(String(entry.modifierCode ?? "").trim()))
+        .filter((entry) => entry.cannotBeAlone !== true);
+
+      if (!ammoDoc) {
+        ui.notifications?.warn("Special ammo is enabled, but this weapon's base ammo reference could not be resolved.");
+      } else if (!family || !modifierDefs.length) {
+        // If a bestiary weapon can't resolve special ammo definitions, don't block the attack.
+        ui.notifications?.warn("Special ammo is enabled, but no special-ammo options were found for this weapon's ammo.");
+      } else {
+        const dialogId = foundry.utils.randomID();
+        const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
+        const optionRows = [
+          { id: "", label: "Standard", def: null },
+          ...modifierDefs.map((def) => {
+            const symbol = buildAmmoModifierDisplaySymbol([def]);
+            const label = symbol ? `${symbol} ${String(def.label ?? "").trim() || symbol}` : (String(def.label ?? "").trim() || String(def.modifierCode ?? "").trim() || "Special");
+            return { id: String(def.id ?? def.modifierCode ?? "").trim(), label, def };
+          }).filter((row) => row.id)
+        ];
+        const availableOptionIds = new Set(optionRows.map((row) => String(row.id ?? "")));
+        const optionLabelById = new Map(optionRows.map((row) => [String(row.id ?? ""), String(row.label ?? "Standard")]));
+        const savedPatternOptionIdsRaw = Array.isArray(state?.specialAmmoPatternOptionIds)
+          ? state.specialAmmoPatternOptionIds.map((entry) => String(entry ?? "").trim())
+          : [];
+        const savedPatternOptionIds = savedPatternOptionIdsRaw.map((entry) => availableOptionIds.has(entry) ? entry : "");
+        const savedPatternNextIndex = savedPatternOptionIds.length > 0
+          ? (toNonNegativeWhole(state?.specialAmmoPatternNextIndex, 0) % savedPatternOptionIds.length)
+          : 0;
+        const defaultSelectedOptionIds = buildSpecialAmmoPatternContinuation(savedPatternOptionIds, savedPatternNextIndex, rollIterations);
+        const resumedOptionId = savedPatternOptionIds.length > 0
+          ? String(defaultSelectedOptionIds[0] ?? "")
+          : "";
+        const resumedOptionLabel = savedPatternOptionIds.length > 0
+          ? String(optionLabelById.get(resumedOptionId) ?? "Standard")
+          : "";
+        const optionsHtml = optionRows.map((row) => `<option value="${esc(row.id)}">${esc(row.label)}</option>`).join("");
+        const rowsHtml = Array.from({ length: rollIterations }, (_entry, index) => {
+          const label = `A${index + 1}`;
+          const selectId = `mythic-special-ammo-${esc(dialogId)}-${index}`;
+          return `
+            <div class="form-group" data-mythic-special-ammo-row data-index="${esc(index)}">
+              <label for="${esc(selectId)}">${esc(label)}</label>
+              <div class="form-fields">
+                <select id="${esc(selectId)}" data-mythic-special-ammo-select data-index="${esc(index)}">
+                  ${optionsHtml}
+                </select>
+                ${rollIterations > 1 ? `<button type="button" class="button" data-mythic-apply-pattern data-index="${esc(index)}">Apply Pattern</button>` : ""}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        const selectedOptionIds = await foundry.applications.api.DialogV2.wait({
+          window: { title: "Special Ammo" },
+          content: `
+            <form>
+              <p>Select special ammo for each attack.</p>
+              ${rollIterations > 1 ? `<p><strong>Apply Pattern:</strong> clicking it on A3 repeats the pattern A1, A2, A3 for A4+ (A4 uses A1, A5 uses A2, A6 uses A3, etc.).</p>` : ""}
+              ${savedPatternOptionIds.length > 0 ? `<p><strong>Saved Pattern:</strong> this attack continues the previous sequence. A1 starts at ${esc(resumedOptionLabel)}.</p>` : ""}
+              <div class="form-group">
+                <label>Base Ammo</label>
+                <div class="form-fields"><span>${esc(String(ammoDoc.name ?? "Ammo"))}</span></div>
+              </div>
+              ${rowsHtml}
+            </form>
+          `,
+          render: (_event, dialog) => {
+            const root = dialog?.element instanceof HTMLElement ? dialog.element : null;
+            if (!root) return;
+            const selects = Array.from(root.querySelectorAll("[data-mythic-special-ammo-select]"));
+            selects.forEach((select, index) => {
+              const nextId = String(defaultSelectedOptionIds[index] ?? "");
+              select.value = availableOptionIds.has(nextId) ? nextId : "";
+            });
+            root.querySelectorAll("[data-mythic-apply-pattern][data-index]").forEach((button) => {
+              button.addEventListener("click", () => {
+                const patternEnd = Math.max(0, Math.floor(Number(button.dataset.index ?? 0)));
+                const patternLen = patternEnd + 1;
+                if (patternLen <= 0 || selects.length <= patternLen) return;
+                const pattern = selects.slice(0, patternLen).map((el) => String(el?.value ?? ""));
+                for (let i = patternLen; i < selects.length; i += 1) {
+                  const next = String(pattern[i % patternLen] ?? "");
+                  if (selects[i]) selects[i].value = next;
+                }
+              });
+            });
+          },
+          buttons: [
+            {
+              action: "confirm",
+              label: "Confirm",
+              callback: () => {
+                const root = document;
+                const values = [];
+                for (let i = 0; i < rollIterations; i += 1) {
+                  const select = root.getElementById(`mythic-special-ammo-${dialogId}-${i}`);
+                  values.push(String(select?.value ?? ""));
+                }
+                return values;
+              }
+            },
+            { action: "cancel", label: "Cancel", callback: () => null }
+          ],
+          rejectClose: false,
+          modal: true
+        });
+        if (selectedOptionIds === null) return;
+
+        const snapshotById = new Map();
+        snapshotById.set("", null);
+        for (const row of optionRows) {
+          if (!row?.id || !row.def) continue;
+          const effectSnapshot = buildAmmoEffectSnapshot(ammoDoc, [row.def], {
+            family,
+            baseAmmoUuid: String(ammoDoc.uuid ?? baseAmmoUuid).trim(),
+            baseAmmoName: String(ammoDoc.name ?? "").trim()
+          });
+          snapshotById.set(row.id, {
+            ammoItemId: "",
+            ammoUuid: "",
+            ammoTypeKey: "",
+            ammoClass: String(effectSnapshot.ammoClass ?? "ballistic").trim().toLowerCase() || "ballistic",
+            family,
+            baseAmmoItemId: "",
+            baseAmmoUuid: String(effectSnapshot.baseAmmoUuid ?? "").trim(),
+            baseAmmoName: String(effectSnapshot.baseAmmoName ?? "").trim(),
+            specialAmmoItemId: "",
+            specialAmmoUuid: "",
+            specialAmmoName: "",
+            modifierCodes: Array.isArray(effectSnapshot.modifierCodes) ? [...effectSnapshot.modifierCodes] : [],
+            modifierIds: Array.isArray(effectSnapshot.modifierIds) ? [...effectSnapshot.modifierIds] : [],
+            displayLabel: String(effectSnapshot.displaySymbol ?? "").trim() || "Special",
+            displaySymbol: String(effectSnapshot.displaySymbol ?? "").trim(),
+            isSpecial: true,
+            unitWeightKg: 0,
+            effectSnapshot,
+            label: String(effectSnapshot.displaySymbol ?? "").trim() || "Special",
+            img: "",
+            flags: {}
+          });
+        }
+
+        specialAmmoPerAttackPlan = {
+          family,
+          baseAmmoUuid: String(ammoDoc.uuid ?? baseAmmoUuid).trim(),
+          baseAmmoName: String(ammoDoc.name ?? "").trim(),
+          selectedOptionIds: Array.isArray(selectedOptionIds) ? selectedOptionIds.map((v) => String(v ?? "")) : [],
+          snapshotById
+        };
+      }
     }
 
     const initialTargetMode = _deriveTargetModeFromToken(targets?.[0] ?? null);
@@ -23938,6 +25298,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const ammoToConsume = executedIterations * Math.max(0, ammoPerIteration);
     let newAmmoCurrent = ammoCurrent;
     let totalTrackedAmmoAfter = totalTrackedAmmoBefore;
+    let consumedBallisticRounds = [];
 
     if (trackedCombat && isAutomaticFire && actionType === "half") {
       const priorHalfActions = Math.max(0, Number(autoTrackerEntry?.halfAutoActions ?? 0));
@@ -23989,31 +25350,78 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         await weaponOwnerActor.update(updateData);
       }
     } else if (tracksBasicAmmo) {
-      const updateData = {};
-      if (ammoToConsume > 0) {
-        const newMagCurrent = Math.max(0, ammoCurrent - ammoToConsume);
-        updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = newMagCurrent;
-        // Sync the active container's stored .current so unloaded magazines retain their count.
-        const activeMagId = String(state?.activeMagazineId ?? "").trim();
-        if (activeMagId) {
-          const bContainers = foundry.utils.deepClone(weaponOwnerActor.system?.equipment?.ballisticContainers ?? {});
-          for (const [gk, grp] of Object.entries(bContainers)) {
-            if (!Array.isArray(grp)) continue;
-            const magIdx = grp.findIndex((c) => !c?._stub && String(c?.id ?? "").trim() === activeMagId);
-            if (magIdx >= 0) {
-              grp[magIdx] = { ...grp[magIdx], current: newMagCurrent };
-              bContainers[gk] = grp;
-              updateData["system.equipment.ballisticContainers"] = bContainers;
-              break;
+      if (itemBackedBallisticContext?.usesItemBackedAmmo === true && itemBackedBallisticContext.activeLoader) {
+        if (ammoToConsume > 0) {
+          const consumeResult = await consumeMagazineRounds(itemBackedBallisticContext.activeLoader, ammoToConsume, {
+            actor: weaponOwnerActor
+          });
+          consumedBallisticRounds = Array.isArray(consumeResult?.rounds) ? consumeResult.rounds : [];
+          newAmmoCurrent = Math.max(0, toNonNegativeWhole(consumeResult?.remaining, newAmmoCurrent));
+          totalTrackedAmmoAfter = Math.max(0, totalTrackedAmmoBefore - consumedBallisticRounds.length);
+        }
+      } else {
+        const updateData = {};
+        if (ammoToConsume > 0) {
+          const newMagCurrent = Math.max(0, ammoCurrent - ammoToConsume);
+          updateData[`system.equipment.weaponState.${itemId}.magazineCurrent`] = newMagCurrent;
+          // Sync the active container's stored .current so unloaded magazines retain their count.
+          const activeMagId = String(state?.activeMagazineId ?? "").trim();
+          if (activeMagId) {
+            const bContainers = foundry.utils.deepClone(weaponOwnerActor.system?.equipment?.ballisticContainers ?? {});
+            for (const [gk, grp] of Object.entries(bContainers)) {
+              if (!Array.isArray(grp)) continue;
+              const magIdx = grp.findIndex((c) => !c?._stub && String(c?.id ?? "").trim() === activeMagId);
+              if (magIdx >= 0) {
+                grp[magIdx] = { ...grp[magIdx], current: newMagCurrent };
+                bContainers[gk] = grp;
+                updateData["system.equipment.ballisticContainers"] = bContainers;
+                break;
+              }
             }
           }
+          totalTrackedAmmoAfter = this._getTrackedAmmoTotalByName(ammoName);
+          newAmmoCurrent = newMagCurrent;
         }
-        totalTrackedAmmoAfter = this._getTrackedAmmoTotalByName(ammoName);
-        newAmmoCurrent = newMagCurrent;
+        if (Object.keys(updateData).length) {
+          await weaponOwnerActor.update(updateData);
+        }
       }
-      if (Object.keys(updateData).length) {
-        await weaponOwnerActor.update(updateData);
+    }
+
+    if (specialAmmoPerAttackPlan
+      && specialAmmoPromptRequest?.source === "bestiary"
+      && specialAmmoPromptRequest?.ignoreInventory === true
+      && !isVehicleWeaponAttack
+      && !isMelee
+      && !isInfusionRadiusWeapon
+      && !isGrenadeWeapon
+      && !isEnergyWeapon
+      && executedIterations > 0
+      && ammoPerIteration > 0
+    ) {
+      const ids = Array.isArray(specialAmmoPerAttackPlan.selectedOptionIds)
+        ? specialAmmoPerAttackPlan.selectedOptionIds
+        : [];
+      const snapshotById = specialAmmoPerAttackPlan.snapshotById instanceof Map
+        ? specialAmmoPerAttackPlan.snapshotById
+        : new Map([["", null]]);
+      const virtualRounds = [];
+      for (let iterationIndex = 0; iterationIndex < executedIterations; iterationIndex += 1) {
+        const optId = String(ids[iterationIndex] ?? "");
+        const snapshot = snapshotById.has(optId) ? snapshotById.get(optId) : null;
+        for (let shotIndex = 0; shotIndex < ammoPerIteration; shotIndex += 1) {
+          virtualRounds.push(snapshot ? foundry.utils.deepClone(snapshot) : null);
+        }
       }
+      consumedBallisticRounds = virtualRounds;
+      const executedOptionIds = ids.slice(0, executedIterations).map((entry) => String(entry ?? "").trim());
+      const persistedPatternOptionIds = inferRepeatingSpecialAmmoPattern(executedOptionIds);
+      specialAmmoPatternMemory = {
+        optionIds: persistedPatternOptionIds,
+        nextIndex: persistedPatternOptionIds.length > 0
+          ? (executedIterations % persistedPatternOptionIds.length)
+          : 0
+      };
     }
 
     // Determine attack characteristic from the live, canonical score/mod snapshot.
@@ -24087,28 +25495,95 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? Math.round(Number(characteristicModifiers?.int ?? 0) || 0)
       : 0;
     const flatTotal = activeBaseFlat + baseDamageStrengthBonus + damageModifier + infusionIntMod + hardHeadDamageBonus;
-    const damageParts = [];
-    if (activeD10Count > 0) damageParts.push(`${activeD10Count}d10`);
-    if (activeD5Count > 0) damageParts.push(`${activeD5Count}d5`);
-    if (flatTotal !== 0 || damageParts.length === 0) damageParts.push(String(flatTotal));
-    let damageFormula = damageParts.join(" + ");
-    const damageDisplayParts = [];
-    if (activeD10Count > 0) damageDisplayParts.push(`${activeD10Count}d10`);
-    if (activeD5Count > 0) damageDisplayParts.push(`${activeD5Count}d5`);
-    const flatWithCharge = flatTotal + chargeDamageBonus;
-    if (flatWithCharge !== 0 || damageDisplayParts.length === 0) damageDisplayParts.push(String(flatWithCharge));
-    let damageFormulaDisplay = damageDisplayParts.join(" + ");
     const basePierce = Math.max(0, activePierceBase + pierceStrengthBonus);
     const isRangedAssassination = actionType === "execution" && executionVariant === "assassination" && !isMelee;
-    const effectivePierce = (actionType === "buttstroke" || isRangedAssassination) ? 0 : Math.max(0, Math.floor(basePierce * rangeResult.pierceFactor) + attackMods.pierceMod);
-    // Apply prompted damage modifier to the roll formula and display
-    if (promptedDamageMod.kind === "dice") {
-      damageFormula += ` + ${promptedDamageMod.raw}`;
-      damageFormulaDisplay += ` + ${promptedDamageMod.raw}`;
-    } else if (promptedDamageMod.kind === "flat" && promptedDamageMod.value !== 0) {
-      damageFormula += ` + ${promptedDamageMod.value}`;
-      damageFormulaDisplay += ` + ${promptedDamageMod.value}`;
-    }
+    const baseWeaponAttackProfile = {
+      damageDiceD5: activeD5Count,
+      damageDiceD10: activeD10Count,
+      baseDamage: flatTotal,
+      pierce: basePierce,
+      toHitModifier: 0,
+      rangeBonusPercent: 0,
+      blastDelta: 0,
+      killDelta: 0,
+      specialRuleKeys: normalizeStringList(Array.isArray(gear.weaponSpecialRuleKeys) ? gear.weaponSpecialRuleKeys : []),
+      specialRuleValues: {}
+    };
+    const buildRoundAttackProfile = (roundSnapshot = null) => {
+      const merged = roundSnapshot?.effectSnapshot
+        ? mergeAmmoEffectSnapshotWithAttack(baseWeaponAttackProfile, roundSnapshot.effectSnapshot)
+        : foundry.utils.deepClone(baseWeaponAttackProfile);
+      const damageParts = [];
+      const damageDisplayParts = [];
+      const damageDiceD10 = Math.max(0, toNonNegativeWhole(merged.damageDiceD10, 0));
+      const damageDiceD5 = Math.max(0, toNonNegativeWhole(merged.damageDiceD5, 0));
+      const baseDamage = Number.isFinite(Number(merged.baseDamage)) ? Number(merged.baseDamage) : flatTotal;
+      const flatWithCharge = baseDamage + chargeDamageBonus;
+      if (damageDiceD10 > 0) {
+        damageParts.push(`${damageDiceD10}d10`);
+        damageDisplayParts.push(`${damageDiceD10}d10`);
+      }
+      if (damageDiceD5 > 0) {
+        damageParts.push(`${damageDiceD5}d5`);
+        damageDisplayParts.push(`${damageDiceD5}d5`);
+      }
+      if (baseDamage !== 0 || damageParts.length === 0) damageParts.push(String(baseDamage));
+      if (flatWithCharge !== 0 || damageDisplayParts.length === 0) damageDisplayParts.push(String(flatWithCharge));
+
+      let damageFormula = damageParts.join(" + ");
+      let damageFormulaDisplay = damageDisplayParts.join(" + ");
+      if (promptedDamageMod.kind === "dice") {
+        damageFormula += ` + ${promptedDamageMod.raw}`;
+        damageFormulaDisplay += ` + ${promptedDamageMod.raw}`;
+      } else if (promptedDamageMod.kind === "flat" && promptedDamageMod.value !== 0) {
+        damageFormula += ` + ${promptedDamageMod.value}`;
+        damageFormulaDisplay += ` + ${promptedDamageMod.value}`;
+      }
+
+      const rawPierce = Math.max(0, Number(merged.pierce ?? basePierce) || 0);
+      const effectivePierce = (actionType === "buttstroke" || isRangedAssassination)
+        ? 0
+        : Math.max(0, Math.floor(rawPierce * rangeResult.pierceFactor) + attackMods.pierceMod);
+
+      return {
+        roundSnapshot,
+        damageDiceD10,
+        damageDiceD5,
+        baseDamage,
+        flatWithCharge,
+        damageFormula,
+        damageFormulaDisplay,
+        effectivePierce,
+        toHitModifier: Number.isFinite(Number(merged.toHitModifier)) ? Math.round(Number(merged.toHitModifier)) : 0,
+        specialRuleKeys: normalizeStringList(Array.isArray(merged.specialRuleKeys) ? merged.specialRuleKeys : []),
+        specialRuleValues: (merged.specialRuleValues && typeof merged.specialRuleValues === "object")
+          ? foundry.utils.deepClone(merged.specialRuleValues)
+          : {},
+        effectSnapshot: roundSnapshot?.effectSnapshot ?? null
+      };
+    };
+    const defaultRoundAttackProfile = buildRoundAttackProfile(null);
+    const projectileRoundGroups = Array.from({ length: executedIterations }, (_entry, index) => {
+      const start = index * Math.max(0, ammoPerIteration);
+      const end = start + Math.max(0, ammoPerIteration);
+      return ammoPerIteration > 0 ? consumedBallisticRounds.slice(start, end) : [];
+    });
+    const getRoundGroupForIteration = (iterationIndex = 0) => projectileRoundGroups[iterationIndex] ?? [];
+    const getRoundAttackProfileForShot = (iterationIndex = 0, shotIndex = 0) => {
+      const rounds = getRoundGroupForIteration(iterationIndex);
+      const roundSnapshot = rounds[shotIndex] ?? rounds[0] ?? null;
+      return buildRoundAttackProfile(roundSnapshot);
+    };
+    const getSpecialAmmoSymbolsForRound = (roundSnapshot = null) => {
+      const symbol = String(roundSnapshot?.displaySymbol ?? "").trim();
+      if (symbol) return [symbol];
+      const hasSpecialModifiers = roundSnapshot?.isSpecial === true
+        || (Array.isArray(roundSnapshot?.modifierCodes) && roundSnapshot.modifierCodes.length > 0);
+      return hasSpecialModifiers ? ["SA"] : [];
+    };
+    const damageFormula = defaultRoundAttackProfile.damageFormula;
+    const damageFormulaDisplay = defaultRoundAttackProfile.damageFormulaDisplay;
+    const effectivePierce = defaultRoundAttackProfile.effectivePierce;
 
     const allRolls = [];
     const attackRows = [];
@@ -24142,13 +25617,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     };
 
-    const evaluateDamage = async ({ limitHardlightChain = false } = {}) => {
+    const evaluateDamage = async ({ limitHardlightChain = false, attackProfile = null } = {}) => {
+      const resolvedAttackProfile = attackProfile ?? defaultRoundAttackProfile;
       if (actionType === "execution") {
         const isAssassination = executionVariant === "assassination";
         if (isAssassination && !isMelee) {
           return rollButtstrokeDamage("Assassination Buttstroke", true);
         }
-        const maxDamage = (activeD10Count * 10) + (activeD5Count * 5) + Math.max(0, flatTotal);
+        const maxDamage = (resolvedAttackProfile.damageDiceD10 * 10) + (resolvedAttackProfile.damageDiceD5 * 5) + Math.max(0, resolvedAttackProfile.baseDamage);
         const multiplier = (isAssassination && isMelee) ? 4 : 2;
         const actionLabel = isAssassination ? "Assassination" : "Execution";
         return {
@@ -24171,8 +25647,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
 
       const baseParts = [];
-      if (activeD10Count > 0) baseParts.push(`${activeD10Count}d10`);
-      if (activeD5Count > 0) baseParts.push(`${activeD5Count}d5`);
+      if (resolvedAttackProfile.damageDiceD10 > 0) baseParts.push(`${resolvedAttackProfile.damageDiceD10}d10`);
+      if (resolvedAttackProfile.damageDiceD5 > 0) baseParts.push(`${resolvedAttackProfile.damageDiceD5}d5`);
       const baseFormula = baseParts.join(" + ");
 
       let baseRollTotal = 0;
@@ -24211,7 +25687,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         }
       }
 
-      const totalWithCharge = baseRollTotal + miscRollTotal + hardlightExplosionTotal + flatTotal + chargeDamageBonus;
+      const totalWithCharge = baseRollTotal + miscRollTotal + hardlightExplosionTotal + resolvedAttackProfile.flatWithCharge;
       const rollTooltipParts = [];
       if (baseRoll) {
         rollTooltipParts.push(buildRollTooltipHtml("Damage roll", baseRoll, baseRollTotal, baseFormula));
@@ -24233,8 +25709,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         || hardlightBaseTriggers > 0
         || hardlightExplosionRolls.length > 0;
       const resolvedDamageFormula = hardlightExplosionRolls.length
-        ? `${damageFormulaDisplay} + Hardlight (${hardlightExplosionRolls.map((roll) => String(roll.formula ?? "")).join(" + ")})`
-        : damageFormulaDisplay;
+        ? `${resolvedAttackProfile.damageFormulaDisplay} + Hardlight (${hardlightExplosionRolls.map((roll) => String(roll.formula ?? "")).join(" + ")})`
+        : resolvedAttackProfile.damageFormulaDisplay;
 
       return {
         total: totalWithCharge,
@@ -24262,12 +25738,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         continue;
       }
 
+      const iterationRoundGroup = getRoundGroupForIteration(i);
+      const primaryRoundAttackProfile = getRoundAttackProfileForShot(i, 0);
       const attackRoll = actionType === "execution" ? null : await new Roll("1d100").evaluate();
       if (attackRoll) allRolls.push(attackRoll);
 
       const rawRoll = attackRoll?.total ?? 1;
       const isCritFail = attackRoll ? rawRoll === 100 : false;
-      const dosValue = actionType === "execution" ? 99 : computeAttackDOS(effectiveTarget, rawRoll);
+      const rowEffectiveTarget = actionType === "execution"
+        ? effectiveTarget
+        : (effectiveTarget + (Number.isFinite(Number(primaryRoundAttackProfile?.toHitModifier)) ? Number(primaryRoundAttackProfile.toHitModifier) : 0));
+      const dosValue = actionType === "execution" ? 99 : computeAttackDOS(rowEffectiveTarget, rawRoll);
       let resolvedDosValue = dosValue;
       let isSuccess = actionType === "execution" ? true : (!isCritFail && dosValue >= 0);
       const grenadeDof = isGrenadeWeapon ? Math.max(0, Math.floor(Math.abs(Math.min(0, Number(dosValue ?? 0))))) : 0;
@@ -24287,8 +25768,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         isSuccess = false;
       }
       const standardEffectiveTarget = actionType === "execution"
-        ? effectiveTarget
-        : (effectiveTarget - calledShotPenalty);
+        ? rowEffectiveTarget
+        : (rowEffectiveTarget - calledShotPenalty);
       const standardDosValue = actionType === "execution"
         ? dosValue
         : computeAttackDOS(standardEffectiveTarget, rawRoll);
@@ -24372,22 +25853,38 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       const damageInstances = [];
       for (let shotIndex = 0; shotIndex < hitCount; shotIndex += 1) {
-        const dmg = await evaluateDamage({ limitHardlightChain: rawRoll === 1 });
+        const shotAttackProfile = getRoundAttackProfileForShot(i, shotIndex);
+        const shotRuleText = `${weaponRuleText} ${(Array.isArray(shotAttackProfile?.specialRuleKeys) ? shotAttackProfile.specialRuleKeys : []).join(" ")}`;
+        const shotHasBlastOrKill = hasBlastOrKillRule
+          || /\bblast\b|\bkill\s*radius\b|\bkill\b/iu.test(shotRuleText)
+          || Number(shotAttackProfile?.effectSnapshot?.effects?.blastDelta ?? 0) !== 0
+          || Number(shotAttackProfile?.effectSnapshot?.effects?.killDelta ?? 0) !== 0;
+        const shotAppliesShieldPierce = appliesShieldPierce
+          || /(penetration|spread|cauterize|kinetic|electrified|blast|kill\s*radius|carpet)/iu.test(shotRuleText);
+        const shotExplosiveShieldPierce = explosiveShieldPierce
+          || /(explosive|blast|kill\s*radius|carpet)/iu.test(shotRuleText)
+          || Number(shotAttackProfile?.effectSnapshot?.effects?.blastDelta ?? 0) !== 0
+          || Number(shotAttackProfile?.effectSnapshot?.effects?.killDelta ?? 0) !== 0;
+        const dmg = await evaluateDamage({
+          limitHardlightChain: rawRoll === 1,
+          attackProfile: shotAttackProfile
+        });
         damageInstances.push({
           damageTotal: dmg.total,
-          damagePierce: effectivePierce,
+          damagePierce: shotAttackProfile.effectivePierce,
           hasSpecialDamage: dmg.hasSpecialDamage,
           isHardlight: hasHardlightRule,
           isKinetic: hasKineticRule,
           isHeadshot: hasHeadshotRule,
           isPenetrating: hasPenetratingRule,
-          hasBlastOrKill: hasBlastOrKillRule,
-          appliesShieldPierce,
-          explosiveShieldPierce,
+          hasBlastOrKill: shotHasBlastOrKill,
+          appliesShieldPierce: shotAppliesShieldPierce,
+          explosiveShieldPierce: shotExplosiveShieldPierce,
           ignoresShields: dmg.ignoresShields ?? false,
           damageFormula: dmg.formula,
           rollTooltip: dmg.rollTooltip ?? "",
-          hitLoc
+          hitLoc,
+          ammoRound: shotAttackProfile.roundSnapshot ? foundry.utils.deepClone(shotAttackProfile.roundSnapshot) : null
         });
       }
 
@@ -24396,22 +25893,28 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (damageInstances.length) {
           wouldDamage = damageInstances;
         } else {
-          const wouldDamageResult = await evaluateDamage({ limitHardlightChain: rawRoll === 1 });
+          const wouldDamageResult = await evaluateDamage({
+            limitHardlightChain: rawRoll === 1,
+            attackProfile: primaryRoundAttackProfile
+          });
           wouldDamage = [{
             damageTotal: wouldDamageResult.total,
-            damagePierce: effectivePierce,
+            damagePierce: primaryRoundAttackProfile.effectivePierce,
             hasSpecialDamage: wouldDamageResult.hasSpecialDamage,
             isHardlight: hasHardlightRule,
             isKinetic: hasKineticRule,
             isHeadshot: hasHeadshotRule,
             isPenetrating: hasPenetratingRule,
-            hasBlastOrKill: hasBlastOrKillRule,
+            hasBlastOrKill: hasBlastOrKillRule
+              || Number(primaryRoundAttackProfile?.effectSnapshot?.effects?.blastDelta ?? 0) !== 0
+              || Number(primaryRoundAttackProfile?.effectSnapshot?.effects?.killDelta ?? 0) !== 0,
             appliesShieldPierce,
             explosiveShieldPierce,
             ignoresShields: wouldDamageResult.ignoresShields ?? false,
             damageFormula: wouldDamageResult.formula,
             rollTooltip: wouldDamageResult.rollTooltip ?? "",
-            hitLoc
+            hitLoc,
+            ammoRound: primaryRoundAttackProfile.roundSnapshot ? foundry.utils.deepClone(primaryRoundAttackProfile.roundSnapshot) : null
           }];
         }
       }
@@ -24420,7 +25923,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         index: i + 1,
         rawRoll,
         attackRollTooltip: attackRoll ? buildRollTooltipHtml("Attack roll", attackRoll, rawRoll, "1d100") : "",
-        effectiveTarget,
+        effectiveTarget: rowEffectiveTarget,
         dosValue: resolvedDosValue,
         isCritFail,
         isSuccess,
@@ -24435,6 +25938,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         grenadeThrowDistanceMeters,
         hitLoc,
         targetMode: finalTargetMode,
+        ammoRounds: iterationRoundGroup.map((round) => foundry.utils.deepClone(round)),
         damageInstances,
         wouldDamage
       };
@@ -24456,7 +25960,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             hasBlastOrKill: entry.hasBlastOrKill,
             appliesShieldPierce: entry.appliesShieldPierce,
             explosiveShieldPierce: entry.explosiveShieldPierce,
-            ignoresShields: entry.ignoresShields ?? false
+            ignoresShields: entry.ignoresShields ?? false,
+            specialAmmoSymbols: getSpecialAmmoSymbolsForRound(entry.ammoRound),
+            ammoRound: entry.ammoRound ? foundry.utils.deepClone(entry.ammoRound) : null
           });
         }
       }
@@ -24593,6 +26099,78 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     else if (promptedDamageMod.kind === "dice") modParts.push(`Misc Dmg +${promptedDamageMod.raw}`);
     if (attackMods.pierceMod !== 0) modParts.push(`Misc Pierce ${signMod(attackMods.pierceMod)}`);
     const modNote = modParts.length ? ` <span class="mythic-stat-mods">(${modParts.join(", ")})</span>` : "";
+    const buildAmmoMiniBadgeHtml = (symbol = "") => {
+      const raw = String(symbol ?? "").trim();
+      if (!raw) return "";
+      const clean = raw.replace(/^\[|\]$/gu, "");
+      const parts = clean.split("+").map((entry) => String(entry ?? "").trim()).filter(Boolean);
+      const primary = String(parts[0] ?? clean).trim().toUpperCase();
+      const escTitle = esc(raw);
+      return `<span class="mythic-ammo-mini-badge" data-code="${esc(primary)}" title="${escTitle}">${esc(clean || raw)}</span>`;
+    };
+    const buildRowAmmoBadgeHtml = (rounds = []) => {
+      const entries = Array.isArray(rounds) ? rounds : [];
+      if (!entries.length) return "";
+      const symbols = Array.from(new Set(
+        entries
+          .filter((round) => round?.isSpecial === true || String(round?.displaySymbol ?? "").trim())
+          .map((round) => String(round?.displaySymbol ?? "").trim())
+          .filter(Boolean)
+      ));
+      if (symbols.length) return ` ${symbols.map((entry) => buildAmmoMiniBadgeHtml(entry)).join(" ")}`;
+      const anySpecial = entries.some((round) => round?.isSpecial === true || (Array.isArray(round?.modifierCodes) && round.modifierCodes.length > 0));
+      return anySpecial ? ` ${buildAmmoMiniBadgeHtml("SA")}` : "";
+    };
+
+    const buildRowAmmoRuleBadgeHtml = (rounds = []) => {
+      const entries = Array.isArray(rounds) ? rounds : [];
+      if (!entries.length) return "";
+
+      const supportedRuleKeys = new Set(["flame", "cryo"]);
+      const badges = [];
+      const seen = new Set();
+      const addRuleBadge = (rawKey, rawValue = "") => {
+        const key = String(rawKey ?? "").trim().toLowerCase();
+        if (!supportedRuleKeys.has(key)) return;
+
+        const value = String(rawValue ?? "").trim();
+        const baseLabel = String(ruleLabelByKey.get(key) ?? key).trim();
+        const fullLabel = value ? `${baseLabel} (${value})` : baseLabel;
+        const dedupeKey = `${key}:${value.toLowerCase()}`;
+        if (!fullLabel || seen.has(dedupeKey)) return;
+
+        seen.add(dedupeKey);
+        badges.push(`<span class="mythic-attack-badge is-rule" title="${esc(fullLabel)}">${esc(fullLabel)}</span>`);
+      };
+
+      for (const round of entries) {
+        const snapshot = (round?.effectSnapshot && typeof round.effectSnapshot === "object" && !Array.isArray(round.effectSnapshot))
+          ? round.effectSnapshot
+          : null;
+        if (!snapshot) continue;
+
+        const effectValues = (snapshot.effects && typeof snapshot.effects === "object" && !Array.isArray(snapshot.effects))
+          ? snapshot.effects
+          : {};
+        const specialRuleValues = (snapshot.specialRuleValues && typeof snapshot.specialRuleValues === "object" && !Array.isArray(snapshot.specialRuleValues))
+          ? snapshot.specialRuleValues
+          : {};
+
+        for (const rawRuleKey of Array.isArray(snapshot.addSpecialRules) ? snapshot.addSpecialRules : []) {
+          const ruleKey = String(rawRuleKey ?? "").trim().toLowerCase();
+          if (!supportedRuleKeys.has(ruleKey)) continue;
+          addRuleBadge(ruleKey, specialRuleValues[ruleKey] ?? effectValues?.[ruleKey]?.text ?? "");
+        }
+
+        for (const ruleKey of supportedRuleKeys) {
+          const effectValue = String(effectValues?.[ruleKey]?.text ?? "").trim();
+          if (!effectValue) continue;
+          addRuleBadge(ruleKey, specialRuleValues[ruleKey] ?? effectValue);
+        }
+      }
+
+      return badges.length ? ` ${badges.join(" ")}` : "";
+    };
 
     const rowHtml = attackRows.map((row) => {
       if (row.isClick) {
@@ -24608,6 +26186,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ? `${absDisplay} DOS`
           : `${absDisplay} DOF`;
       const verdictClass = row.isCritFail ? "crit-fail" : row.isSuccess ? "success" : "failure";
+      const ammoBadgeHtml = buildRowAmmoBadgeHtml(row.ammoRounds);
+      const ammoRuleBadgeHtml = buildRowAmmoRuleBadgeHtml(row.ammoRounds);
 
       const successDetail = row.isSuccess && row.damageInstances.length
         ? (() => {
@@ -24669,7 +26249,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const attackRollTitle = row.attackRollTooltip || esc(`Attack roll: ${row.rawRoll} [1d100]`);
 
       return `<div class="mythic-attack-line">
-        <div class="mythic-attack-mainline">A${row.index}: ${actionType === "execution" ? "AUTO" : `<span class="mythic-roll-inline" title="${attackRollTitle}">${row.rawRoll}</span> vs <span class="mythic-roll-target" title="Effective target">${row.effectiveTarget}</span>`} <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span></div>
+        <div class="mythic-attack-mainline">A${row.index}: ${actionType === "execution" ? "AUTO" : `<span class="mythic-roll-inline" title="${attackRollTitle}">${row.rawRoll}</span> vs <span class="mythic-roll-target" title="Effective target">${row.effectiveTarget}</span>`} <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span>${ammoBadgeHtml}${ammoRuleBadgeHtml}</div>
         ${grenadeThrowDetail}
         ${calledShotDetail}
         ${grenadeMissDetail}
@@ -24692,10 +26272,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .flatMap((row) => (row.damageInstances?.length ? row.damageInstances : (row.wouldDamage?.length ? row.wouldDamage : [])))
       .find(Boolean) ?? null;
     const cardFormulaFooter = (anySuccess || (isGrenadeWeapon && primaryDamageEntry && !isGrenadeThrowAction))
-      ? `<div class="mythic-attack-formula-note">${esc(damageFormula)}, Pierce ${effectivePierce}</div>`
+      ? `<div class="mythic-attack-formula-note">${esc(String(primaryDamageEntry?.damageFormula ?? damageFormula))}, Pierce ${esc(String(primaryDamageEntry?.damagePierce ?? effectivePierce))}</div>`
       : "";
-
-    const ammoHtml = "";
+    const specialAmmoRounds = consumedBallisticRounds.filter((round) => (
+      round?.isSpecial === true || String(round?.displaySymbol ?? "").trim()
+    ));
+    const ammoSymbols = Array.from(new Set(
+      specialAmmoRounds
+        .map((round) => String(round?.displaySymbol ?? "").trim())
+        .filter(Boolean)
+    ));
     const clickHtml = clickIterations > 0
       ? ` <span class="mythic-ammo-note">[${clickIterations} dry fire]</span>`
       : "";
@@ -24707,10 +26293,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : "";
 
     const attackHeaderHtml = isGrenadeThrowAction
-      ? `<strong>${esc(attackActor.name)}</strong> throws <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
+      ? `<strong>${esc(attackActor.name)}</strong> throws <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${clickHtml}${chargeReleaseNote}`
       : (targets.length === 1 && targetName
-        ? `<strong>${esc(attackActor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`
-        : `<strong>${esc(attackActor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${ammoHtml}${clickHtml}${chargeReleaseNote}`);
+        ? `<strong>${esc(attackActor.name)}</strong> attacks <em>${esc(targetName)}</em> with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${clickHtml}${chargeReleaseNote}`
+        : `<strong>${esc(attackActor.name)}</strong> attacks with <strong>${esc(weaponDisplayName)}</strong>${attackLabelHtml}${clickHtml}${chargeReleaseNote}`);
 
     const content = `<div class="mythic-attack-card">
   <div class="mythic-attack-header">
@@ -24772,6 +26358,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isCritFail: attackRows.some((row) => row.isCritFail),
       isSuccess: anySuccess,
       dosValue: attackRows.length ? Math.max(...attackRows.map((row) => Number(row.dosValue ?? 0))) : 0,
+      specialAmmoUsed: specialAmmoRounds.length > 0,
+      specialAmmoSymbols: ammoSymbols,
+      specialAmmoRounds: consumedBallisticRounds.map((round, index) => ({
+        shotIndex: index + 1,
+        displayLabel: String(round?.displayLabel ?? round?.label ?? "Round").trim() || "Round",
+        displaySymbol: String(round?.displaySymbol ?? "").trim(),
+        modifierCodes: Array.isArray(round?.modifierCodes) ? [...round.modifierCodes] : []
+      })),
       hitLoc: isGrenadeWeapon ? null : (attackRows.find((row) => row.isSuccess)?.hitLoc ?? null),
       damageFormula,
       damageTotal: Number(primaryDamageEntry?.damageTotal ?? 0),
@@ -24897,6 +26491,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (trackedCombat) {
         const currentReactions = Math.max(0, Math.floor(Number(attackActor.system?.combat?.reactions?.count ?? 0)));
         await attackActor.update({ "system.combat.reactions.count": currentReactions + 1 });
+      }
+    }
+    if (specialAmmoPatternMemory
+      && specialAmmoPromptRequest?.source === "bestiary"
+      && specialAmmoPromptRequest?.ignoreInventory === true
+      && !isVehicleWeaponAttack
+    ) {
+      try {
+        await weaponOwnerActor.update({
+          [`system.equipment.weaponState.${itemId}.specialAmmoPatternOptionIds`]: specialAmmoPatternMemory.optionIds,
+          [`system.equipment.weaponState.${itemId}.specialAmmoPatternNextIndex`]: specialAmmoPatternMemory.nextIndex
+        });
+      } catch (error) {
+        console.error("[Mythic] Failed to persist bestiary special-ammo pattern", {
+          actorId: weaponOwnerActor?.id,
+          weaponId: itemId,
+          error
+        });
       }
     }
 
@@ -26583,6 +28195,342 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
     await this._addIndependentAmmoFromDroppedItem(dropped);
+  }
+
+  _buildSpecialAmmoBaseOptionsForFamily(ammoTypeDefinitions = [], family = "") {
+    const definitions = Array.isArray(ammoTypeDefinitions) ? ammoTypeDefinitions : [];
+    const options = [];
+    const pushOption = (entry = {}) => {
+      const name = String(entry?.name ?? "").trim();
+      if (!name) return;
+      const key = String(entry?.key ?? toSlug(name)).trim() || toSlug(name);
+      if (!key) return;
+      options.push({
+        key,
+        name,
+        costPer100: Math.max(0, Number(entry?.costPer100 ?? 0) || 0),
+        weightPerRoundKg: Math.max(0, Number(entry?.weightPerRoundKg ?? entry?.unitWeightKg ?? 0) || 0),
+        specialAmmoCategory: String(entry?.specialAmmoCategory ?? "").trim()
+      });
+    };
+
+    const hasCategory = (entry, category) => String(entry?.specialAmmoCategory ?? "").trim() === category;
+    if (family === MYTHIC_SPECIAL_AMMO_FAMILIES.standardBallistic) {
+      definitions.filter((entry) => hasCategory(entry, "Standard") || hasCategory(entry, "Limited Standard")).forEach(pushOption);
+    } else if (family === MYTHIC_SPECIAL_AMMO_FAMILIES.shotgun) {
+      definitions.filter((entry) => hasCategory(entry, "Shotgun")).forEach(pushOption);
+    } else if (family === MYTHIC_SPECIAL_AMMO_FAMILIES.fortyMillimeter) {
+      definitions.filter((entry) => hasCategory(entry, "40mm Grenades")).forEach(pushOption);
+    } else if (family === MYTHIC_SPECIAL_AMMO_FAMILIES.missileRocketCannon) {
+      definitions.filter((entry) => hasCategory(entry, "Missiles, Rockets & Cannon Shells")).forEach(pushOption);
+    } else if (family === MYTHIC_SPECIAL_AMMO_FAMILIES.flamethrowerFuel) {
+      definitions
+        .filter((entry) => hasCategory(entry, "Flamethrower or Cryosprayer"))
+        .filter((entry) => !/\bcryo/iu.test(String(entry?.name ?? "")))
+        .forEach(pushOption);
+    } else if (family === MYTHIC_SPECIAL_AMMO_FAMILIES.cryosprayerFuel) {
+      definitions
+        .filter((entry) => hasCategory(entry, "Flamethrower or Cryosprayer"))
+        .filter((entry) => /\bcryo|shell/iu.test(String(entry?.name ?? "")))
+        .forEach(pushOption);
+    } else if (family === MYTHIC_SPECIAL_AMMO_FAMILIES.bruteShot) {
+      pushOption({
+        key: "brute-shot",
+        name: "Brute Shot Charge",
+        costPer100: 0,
+        weightPerRoundKg: 0.5,
+        specialAmmoCategory: "No Special Ammo"
+      });
+    }
+
+    return options.sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+  }
+
+  _buildSpecialAmmoBaseStub(baseOption = {}, family = "") {
+    const ammoName = String(baseOption?.name ?? "").trim() || "Ammo";
+    return {
+      name: ammoName,
+      img: "icons/weapons/ammunition/bullets-cartridge-shell-gray.webp",
+      system: {
+        equipmentType: "ammunition",
+        ammoClass: [MYTHIC_SPECIAL_AMMO_FAMILIES.flamethrowerFuel, MYTHIC_SPECIAL_AMMO_FAMILIES.cryosprayerFuel].includes(family)
+          ? "fuel"
+          : "ballistic",
+        family,
+        caliberOrType: ammoName,
+        specialAmmoCategory: String(baseOption?.specialAmmoCategory ?? "").trim(),
+        costPer100: Math.max(0, Number(baseOption?.costPer100 ?? 0) || 0),
+        weightPerRoundKg: Math.max(0, Number(baseOption?.weightPerRoundKg ?? 0) || 0),
+        weightKg: Math.max(0, Number(baseOption?.weightPerRoundKg ?? 0) || 0),
+        quantity: 1,
+        quantityOwned: 1,
+        displayLabel: ammoName
+      }
+    };
+  }
+
+  _findOwnedAmmoItemByStackKey(stackKey = "") {
+    const requested = String(stackKey ?? "").trim();
+    if (!requested) return null;
+    return this.actor.items.find((item) => {
+      if (item?.type !== "gear") return false;
+      const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
+      return String(gear.equipmentType ?? "").trim().toLowerCase() === "ammunition"
+        && String(gear.stackKey ?? "").trim() === requested;
+    }) ?? null;
+  }
+
+  _buildSpecialAmmoEffectSummary(effectSnapshot = {}) {
+    const effects = effectSnapshot?.effects ?? {};
+    const parts = [];
+    const addDelta = (label, value) => {
+      const numeric = Number(value ?? 0);
+      if (!Number.isFinite(numeric) || numeric === 0) return;
+      const prefix = numeric > 0 ? "+" : "";
+      parts.push(`${label} ${prefix}${numeric}`);
+    };
+
+    addDelta("D5", effects.damageDiceD5Delta);
+    addDelta("D10", effects.damageDiceD10Delta);
+    addDelta("Damage", effects.baseDamageDelta);
+    addDelta("Pierce", effects.pierceDelta);
+    addDelta("Range%", effects.rangeBonusPercent);
+    addDelta("Hit", effects.toHitModifierDelta);
+    addDelta("Blast", effects.blastDelta);
+    addDelta("Kill", effects.killDelta);
+
+    for (const rule of Array.isArray(effectSnapshot?.addSpecialRules) ? effectSnapshot.addSpecialRules : []) {
+      const value = String(effectSnapshot?.specialRuleValues?.[rule] ?? "").trim();
+      parts.push(value ? `${rule} ${value}` : rule);
+    }
+
+    return parts.length ? parts.join(" | ") : "Standard";
+  }
+
+  async _onOpenSpecialAmmoDesigner(event) {
+    event?.preventDefault?.();
+    if (!this.isEditable) return;
+
+    const [ammoTypeDefinitions, ammoModifierRules] = await Promise.all([
+      loadMythicAmmoTypeDefinitions(),
+      loadMythicAmmoModifierRules()
+    ]);
+
+    const familyOptions = MYTHIC_SPECIAL_AMMO_FAMILY_DEFINITIONS
+      .filter((entry) => String(entry?.value ?? "").trim() !== MYTHIC_SPECIAL_AMMO_FAMILIES.explosive)
+      .filter((entry) => {
+        const family = String(entry?.value ?? "").trim();
+        const baseOptions = this._buildSpecialAmmoBaseOptionsForFamily(ammoTypeDefinitions, family);
+        const modifierOptions = Array.isArray(ammoModifierRules?.byFamily?.[family]) ? ammoModifierRules.byFamily[family] : [];
+        return baseOptions.length > 0 || modifierOptions.length > 0;
+      });
+
+    if (!familyOptions.length) {
+      ui.notifications?.warn("No special-ammo families are available yet.");
+      return;
+    }
+
+    const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+    const familyChoice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Special Ammo Designer" },
+      content: `<div class="mythic-modal-body">
+        <label style="display:grid; gap:6px;">
+          <span>Select ammunition family</span>
+          <select id="mythic-special-ammo-family">
+            ${familyOptions.map((entry) => `<option value="${esc(entry.value)}">${esc(entry.label)}</option>`).join("")}
+          </select>
+        </label>
+      </div>`,
+      buttons: [
+        {
+          action: "continue",
+          label: "Continue",
+          callback: (_event, _button, dialogApp) => String(dialogApp?.element?.querySelector?.("#mythic-special-ammo-family")?.value ?? "").trim()
+        },
+        { action: "cancel", label: "Cancel", callback: () => null }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+    if (!familyChoice) return;
+
+    const selectedFamily = String(familyChoice ?? "").trim();
+    const selectedFamilyDef = familyOptions.find((entry) => String(entry.value ?? "").trim() === selectedFamily) ?? familyOptions[0];
+    const baseOptions = this._buildSpecialAmmoBaseOptionsForFamily(ammoTypeDefinitions, selectedFamily);
+    const modifierOptions = Array.isArray(ammoModifierRules?.byFamily?.[selectedFamily])
+      ? ammoModifierRules.byFamily[selectedFamily]
+      : [];
+    if (!baseOptions.length) {
+      ui.notifications?.warn("No base ammo types are available for that family yet.");
+      return;
+    }
+
+    const modifierRows = modifierOptions.map((definition) => {
+      const code = String(definition?.modifierCode ?? "").trim();
+      const label = String(definition?.label ?? code).trim() || code;
+      const compat = String(definition?.compatibilityRaw ?? definition?.compatibilityMode ?? "").trim();
+      const notes = compat ? `Compatibility: ${compat}` : "Compatibility: handbook validation";
+      return `<label class="mythic-dialog-checkbox" style="display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:start; margin-bottom:6px;">
+        <input type="checkbox" name="modifierCode" value="${esc(code)}" />
+        <span><strong>${esc(label)}${code ? ` (${esc(code)})` : ""}</strong><br /><small>${esc(notes)}</small></span>
+      </label>`;
+    }).join("");
+
+    const baseSelectHtml = baseOptions.map((entry) => (
+      `<option value="${esc(entry.key)}">${esc(entry.name)} (${Math.max(0, Number(entry.costPer100 ?? 0) || 0)} cR / 100)</option>`
+    )).join("");
+    const gmFreeToggleHtml = game.user?.isGM
+      ? `<label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <input type="checkbox" id="mythic-special-ammo-free" />
+          <span>Add for free</span>
+        </label>`
+      : "";
+
+    const designerResult = await foundry.applications.api.DialogV2.wait({
+      window: { title: `${selectedFamilyDef?.label ?? "Special Ammo"} Designer` },
+      content: `<div class="mythic-modal-body" style="display:grid; gap:10px; min-width:460px;">
+        <label style="display:grid; gap:4px;">
+          <span>Base ammo type</span>
+          <select id="mythic-special-ammo-base">${baseSelectHtml}</select>
+        </label>
+        <label style="display:grid; gap:4px;">
+          <span>Quantity</span>
+          <input id="mythic-special-ammo-quantity" type="number" min="1" step="1" value="10" />
+        </label>
+        ${modifierOptions.length ? `<div><strong>Modifiers</strong><div style="margin-top:6px; max-height:260px; overflow:auto;">${modifierRows}</div></div>` : "<p>No extra modifiers for this family.</p>"}
+        ${gmFreeToggleHtml}
+      </div>`,
+      buttons: [
+        {
+          action: "preview",
+          label: "Preview",
+          callback: (_event, _button, dialogApp) => {
+            const root = dialogApp?.element;
+            const baseKey = String(root?.querySelector?.("#mythic-special-ammo-base")?.value ?? "").trim();
+            const quantity = Math.max(1, toNonNegativeWhole(root?.querySelector?.("#mythic-special-ammo-quantity")?.value ?? 1, 1));
+            const modifierCodes = Array.from(root?.querySelectorAll?.("input[name='modifierCode']:checked") ?? [])
+              .map((input) => String(input?.value ?? "").trim())
+              .filter(Boolean);
+            const freePurchase = Boolean(root?.querySelector?.("#mythic-special-ammo-free")?.checked);
+            return { baseKey, quantity, modifierCodes, freePurchase };
+          }
+        },
+        { action: "cancel", label: "Cancel", callback: () => null }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+    if (!designerResult) return;
+
+    const baseOption = baseOptions.find((entry) => String(entry.key ?? "").trim() === String(designerResult.baseKey ?? "").trim()) ?? null;
+    if (!baseOption) {
+      ui.notifications?.warn("Choose a base ammo type.");
+      return;
+    }
+
+    const selectedModifierDefs = modifierOptions.filter((definition) => {
+      const code = String(definition?.modifierCode ?? "").trim();
+      return Array.isArray(designerResult.modifierCodes) && designerResult.modifierCodes.includes(code);
+    });
+    const validation = await validateAmmoModifierSelection({
+      family: selectedFamily,
+      selectedModifiers: selectedModifierDefs
+    });
+    if (!validation.valid) {
+      ui.notifications?.warn(validation.errors[0] ?? "Those special-ammo modifiers cannot be combined.");
+      return;
+    }
+
+    const baseAmmoStub = this._buildSpecialAmmoBaseStub(baseOption, selectedFamily);
+    const quantity = Math.max(1, toNonNegativeWhole(designerResult.quantity, 1));
+    const preview = calculateSpecialAmmoPurchasePreview(baseAmmoStub, validation.modifierDefs, quantity, { family: selectedFamily });
+    const previewPayload = buildSpecialAmmoItemUpdate(baseAmmoStub, validation.modifierDefs, {
+      family: selectedFamily,
+      quantity
+    });
+    const effectSummary = this._buildSpecialAmmoEffectSummary(previewPayload.system?.effectSnapshot ?? {});
+    const autoDeductEnabled = Boolean(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_SPECIAL_AMMO_AUTO_DEDUCT_SETTING_KEY));
+    const freePurchase = game.user?.isGM && designerResult.freePurchase === true;
+    const willDeductCredits = autoDeductEnabled && !freePurchase;
+
+    const confirmChoice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Confirm Special Ammo Purchase" },
+      content: `<div class="mythic-modal-body" style="display:grid; gap:8px; min-width:420px;">
+        <p><strong>${esc(previewPayload.name)}</strong></p>
+        <p>Family: ${esc(selectedFamilyDef?.label ?? selectedFamily)}</p>
+        <p>Quantity: ${quantity}</p>
+        <p>Effects: ${esc(effectSummary)}</p>
+        <p>Cost Preview: ${preview.totalCost} cR${willDeductCredits ? " (auto-deduct enabled)" : " (manual/free path)"}</p>
+      </div>`,
+      buttons: [
+        {
+          action: "confirm",
+          label: willDeductCredits ? "Buy Ammo" : "Add Ammo",
+          callback: () => true
+        },
+        { action: "cancel", label: "Cancel", callback: () => false }
+      ],
+      rejectClose: false,
+      modal: true
+    });
+    if (!confirmChoice) return;
+
+    const currentCredits = toNonNegativeWhole(this.actor.system?.equipment?.credits, 0);
+    if (willDeductCredits && currentCredits < preview.totalCost) {
+      ui.notifications?.warn(`Not enough credits. Need ${preview.totalCost} cR.`);
+      return;
+    }
+
+    const stackKey = String(previewPayload?.system?.stackKey ?? "").trim();
+    const existingStack = this._findOwnedAmmoItemByStackKey(stackKey);
+    let targetAmmoItemId = "";
+    if (existingStack) {
+      const existingGear = normalizeGearSystemData(existingStack.system ?? {}, existingStack.name ?? "");
+      const nextQuantity = Math.max(1, toNonNegativeWhole(existingGear.quantity ?? 1, 1) + quantity);
+      await existingStack.update({
+        name: previewPayload.name,
+        "system.quantity": nextQuantity,
+        "system.quantityOwned": nextQuantity,
+        "system.displayLabel": previewPayload.system.displayLabel,
+        "system.displaySymbol": previewPayload.system.displaySymbol,
+        "system.effectSnapshot": previewPayload.system.effectSnapshot,
+        "system.modifierCodes": previewPayload.system.modifierCodes,
+        "system.modifierIds": previewPayload.system.modifierIds
+      });
+      targetAmmoItemId = String(existingStack.id ?? "").trim();
+    } else {
+      const createdAmmo = await this.actor.createEmbeddedDocuments("Item", [{
+        name: previewPayload.name,
+        type: "gear",
+        img: baseAmmoStub.img,
+        system: previewPayload.system
+      }]);
+      targetAmmoItemId = String(createdAmmo?.[0]?.id ?? "").trim();
+    }
+
+    if (targetAmmoItemId) {
+      const carriedIds = Array.isArray(this.actor.system?.equipment?.carriedIds)
+        ? [...this.actor.system.equipment.carriedIds.map((entry) => String(entry ?? "").trim()).filter(Boolean)]
+        : [];
+      if (!carriedIds.includes(targetAmmoItemId)) {
+        carriedIds.push(targetAmmoItemId);
+        await this.actor.update({
+          "system.equipment.carriedIds": carriedIds
+        });
+      }
+    }
+
+    if (willDeductCredits) {
+      await this.actor.update({
+        "system.equipment.credits": Math.max(0, currentCredits - preview.totalCost)
+      });
+    }
+
+    await syncActorBallisticLegacyMirrors(this.actor, { render: false });
+
+    ui.notifications?.info(
+      `${willDeductCredits ? "Purchased" : "Added"} ${quantity} ${previewPayload.name}${willDeductCredits ? ` for ${preview.totalCost} cR` : ""}.`
+    );
   }
 
   async _onOpenIndependentAmmo(event) {

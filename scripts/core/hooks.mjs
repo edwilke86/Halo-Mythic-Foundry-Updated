@@ -12,6 +12,7 @@ import {
   MYTHIC_ARMOR_JSON_MIGRATION_VERSION,
   MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY,
   MYTHIC_VEHICLE_CSV_MIGRATION_VERSION,
+  MYTHIC_COMPENDIUM_DUPLICATE_CLEANUP_VERSION_SETTING_KEY,
   MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY,
   MYTHIC_STARTUP_INITIALIZATION_SETTING_KEY,
   MYTHIC_CONTENT_SYNC_VERSION,
@@ -30,6 +31,8 @@ import {
   MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY,
   MYTHIC_IGNORE_BASIC_AMMO_WEIGHT_SETTING_KEY,
   MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY,
+  MYTHIC_SPECIAL_AMMO_AUTO_DEDUCT_SETTING_KEY,
+  MYTHIC_DISALLOW_MAGAZINE_REORDER_IN_COMBAT_SETTING_KEY,
   MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY,
   MYTHIC_USE_FOUNDRY_DEFAULT_TOKEN_HUD_SETTING_KEY,
   MYTHIC_VEHICLE_BREAKPOINT_EDIT_PERMISSION_OPTIONS,
@@ -150,7 +153,10 @@ import {
   maybeRunCompendiumCanonicalMigration,
   runCompendiumCanonicalMigration,
   auditCompendiumCanonicalDuplicates,
-  dedupeCompendiumCanonicalDuplicates
+  dedupeCompendiumCanonicalDuplicates,
+  maybeRunCompendiumDuplicateCleanup,
+  auditCompendiumDuplicateDocuments,
+  cleanupCompendiumDuplicateDocuments
 } from "../core/migrations.mjs";
 
 import {
@@ -198,6 +204,7 @@ import { MythicActorSheet } from "../sheets/actor-sheet.mjs";
 import { MythicBestiarySheet } from "../sheets/bestiary-sheet.mjs";
 import { MythicGroupSheet } from "../sheets/group-sheet.mjs";
 import { MythicItemSheet } from "../sheets/item-sheet.mjs";
+import { MythicContainerSheet, openMythicContainerSheet } from "../sheets/container-sheet.mjs";
 import { MythicSoldierTypeSheet } from "../sheets/soldier-type-sheet.mjs";
 import { MythicEducationSheet } from "../sheets/education-sheet.mjs";
 import { MythicAbilitySheet } from "../sheets/ability-sheet.mjs";
@@ -211,6 +218,12 @@ import {
   refreshFloodContaminationHud,
   destroyFloodContaminationHud
 } from "../ui/flood-contamination-hud.mjs";
+import {
+  exportMagazineSequence,
+  getAccessibleContainerState,
+  getContainerChain,
+  itemIsStoredInQuickdrawContainer
+} from "../mechanics/storage.mjs";
 import {
   getArmorFamily as getBestiaryArmorFamily,
   getAvailablePresets as getBestiaryArmorPresets,
@@ -504,7 +517,12 @@ const MYTHIC_STARTUP_COMPENDIUM_SOURCES = Object.freeze({
   soldierTypes: Object.freeze([MYTHIC_REFERENCE_SOLDIER_TYPES_JSON]),
   abilities: Object.freeze([MYTHIC_ABILITY_DEFINITIONS_PATH]),
   traits: Object.freeze([MYTHIC_TRAIT_DEFINITIONS_PATH]),
-  bestiary: Object.freeze([MYTHIC_REFERENCE_BESTIARY_CSV]),
+  // Bestiary actors are synthesized from CSV plus importer logic, so parser changes
+  // must invalidate the startup signature even when the CSV text is unchanged.
+  bestiary: Object.freeze([
+    MYTHIC_REFERENCE_BESTIARY_CSV,
+    "systems/Halo-Mythic-Foundry-Updated/scripts/reference/bestiary.mjs"
+  ]),
   equipment: Object.freeze([MYTHIC_GENERAL_EQUIPMENT_DEFINITIONS_PATH, MYTHIC_CONTAINER_EQUIPMENT_DEFINITIONS_PATH]),
   armor: Object.freeze([MYTHIC_ARMOR_DEFINITIONS_PATH]),
   rangedWeapons: Object.freeze([MYTHIC_RANGED_WEAPON_DEFINITIONS_PATH]),
@@ -655,9 +673,16 @@ async function mythicStartupPackCategoryNeedsRefresh(key) {
 
 async function getMythicStartupChangedSourceKeys(previous, current) {
   if (previous && Object.keys(previous).length > 0) {
-    return Object.entries(current)
+    const changedKeys = Object.entries(current)
       .filter(([key, signature]) => String(previous[key] ?? "") !== String(signature ?? ""))
       .map(([key]) => key);
+
+    for (const key of Object.keys(current)) {
+      if (changedKeys.includes(key)) continue;
+      if (await mythicStartupPackCategoryNeedsRefresh(key)) changedKeys.push(key);
+    }
+
+    return changedKeys;
   }
 
   const changedKeys = [];
@@ -709,6 +734,9 @@ async function buildMythicStartupWorkPlan() {
   const vehicleCsvMigrationVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_VEHICLE_CSV_MIGRATION_SETTING_KEY) ?? 0) || 0;
   const ammoWeightMigrationVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_AMMO_WEIGHT_OPTIONAL_RULE_MIGRATION_SETTING_KEY) ?? 0) || 0;
   const plasmaPistolPatchVersion = Number(game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COVENANT_PLASMA_PISTOL_PATCH_SETTING_KEY) ?? 0) || 0;
+  const compendiumDuplicateCleanupVersion = String(
+    game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_DUPLICATE_CLEANUP_VERSION_SETTING_KEY) ?? ""
+  ).trim();
 
   const previousSignatures = foundry.utils.deepClone(
     game.settings.get("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY) ?? {}
@@ -729,6 +757,7 @@ async function buildMythicStartupWorkPlan() {
   if (vehicleCsvMigrationVersion < MYTHIC_VEHICLE_CSV_MIGRATION_VERSION) reasons.push("vehicle-refresh");
   if (ammoWeightMigrationVersion < 1) reasons.push("ammo-setting-migration");
   if (plasmaPistolPatchVersion < 1) reasons.push("plasma-pistol-patch");
+  if (compendiumDuplicateCleanupVersion !== systemVersion) reasons.push("compendium-duplicate-cleanup");
   if (changedSourceKeys.length > 0) reasons.push("changed-compendium-sources");
   if (seedPrepNeeded) reasons.push("seed-prep");
 
@@ -903,6 +932,7 @@ export function registerAllHooks() {
         label: "GearItemSheet",
         helpers: ["_getAvailableAmmoItems", "_resolveUuidLabel"]
       },
+      { sheetClass: MythicContainerSheet, label: "ContainerSheet" },
       { sheetClass: MythicSoldierTypeSheet, label: "SoldierTypeItemSheet" },
       { sheetClass: MythicEducationSheet, label: "EducationItemSheet" },
       { sheetClass: MythicAbilitySheet, label: "AbilityItemSheet" },
@@ -1091,6 +1121,15 @@ export function registerAllHooks() {
       default: 0
     });
 
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_DUPLICATE_CLEANUP_VERSION_SETTING_KEY, {
+      name: "Compendium Duplicate Cleanup Version",
+      hint: "Internal marker for once-per-system-version compendium duplicate cleanup.",
+      scope: "world",
+      config: false,
+      type: String,
+      default: ""
+    });
+
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_COMPENDIUM_SOURCE_SIGNATURE_SETTING_KEY, {
       name: "Compendium Source Signatures",
       hint: "Internal marker used to target startup compendium integrity refreshes.",
@@ -1139,6 +1178,24 @@ export function registerAllHooks() {
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_IGNORE_BASIC_AMMO_COUNTS_SETTING_KEY, {
       name: "Ignore Basic Ammo Counts",
       hint: "If enabled, basic ammunition tracking is disabled (magazine and reserve counts are not consumed).",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_SPECIAL_AMMO_AUTO_DEDUCT_SETTING_KEY, {
+      name: "Auto-Deduct cR for Special Ammo",
+      hint: "If enabled, player special-ammo purchases automatically deduct cR. GMs can still add ammo for free.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_DISALLOW_MAGAZINE_REORDER_IN_COMBAT_SETTING_KEY, {
+      name: "Disallow Magazine Reordering In Combat",
+      hint: "If enabled, players cannot reorder rounds in magazines/belts while their actor is in combat. (Affects drag-and-drop + reorder arrows.)",
       scope: "world",
       config: true,
       type: Boolean,
@@ -1385,6 +1442,12 @@ export function registerAllHooks() {
       types: ["gear"]
     });
 
+    ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicContainerSheet, {
+      label: "Mythic Container",
+      makeDefault: false,
+      types: ["gear"]
+    });
+
     ItemCollection.registerSheet("Halo-Mythic-Foundry-Updated", MythicSoldierTypeSheet, {
       makeDefault: true,
       types: ["soldierType"]
@@ -1603,7 +1666,17 @@ export function registerAllHooks() {
     game.mythic.backfillCompendiumCanonicalIds = runCompendiumCanonicalMigration;
     game.mythic.auditCompendiumCanonicalDuplicates = auditCompendiumCanonicalDuplicates;
     game.mythic.dedupeCompendiumCanonicalDuplicates = dedupeCompendiumCanonicalDuplicates;
+    game.mythic.auditCompendiumDuplicates = auditCompendiumDuplicateDocuments;
+    game.mythic.cleanCompendiumDuplicates = cleanupCompendiumDuplicateDocuments;
+    game.mythic.runCompendiumDuplicateCleanup = cleanupCompendiumDuplicateDocuments;
     game.mythic.syncCreationPathItemIcons = syncCreationPathItemIcons;
+    game.mythic.storage = {
+      openContainerSheet: openMythicContainerSheet,
+      getContainerChain,
+      getAccessibleContainerState,
+      itemIsStoredInQuickdrawContainer,
+      exportMagazineSequence
+    };
     game.mythic.previewReferenceWeapons = async () => {
       const rows = await loadReferenceWeaponItems();
       return {
@@ -2051,6 +2124,25 @@ export function registerAllHooks() {
           mythicStartupProgress.fail({ label: "Initialization completed with issues." });
         } else {
           ui.notifications?.error("Mythic reference preparation failed. Check console for details.");
+        }
+      }
+    }
+
+    if (game.user?.isGM && !startupInitializationFailed) {
+      try {
+        updateStartupProgress(92, "Cleaning duplicate compendium entries...");
+        await maybeRunCompendiumDuplicateCleanup({
+          silent: startupProgressVisible,
+          throwOnError: startupProgressVisible,
+          systemVersion: startupWorkPlan.systemVersion
+        });
+      } catch (error) {
+        startupInitializationFailed = true;
+        console.error("[mythic-system] Startup compendium duplicate cleanup failed.", error);
+        if (startupProgressVisible) {
+          mythicStartupProgress.fail({ label: "Initialization completed with issues." });
+        } else {
+          ui.notifications?.error("Mythic compendium duplicate cleanup failed. Check console for details.");
         }
       }
     }

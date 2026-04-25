@@ -12,9 +12,9 @@ This project is actively in development and currently targets Foundry v13.
 
 ## Alpha Readiness
 
-Current build target: `0.5.0-alpha.1` (current feature alpha)
+Current build target: `0.5.0-alpha.2` (current feature alpha)
 
-Latest published release: `0.5.0-alpha.1` (2026-04-24)
+Latest published release: `0.5.0-alpha.2` (2026-04-25)
 
 Known alpha limitations:
 

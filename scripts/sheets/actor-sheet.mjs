@@ -17105,6 +17105,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return false;
     }
 
+if (item.parent?.documentName === "Actor" && item.parent.id === this.actor.id) {
+      // Ignore no-target drops that start and end on this same actor sheet.
+      // This prevents accidental self-drops from duplicating/stacking quantity
+      // when users were interacting with fields like Qty.
+      return false;
+    }
+    
     if (this._isVehicleActor() && item.type === "gear") {
       ui.notifications?.warn("Drop gear onto Cargo or a specific Vehicle Weapon card in the Loadout tab.");
       return false;

@@ -28,8 +28,11 @@ import {
 } from "../utils/sheet-appearance.mjs";
 import { substituteSoldierTypeInTraitText } from "../data/content-loading.mjs";
 import {
+  applyEncumbranceToMovement,
+  computeEncumbranceState,
   computeCharacterDerivedValues,
   computeCharacteristicModifiers,
+  computeFatigueState,
   getWorldGravity
 } from "../mechanics/derived.mjs";
 import { consumeActorHalfActions, isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
@@ -225,7 +228,15 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
       effectiveSystem.characteristics.agi = Math.max(0, Number(effectiveSystem?.characteristics?.agi ?? 0) - gravityAgiPenalty);
     }
     const characteristicRuntime = this._buildCharacteristicRuntime(effectiveSystem?.characteristics ?? {});
+    effectiveSystem.mythic ??= {};
+    effectiveSystem.mythic.preFatigueTouModifier = characteristicRuntime.modifiers?.tou;
     const derived = computeCharacterDerivedValues(effectiveSystem);
+    const encumbrance = computeEncumbranceState({
+      carriedWeight: effectiveSystem?.equipment?.carriedWeight,
+      carryCapacity: derived?.carryingCapacity?.carry,
+      touModifier: characteristicRuntime.modifiers?.tou
+    });
+    this._lastEncumbranceState = encumbrance;
     const worldGravity = getWorldGravity();
     const themedFaction = String(system?.header?.faction ?? "").trim() || "Other (Setting Agnostic)";
     const factionIndex = MythicActorSheet.prototype._getFactionIndex.call(this, themedFaction);
@@ -245,6 +256,8 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     context.mythicEffectiveCharacteristics = characteristicRuntime.scores;
     context.mythicGravityAgilityPenalty = gravityAgiPenalty;
     context.mythicDerived = this._getMythicDerivedData(effectiveSystem, derived);
+    context.mythicDerived.encumbrance = encumbrance;
+    context.mythicDerived.movement = applyEncumbranceToMovement(context.mythicDerived.movement, encumbrance);
     context.mythicIsHuragok = this._isHuragokActor(effectiveSystem);
     context.mythicCombat = this._getCombatViewData(effectiveSystem, characteristicRuntime.modifiers, derived);
     context.mythicGravityValue = String(worldGravity !== null ? worldGravity : (system?.gravity ?? 1.0));
@@ -924,10 +937,20 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     root.querySelectorAll(".roll-skill[data-roll-target]").forEach((el) => {
       el.addEventListener("click", async () => {
         const roll = await new Roll("1d100").evaluate();
-        const target = Number(el.dataset.rollTarget ?? 0);
         const label = String(el.dataset.rollLabel ?? "Skill");
+        const skillGroup = String(el.dataset.rollGroup ?? "").trim().toLowerCase();
+        const encumbranceRoll = this._getEncumbranceRollModifier({ label, skillGroup });
+        const fatigueRoll = this._getFatigueRollModifier(this.actor);
+        const target = Number(el.dataset.rollTarget ?? 0) + encumbranceRoll.modifier + fatigueRoll.modifier;
         const success = Number(roll.total) <= target;
-        const content = buildUniversalTestChatCard({ label, targetValue: target, rolled: Number(roll.total), success });
+        const content = buildUniversalTestChatCard({
+          label,
+          targetValue: target,
+          rolled: Number(roll.total),
+          success,
+          notes: [...fatigueRoll.notes, ...encumbranceRoll.notes],
+          miscModifier: fatigueRoll.modifier + encumbranceRoll.modifier
+        });
         await ChatMessage.create({
           speaker: ChatMessage.getSpeaker({ actor: this.actor }),
           content,
@@ -940,10 +963,20 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     root.querySelectorAll(".roll-education[data-roll-target]").forEach((el) => {
       el.addEventListener("click", async () => {
         const roll = await new Roll("1d100").evaluate();
-        const target = Number(el.dataset.rollTarget ?? 0);
         const label = String(el.dataset.rollLabel ?? "Education");
+        const skillGroup = String(el.dataset.rollGroup ?? "").trim().toLowerCase();
+        const encumbranceRoll = this._getEncumbranceRollModifier({ label, skillGroup });
+        const fatigueRoll = this._getFatigueRollModifier(this.actor);
+        const target = Number(el.dataset.rollTarget ?? 0) + encumbranceRoll.modifier + fatigueRoll.modifier;
         const success = Number(roll.total) <= target;
-        const content = buildUniversalTestChatCard({ label, targetValue: target, rolled: Number(roll.total), success });
+        const content = buildUniversalTestChatCard({
+          label,
+          targetValue: target,
+          rolled: Number(roll.total),
+          success,
+          notes: [...fatigueRoll.notes, ...encumbranceRoll.notes],
+          miscModifier: fatigueRoll.modifier + encumbranceRoll.modifier
+        });
         await ChatMessage.create({
           speaker: ChatMessage.getSpeaker({ actor: this.actor }),
           content,
@@ -1388,10 +1421,45 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     const derived = precomputed ?? computeCharacterDerivedValues(systemData ?? {});
     return {
       mythicCharacteristics: foundry.utils.deepClone(derived.mythicCharacteristics),
+      fatigue: foundry.utils.deepClone(derived.fatigue),
       movement: foundry.utils.deepClone(derived.movement),
       perceptiveRange: foundry.utils.deepClone(derived.perceptiveRange),
       carryingCapacity: foundry.utils.deepClone(derived.carryingCapacity),
       naturalArmor: foundry.utils.deepClone(derived.naturalArmor)
+    };
+  }
+
+  _isKnownMovementTestLabel(label = "") {
+    const normalized = String(label ?? "").trim().toLowerCase();
+    if (!normalized) return false;
+    return /\b(athletics|evasion|evade|stunting|jump|jumping|climb|climbing|swim|swimming)\b/u.test(normalized);
+  }
+
+  _getEncumbranceRollModifier({ label = "", skillGroup = "" } = {}) {
+    const encumbrance = this._lastEncumbranceState;
+    const penalty = Number(encumbrance?.movementTestPenalty ?? 0) || 0;
+    if (penalty === 0) return { modifier: 0, notes: [] };
+    const normalizedGroup = String(skillGroup ?? "").trim().toLowerCase();
+    const isKnownMovementTest = this._isKnownMovementTestLabel(label);
+    if (!isKnownMovementTest && normalizedGroup !== "movement") return { modifier: 0, notes: [] };
+    if (!isKnownMovementTest) return { modifier: 0, notes: [] };
+    return {
+      modifier: penalty,
+      notes: [`${encumbrance.label}: ${encumbrance.movementTestPenaltyLabel} to this movement test.`]
+    };
+  }
+
+  _getFatigueRollModifier(actorDoc = this.actor) {
+    const normalizedSystem = normalizeBestiarySystemData(actorDoc?.system ?? {});
+    const runtime = this._buildCharacteristicRuntime(normalizedSystem?.characteristics ?? {});
+    const fatigue = computeFatigueState(normalizedSystem, {
+      preFatigueTouModifier: runtime.modifiers?.tou
+    });
+    const modifier = Number(fatigue?.penalty ?? 0) || 0;
+    return {
+      modifier,
+      notes: modifier !== 0 ? [`Fatigue: ${fatigue.penaltyLabel} to all tests.`] : [],
+      state: fatigue
     };
   }
 
@@ -1442,8 +1510,13 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
       },
       fatigue: {
         current: asWhole(combat?.fatigue?.current),
-        max: asWhole(combat?.fatigue?.max),
-        comaThreshold: touMod * 2
+        max: asWhole(derived?.fatigue?.comaThreshold ?? combat?.fatigue?.max),
+        comaThreshold: asWhole(derived?.fatigue?.comaThreshold ?? (touMod * 2)),
+        penalty: asWhole(derived?.fatigue?.penaltyAbs),
+        penaltyLabel: String(derived?.fatigue?.penaltyLabel ?? "0"),
+        isComatose: Boolean(derived?.fatigue?.isComatose),
+        comaHours: asWhole(derived?.fatigue?.comaHours),
+        wakeBelow: asWhole(derived?.fatigue?.wakeBelow)
       },
       luck: {
         current: asWhole(combat?.luck?.current),
@@ -1576,7 +1649,9 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     successLabel = "Success",
     failureLabel = "Failure",
     successDegreeLabel = "DOS",
-    failureDegreeLabel = "DOF"
+    failureDegreeLabel = "DOF",
+    automaticModifier = 0,
+    notes = []
   }) {
     if (!Number.isFinite(targetValue) || targetValue <= 0) {
       ui.notifications?.warn(invalidTargetWarning);
@@ -1586,7 +1661,10 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     const miscModifier = await this._promptMiscModifier(label);
     if (miscModifier === null) return;
 
-    const effectiveTarget = targetValue + miscModifier;
+    const fatigueRoll = this._getFatigueRollModifier(this.actor);
+    const autoModifier = Number.isFinite(Number(automaticModifier)) ? Math.round(Number(automaticModifier)) : 0;
+    const resolvedAutomaticModifier = autoModifier + fatigueRoll.modifier;
+    const effectiveTarget = targetValue + miscModifier + resolvedAutomaticModifier;
     const roll = await (new Roll("1d100")).evaluate();
     const rolled = Number(roll.total);
     const success = rolled <= effectiveTarget;
@@ -1599,7 +1677,11 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
       failureLabel,
       successDegreeLabel,
       failureDegreeLabel,
-      miscModifier
+      miscModifier: miscModifier + resolvedAutomaticModifier,
+      notes: [
+        ...fatigueRoll.notes,
+        ...notes
+      ]
     });
 
     await ChatMessage.create({
@@ -1614,14 +1696,20 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     const button = event.currentTarget;
     const key = button?.dataset?.characteristic;
     const label = button?.dataset?.label ?? key?.toUpperCase() ?? "TEST";
-    let targetValue = Number(this.actor.system?.characteristics?.[key] ?? 0);
-    if (String(key ?? "").trim().toLowerCase() === "agi") {
-      targetValue = Math.max(0, targetValue - this._getSanShyuumGravityPenaltyValue(this.actor.system ?? {}));
+    const normalizedSystem = normalizeBestiarySystemData(this.actor.system ?? {});
+    const effectiveSystem = foundry.utils.deepClone(normalizedSystem);
+    const gravityAgiPenalty = this._getSanShyuumGravityPenaltyValue(effectiveSystem);
+    if (gravityAgiPenalty > 0) {
+      effectiveSystem.characteristics.agi = Math.max(0, Number(effectiveSystem?.characteristics?.agi ?? 0) - gravityAgiPenalty);
     }
+    const targetValue = Number(effectiveSystem?.characteristics?.[key] ?? 0);
+    const encumbranceRoll = this._getEncumbranceRollModifier({ label });
     await this._runUniversalTest({
       label,
       targetValue,
-      invalidTargetWarning: `Set a valid ${label} value before rolling a test.`
+      invalidTargetWarning: `Set a valid ${label} value before rolling a test.`,
+      automaticModifier: encumbranceRoll.modifier,
+      notes: encumbranceRoll.notes
     });
   }
 
@@ -1687,20 +1775,26 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
   async _onRollInitiative(event) {
     event.preventDefault();
-    const runtime = this._buildCharacteristicRuntime(this.actor.system?.characteristics ?? {});
-    const agiMod = Number(runtime.modifiers?.agi ?? 0);
     const normalizedSystem = normalizeBestiarySystemData(this.actor.system ?? {});
+    const effectiveSystem = foundry.utils.deepClone(normalizedSystem);
+    const gravityAgiPenalty = this._getSanShyuumGravityPenaltyValue(effectiveSystem);
+    if (gravityAgiPenalty > 0) {
+      effectiveSystem.characteristics.agi = Math.max(0, Number(effectiveSystem?.characteristics?.agi ?? 0) - gravityAgiPenalty);
+    }
+    const runtime = this._buildCharacteristicRuntime(effectiveSystem?.characteristics ?? {});
+    const agiMod = Number(runtime.modifiers?.agi ?? 0);
     const mythicAgi = Number(normalizedSystem?.mythic?.characteristics?.agi ?? 0);
     const manualBonus = Number(normalizedSystem?.settings?.initiative?.manualBonus ?? 0);
     const miscModifier = await this._promptInitiativeMiscModifier();
     if (miscModifier === null) return;
 
+    const fatigueRoll = this._getFatigueRollModifier(this.actor);
     const formula = "1d10 + @AGI_MOD + (@AGI_MYTH / 2) + @INIT_BONUS + @INIT_MISC";
     const roll = await (new Roll(formula, {
       AGI_MOD: agiMod,
       AGI_MYTH: mythicAgi,
       INIT_BONUS: manualBonus,
-      INIT_MISC: miscModifier
+      INIT_MISC: miscModifier + fatigueRoll.modifier
     })).evaluate();
 
     const total = Number(roll.total);
@@ -1710,7 +1804,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
       agiMod,
       mythicAgi,
       manualBonus,
-      miscModifier,
+      miscModifier: miscModifier + fatigueRoll.modifier,
       total
     });
 
@@ -2737,7 +2831,8 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
   async _performBestiaryAttack({ item, gear, state, baseScore, stateToHitMod, attackAction, attackCount, chargeDamage, ammoToConsume, clearChargeAfter, id }) {
     const isMelee = gear.weaponClass === "melee";
     const statLabel = isMelee ? "WFM" : "WFR";
-    const target = Math.max(1, baseScore + stateToHitMod);
+    const fatigueRoll = this._getFatigueRollModifier(this.actor);
+    const target = Math.max(1, baseScore + stateToHitMod + fatigueRoll.modifier);
 
     const updates = {};
     if (clearChargeAfter) {
@@ -2803,7 +2898,9 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
         label,
         targetValue: target,
         rolled: rollResult,
-        success: isHit
+        success: isHit,
+        miscModifier: fatigueRoll.modifier,
+        notes: fatigueRoll.notes
       });
       const hitHtml = isHit
         ? `<div class="mythic-attack-hit-info" style="padding:4px 8px;font-size:0.85em;opacity:0.9;">` +

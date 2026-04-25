@@ -72,6 +72,19 @@ function getAmmoQuantity(item) {
   return Math.max(0, toNonNegativeWhole(gear.quantity ?? gear.quantityOwned, 0));
 }
 
+function roundWeightKg(value = 0) {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.round(Math.max(0, numeric) * 1000) / 1000;
+}
+
+function getLoadedRoundsWeightKg(loadedRounds = []) {
+  if (!Array.isArray(loadedRounds)) return 0;
+  return roundWeightKg(
+    loadedRounds.reduce((sum, round) => sum + Math.max(0, Number(round?.unitWeightKg ?? 0) || 0), 0)
+  );
+}
+
 function buildPlaceholderAmmoItem({ ammoName = "Ammo", ammoFamily = "", ammoUuid = "", img = "" } = {}) {
   const displayName = String(ammoName ?? "").trim() || "Ammo";
   return {
@@ -559,7 +572,7 @@ function buildLegacyContainersFromLoaders(actor) {
       sourceWeaponName: String(actor.items.get(linkedWeaponId)?.name ?? "").trim(),
       baseCapacity: Math.max(0, toNonNegativeWhole(magazine.ammoCapacity, 0)),
       compatibilitySignature: groupKey,
-      weightKg: Math.max(0, Number(gear.weightKg ?? 0) || 0)
+      weightKg: roundWeightKg(Math.max(0, Number(gear.weightKg ?? 0) || 0) + getLoadedRoundsWeightKg(loadedRounds))
     });
   }
   return containers;

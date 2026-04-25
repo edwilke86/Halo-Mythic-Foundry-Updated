@@ -51,6 +51,7 @@ import {
 
 import {
   normalizeCharacterSystemData,
+  normalizeBestiarySystemData,
   normalizeVehicleSystemData,
   normalizeGearSystemData,
   normalizeAbilitySystemData,
@@ -82,8 +83,11 @@ import {
 } from "../reference/compendium-management.mjs";
 
 import {
+  applyEncumbranceToMovement,
+  computeEncumbranceState,
   computeCharacterDerivedValues,
   computeCharacteristicModifiers,
+  computeFatigueState,
   getWorldGravity
 } from "../mechanics/derived.mjs";
 import {
@@ -1922,7 +1926,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.tabGroups.primary = activePrimaryTab;
     this._markPrimaryTabPrepared(activePrimaryTab);
     const preparedPrimaryTabs = this._getPreparedPrimaryTabsView();
-    const shouldPrepareEquipment = Boolean(preparedPrimaryTabs.main || preparedPrimaryTabs.equipment);
+    const shouldPrepareEquipment = Boolean(preparedPrimaryTabs.main || preparedPrimaryTabs.equipment || preparedPrimaryTabs.skills);
     const shouldPrepareEquipmentDetails = Boolean(preparedPrimaryTabs.equipment);
     const shouldPrepareSkills = Boolean(preparedPrimaryTabs.skills);
     const shouldPrepareAbilities = Boolean(preparedPrimaryTabs.abilities);
@@ -1950,6 +1954,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
     const characteristicRuntime = this._buildCharacteristicRuntime(effectiveSystem?.characteristics ?? {});
     const _derivedSource = this._buildDerivedSystemData(effectiveSystem);
+    const fatigueState = computeFatigueState(_derivedSource, {
+      preFatigueTouModifier: characteristicRuntime.modifiers?.tou
+    });
+    _derivedSource.mythic ??= {};
+    _derivedSource.mythic.preFatigueTouModifier = fatigueState.preFatigueTouModifier;
     const derived = computeCharacterDerivedValues(_derivedSource);
     const _charPerfT2 = performance.now();
     const faction = normalizedSystem?.header?.faction ?? "";
@@ -2049,6 +2058,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? this._getCreationFinalizeSummaryViewData(normalizedSystem, context.mythicAdvancements, context.mythicOutliers)
       : {};
     context.mythicEquipment = equipmentView ?? { readyWeaponCards: [], readyWeaponCount: 0 };
+    const encumbrance = this._buildEncumbranceViewData(context.mythicEquipment, derived, characteristicRuntime.modifiers);
+    this._lastEncumbranceState = encumbrance;
+    context.mythicDerived.encumbrance = encumbrance;
+    context.mythicDerived.movement = applyEncumbranceToMovement(context.mythicDerived.movement, encumbrance);
+    context.mythicEquipment.encumbrance = encumbrance;
     context.mythicGammaCompany = shouldPrepareMedical ? this._getGammaCompanyViewData(normalizedSystem) : { enabled: false, canApply: false };
     context.mythicMedicalEffects = medicalEffectsView ?? {};
     const worldGravity = getWorldGravity();
@@ -9733,11 +9747,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const snapshotWeight = Math.max(0, Number(round?.unitWeightKg ?? 0) || 0);
       if (snapshotWeight > 0) return snapshotWeight;
       const ammoItemId = String(round?.ammoItemId ?? round?.specialAmmoItemId ?? round?.baseAmmoItemId ?? "").trim();
-      if (!ammoItemId) return 0;
-      const ammoDoc = this.actor.items.get(ammoItemId);
-      if (!ammoDoc) return 0;
-      const ammoGear = normalizeGearSystemData(ammoDoc.system ?? {}, ammoDoc.name ?? "");
-      return Math.max(0, Number(ammoGear.weightPerRoundKg ?? ammoGear.weightKg ?? 0) || 0);
+      if (ammoItemId) {
+        const ammoDoc = this.actor.items.get(ammoItemId);
+        if (ammoDoc) {
+          const ammoGear = normalizeGearSystemData(ammoDoc.system ?? {}, ammoDoc.name ?? "");
+          const itemWeight = Math.max(0, Number(ammoGear.weightPerRoundKg ?? ammoGear.weightKg ?? 0) || 0);
+          if (itemWeight > 0) return itemWeight;
+        }
+      }
+      return resolveAmmoBaseUnitWeight(
+        round?.baseAmmoName ?? round?.displayLabel ?? round?.label ?? "",
+        round?.ammoTypeKey ?? ""
+      );
     };
     const isGeneralGearEntry = (entry) => {
       if (entry.itemClass === "weapon" || entry.itemClass === "armor") return false;
@@ -10033,6 +10054,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const itemBackedBallisticContext = (!isMelee && !isInfusionRadius && !isGrenadeWeapon && !isEnergyWeapon && weaponDocument)
         ? resolveWeaponBallisticAmmoContext(this.actor, weaponDocument, { weaponState: state })
         : null;
+      const activeLoaderProfile = itemBackedBallisticContext?.activeLoader
+        ? getStorageProfileForItem(itemBackedBallisticContext.activeLoader)
+        : null;
       const usesItemBackedBallisticAmmo = itemBackedBallisticContext?.usesItemBackedAmmo === true;
       const weaponEnergyCells = Array.isArray(rawEnergyCells[item.id]) ? rawEnergyCells[item.id] : [];
       const activeEnergyCellId = String(state.activeEnergyCellId ?? "").trim();
@@ -10229,7 +10253,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         activeMagazineId: usesItemBackedBallisticAmmo
           ? String(itemBackedBallisticContext?.activeLoaderId ?? "").trim()
           : String(state.activeMagazineId ?? "").trim(),
-        activeLoaderLabel: String(itemBackedBallisticContext?.activeLoader?.name ?? "").trim(),
+        activeLoaderLabel: itemBackedBallisticContext?.activeLoader
+          ? this._getBallisticLoaderDisplayName(itemBackedBallisticContext.activeLoader, activeLoaderProfile)
+          : "",
         activeLoaderSequenceSummary: String(itemBackedBallisticContext?.sequenceSummary ?? "").trim(),
         nextRoundLabel: String(itemBackedBallisticContext?.nextRound?.displayLabel ?? itemBackedBallisticContext?.nextRound?.label ?? "").trim(),
         nextRoundSymbol: String(itemBackedBallisticContext?.nextRound?.displaySymbol ?? "").trim(),
@@ -10816,6 +10842,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           if (!itemDoc) return null;
           const profile = getStorageProfileForItem(itemDoc);
           const loaderType = String(profile.gear?.magazine?.loaderType ?? "detachable-magazine").trim();
+          const loaderLabel = this._getBallisticLoaderCustomLabel(itemDoc, profile);
+          const displayName = loaderLabel || entry.name;
           const loadedRounds = Array.isArray(profile.gear?.magazine?.loadedRounds) ? profile.gear.magazine.loadedRounds : [];
           const ammoCapacity = toNonNegativeWhole(profile.gear?.magazine?.ammoCapacity, 0);
           const linkedWeaponId = String(profile.gear?.magazine?.linkedWeaponId ?? "").trim();
@@ -10845,9 +10873,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           return {
             id: entry.id,
             name: entry.name,
+            displayName,
+            hasCustomLabel: Boolean(loaderLabel),
+            loaderLabel,
             img: entry.img,
             loaderType,
             loaderTypeLabel,
+            metaLabel: loaderLabel ? `${loaderTypeLabel} | ${entry.name}` : loaderTypeLabel,
             linkedWeaponId,
             currentCount: loadedRounds.length,
             ammoCapacity,
@@ -10870,7 +10902,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           };
         })
         .filter(Boolean)
-        .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+        .sort((a, b) => String(a.displayName ?? a.name ?? "").localeCompare(String(b.displayName ?? b.name ?? "")));
 
     const packSelection = await this._getEquipmentPackSelectionViewData(systemData);
 
@@ -11119,12 +11151,60 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     return {
       mythicCharacteristics: foundry.utils.deepClone(derived.mythicCharacteristics),
+      fatigue: foundry.utils.deepClone(derived.fatigue),
       movement: foundry.utils.deepClone(derived.movement),
       perceptiveRange: foundry.utils.deepClone(derived.perceptiveRange),
       carryingCapacity: foundry.utils.deepClone(derived.carryingCapacity),
       naturalArmor: foundry.utils.deepClone(derived.naturalArmor),
       naturalHealing: foundry.utils.deepClone(derived.naturalHealing),
       outliers: foundry.utils.deepClone(derived.outliers)
+    };
+  }
+
+  _buildEncumbranceViewData(equipmentView = {}, derivedData = {}, characteristicModifiers = {}) {
+    const encumbrance = computeEncumbranceState({
+      carriedWeight: equipmentView?.carriedWeight,
+      carryCapacity: equipmentView?.carryCapacity ?? derivedData?.carryingCapacity?.carry,
+      touModifier: characteristicModifiers?.tou ?? derivedData?.fatigue?.preFatigueTouModifier ?? derivedData?.touModifier
+    });
+    return encumbrance;
+  }
+
+  _isKnownMovementTestLabel(label = "") {
+    const normalized = String(label ?? "").trim().toLowerCase();
+    if (!normalized) return false;
+    return /\b(athletics|evasion|evade|stunting|jump|jumping|climb|climbing|swim|swimming)\b/u.test(normalized);
+  }
+
+  _getEncumbranceRollModifier({ label = "", skillGroup = "" } = {}) {
+    const encumbrance = this._lastEncumbranceState;
+    const penalty = Number(encumbrance?.movementTestPenalty ?? 0) || 0;
+    if (penalty === 0) return { modifier: 0, notes: [] };
+    const normalizedGroup = String(skillGroup ?? "").trim().toLowerCase();
+    const isKnownMovementTest = this._isKnownMovementTestLabel(label);
+    if (!isKnownMovementTest && normalizedGroup !== "movement") return { modifier: 0, notes: [] };
+    if (!isKnownMovementTest) return { modifier: 0, notes: [] };
+    return {
+      modifier: penalty,
+      notes: [`${encumbrance.label}: ${encumbrance.movementTestPenaltyLabel} to this movement test.`]
+    };
+  }
+
+  _getFatigueRollModifier(actorDoc = this.actor) {
+    const actorSystem = actorDoc?.system ?? {};
+    const actorType = String(actorDoc?.type ?? "").trim().toLowerCase();
+    const normalizedSystem = actorType === "bestiary"
+      ? normalizeBestiarySystemData(actorSystem)
+      : normalizeCharacterSystemData(actorSystem);
+    const runtime = this._buildCharacteristicRuntime(normalizedSystem?.characteristics ?? {});
+    const fatigue = computeFatigueState(normalizedSystem, {
+      preFatigueTouModifier: runtime.modifiers?.tou
+    });
+    const modifier = Number(fatigue?.penalty ?? 0) || 0;
+    return {
+      modifier,
+      notes: modifier !== 0 ? [`Fatigue: ${fatigue.penaltyLabel} to all tests.`] : [],
+      state: fatigue
     };
   }
 
@@ -11230,8 +11310,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       },
       fatigue: {
         current: asWhole(combat?.fatigue?.current),
-        max: asWhole(combat?.fatigue?.max),
-        comaThreshold: touMod * 2
+        max: asWhole(derived?.fatigue?.comaThreshold ?? combat?.fatigue?.max),
+        comaThreshold: asWhole(derived?.fatigue?.comaThreshold ?? (touMod * 2)),
+        penalty: asWhole(derived?.fatigue?.penaltyAbs),
+        penaltyLabel: String(derived?.fatigue?.penaltyLabel ?? "0"),
+        isComatose: Boolean(derived?.fatigue?.isComatose),
+        comaHours: asWhole(derived?.fatigue?.comaHours),
+        wakeBelow: asWhole(derived?.fatigue?.wakeBelow)
       },
       luck: {
         current: asWhole(combat?.luck?.current),
@@ -11617,7 +11702,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (String(actorDoc?.type ?? "").trim().toLowerCase() === "bestiary") {
-      return this._buildCharacteristicRuntime(actorDoc.system?.characteristics ?? {});
+      const normalizedSystem = normalizeBestiarySystemData(actorDoc.system ?? {});
+      return this._buildCharacteristicRuntime(normalizedSystem?.characteristics ?? {});
     }
 
     const normalizedSystem = normalizeCharacterSystemData(actorDoc.system);
@@ -14059,6 +14145,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     });
 
+    root.querySelectorAll(".loader-label-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        void this._onSetBallisticLoaderLabel(event);
+      });
+    });
+
     root.querySelectorAll(".mythic-equipment-data-row[data-item-id]").forEach((row) => {
       row.addEventListener("dragstart", (event) => {
         this._onGearRowDragStart(event);
@@ -14085,6 +14177,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         row.classList.remove("is-storage-drag-over");
         void this._onDropItem(event, null);
       });
+    });
+
+    // Prevent dragging from input elements to avoid accidental drags when interacting with form controls
+    root.querySelectorAll("input, select, textarea").forEach((input) => {
+      input.addEventListener("dragstart", (event) => event.stopPropagation());
     });
 
     root.querySelectorAll(".gear-remove-btn[data-item-id]").forEach((button) => {
@@ -16785,7 +16882,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return false;
   }
 
+  _shouldBlockEquipmentRowDragStart(event) {
+    const target = event?.target;
+    if (!(target instanceof Element)) return false;
+    return Boolean(target.closest("button, input, select, textarea, option, label"));
+  }
+
   _onGearRowDragStart(event) {
+    if (this._shouldBlockEquipmentRowDragStart(event)) {
+      event.preventDefault();
+      return;
+    }
+
     const row = event.currentTarget instanceof HTMLElement
       ? event.currentTarget
       : event.target?.closest?.(".mythic-equipment-data-row[data-item-id]");
@@ -16803,6 +16911,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _onLooseAmmoRowDragStart(event) {
+    if (this._shouldBlockEquipmentRowDragStart(event)) {
+      event.preventDefault();
+      return;
+    }
+
     const row = event.currentTarget instanceof HTMLElement
       ? event.currentTarget
       : event.target?.closest?.(".mythic-loose-ammo-row");
@@ -21473,6 +21586,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ui.notifications?.info(`Added 1 ${purchase.effectiveLabel}${loadedNote}.`);
   }
 
+  _getBallisticLoaderCustomLabel(loader, profile = null) {
+    if (!loader) return "";
+    const resolvedProfile = profile ?? getStorageProfileForItem(loader);
+    return String(resolvedProfile?.gear?.magazine?.loaderLabel ?? "").trim();
+  }
+
+  _getBallisticLoaderDisplayName(loader, profile = null) {
+    const customLabel = this._getBallisticLoaderCustomLabel(loader, profile);
+    if (customLabel) return customLabel;
+    return String(loader?.name ?? "Loader").trim() || "Loader";
+  }
+
   async _onPurchaseBallisticContainer(event) {
     event.preventDefault();
     if (!this.isEditable) return;
@@ -21839,6 +21964,30 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  async _onSetBallisticLoaderLabel(event) {
+    event.preventDefault();
+    if (!this.isEditable) return;
+
+    const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+    if (!itemId) return;
+
+    const item = this.actor.items.get(itemId);
+    if (!item || !isBallisticLoaderItem(item)) return;
+
+    const profile = getStorageProfileForItem(item);
+    const currentLabel = this._getBallisticLoaderCustomLabel(item, profile);
+    const result = await this._promptBallisticLoaderLabel(item.name ?? "Loader", currentLabel);
+    if (!result || result.confirmed !== true) return;
+
+    const nextLabel = String(result.label ?? "").trim();
+    if (nextLabel === currentLabel) return;
+
+    await item.update({ "system.magazine.loaderLabel": nextLabel });
+    ui.notifications?.info(nextLabel
+      ? `Set loader label to ${nextLabel}.`
+      : `Cleared loader label for ${item.name}.`);
+  }
+
   async _onToggleEquippedGear(event) {
     event.preventDefault();
     if (!this.isEditable) return;
@@ -21939,14 +22088,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
     if (!itemId) return;
 
+    const sourceItem = this.actor.items.get(itemId);
+    if (!sourceItem || sourceItem.type !== "gear") return;
+
+    const sourceGear = normalizeGearSystemData(sourceItem.system ?? {}, sourceItem.name ?? "");
+    const equipmentType = String(sourceGear.equipmentType ?? "").trim().toLowerCase();
+    if (equipmentType === "ammunition") {
+      const currentQuantity = Math.max(0, toNonNegativeWhole(sourceGear.quantity ?? sourceGear.quantityOwned, 0));
+      const desiredQuantity = Math.max(0, toNonNegativeWhole(event.currentTarget?.value, currentQuantity));
+      event.currentTarget.value = String(desiredQuantity);
+
+      if (desiredQuantity === currentQuantity) return;
+      if (desiredQuantity <= 0) {
+        await sourceItem.delete();
+        return;
+      }
+
+      await sourceItem.update({
+        "system.quantity": desiredQuantity,
+        "system.quantityOwned": desiredQuantity
+      });
+      return;
+    }
+
     const stackIds = this._resolveStackedItemIdsFromEvent(event, itemId);
     const currentIds = stackIds.length ? stackIds : [itemId];
     const currentCount = currentIds.length;
     const desiredCount = Math.max(0, toNonNegativeWhole(event.currentTarget?.value, currentCount));
     event.currentTarget.value = String(desiredCount);
-
-    const sourceItem = this.actor.items.get(itemId);
-    if (!sourceItem || sourceItem.type !== "gear") return;
 
     if (desiredCount === currentCount) return;
 
@@ -24000,11 +24169,15 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         .map((loader) => {
           const loaderProfile = getStorageProfileForItem(loader);
           const loadedCount = Array.isArray(loaderProfile.gear?.magazine?.loadedRounds) ? loaderProfile.gear.magazine.loadedRounds.length : 0;
+          const customLabel = this._getBallisticLoaderCustomLabel(loader, loaderProfile);
+          const displayLabel = this._getBallisticLoaderDisplayName(loader, loaderProfile);
           return {
             item: loader,
             count: loadedCount,
             capacity: Math.max(0, toNonNegativeWhole(loaderProfile.gear?.magazine?.ammoCapacity, 0)),
-            label: String(loader.name ?? "Loader").trim() || "Loader"
+            label: customLabel
+              ? `${displayLabel} (${String(loader.name ?? "Loader").trim() || "Loader"})`
+              : displayLabel
           };
         })
         .filter((entry) => String(entry.item?.id ?? "").trim() !== activeLoaderId && entry.count > 0);
@@ -24312,11 +24485,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _promptBallisticLoaderReloadSource(weaponName = "Weapon", loaders = [], activeLoaderId = "") {
     const options = (Array.isArray(loaders) ? loaders : []).map((loader, index) => {
-      const id = String(loader?.id ?? "").trim();
+      const id = String(loader?.id ?? loader?.item?.id ?? "").trim();
       const count = Math.max(0, toNonNegativeWhole(loader?.count ?? loader?.currentCount ?? 0, 0));
       const capacity = Math.max(0, toNonNegativeWhole(loader?.capacity ?? loader?.ammoCapacity ?? 0, 0));
       const activeMarker = id && id === String(activeLoaderId ?? "").trim() ? " (active)" : "";
-      const label = String(loader?.label ?? loader?.name ?? `Loader ${index + 1}`).trim() || `Loader ${index + 1}`;
+      const label = String(loader?.label ?? loader?.name ?? loader?.item?.name ?? `Loader ${index + 1}`).trim() || `Loader ${index + 1}`;
       return {
         id,
         label: `${label}: ${count}/${capacity}${activeMarker}`
@@ -24357,6 +24530,48 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rejectClose: false,
       modal: true
     });
+  }
+
+  async _promptBallisticLoaderLabel(itemName = "Loader", currentLabel = "") {
+    const esc = foundry.utils.escapeHTML;
+    return foundry.applications.api.DialogV2.wait({
+      window: {
+        title: `Set Loader Label - ${String(itemName ?? "Loader").trim() || "Loader"}`
+      },
+      content: `
+        <form class="mythic-modal-body">
+          <div class="form-group">
+            <label for="mythic-loader-label">Loader Label</label>
+            <input id="mythic-loader-label" name="loaderLabel" type="text" value="${esc(String(currentLabel ?? ""))}" maxlength="60" />
+            <p class="hint">Use a short label like Alpha, AP, or Left Pouch. Leave it blank to clear the label.</p>
+          </div>
+        </form>
+      `,
+      buttons: [
+        {
+          action: "save",
+          label: "Save",
+          callback: (_event, _button, dialogApp) => {
+            const dialogElement = dialogApp?.element instanceof HTMLElement
+              ? dialogApp.element
+              : (dialogApp?.element?.[0] instanceof HTMLElement ? dialogApp.element[0] : null);
+            const input = dialogElement?.querySelector('[name="loaderLabel"]')
+              ?? document.getElementById("mythic-loader-label");
+            return {
+              confirmed: true,
+              label: String(input instanceof HTMLInputElement ? input.value : "").trim()
+            };
+          }
+        },
+        {
+          action: "cancel",
+          label: "Cancel",
+          callback: () => null
+        }
+      ],
+      rejectClose: false,
+      modal: true
+    }).catch(() => null);
   }
 
   async _promptBallisticAmmoStackReloadSource(weaponName = "Weapon", ammoItems = []) {
@@ -24429,18 +24644,20 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Get Courage characteristic
     const characteristicRuntime = await this._getLiveCharacteristicRuntime(actorDoc);
     const crgStat = toNonNegativeWhole(characteristicRuntime.scores?.crg ?? 0, 0);
+    const fatigueRoll = this._getFatigueRollModifier(actorDoc);
+    const targetValue = Math.max(0, crgStat + fatigueRoll.modifier);
 
     // Roll d100 for Courage test (must use async evaluation)
     const courageRoll = await new Roll("1d100").evaluate();
     const rollResult = toNonNegativeWhole(courageRoll.total ?? 0, 0);
-    const success = rollResult <= crgStat;
+    const success = rollResult <= targetValue;
 
     // Get actor name for messaging
     const esc = (val) => foundry.utils.escapeHTML(String(val ?? ""));
 
     if (success) {
       // Test passed - output success message and allow attack
-      const dos = Math.floor((crgStat - rollResult) / 10);
+      const dos = Math.floor((targetValue - rollResult) / 10);
       const dosText = dos > 0 ? ` (DoS +${dos})` : "";
       const outcomeClass = "success";
       const content = `<article class="mythic-chat-card ${outcomeClass}">
@@ -24448,7 +24665,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           <span class="mythic-chat-title">${esc(actorDoc.name)} - Courage Test</span>
           <span class="mythic-chat-outcome ${outcomeClass}">SUCCESS</span>
         </header>
-        <div class="mythic-stat-label">CRG ${crgStat} vs 1d100 rolled ${rollResult}${dosText}</div>
+        <div class="mythic-stat-label">CRG ${targetValue} vs 1d100 rolled ${rollResult}${dosText}</div>
         <div class="mythic-chat-body">
           <p><em>${esc(actorDoc.name)} struggles against their pacifist nature, but pushes through...</em></p>
           <p><strong>The attack proceeds.</strong></p>
@@ -24462,7 +24679,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return true;
     } else {
       // Test failed - output failure message and block attack
-      const dos = Math.floor((rollResult - crgStat) / 10);
+      const dos = Math.floor((rollResult - targetValue) / 10);
       const dosText = dos > 0 ? ` (DoS +${dos})` : "";
       const outcomeClass = "failure";
       const content = `<article class="mythic-chat-card ${outcomeClass}">
@@ -24470,7 +24687,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           <span class="mythic-chat-title">${esc(actorDoc.name)} - Courage Test</span>
           <span class="mythic-chat-outcome ${outcomeClass}">FAILURE</span>
         </header>
-        <div class="mythic-stat-label">CRG ${crgStat} vs 1d100 rolled ${rollResult}${dosText}</div>
+        <div class="mythic-stat-label">CRG ${targetValue} vs 1d100 rolled ${rollResult}${dosText}</div>
         <div class="mythic-chat-body">
           <p><em>${esc(actorDoc.name)} cannot bring themselves to cause harm...</em></p>
           <p><strong>${esc(actorDoc.name)} cannot make any attacks this round.</strong></p>
@@ -25430,6 +25647,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const statKey = (isMelee || isGrenadeWeapon || actionType === "buttstroke") ? "wfm" : "wfr";
     const baseStat = toNonNegativeWhole(characteristics[statKey], 0);
     const fireModeBonus = actionType === "buttstroke" ? 0 : getFireModeToHitBonus(modeLabel);
+    const fatigueRoll = this._getFatigueRollModifier(attackActor);
     const effectiveTarget = baseStat
       + fireModeBonus
       + baseToHitMod
@@ -25440,7 +25658,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       + factionTrainingPenalty
       + weaponTrainingPenalty
       + attackMods.toHitMod
-      + calledShotPenalty;
+      + calledShotPenalty
+      + fatigueRoll.modifier;
 
     const d10Count = toNonNegativeWhole(gear.damage?.baseRollD10, 0);
     const d5Count = toNonNegativeWhole(gear.damage?.baseRollD5, 0);
@@ -26094,6 +26313,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (pierceStrengthBonus !== 0) modParts.push(`Pierce STR ${signMod(pierceStrengthBonus)}`);
     if (isInfusionRadiusWeapon && infusionIntMod !== 0) modParts.push(`INT Mod ${signMod(infusionIntMod)} dmg`);
     if (attackMods.toHitMod !== 0) modParts.push(`Misc Hit ${signMod(attackMods.toHitMod)}`);
+    if (fatigueRoll.modifier !== 0) modParts.push(`Fatigue ${signMod(fatigueRoll.modifier)}`);
     if (calledShotPenalty !== 0) modParts.push(`Called Shot ${signMod(calledShotPenalty)}`);
     if (promptedDamageMod.kind === "flat" && promptedDamageMod.value !== 0) modParts.push(`Misc Dmg ${signMod(promptedDamageMod.value)}`);
     else if (promptedDamageMod.kind === "dice") modParts.push(`Misc Dmg +${promptedDamageMod.raw}`);
@@ -26830,13 +27050,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const miscModifier = await this._promptInitiativeMiscModifier();
     if (miscModifier === null) return;
 
+    const fatigueRoll = this._getFatigueRollModifier(this.actor);
     const dicePart = hasFastFoot ? "2d10kh1" : "1d10";
     const formula = `${dicePart} + @AGI_MOD + (@AGI_MYTH / 2) + @INIT_BONUS + @INIT_MISC`;
     const rollData = {
       AGI_MOD: agiMod,
       AGI_MYTH: mythicAgi,
       INIT_BONUS: manualBonus,
-      INIT_MISC: miscModifier
+      INIT_MISC: miscModifier + fatigueRoll.modifier
     };
     const roll = await (new Roll(formula, rollData)).evaluate();
     const total = Number(roll.total);
@@ -26847,7 +27068,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       agiMod,
       mythicAgi,
       manualBonus,
-      miscModifier,
+      miscModifier: miscModifier + fatigueRoll.modifier,
       total
     });
 
@@ -27240,6 +27461,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     failureLabel = "Failure",
     successDegreeLabel = "DOS",
     failureDegreeLabel = "DOF",
+    automaticModifier = 0,
     notes = []
   }) {
     if (!Number.isFinite(targetValue) || targetValue <= 0) {
@@ -27250,7 +27472,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const miscModifier = await this._promptMiscModifier(label);
     if (miscModifier === null) return;
 
-    const effectiveTarget = targetValue + miscModifier;
+    const fatigueRoll = this._getFatigueRollModifier(this.actor);
+    const autoModifier = Number.isFinite(Number(automaticModifier)) ? Math.round(Number(automaticModifier)) : 0;
+    const resolvedAutomaticModifier = autoModifier + fatigueRoll.modifier;
+    const effectiveTarget = targetValue + miscModifier + resolvedAutomaticModifier;
     const roll = await (new Roll("1d100")).evaluate();
     const rolled = Number(roll.total);
     const success = rolled <= effectiveTarget;
@@ -27263,8 +27488,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       failureLabel,
       successDegreeLabel,
       failureDegreeLabel,
-      miscModifier,
-      notes
+      miscModifier: miscModifier + resolvedAutomaticModifier,
+      notes: [
+        ...fatigueRoll.notes,
+        ...notes
+      ]
     });
 
     await ChatMessage.create({
@@ -27294,7 +27522,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const miscModifier = await this._promptMiscModifier(label);
     if (miscModifier === null) return;
 
-    const effectiveTarget = targetValue + miscModifier;
+    const fatigueRoll = this._getFatigueRollModifier(speakerActor);
+    const effectiveTarget = targetValue + miscModifier + fatigueRoll.modifier;
     const roll = await (new Roll("1d100")).evaluate();
     const rolled = Number(roll.total);
     const success = rolled <= effectiveTarget;
@@ -27307,8 +27536,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       failureLabel,
       successDegreeLabel,
       failureDegreeLabel,
-      miscModifier,
-      notes
+      miscModifier: miscModifier + fatigueRoll.modifier,
+      notes: [
+        ...fatigueRoll.notes,
+        ...notes
+      ]
     });
 
     await ChatMessage.create({
@@ -27430,6 +27662,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const characteristicRuntime = await this._getLiveCharacteristicRuntime(attackActor);
     const baseStat = toNonNegativeWhole(characteristicRuntime?.scores?.wfm, 0);
     const warfareMeleeModifier = Number(characteristicRuntime?.modifiers?.wfm ?? 0);
+    const fatigueRoll = this._getFatigueRollModifier(attackActor);
     const attackCounts = this._getVehicleWalkerMeleeAttackCounts(warfareMeleeModifier, { slow: isStomp });
     const rollIterations = actionType === "full"
       ? attackCounts.full
@@ -27486,7 +27719,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       + Number(rangeResult.toHitMod ?? 0)
       + targetSwitchPenalty
       + Number(attackMods.toHitMod ?? 0)
-      + calledShotPenalty;
+      + calledShotPenalty
+      + fatigueRoll.modifier;
 
     const diceCount = attackKey === "punch"
       ? toNonNegativeWhole(meleeContext?.punch?.diceCount, 3)
@@ -27701,6 +27935,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (rangeResult.toHitMod !== 0) modParts.push(`Range ${rangeResult.band} ${signMod(Number(rangeResult.toHitMod ?? 0))}`);
     if (targetSwitchPenalty !== 0) modParts.push(`Target Switch ${signMod(targetSwitchPenalty)}`);
     if (attackMods.toHitMod !== 0) modParts.push(`Misc Hit ${signMod(Number(attackMods.toHitMod ?? 0))}`);
+    if (fatigueRoll.modifier !== 0) modParts.push(`Fatigue ${signMod(fatigueRoll.modifier)}`);
     if (calledShotPenalty !== 0) modParts.push(`Called Shot ${signMod(calledShotPenalty)}`);
     if (promptedDamageMod.kind === "flat" && promptedDamageMod.value !== 0) modParts.push(`Misc Dmg ${signMod(Number(promptedDamageMod.value ?? 0))}`);
     else if (promptedDamageMod.kind === "dice") modParts.push(`Misc Dmg +${promptedDamageMod.raw}`);
@@ -27948,11 +28183,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const label = String(cell?.dataset?.rollLabel ?? "Education");
     const targetValue = Number(cell?.dataset?.rollTarget ?? 0);
     const skillGroup = String(cell?.dataset?.rollGroup ?? "").trim().toLowerCase();
+    const encumbranceRoll = this._getEncumbranceRollModifier({ label, skillGroup });
     await this._runUniversalTest({
       label,
       targetValue,
       invalidTargetWarning: `Set a valid target for ${label} before rolling.`,
-      notes: this._buildUniversalTestNotes({ skillGroup })
+      automaticModifier: encumbranceRoll.modifier,
+      notes: [
+        ...this._buildUniversalTestNotes({ skillGroup }),
+        ...encumbranceRoll.notes
+      ]
     });
   }
 
@@ -27964,11 +28204,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const label = String(cell?.dataset?.rollLabel ?? "Skill");
     const targetValue = Number(cell?.dataset?.rollTarget ?? 0);
     const skillGroup = String(cell?.dataset?.rollGroup ?? "").trim().toLowerCase();
+    const encumbranceRoll = this._getEncumbranceRollModifier({ label, skillGroup });
     await this._runUniversalTest({
       label,
       targetValue,
       invalidTargetWarning: `Set a valid target for ${label} before rolling.`,
-      notes: this._buildUniversalTestNotes({ skillGroup })
+      automaticModifier: encumbranceRoll.modifier,
+      notes: [
+        ...this._buildUniversalTestNotes({ skillGroup }),
+        ...encumbranceRoll.notes
+      ]
     });
   }
 
@@ -27978,15 +28223,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const button = event.currentTarget;
     const key = button?.dataset?.characteristic;
     const label = button?.dataset?.label ?? key?.toUpperCase() ?? "TEST";
-    let targetValue = Number(this.actor.system?.characteristics?.[key] ?? 0);
-    if (String(key ?? "").trim().toLowerCase() === "agi") {
-      targetValue = Math.max(0, targetValue - this._getSanShyuumGravityPenaltyValue(this.actor.system ?? {}));
-    }
+    const runtime = await this._getLiveCharacteristicRuntime(this.actor);
+    const targetValue = Number(runtime?.scores?.[key] ?? 0);
+    const encumbranceRoll = this._getEncumbranceRollModifier({ label });
     await this._runUniversalTest({
       label,
       targetValue,
       invalidTargetWarning: `Set a valid ${label} value before rolling a test.`,
-      notes: this._buildUniversalTestNotes()
+      automaticModifier: encumbranceRoll.modifier,
+      notes: [
+        ...this._buildUniversalTestNotes(),
+        ...encumbranceRoll.notes
+      ]
     });
   }
 

@@ -1,7 +1,7 @@
 import { toNonNegativeWhole, normalizeLookupText } from "../utils/helpers.mjs";
 import { normalizeCharacterSystemData, normalizeSkillsData } from "../data/normalization.mjs";
 import { loadMythicMedicalEffectDefinitions, loadMythicSpecialDamageDefinitions } from "../data/content-loading.mjs";
-import { computeCharacterDerivedValues } from "../mechanics/derived.mjs";
+import { computeCharacteristicModifiers, computeCharacterDerivedValues, computeFatigueState } from "../mechanics/derived.mjs";
 import { computeAttackDOS } from "../mechanics/combat.mjs";
 import { isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
 import { getOutlierEffectSummary } from "../mechanics/outliers.mjs";
@@ -28,6 +28,14 @@ const SPECIAL_DAMAGE_LOCATION_KEY_OVERRIDES = Object.freeze({
 
 function toEffectSlug(value = "") {
   return normalizeLookupText(value).replace(/\s+/gu, "-");
+}
+
+function getFatigueRollModifier(actor = null) {
+  const modifiers = computeCharacteristicModifiers(actor?.system?.characteristics ?? {});
+  const fatigue = computeFatigueState(actor?.system ?? {}, {
+    preFatigueTouModifier: modifiers?.tou
+  });
+  return Number(fatigue?.penalty ?? 0) || 0;
 }
 
 function normalizeSpecialDamageLocationKey(hitLoc = null) {
@@ -422,7 +430,8 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
       const agiValue = toNonNegativeWhole(targetActor.system?.characteristics?.agi, 0);
       const evasionMod = Number(evasionSkill.modifier ?? 0);
       const reactionPenalty = reactionCount * -10;
-      const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty + miscModifier);
+      const fatiguePenalty = getFatigueRollModifier(targetActor);
+      const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty + miscModifier + fatiguePenalty);
 
       const evasionRoll = await new Roll("1d100").evaluate();
       messageRolls.push(evasionRoll);
@@ -842,13 +851,14 @@ export async function mythicRollEvadeIntoCover(messageId, attackData, targetMode
     const evasionSkill = skillsNorm.base?.evasion ?? {};
     const tierBonus = getSkillTierBonus(evasionSkill.tier ?? "untrained", evasionSkill.category ?? "basic");
     const agiValue = toNonNegativeWhole(actor.system?.characteristics?.agi, 0);
-    const evasionMod = Number(evasionSkill.modifier ?? 0);
+      const evasionMod = Number(evasionSkill.modifier ?? 0);
     const tracksReactions = isActorActivelyInCombat(actor);
     const currentReactions = tracksReactions
       ? Math.max(0, Math.floor(Number(actor.system?.combat?.reactions?.count ?? 0)))
       : 0;
     const reactionPenalty = currentReactions * -10;
-    const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty + grenadePenalty);
+    const fatiguePenalty = getFatigueRollModifier(actor);
+    const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty + grenadePenalty + fatiguePenalty);
 
     const roll = await new Roll("1d100").evaluate();
     rolls.push(roll);

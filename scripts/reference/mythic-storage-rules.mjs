@@ -316,6 +316,7 @@ export function getDefaultMythicStorageData() {
 export function getDefaultMythicMagazineData() {
   return {
     loaderType: "detachable-magazine",
+    loaderLabel: "",
     linkedWeaponId: "",
     allowedAmmoFamilies: [],
     allowedCalibers: [],
@@ -712,6 +713,7 @@ export function normalizeMythicMagazineData(rawMagazine = {}, storage = {}, syst
     ...getDefaultMythicMagazineData(),
     ...clonePlain(source),
     loaderType,
+    loaderLabel: String(source.loaderLabel ?? "").trim(),
     linkedWeaponId: String(source.linkedWeaponId ?? "").trim(),
     allowedAmmoFamilies: normalizeStringArray(source.allowedAmmoFamilies),
     allowedCalibers: Array.from(new Set(

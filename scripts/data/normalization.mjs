@@ -3436,6 +3436,29 @@ export function normalizeGearSystemData(systemData, itemName = "") {
     ? foundry.utils.deepClone(merged.effectSnapshot)
     : {};
   merged.ammoName = String(merged.ammoName ?? "").trim();
+  if (merged.equipmentType === "ammunition") {
+    const definition = (merged.ammoTypeDefinition && typeof merged.ammoTypeDefinition === "object" && !Array.isArray(merged.ammoTypeDefinition))
+      ? merged.ammoTypeDefinition
+      : {};
+    const definitionWeight = Number(definition.weightPerRoundKg ?? definition.unitWeightKg ?? definition.weightKg);
+    const currentWeight = Number(merged.weightPerRoundKg ?? merged.weightKg ?? 0);
+    if ((!Number.isFinite(currentWeight) || currentWeight <= 0) && Number.isFinite(definitionWeight) && definitionWeight > 0) {
+      merged.weightPerRoundKg = definitionWeight;
+      merged.weightKg = definitionWeight;
+    }
+
+    const definitionCost = Number(definition.costPer100 ?? definition.price?.amount ?? definition.cost);
+    const currentCost = Number(merged.costPer100 ?? merged.price?.amount ?? 0);
+    if ((!Number.isFinite(currentCost) || currentCost <= 0) && Number.isFinite(definitionCost) && definitionCost > 0) {
+      merged.costPer100 = Math.floor(definitionCost);
+      merged.price.amount = Math.floor(definitionCost);
+    }
+
+    const definitionCategory = String(definition.specialAmmoCategory ?? "").trim();
+    if (definitionCategory && (!merged.specialAmmoCategory || merged.specialAmmoCategory === "Standard")) {
+      merged.specialAmmoCategory = definitionCategory;
+    }
+  }
   const rawWeightPerRoundKg = Number(merged.weightPerRoundKg ?? merged.weightKg ?? 0);
   merged.weightPerRoundKg = Number.isFinite(rawWeightPerRoundKg)
     ? Math.max(0, rawWeightPerRoundKg)

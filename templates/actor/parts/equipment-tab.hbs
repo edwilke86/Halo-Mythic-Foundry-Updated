@@ -5,12 +5,16 @@
     <div class="mythic-phase4-card full-width mythic-inventory-load-summary">
       <h3>Load Summary</h3>
       <div class="mythic-phase4-field-grid compact mythic-inventory-load-grid">
-        <div class="mythic-mini-field"><span>Credits</span><input type="number" min="0" name="system.equipment.credits" value="{{mythicSystem.equipment.credits}}" /></div>
+        <div class="mythic-mini-field"><span>Credits</span><input type="number" min="0" name="system.equipment.credits" value="{{mythicSystem.equipment.credits}}" draggable="false" /></div>
         <div class="mythic-phase4-stat"><span>Carried Weight</span><strong>{{mythicEquipment.carriedWeight}} kg</strong></div>
         <div class="mythic-phase4-stat"><span>Carry Capacity</span><strong>{{mythicEquipment.carryCapacity}}</strong></div>
         <div class="mythic-phase4-stat"><span>Remaining</span><strong>{{mythicEquipment.remainingCarry}}</strong></div>
         <div class="mythic-phase4-stat"><span>Load Utilization</span><strong>{{mythicEquipment.loadPercent}}%</strong></div>
+        <div class="mythic-phase4-stat"><span>Encumbrance</span><strong>{{mythicEquipment.encumbrance.label}}</strong></div>
       </div>
+      {{#if mythicEquipment.encumbrance.isEncumbered}}
+        <p class="ccadv-note">{{mythicEquipment.encumbrance.movementTestPenaltyLabel}} to known movement tests. {{#if mythicEquipment.encumbrance.isHeavilyEncumbered}}{{mythicEquipment.encumbrance.fatigueIntervalLabel}}.{{/if}}{{#if mythicEquipment.encumbrance.isImmobile}}Movement is 0 until carried weight drops below 300%.{{/if}}</p>
+      {{/if}}
       <div class="mythic-inventory-ready-summary">
         <div class="mythic-phase4-stat"><span>Equipped Armor</span><strong>{{#if mythicEquipment.equippedArmor}}{{mythicEquipment.equippedArmor.name}}{{else}}(none){{/if}}</strong></div>
         <div class="mythic-phase4-stat"><span>Wielded Weapon</span><strong>{{#if mythicEquipment.wieldedWeapon}}{{mythicEquipment.wieldedWeapon.name}}{{else}}(none){{/if}}</strong></div>
@@ -24,7 +28,7 @@
         {{#if mythicEquipment.packSelection.hasSoldierType}}
           <p class="ccadv-note">Available packs are filtered by Soldier Type: <strong>{{mythicEquipment.packSelection.soldierTypeName}}</strong>.</p>
           {{#if mythicEquipment.packSelection.options.length}}
-            <select name="mythic.equipmentPackSelection" class="mythic-hidden-pack-select" aria-hidden="true" tabindex="-1">
+            <select name="mythic.equipmentPackSelection" class="mythic-hidden-pack-select" aria-hidden="true" tabindex="-1" draggable="false">
               <option value="">(none)</option>
               {{#each mythicEquipment.packSelection.options as |opt|}}
                 <option value="{{opt.value}}" data-group="{{opt.group}}" data-name="{{opt.name}}" data-description="{{opt.description}}" data-items="{{opt.itemsPipe}}"{{#if (eq ../mythicEquipment.packSelection.selectedValue opt.value)}} selected{{/if}}>{{opt.group}} - {{opt.name}}</option>
@@ -103,10 +107,10 @@
                 <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
               </span>
             </span>
-            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
-            <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" {{#if item.isEquipped}}checked{{/if}} /></span>
+            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} draggable="false" /></span>
+            <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" {{#if item.isEquipped}}checked{{/if}} draggable="false" /></span>
             <span>{{item.weightMultiplierDisplay}}</span>
-            <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" value="{{item.quantity}}" /></span>
+            <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" value="{{item.quantity}}" draggable="false" /></span>
             <span>{{item.totalWeightLabel}}</span>
             <span>{{item.effectiveWeightLabel}}</span>
           </div>
@@ -145,10 +149,10 @@
                 <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
               </span>
             </span>
-            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
-            <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" {{#if item.isEquipped}}checked{{/if}} /></span>
+            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} draggable="false" /></span>
+            <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" {{#if item.isEquipped}}checked{{/if}} draggable="false" /></span>
             <span>{{item.weightMultiplierDisplay}}</span>
-            <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" value="{{item.quantity}}" /></span>
+            <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" value="{{item.quantity}}" draggable="false" /></span>
             <span>{{item.totalWeightLabel}}</span>
             <span>{{item.effectiveWeightLabel}}</span>
           </div>
@@ -190,10 +194,10 @@
                 <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
               </span>
             </span>
-            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
-            <span>{{#if item.canEquip}}<input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} />{{else}}-{{/if}}</span>
+            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} draggable="false" /></span>
+            <span>{{#if item.canEquip}}<input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} draggable="false" />{{else}}-{{/if}}</span>
             <span>{{item.weightMultiplierDisplay}}</span>
-            <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" value="{{item.quantity}}" /></span>
+            <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" value="{{item.quantity}}" draggable="false" /></span>
             <span>{{item.totalWeightLabel}}</span>
             <span>{{item.effectiveWeightLabel}}</span>
           </div>
@@ -232,10 +236,10 @@
               <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
             </span>
           </span>
-          <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
-          <span>{{#if item.canEquip}}<input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} />{{else}}-{{/if}}</span>
+          <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} draggable="false" /></span>
+          <span>{{#if item.canEquip}}<input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} draggable="false" />{{else}}-{{/if}}</span>
           <span>{{item.weightMultiplierDisplay}}</span>
-          <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" value="{{item.quantity}}" /></span>
+          <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" value="{{item.quantity}}" draggable="false" /></span>
           <span>{{item.totalWeightLabel}}</span>
           <span>{{item.effectiveWeightLabel}}</span>
         </div>
@@ -272,10 +276,10 @@
               {{/if}}
             </span>
           </span>
-          <span><input type="checkbox" {{#if battery.isCarried}}checked{{/if}} disabled /></span>
+          <span><input type="checkbox" {{#if battery.isCarried}}checked{{/if}} disabled draggable="false" /></span>
           <span>-</span>
           <span>x1</span>
-          <span><input type="number" min="0" step="1" value="{{battery.count}}" disabled /></span>
+          <span><input type="number" min="0" step="1" value="{{battery.count}}" disabled draggable="false" /></span>
           <span>{{battery.totalWeightLabel}}</span>
           <span>{{battery.effectiveWeightLabel}}</span>
         </div>
@@ -297,10 +301,10 @@
               <button type="button" class="action-btn battery-remove-btn mythic-row-remove" data-weapon-id="{{../weaponId}}" data-cell-id="{{cell.id}}" title="Remove battery" aria-label="Remove battery"><i class="fas fa-trash"></i></button>
             </span>
           </span>
-          <span><input type="checkbox" {{#if cell.isCarried}}checked{{/if}} disabled /></span>
+          <span><input type="checkbox" {{#if cell.isCarried}}checked{{/if}} disabled draggable="false" /></span>
           <span>-</span>
           <span>x1</span>
-          <span><input type="number" min="0" step="1" value="1" disabled /></span>
+          <span><input type="number" min="0" step="1" value="1" disabled draggable="false" /></span>
           <span>{{cell.totalWeightLabel}}</span>
           <span>{{cell.effectiveWeightLabel}}</span>
         </div>
@@ -328,75 +332,80 @@
 
       {{#if mythicEquipment.usesItemBackedAmmoInventory}}
       {{#if mythicEquipment.itemBackedAmmoEntries.length}}
-      <p class="mythic-ready-weapon-empty"><strong>Owned Ammo</strong></p>
-      <div class="mythic-equipment-list mythic-ammo-table">
-        <div class="mythic-equipment-row mythic-equipment-header-row mythic-ammo-header-row">
-          <span class="mythic-equipment-header-name">Name</span>
-          <span>CARR</span>
-          <span>EQP</span>
-          <span>MULT</span>
-          <span>QTY</span>
-          <span>TOTAL<br>WEIGHT</span>
-          <span>EFF.<br>WEIGHT</span>
-        </div>
-        {{#each mythicEquipment.itemBackedAmmoEntries as |ammo|}}
-        <div class="mythic-equipment-row mythic-equipment-data-row mythic-ammo-inventory-row {{ammo.storageRowClass}}" data-item-id="{{ammo.id}}" draggable="true">
-          <span class="mythic-equipment-name-cell">
-            <img class="mythic-equipment-icon" src="{{ammo.img}}" alt="{{ammo.name}}" />
-            <span class="mythic-equipment-name">{{ammo.name}}{{#if ammo.displaySymbol}} <span class="mythic-special-ammo-symbol" title="{{ammo.modifierLabel}}">{{ammo.displaySymbol}}</span>{{/if}}{{#if ammo.isSpecial}} <span class="mythic-ballistic-loaded-badge">Special</span>{{/if}}</span>
-            <span class="mythic-equipment-meta">{{ammo.metaLabel}}</span>
-            {{#if ammo.storedInLabel}}<span class="mythic-storage-location-badge" title="{{ammo.storageBreadcrumb}}">Stored: {{ammo.storedInLabel}}</span>{{/if}}
-            {{#if ammo.storageWarningText}}<span class="mythic-storage-warning-badge" title="{{ammo.storageWarningText}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
-            <span class="mythic-equipment-actions-inline">
-              <button type="button" class="action-btn gear-open-btn" data-item-id="{{ammo.id}}" title="Edit ammo item" aria-label="Edit ammo item"><i class="fas fa-pen-to-square"></i></button>
-              <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{ammo.id}}" title="Remove ammo item" aria-label="Remove ammo item"><i class="fas fa-trash"></i></button>
+      <details class="mythic-ammo-section" open>
+        <summary class="mythic-ready-weapon-empty"><strong>Loose Ammo</strong></summary>
+        <div class="mythic-equipment-list mythic-ammo-table">
+          <div class="mythic-equipment-row mythic-equipment-header-row mythic-ammo-header-row">
+            <span class="mythic-equipment-header-name">Name</span>
+            <span>CARR</span>
+            <span>EQP</span>
+            <span>MULT</span>
+            <span>QTY</span>
+            <span>TOTAL<br>WEIGHT</span>
+            <span>EFF.<br>WEIGHT</span>
+          </div>
+          {{#each mythicEquipment.itemBackedAmmoEntries as |ammo|}}
+          <div class="mythic-equipment-row mythic-equipment-data-row mythic-ammo-inventory-row {{ammo.storageRowClass}}" data-item-id="{{ammo.id}}" draggable="true">
+            <span class="mythic-equipment-name-cell">
+              <img class="mythic-equipment-icon" src="{{ammo.img}}" alt="{{ammo.name}}" />
+              <span class="mythic-equipment-name">{{ammo.name}}{{#if ammo.displaySymbol}} <span class="mythic-special-ammo-symbol" title="{{ammo.modifierLabel}}">{{ammo.displaySymbol}}</span>{{/if}}{{#if ammo.isSpecial}} <span class="mythic-ballistic-loaded-badge">Special</span>{{/if}}</span>
+              <span class="mythic-equipment-meta">{{ammo.metaLabel}}</span>
+              {{#if ammo.storedInLabel}}<span class="mythic-storage-location-badge" title="{{ammo.storageBreadcrumb}}">Stored: {{ammo.storedInLabel}}</span>{{/if}}
+              {{#if ammo.storageWarningText}}<span class="mythic-storage-warning-badge" title="{{ammo.storageWarningText}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
+              <span class="mythic-equipment-actions-inline">
+                <button type="button" class="action-btn gear-open-btn" data-item-id="{{ammo.id}}" title="Edit ammo item" aria-label="Edit ammo item"><i class="fas fa-pen-to-square"></i></button>
+                <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{ammo.id}}" title="Remove ammo item" aria-label="Remove ammo item"><i class="fas fa-trash"></i></button>
+              </span>
             </span>
-          </span>
-          <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{ammo.id}}" {{#if ammo.isCarried}}checked{{/if}} /></span>
-          <span>-</span>
-          <span>x1</span>
-          <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{ammo.id}}" value="{{ammo.quantity}}" /></span>
-          <span>{{ammo.totalWeightLabel}}</span>
-          <span>{{ammo.effectiveWeightLabel}}</span>
+            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{ammo.id}}" {{#if ammo.isCarried}}checked{{/if}} draggable="false" /></span>
+            <span>-</span>
+            <span>x1</span>
+            <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{ammo.id}}" value="{{ammo.quantity}}" draggable="false" /></span>
+            <span>{{ammo.totalWeightLabel}}</span>
+            <span>{{ammo.effectiveWeightLabel}}</span>
+          </div>
+          {{/each}}
         </div>
-        {{/each}}
-      </div>
+      </details>
       {{/if}}
 
       {{#if mythicEquipment.itemBackedLoaderEntries.length}}
-      <p class="mythic-ready-weapon-empty"><strong>Loaders</strong></p>
-      <div class="mythic-equipment-list mythic-ammo-table">
-        <div class="mythic-equipment-row mythic-equipment-header-row mythic-ammo-header-row">
-          <span class="mythic-equipment-header-name">Name</span>
-          <span>CARR</span>
-          <span>EQP</span>
-          <span>MULT</span>
-          <span>QTY</span>
-          <span>TOTAL<br>WEIGHT</span>
-          <span>EFF.<br>WEIGHT</span>
-        </div>
-        {{#each mythicEquipment.itemBackedLoaderEntries as |loader|}}
-        <div class="mythic-equipment-row mythic-equipment-data-row mythic-ammo-inventory-row {{loader.storageRowClass}}" data-item-id="{{loader.id}}" draggable="true">
-          <span class="mythic-equipment-name-cell">
-            <img class="mythic-equipment-icon mythic-storage-container-open-trigger" data-item-id="{{loader.id}}" src="{{loader.img}}" alt="{{loader.name}}" />
-            <span class="mythic-equipment-name mythic-storage-container-open-trigger" data-item-id="{{loader.id}}">{{loader.name}}{{#if loader.nextRoundSymbol}} <span class="mythic-special-ammo-symbol" title="{{loader.nextRoundLabel}}">{{loader.nextRoundSymbol}}</span>{{/if}}{{#if loader.isActive}} <span class="mythic-ballistic-loaded-badge">Active</span>{{/if}}</span>
-            <span class="mythic-equipment-meta">{{loader.loaderTypeLabel}}{{#if loader.sequenceSummary}} | {{loader.sequenceSummary}}{{/if}}</span>
-            {{#if loader.storedInLabel}}<span class="mythic-storage-location-badge" title="{{loader.storageBreadcrumb}}">Stored: {{loader.storedInLabel}}</span>{{/if}}
-            {{#if loader.storageWarningText}}<span class="mythic-storage-warning-badge" title="{{loader.storageWarningText}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
-            <span class="mythic-equipment-actions-inline">
-              <button type="button" class="action-btn container-open-btn" data-item-id="{{loader.id}}" title="Open loader" aria-label="Open loader"><i class="fas fa-box-open"></i></button>
-              <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{loader.id}}" title="Remove loader" aria-label="Remove loader"><i class="fas fa-trash"></i></button>
+      <details class="mythic-loaders-section" open>
+        <summary class="mythic-ready-weapon-empty"><strong>Loaders</strong></summary>
+        <div class="mythic-equipment-list mythic-ammo-table">
+          <div class="mythic-equipment-row mythic-equipment-header-row mythic-ammo-header-row">
+            <span class="mythic-equipment-header-name">Name</span>
+            <span>CARR</span>
+            <span>EQP</span>
+            <span>MULT</span>
+            <span>QTY</span>
+            <span>TOTAL<br>WEIGHT</span>
+            <span>EFF.<br>WEIGHT</span>
+          </div>
+          {{#each mythicEquipment.itemBackedLoaderEntries as |loader|}}
+          <div class="mythic-equipment-row mythic-equipment-data-row mythic-ammo-inventory-row {{loader.storageRowClass}}" data-item-id="{{loader.id}}" draggable="true">
+            <span class="mythic-equipment-name-cell">
+              <img class="mythic-equipment-icon mythic-storage-container-open-trigger" data-item-id="{{loader.id}}" src="{{loader.img}}" alt="{{loader.name}}" />
+              <span class="mythic-equipment-name mythic-storage-container-open-trigger" data-item-id="{{loader.id}}">{{loader.displayName}}{{#if loader.nextRoundSymbol}} <span class="mythic-special-ammo-symbol" title="{{loader.nextRoundLabel}}">{{loader.nextRoundSymbol}}</span>{{/if}}{{#if loader.isActive}} <span class="mythic-ballistic-loaded-badge">Active</span>{{/if}}</span>
+              <span class="mythic-equipment-meta">{{loader.metaLabel}}</span>
+              {{#if loader.storedInLabel}}<span class="mythic-storage-location-badge" title="{{loader.storageBreadcrumb}}">Stored: {{loader.storedInLabel}}</span>{{/if}}
+              {{#if loader.storageWarningText}}<span class="mythic-storage-warning-badge" title="{{loader.storageWarningText}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
+              <span class="mythic-equipment-actions-inline">
+                <button type="button" class="action-btn container-open-btn" data-item-id="{{loader.id}}" title="Open loader" aria-label="Open loader"><i class="fas fa-box-open"></i></button>
+                <button type="button" class="action-btn loader-label-btn" data-item-id="{{loader.id}}" title="Set loader label" aria-label="Set loader label"><i class="fas fa-tag"></i></button>
+                <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{loader.id}}" title="Remove loader" aria-label="Remove loader"><i class="fas fa-trash"></i></button>
+              </span>
             </span>
-          </span>
-          <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{loader.id}}" {{#if loader.isCarried}}checked{{/if}} /></span>
-          <span>-</span>
-          <span>x1</span>
-          <span>{{loader.countLabel}}</span>
-          <span>{{loader.totalWeightLabel}}</span>
-          <span>{{loader.effectiveWeightLabel}}</span>
+            <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{loader.id}}" {{#if loader.isCarried}}checked{{/if}} draggable="false" /></span>
+            <span>-</span>
+            <span>x1</span>
+            <span>{{loader.countLabel}}</span>
+            <span>{{loader.totalWeightLabel}}</span>
+            <span>{{loader.effectiveWeightLabel}}</span>
+          </div>
+          {{/each}}
         </div>
-        {{/each}}
-      </div>
+      </details>
       {{/if}}
       <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
         <strong>Total Ammo Weight:</strong> {{mythicEquipment.totalBallisticAmmoWeight}} kg
@@ -438,10 +447,10 @@
               <button type="button" class="action-btn ammo-remove-btn mythic-row-remove" data-ammo-source="{{ammo.sourceKind}}" data-ammo-key="{{#if (eq ammo.sourceKind "pool")}}{{ammo.storageKey}}{{else}}{{ammo.key}}{{/if}}" data-ammo-name="{{ammo.name}}" {{#unless ammo.canRemove}}disabled{{/unless}} title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
             </span>
           </span>
-          <span>{{#if (eq ammo.sourceKind "independent")}}<input type="checkbox" class="independent-ammo-carried-toggle" data-ammo-uuid="{{ammo.key}}" {{#if ammo.isCarried}}checked{{/if}} />{{else}}<input type="checkbox" class="ammo-carried-toggle" data-ammo-key="{{ammo.storageKey}}" {{#if ammo.isCarried}}checked{{/if}} />{{/if}}</span>
+          <span>{{#if (eq ammo.sourceKind "independent")}}<input type="checkbox" class="independent-ammo-carried-toggle" data-ammo-uuid="{{ammo.key}}" {{#if ammo.isCarried}}checked{{/if}} draggable="false" />{{else}}<input type="checkbox" class="ammo-carried-toggle" data-ammo-key="{{ammo.storageKey}}" {{#if ammo.isCarried}}checked{{/if}} draggable="false" />{{/if}}</span>
           <span>-</span>
           <span>x1</span>
-          <span>{{#if (eq ammo.sourceKind "independent")}}<input type="number" min="0" step="1" class="independent-ammo-count-input" data-ammo-uuid="{{ammo.key}}" value="{{ammo.count}}" />{{else}}<input type="number" min="0" step="1" class="ammo-count-input" data-ammo-key="{{ammo.storageKey}}" data-ammo-name="{{ammo.name}}" value="{{ammo.count}}" {{#if ../mythicEquipment.ammoConfig.ignoreBasicAmmoCounts}}disabled{{/if}} />{{/if}}</span>
+          <span>{{#if (eq ammo.sourceKind "independent")}}<input type="number" min="0" step="1" class="independent-ammo-count-input" data-ammo-uuid="{{ammo.key}}" value="{{ammo.count}}" draggable="false" />{{else}}<input type="number" min="0" step="1" class="ammo-count-input" data-ammo-key="{{ammo.storageKey}}" data-ammo-name="{{ammo.name}}" value="{{ammo.count}}" {{#if ../mythicEquipment.ammoConfig.ignoreBasicAmmoCounts}}disabled{{/if}} draggable="false" />{{/if}}</span>
           <span>{{ammo.totalWeightLabel}}</span>
           <span>{{ammo.effectiveWeightLabel}}</span>
         </div>

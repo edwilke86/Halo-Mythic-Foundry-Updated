@@ -1,5 +1,6 @@
 import { normalizeLookupText, toNonNegativeWhole } from "../utils/helpers.mjs";
-import { normalizeCharacterSystemData } from "../data/normalization.mjs";
+import { normalizeBestiarySystemData, normalizeCharacterSystemData } from "../data/normalization.mjs";
+import { computeCharacteristicModifiers, computeFatigueState } from "../mechanics/derived.mjs";
 import { loadMythicFearEffectDefinitions } from "../data/content-loading.mjs";
 import { openEffectReferenceDialog } from "../ui/effect-reference-dialog.mjs";
 import {
@@ -96,6 +97,18 @@ function getCharacteristicScore(actor, key) {
 function getCharacteristicModifier(actor, key) {
   const score = getCharacteristicScore(actor, key);
   return Math.floor(score / 10);
+}
+
+function getFatigueRollModifier(actor = null) {
+  const actorType = String(actor?.type ?? "").trim().toLowerCase();
+  const normalized = actorType === "bestiary"
+    ? normalizeBestiarySystemData(actor?.system ?? {})
+    : normalizeCharacterSystemData(actor?.system ?? {});
+  const modifiers = computeCharacteristicModifiers(normalized?.characteristics ?? {});
+  const fatigue = computeFatigueState(normalized, {
+    preFatigueTouModifier: modifiers?.tou
+  });
+  return Number(fatigue?.penalty ?? 0) || 0;
 }
 
 function toSignedSubtractionFormula(baseFormula, modifier) {
@@ -342,7 +355,8 @@ export async function mythicStartFearTest({ actor, promptModifier } = {}) {
   const miscModifier = await modifierPrompt("Fear");
   if (miscModifier === null) return null;
 
-  const effectiveTarget = baseTarget + Number(miscModifier ?? 0);
+  const fatigueModifier = getFatigueRollModifier(actor);
+  const effectiveTarget = baseTarget + Number(miscModifier ?? 0) + fatigueModifier;
   const roll = await (new Roll("1d100")).evaluate();
   const rolled = Number(roll.total ?? 0);
   const success = rolled <= effectiveTarget;
@@ -355,7 +369,7 @@ export async function mythicStartFearTest({ actor, promptModifier } = {}) {
   const content = buildFearCourageChatCard({
     actorName: String(actor.name ?? "Character"),
     baseTarget,
-    miscModifier,
+    miscModifier: Number(miscModifier ?? 0) + fatigueModifier,
     effectiveTarget,
     rolled,
     success,
@@ -369,7 +383,7 @@ export async function mythicStartFearTest({ actor, promptModifier } = {}) {
     actorUuid: String(actor.uuid ?? "").trim(),
     actorName: String(actor.name ?? "Character"),
     baseTarget,
-    miscModifier: Number(miscModifier ?? 0),
+    miscModifier: Number(miscModifier ?? 0) + fatigueModifier,
     effectiveTarget,
     rolled,
     success,

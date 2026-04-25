@@ -1985,6 +1985,16 @@ export function registerAllHooks() {
             img: MYTHIC_ABILITY_DEFAULT_ICON,
             system: {
               equipmentType: "ammunition",
+              costPer100: Math.max(0, Math.floor(Number(def.costPer100 ?? 0) || 0)),
+              weightPerRoundKg: Number(def.weightPerRoundKg ?? def.unitWeightKg ?? 0) || 0,
+              weightKg: Number(def.weightPerRoundKg ?? def.unitWeightKg ?? 0) || 0,
+              price: {
+                amount: Math.max(0, Math.floor(Number(def.costPer100 ?? 0) || 0)),
+                currency: "cr"
+              },
+              specialAmmoCategory: String(def.specialAmmoCategory ?? "Standard").trim() || "Standard",
+              caliberOrType: String(def.name ?? "Ammo Type"),
+              displayLabel: String(def.name ?? "Ammo Type"),
               ammoTypeDefinition: {
                 name: String(def.name ?? "Ammo Type"),
                 unitWeightKg: Number(def.unitWeightKg ?? def.weightPerRoundKg ?? 0) || 0,

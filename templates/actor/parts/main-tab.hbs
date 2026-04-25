@@ -89,6 +89,9 @@
           <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.lift}}</div><div class="movement-label">Lift</div></div>
           <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.push}}</div><div class="movement-label">Push</div></div>
         </div>
+        {{#if mythicDerived.encumbrance.isEncumbered}}
+          <p class="ccadv-note"><strong>{{mythicDerived.encumbrance.label}}:</strong> {{mythicDerived.encumbrance.loadPercent}}% Carry, {{mythicDerived.encumbrance.movementTestPenaltyLabel}} to known movement tests. {{#if mythicDerived.encumbrance.isHeavilyEncumbered}}{{mythicDerived.encumbrance.fatigueIntervalLabel}}.{{/if}}{{#if mythicDerived.encumbrance.isImmobile}}Movement is 0 until carried weight drops below 300%.{{/if}}</p>
+        {{/if}}
         {{#if mythicDerived.carryingCapacity.usesFullCharacteristicsForCarry}}
           <p class="ccadv-note">Strongman: carry calculations use full STR and TOU instead of halved values.</p>
         {{/if}}
@@ -146,6 +149,12 @@
             <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.fatigue.max" value="{{mythicCombat.fatigue.max}}" readonly title="Coma threshold: fatigue greater than this value" /></div>
           </div>
         </div>
+        {{#if mythicDerived.fatigue.hasPenalty}}
+          <p class="ccadv-note">Fatigue: {{mythicDerived.fatigue.penaltyLabel}} to all tests.</p>
+        {{/if}}
+        {{#if mythicDerived.fatigue.isComatose}}
+          <p class="ccadv-note">Comatose: lasts {{mythicDerived.fatigue.comaHours}} hour(s); wakes when Fatigue is below {{mythicDerived.fatigue.wakeBelow}}.</p>
+        {{/if}}
         {{#if mythicDerived.outliers.enduring.enabled}}
           <p class="ccadv-note">Enduring: first {{mythicDerived.outliers.enduring.ignoredLevels}} Fatigue levels are ignored for penalties{{#if (gt mythicDerived.outliers.enduring.currentFatigue 0)}}; currently {{mythicDerived.outliers.enduring.suppressedLevels}} suppressed{{#if (gt mythicDerived.outliers.enduring.effectiveLevels 0)}}, {{mythicDerived.outliers.enduring.effectiveLevels}} still active{{/if}}{{/if}}.</p>
         {{/if}}

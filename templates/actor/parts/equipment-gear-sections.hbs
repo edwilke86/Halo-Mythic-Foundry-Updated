@@ -26,10 +26,10 @@
             <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
           </span>
         </span>
-        <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
-        <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" {{#if item.isEquipped}}checked{{/if}} /></span>
+        <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} draggable="false" /></span>
+        <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" {{#if item.isEquipped}}checked{{/if}} draggable="false" /></span>
         <span>{{item.weightMultiplierDisplay}}</span>
-        <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" value="{{item.quantity}}" /></span>
+        <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="weapon" value="{{item.quantity}}" draggable="false" /></span>
         <span>{{item.totalWeightLabel}}</span>
         <span>{{item.effectiveWeightLabel}}</span>
       </div>
@@ -68,10 +68,10 @@
             <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
           </span>
         </span>
-        <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
-        <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" {{#if item.isEquipped}}checked{{/if}} /></span>
+        <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} draggable="false" /></span>
+        <span><input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" {{#if item.isEquipped}}checked{{/if}} draggable="false" /></span>
         <span>{{item.weightMultiplierDisplay}}</span>
-        <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" value="{{item.quantity}}" /></span>
+        <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="armor" value="{{item.quantity}}" draggable="false" /></span>
         <span>{{item.totalWeightLabel}}</span>
         <span>{{item.effectiveWeightLabel}}</span>
       </div>
@@ -110,10 +110,10 @@
           <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
         </span>
       </span>
-      <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} /></span>
-      <span>{{#if item.canEquip}}<input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} />{{else}}-{{/if}}</span>
+      <span><input type="checkbox" class="gear-carried-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" {{#if item.isCarried}}checked{{/if}} draggable="false" /></span>
+      <span>{{#if item.canEquip}}<input type="checkbox" class="gear-equipped-toggle" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" {{#if item.isEquipped}}checked{{/if}} draggable="false" />{{else}}-{{/if}}</span>
       <span>{{item.weightMultiplierDisplay}}</span>
-      <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" value="{{item.quantity}}" /></span>
+      <span><input type="number" min="0" step="1" class="gear-quantity-input" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" data-kind="other" value="{{item.quantity}}" draggable="false" /></span>
       <span>{{item.totalWeightLabel}}</span>
       <span>{{item.effectiveWeightLabel}}</span>
     </div>

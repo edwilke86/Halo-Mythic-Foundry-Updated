@@ -88,7 +88,7 @@ function resolveMagazineAmmoLabel({ gear = {}, profile = {}, sequence = [] } = {
 
 export function openMythicContainerSheet(item) {
   if (!item || item.type !== "gear") return null;
-  const app = new MythicContainerSheet(item);
+  const app = new MythicContainerSheet({ document: item });
   app.render(true);
   return app;
 }

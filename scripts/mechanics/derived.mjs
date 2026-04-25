@@ -14,12 +14,105 @@ import { calculatePerceptiveRange } from './perceptive-range.mjs';
 
 function roundToOne(n) { return Math.round(Number(n ?? 0) * 10) / 10; }
 
+function formatSigned(value) {
+  const numeric = Math.round(Number(value ?? 0) || 0);
+  if (numeric > 0) return `+${numeric}`;
+  return String(numeric);
+}
+
 export function computeCharacteristicModifiers(characteristics = {}) {
   const mods = {};
   for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
     mods[key] = Math.floor(toNonNegativeNumber(characteristics?.[key], 0) / 10);
   }
   return mods;
+}
+
+export function computeFatigueState(systemData = {}, options = {}) {
+  const current = toNonNegativeWhole(systemData?.combat?.fatigue?.current, 0);
+  const outlierEffects = getOutlierEffectSummary(systemData);
+  const effectiveLevels = Math.max(0, toNonNegativeWhole(outlierEffects?.enduring?.effectiveLevels ?? current, current));
+  const preFatigueTouModifierRaw = Number(options?.preFatigueTouModifier ?? systemData?.mythic?.preFatigueTouModifier);
+  const preFatigueTouModifier = Number.isFinite(preFatigueTouModifierRaw)
+    ? Math.max(0, Math.floor(preFatigueTouModifierRaw))
+    : Math.max(0, Math.floor(toNonNegativeNumber(systemData?.characteristics?.tou, 0) / 10));
+  const comaThreshold = preFatigueTouModifier * 2;
+  const penalty = effectiveLevels > 0 ? -(effectiveLevels * 5) : 0;
+
+  return {
+    current,
+    effectiveLevels,
+    penalty,
+    penaltyAbs: Math.abs(penalty),
+    penaltyLabel: formatSigned(penalty),
+    comaThreshold,
+    threshold: comaThreshold,
+    preFatigueTouModifier,
+    isComatose: current > comaThreshold,
+    comaHours: current,
+    wakeBelow: preFatigueTouModifier,
+    hasPenalty: penalty !== 0
+  };
+}
+
+export function computeEncumbranceState({ carriedWeight = 0, carryCapacity = 0, touModifier = 0 } = {}) {
+  const carried = Math.max(0, Number(carriedWeight ?? 0) || 0);
+  const capacity = Math.max(0, Number(carryCapacity ?? 0) || 0);
+  const loadPercent = capacity > 0 ? Math.min(999, Math.round((carried / capacity) * 100)) : 0;
+  const fatigueIntervalMinutes = Math.max(1, Math.floor(Number(touModifier ?? 0) || 0));
+
+  let key = "normal";
+  let label = "Normal";
+  let movementMultiplier = 1;
+  let movementTestPenalty = 0;
+  if (loadPercent >= 300) {
+    key = "immobile";
+    label = "Immobile";
+    movementMultiplier = 0;
+    movementTestPenalty = -40;
+  } else if (loadPercent >= 200) {
+    key = "heavy";
+    label = "Heavily Encumbered";
+    movementMultiplier = 0.5;
+    movementTestPenalty = -40;
+  } else if (loadPercent > 100) {
+    key = "over";
+    label = "Over-Encumbered";
+    movementTestPenalty = -20;
+  }
+
+  return {
+    key,
+    label,
+    carriedWeight: Math.round(carried * 10) / 10,
+    carryCapacity: Math.round(capacity * 10) / 10,
+    loadPercent,
+    isEncumbered: key !== "normal",
+    isOverEncumbered: key === "over",
+    isHeavilyEncumbered: key === "heavy",
+    isImmobile: key === "immobile",
+    movementMultiplier,
+    movementTestPenalty,
+    movementTestPenaltyLabel: formatSigned(movementTestPenalty),
+    fatigueIntervalMinutes,
+    fatigueIntervalLabel: `+1 Fatigue per ${fatigueIntervalMinutes} minute${fatigueIntervalMinutes === 1 ? "" : "s"} of movement`
+  };
+}
+
+export function applyEncumbranceToMovement(movement = {}, encumbrance = {}) {
+  const multiplier = Number(encumbrance?.movementMultiplier ?? 1);
+  if (!Number.isFinite(multiplier) || multiplier === 1) return { ...movement };
+
+  const scaleWhole = (value) => Math.max(0, Math.floor((Number(value ?? 0) || 0) * multiplier));
+  const scaleDistance = (value) => Math.round(Math.max(0, (Number(value ?? 0) || 0) * multiplier) * 10) / 10;
+  const adjusted = { ...movement };
+  for (const key of ["half", "full", "charge", "run", "sprint", "climbNoTest", "climbWithTest", "swimSpeed", "flyHalf", "flyFull", "flyCharge", "flyRun", "flySprint"]) {
+    if (Object.prototype.hasOwnProperty.call(adjusted, key)) adjusted[key] = scaleWhole(adjusted[key]);
+  }
+  for (const key of ["jump", "leap"]) {
+    if (Object.prototype.hasOwnProperty.call(adjusted, key)) adjusted[key] = scaleDistance(adjusted[key]);
+  }
+  return adjusted;
 }
 
 export function getWorldGravity() {
@@ -43,6 +136,10 @@ export function isGoodFortuneModeEnabled() {
 
 export function computeCharacterDerivedValues(systemData = {}) {
   const characteristics = systemData?.characteristics ?? {};
+  const preFatigueModifiers = computeCharacteristicModifiers(characteristics);
+  const fatigue = computeFatigueState(systemData, {
+    preFatigueTouModifier: systemData?.mythic?.preFatigueTouModifier ?? preFatigueModifiers?.tou
+  });
   const mythic = getCharacterEffectiveMythicCharacteristics(systemData);
   const modifiers = computeCharacteristicModifiers(characteristics);
   const outlierEffects = getOutlierEffectSummary(systemData);
@@ -71,7 +168,7 @@ export function computeCharacterDerivedValues(systemData = {}) {
   const miscWoundsModifier = Number.isFinite(rawMiscWoundsModifier) ? rawMiscWoundsModifier : 0;
 
   const woundsMaximum = 40 + (((touModifier * soldierTypeTouWoundsMultiplier) + mythicTou) * 2) + miscWoundsModifier;
-  const fatigueThreshold = touModifier * 2;
+  const fatigueThreshold = fatigue.comaThreshold;
 
   const movMod = Math.max(0, modifiers.agi + mythicAgi);
   const halfBase = movMod;
@@ -290,6 +387,7 @@ export function computeCharacterDerivedValues(systemData = {}) {
     touCombined,
     woundsMaximum,
     fatigueThreshold,
+    fatigue,
     movement,
     perceptiveRange,
     carryingCapacity,

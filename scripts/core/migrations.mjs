@@ -11,7 +11,7 @@ import {
   normalizeSoldierTypeSystemData,
   normalizeSupportedItemSystemData
 } from "../data/normalization.mjs";
-import { loadMythicAmmoTypeDefinitions } from "../data/content-loading.mjs";
+import { loadMythicAmmoTypeDefinitions, loadMythicAmmoTypeDefinitionsFromJson } from "../data/content-loading.mjs";
 import { coerceMigrationVersion } from "../utils/helpers.mjs";
 import { invalidateAndRerenderCompendiums } from "../reference/compendium-refresh-utils.mjs";
 import { loadReferenceSoldierTypeItems } from "../reference/compendium-management.mjs";
@@ -101,13 +101,50 @@ function normalizeAmmoLookupName(value = "") {
   return String(value ?? "").trim().toLowerCase().replace(/\s+/gu, " ");
 }
 
+function normalizeAmmoCompactKey(value = "") {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[×]/gu, "x")
+    .replace(/[^a-z0-9]+/gu, "");
+}
+
+function normalizeAmmoSlugKey(value = "") {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[×]/gu, "x")
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-+|-+$/gu, "");
+}
+
 function buildAmmoTypeDefinitionLookup(rows = []) {
   const byName = new Map();
+  const bySlug = new Map();
+  const byCompact = new Map();
   for (const row of rows) {
     const nameKey = normalizeAmmoLookupName(row?.name ?? "");
+    const slugKey = normalizeAmmoSlugKey(row?.name ?? "");
+    const compactKey = normalizeAmmoCompactKey(row?.name ?? "");
     if (nameKey && !byName.has(nameKey)) byName.set(nameKey, row);
+    if (slugKey && !bySlug.has(slugKey)) bySlug.set(slugKey, row);
+    if (compactKey && !byCompact.has(compactKey)) byCompact.set(compactKey, row);
   }
-  return { byName };
+  return { byName, bySlug, byCompact };
+}
+
+function findAmmoDefinition(ammoTypeLookup = null, candidates = []) {
+  const lookup = ammoTypeLookup && typeof ammoTypeLookup === "object" ? ammoTypeLookup : {};
+  for (const candidate of candidates) {
+    const text = String(candidate ?? "").trim();
+    if (!text) continue;
+    const matched = lookup.byName?.get?.(normalizeAmmoLookupName(text))
+      ?? lookup.bySlug?.get?.(normalizeAmmoSlugKey(text))
+      ?? lookup.byCompact?.get?.(normalizeAmmoCompactKey(text))
+      ?? null;
+    if (matched) return matched;
+  }
+  return null;
 }
 
 function inferLegacyAmmoFamily(ammoName = "", definition = null) {
@@ -144,6 +181,95 @@ function buildLegacyBaseAmmoStub(ammoName = "", definition = null) {
       displayLabel: name
     }
   };
+}
+
+function repairAmmunitionEconomyFields(systemData = {}, itemName = "", ammoTypeLookup = null) {
+  const gear = normalizeSupportedItemSystemData("gear", systemData, itemName);
+  if (String(gear?.equipmentType ?? "").trim().toLowerCase() !== "ammunition") return gear;
+
+  const lookupCandidates = [
+    itemName,
+    gear.displayLabel,
+    gear.caliberOrType,
+    gear.baseAmmoName,
+    gear.ammoTypeDefinition?.name
+  ];
+  const definition = findAmmoDefinition(ammoTypeLookup, lookupCandidates);
+  if (!definition) return gear;
+
+  const next = foundry.utils.deepClone(gear);
+  const referenceCost = Math.max(0, Math.floor(Number(definition.costPer100 ?? 0) || 0));
+  const currentCost = Number(next.costPer100 ?? next.price?.amount ?? 0);
+  if ((!Number.isFinite(currentCost) || currentCost <= 0) && referenceCost > 0) {
+    next.costPer100 = referenceCost;
+    next.price = {
+      ...(next.price && typeof next.price === "object" ? next.price : {}),
+      amount: referenceCost,
+      currency: String(next.price?.currency ?? "cr").trim().toLowerCase() || "cr"
+    };
+  }
+
+  const referenceWeight = Math.max(0, Number(definition.weightPerRoundKg ?? definition.unitWeightKg ?? 0) || 0);
+  const currentWeight = Number(next.weightPerRoundKg ?? next.weightKg ?? 0);
+  if ((!Number.isFinite(currentWeight) || currentWeight <= 0) && referenceWeight > 0) {
+    next.weightPerRoundKg = referenceWeight;
+    next.weightKg = referenceWeight;
+  }
+
+  next.ammoTypeDefinition = {
+    ...(next.ammoTypeDefinition && typeof next.ammoTypeDefinition === "object" ? next.ammoTypeDefinition : {}),
+    name: String(definition.name ?? itemName ?? "").trim(),
+    unitWeightKg: referenceWeight,
+    weightPerRoundKg: referenceWeight,
+    costPer100: referenceCost,
+    specialAmmoCategory: String(definition.specialAmmoCategory ?? next.specialAmmoCategory ?? "Standard").trim() || "Standard"
+  };
+  if (!next.specialAmmoCategory || next.specialAmmoCategory === "Standard") {
+    next.specialAmmoCategory = next.ammoTypeDefinition.specialAmmoCategory;
+  }
+
+  return normalizeSupportedItemSystemData("gear", next, itemName);
+}
+
+function repairLoadedRoundWeights(systemData = {}, itemName = "", ammoTypeLookup = null) {
+  const gear = normalizeSupportedItemSystemData("gear", systemData, itemName);
+  const rounds = Array.isArray(gear?.magazine?.loadedRounds) ? gear.magazine.loadedRounds : [];
+  if (!rounds.length) return gear;
+
+  let changed = false;
+  const loadedRounds = rounds.map((round) => {
+    const currentWeight = Number(round?.unitWeightKg ?? 0);
+    if (Number.isFinite(currentWeight) && currentWeight > 0) return round;
+    const definition = findAmmoDefinition(ammoTypeLookup, [
+      round?.baseAmmoName,
+      round?.displayLabel,
+      round?.label,
+      round?.ammoTypeKey,
+      gear.ammoName,
+      itemName
+    ]);
+    const referenceWeight = Math.max(0, Number(definition?.weightPerRoundKg ?? definition?.unitWeightKg ?? 0) || 0);
+    if (referenceWeight <= 0) return round;
+    changed = true;
+    return {
+      ...foundry.utils.deepClone(round),
+      unitWeightKg: referenceWeight
+    };
+  });
+
+  if (!changed) return gear;
+  return normalizeSupportedItemSystemData("gear", {
+    ...gear,
+    magazine: {
+      ...(gear.magazine && typeof gear.magazine === "object" ? gear.magazine : {}),
+      loadedRounds
+    }
+  }, itemName);
+}
+
+function repairGearAmmoAndLoaderWeights(systemData = {}, itemName = "", ammoTypeLookup = null) {
+  const ammoRepaired = repairAmmunitionEconomyFields(systemData, itemName, ammoTypeLookup);
+  return repairLoadedRoundWeights(ammoRepaired, itemName, ammoTypeLookup);
 }
 
 async function migrateLegacyBallisticActorItems(actor, ammoTypeLookup = null) {
@@ -479,7 +605,8 @@ export async function runWorldSchemaMigration() {
   const bestiaryLookup = buildBestiaryReferenceLookup(bestiaryRows);
 
   try {
-    ammoTypeRows = await loadMythicAmmoTypeDefinitions();
+    ammoTypeRows = await loadMythicAmmoTypeDefinitionsFromJson();
+    if (!ammoTypeRows.length) ammoTypeRows = await loadMythicAmmoTypeDefinitions();
   } catch (error) {
     console.warn("[mythic-system] Failed to load ammo type definitions during world migration; legacy ammo migration will use fallback names only.", error);
   }
@@ -502,7 +629,9 @@ export async function runWorldSchemaMigration() {
 
     const embeddedUpdates = [];
     for (const item of actor.items ?? []) {
-      const normalizedItem = normalizeSupportedItemSystemData(item.type, item.system ?? {}, item.name ?? "");
+      const normalizedItem = item.type === "gear"
+        ? repairGearAmmoAndLoaderWeights(item.system ?? {}, item.name ?? "", ammoTypeLookup)
+        : normalizeSupportedItemSystemData(item.type, item.system ?? {}, item.name ?? "");
       if (!normalizedItem) continue;
       const itemDiff = foundry.utils.diffObject(item.system ?? {}, normalizedItem);
       if (foundry.utils.isEmpty(itemDiff)) continue;
@@ -516,11 +645,16 @@ export async function runWorldSchemaMigration() {
     if (actor.type === "character") {
       const ballisticMigration = await migrateLegacyBallisticActorItems(actor, ammoTypeLookup);
       embeddedItemMigrations += Number(ballisticMigration?.ammoCreated ?? 0) + Number(ballisticMigration?.loaderCreated ?? 0);
+      if (Array.from(actor.items ?? []).some((item) => isBallisticLoaderItem(item))) {
+        await syncActorBallisticLegacyMirrors(actor, { render: false });
+      }
     }
   }
 
   for (const item of game.items ?? []) {
-    const normalized = normalizeSupportedItemSystemData(item.type, item.system ?? {}, item.name ?? "");
+    const normalized = item.type === "gear"
+      ? repairGearAmmoAndLoaderWeights(item.system ?? {}, item.name ?? "", ammoTypeLookup)
+      : normalizeSupportedItemSystemData(item.type, item.system ?? {}, item.name ?? "");
 
     if (!normalized) continue;
 
@@ -1040,6 +1174,7 @@ export async function runCompendiumCanonicalMigration(options = {}) {
     const documentName = String(pack?.documentName ?? pack?.metadata?.type ?? "").trim();
     return documentName === "Item" && isMythicOwnedItemPack(pack);
   });
+  const ammoTypeLookup = buildAmmoTypeDefinitionLookup(await loadMythicAmmoTypeDefinitionsFromJson());
 
   let updated = 0;
   let packsTouched = 0;
@@ -1058,7 +1193,9 @@ export async function runCompendiumCanonicalMigration(options = {}) {
       const canonicalOwners = new Map();
 
       for (const doc of docs) {
-        const normalized = normalizeSupportedItemSystemData(doc.type, doc.system ?? {}, doc.name ?? "");
+        const normalized = doc.type === "gear"
+          ? repairGearAmmoAndLoaderWeights(doc.system ?? {}, doc.name ?? "", ammoTypeLookup)
+          : normalizeSupportedItemSystemData(doc.type, doc.system ?? {}, doc.name ?? "");
         if (!normalized) continue;
 
         const canonicalId = String(normalized.sync?.canonicalId ?? "").trim();

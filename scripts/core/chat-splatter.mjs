@@ -1,5 +1,5 @@
 import { normalizeSkillsData } from "../data/normalization.mjs";
-import { computeCharacterDerivedValues } from "../mechanics/derived.mjs";
+import { computeCharacteristicModifiers, computeCharacterDerivedValues, computeFatigueState } from "../mechanics/derived.mjs";
 import { computeAttackDOS } from "../mechanics/combat.mjs";
 import { isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
 import {
@@ -26,6 +26,14 @@ const ARMOR_KEYS = Object.freeze([
 
 function esc(value) {
   return foundry.utils.escapeHTML(String(value ?? ""));
+}
+
+function getFatigueRollModifier(actor = null) {
+  const modifiers = computeCharacteristicModifiers(actor?.system?.characteristics ?? {});
+  const fatigue = computeFatigueState(actor?.system ?? {}, {
+    preFatigueTouModifier: modifiers?.tou
+  });
+  return Number(fatigue?.penalty ?? 0) || 0;
 }
 
 function getDialogElement(dialogApp = null) {
@@ -345,7 +353,8 @@ export async function mythicRollVehicleSplatterEvasion(messageId, splatterData =
     const tracksReactions = isActorActivelyInCombat(targetActor);
     const reactionCount = tracksReactions ? toNonNegativeWhole(targetActor.system?.combat?.reactions?.count, 0) : 0;
     const reactionPenalty = reactionCount * -10;
-    const targetNumber = Math.max(0, Math.floor(agility + tierBonus + evasionMod + reactionPenalty + miscModifier));
+    const fatiguePenalty = getFatigueRollModifier(targetActor);
+    const targetNumber = Math.max(0, Math.floor(agility + tierBonus + evasionMod + reactionPenalty + miscModifier + fatiguePenalty));
     const roll = await new Roll("1d100").evaluate();
     rolls.push(roll);
     const dosValue = computeAttackDOS(targetNumber, Number(roll.total ?? 0));
@@ -362,7 +371,7 @@ export async function mythicRollVehicleSplatterEvasion(messageId, splatterData =
       agility,
       evasionBonus: tierBonus + evasionMod,
       reactionPenalty,
-      miscModifier
+      miscModifier: miscModifier + fatiguePenalty
     });
   }
 
@@ -415,7 +424,8 @@ export async function mythicRollVehicleSplatterFollowup(messageId, rowIndex = 0,
   if (!statKey) return;
 
   const statValue = getActorCharacteristic(targetActor, statKey);
-  const targetNumber = Math.max(0, statValue - 20);
+  const fatiguePenalty = getFatigueRollModifier(targetActor);
+  const targetNumber = Math.max(0, statValue - 20 + fatiguePenalty);
   const testRoll = await new Roll("1d100").evaluate();
   const dosValue = computeAttackDOS(targetNumber, Number(testRoll.total ?? 0));
   const splatterData = evasionData.splatterData ?? {};

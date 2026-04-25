@@ -77,6 +77,15 @@ import {
   normalizeMythicStorageData
 } from '../reference/mythic-storage-rules.mjs';
 
+// Lightweight caches to prevent repeated expensive normalization work when the
+// same source object reference is passed multiple times during a single
+// render/frame. Use WeakMaps to avoid memory leaks; keys are source objects.
+const _normCache = {
+  character: new WeakMap(),
+  vehicle: new WeakMap(),
+  gear: new WeakMap()
+};
+
 export {
   normalizeChoiceGroup,
   choiceGroupToModifierGroup
@@ -1296,6 +1305,14 @@ export {
 // ─── Character Normalization ─────────────────────────────────────────────────
 
 export function normalizeCharacterSystemData(systemData) {
+  try {
+    if (systemData && typeof systemData === "object" && _normCache.character.has(systemData)) {
+      return _normCache.character.get(systemData);
+    }
+  } catch (_err) {
+    // Defensive: never let cache errors break normalization
+  }
+
   const source = foundry.utils.deepClone(systemData ?? {});
   const defaults = getCanonicalCharacterSystemData();
   const hadWoundsCurrent = foundry.utils.hasProperty(source, "combat.wounds.current");
@@ -1358,6 +1375,12 @@ export function normalizeCharacterSystemData(systemData) {
   merged.mythic.miscCarryBonus = Number.isFinite(miscCarryBonusRaw) ? miscCarryBonusRaw : 0;
   const miscWoundsModifierRaw = Number(merged.mythic?.miscWoundsModifier ?? 0);
   merged.mythic.miscWoundsModifier = Number.isFinite(miscWoundsModifierRaw) ? miscWoundsModifierRaw : 0;
+
+  try {
+    if (systemData && typeof systemData === "object") _normCache.character.set(systemData, merged);
+  } catch (_err) {
+    // ignore
+  }
   const naturalArmorModifierRaw = Number(merged.mythic?.naturalArmorModifier ?? 0);
   merged.mythic.naturalArmorModifier = Number.isFinite(naturalArmorModifierRaw) ? naturalArmorModifierRaw : 0;
   const flyCombatActiveRaw = Boolean(merged.mythic?.flyCombatActive ?? false);
@@ -2268,6 +2291,14 @@ export function normalizeBestiarySystemData(systemData) {
 }
 
 export function normalizeVehicleSystemData(systemData) {
+  try {
+    if (systemData && typeof systemData === "object" && _normCache.vehicle.has(systemData)) {
+      return _normCache.vehicle.get(systemData);
+    }
+  } catch (_err) {
+    // Defensive: never let cache errors break normalization
+  }
+
   const source = foundry.utils.deepClone(systemData ?? {});
   const defaults = getCanonicalVehicleSystemData();
   const merged = foundry.utils.mergeObject(defaults, source, {
@@ -2694,6 +2725,12 @@ export function normalizeVehicleSystemData(systemData) {
   merged.perceptiveRange ??= {};
   merged.perceptiveRange.total = toNonNegativeWhole(merged.perceptiveRange?.total, 0);
 
+  try {
+    if (systemData && typeof systemData === "object") _normCache.vehicle.set(systemData, merged);
+  } catch (_err) {
+    // ignore
+  }
+
   return merged;
 }
 
@@ -3071,6 +3108,14 @@ export function normalizeSoldierTypeSystemData(systemData, itemName = "") {
 // ─── Gear Normalization ──────────────────────────────────────────────────────
 
 export function normalizeGearSystemData(systemData, itemName = "") {
+  try {
+    if (systemData && typeof systemData === "object" && _normCache.gear.has(systemData)) {
+      return _normCache.gear.get(systemData);
+    }
+  } catch (_err) {
+    // Defensive: never let cache errors break normalization
+  }
+
   const source = foundry.utils.deepClone(systemData ?? {});
   const allowedEquipmentTypes = new Set([
     "ranged-weapon",
@@ -3845,5 +3890,11 @@ export function normalizeGearSystemData(systemData, itemName = "") {
   };
 
   merged.sync = normalizeItemSyncData(merged.sync, "gear", itemName);
+  try {
+    if (systemData && typeof systemData === "object") _normCache.gear.set(systemData, merged);
+  } catch (_err) {
+    // ignore
+  }
+
   return merged;
 }

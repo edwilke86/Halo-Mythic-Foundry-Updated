@@ -1,6 +1,7 @@
 const SYSTEM_ID = "Halo-Mythic-Foundry-Updated";
 const WRAPPED_FLAG = Symbol.for("mythic.sheetPerformanceWrapped");
 const ACTIVE_RECORDS = new WeakMap();
+const LAST_RECORDS = new WeakMap();
 
 export const MYTHIC_SHEET_PERFORMANCE_DEBUG_SETTING_KEY = "sheetPerformanceDebug";
 
@@ -105,6 +106,23 @@ function finishRecord(sheet, record, status = "ok", error = null) {
   else console.log(table);
   if (error) console.warn("[MythicSheetPerf] render failed", error);
   console.groupEnd();
+  try {
+    LAST_RECORDS.set(sheet, {
+      ...record,
+      endedAt,
+      totalMs
+    });
+  } catch (_err) {
+    // ignore
+  }
+}
+
+export function getLastPerformanceRecord(sheet) {
+  try {
+    return LAST_RECORDS.get(sheet) ?? null;
+  } catch (_err) {
+    return null;
+  }
 }
 
 export function withSheetPerformanceRender(sheet, label, renderArgs, renderFn) {

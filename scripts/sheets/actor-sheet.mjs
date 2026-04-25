@@ -202,6 +202,11 @@ import {
   parseTrainingGrant
 } from "../mechanics/training.mjs";
 
+import {
+  isMythicSheetPerformanceDebugEnabled,
+  getLastPerformanceRecord
+} from "../utils/sheet-performance.mjs";
+
 import { buildCanonicalSkillsSchema } from "../mechanics/skills.mjs";
 
 import { canCurrentUserEditStartingXp } from "../mechanics/xp.mjs";
@@ -2980,7 +2985,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
 
     const cards = [];
-    for (const emplacement of emplacements) {
+      // Precompute characteristic runtimes for unique active users to avoid
+      // awaiting the same actor runtime repeatedly inside the loop.
+      const _actorRuntimePromises = new Map();
+      for (const emplacement of emplacements) {
+        try {
+          const _au = this._resolveVehicleWeaponActiveUser(emplacement, source, emplacements);
+          const actorDoc = _au?.activeUserActor ?? null;
+          const actorId = actorDoc?.id ?? null;
+          if (actorId && !_actorRuntimePromises.has(actorId)) {
+            _actorRuntimePromises.set(actorId, this._getLiveCharacteristicRuntime(actorDoc));
+          }
+        } catch (err) {
+          // ignore per-emplacement resolution errors
+        }
+      }
+      const _actorRuntimeById = new Map();
+      if (_actorRuntimePromises.size) {
+        const ids = Array.from(_actorRuntimePromises.keys());
+        const promises = Array.from(_actorRuntimePromises.values());
+        try {
+          const results = await Promise.all(promises);
+          for (let i = 0; i < ids.length; i += 1) _actorRuntimeById.set(ids[i], results[i]);
+        } catch (err) {
+          // best-effort: if any runtime fails, skip caching for that actor
+        }
+      }
+
+      for (const emplacement of emplacements) {
       const weaponId = String(emplacement?.weaponId ?? "").trim();
       if (!weaponId) continue;
       const item = this.actor.items.get(weaponId);
@@ -2995,9 +3027,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         .find((entry) => String(entry?.id ?? "").trim() === String(emplacement?.id ?? "").trim()) ?? emplacement;
       const ammoContext = this._getVehicleWeaponAmmoContext(rawEmplacement, item, source);
       const activeUser = this._resolveVehicleWeaponActiveUser(emplacement, source, emplacements);
-      const characteristicRuntime = activeUser.activeUserActor
-        ? await this._getLiveCharacteristicRuntime(activeUser.activeUserActor)
-        : this._buildCharacteristicRuntime({});
+      const actorId = activeUser?.activeUserActor?.id ?? null;
+      const characteristicRuntime = actorId && _actorRuntimeById.has(actorId)
+        ? _actorRuntimeById.get(actorId)
+        : (activeUser.activeUserActor ? await this._getLiveCharacteristicRuntime(activeUser.activeUserActor) : this._buildCharacteristicRuntime({}));
       const trainingStatus = activeUser.activeUserActor
         ? this._evaluateWeaponTrainingStatus(gear, item.name ?? "", activeUser.activeUserActor)
         : {
@@ -13750,6 +13783,33 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       this._lastSheetAppearanceForHeader = context?.mythicSheetAppearance ?? null;
       this._applyWindowTheme(root, context);
+      // Developer performance overlay (populated after render completes)
+      if (isMythicSheetPerformanceDebugEnabled()) {
+        try {
+          setTimeout(() => {
+            try {
+              const rec = getLastPerformanceRecord(this);
+              if (!rec) return;
+              const rootEl = this.element ?? document.body;
+              if (!rootEl) return;
+              let overlay = rootEl.querySelector('.mythic-perf-overlay');
+              if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'mythic-perf-overlay';
+                overlay.style.cssText = 'position:absolute;right:8px;top:8px;z-index:2147483647;background:rgba(0,0,0,0.65);color:#fff;padding:8px;border-radius:6px;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;min-width:160px;max-width:360px;pointer-events:none;';
+                (rootEl instanceof HTMLElement ? rootEl : document.body).appendChild(overlay);
+              }
+              const spans = (Array.isArray(rec.spans) ? rec.spans : []).slice(0, 8);
+              const rows = spans.map((s) => `${s.label}: ${s.ms.toFixed(1)}ms`).join('<br>');
+              overlay.innerHTML = `<strong>Sheet Perf: ${Number(rec.totalMs).toFixed(1)}ms</strong><br>${rows}`;
+            } catch (err) {
+              // ignore overlay errors
+            }
+          }, 50);
+        } catch (err) {
+          // ignore
+        }
+      }
 
       // Keep Foundry's header controls above the themed sheet chrome.
       this._configureWindowHeaderChrome();

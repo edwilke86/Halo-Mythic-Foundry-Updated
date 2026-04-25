@@ -4,8 +4,8 @@
   "description": "Community Foundry VTT system project for the Halo Mythic ruleset.",
     "version": "0.5.0-alpha.2",
   "license": "SEE LICENSE and LICENSE.assets",
-  "manifest": "https://raw.githubusercontent.com/edwilke86/Halo-Mythic-Foundry-Updated/main/system.json",
-    "download": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated/releases/download/v0.5.0-alpha.2/halo-mythic-foundry-updated-0.5.0-alpha.2-20260425.zip",
+    "manifest": "https://raw.githubusercontent.com/edwilke86/Halo-Mythic-Foundry-Updated/main/system.json",
+  "download": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated/releases/download/v0.5.0-alpha.2/halo-mythic-foundry-updated-0.5.0-alpha.2-20260425.zip",
   
   "url": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated",
   "compatibility": {
@@ -26,7 +26,7 @@
   "esmodules": [
     "system.mjs"
   ],
-  
+
   "styles": [
     "styles/system.css"
   ],

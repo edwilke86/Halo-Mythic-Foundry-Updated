@@ -1,0 +1,1950 @@
+/* Vehicle-specific UI styles (Mobility panel, summary layout) */
+.vehicle-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 3fr);
+  gap: 12px;
+}
+
+.vehicle-mobility {
+  padding: 10px;
+}
+
+.vehicle-summary-main {
+  padding: 10px;
+}
+
+.vehicle-summary-weapon-card {
+  margin: 0;
+}
+
+.mythic-character-vehicle-tab {
+  padding: 14px 16px;
+}
+
+.mythic-character-vehicle-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.mythic-character-vehicle-overview-panel,
+.mythic-character-vehicle-weapons-panel,
+.mythic-character-vehicle-assignments-panel,
+.mythic-character-vehicle-empty-panel {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.mythic-character-vehicle-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mythic-character-vehicle-panel-heading h2 {
+  margin: 0;
+}
+
+.mythic-character-vehicle-subtitle {
+  margin-top: 2px;
+  color: rgba(216, 230, 245, 0.76);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.mythic-character-vehicle-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.mythic-character-vehicle-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid rgba(148, 180, 220, 0.28);
+  border-radius: 999px;
+  background: rgba(10, 14, 24, 0.76);
+  color: rgba(230, 238, 250, 0.88);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mythic-character-vehicle-chip.is-neural {
+  border-color: rgba(247, 194, 116, 0.5);
+  color: rgba(255, 219, 161, 0.94);
+}
+
+.mythic-character-vehicle-chip.is-active {
+  border-color: rgba(98, 207, 138, 0.5);
+  color: rgba(178, 245, 201, 0.94);
+}
+
+.mythic-character-vehicle-assignment-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mythic-character-vehicle-assignment-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgba(148, 180, 220, 0.2);
+  border-radius: 6px;
+  background: rgba(10, 14, 24, 0.42);
+}
+
+.mythic-character-vehicle-assignment-row.is-active {
+  border-color: rgba(98, 207, 138, 0.38);
+  background: rgba(19, 49, 37, 0.38);
+}
+
+.mythic-character-vehicle-assignment-title {
+  color: rgba(244, 248, 255, 0.96);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mythic-character-vehicle-assignment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 3px;
+  color: rgba(216, 230, 245, 0.72);
+  font-size: 11px;
+}
+
+.mythic-character-vehicle-assignment-meta span {
+  padding-right: 6px;
+  border-right: 1px solid rgba(148, 180, 220, 0.24);
+}
+
+.mythic-character-vehicle-assignment-meta span:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.mythic-character-vehicle-assignment-badges,
+.mythic-character-vehicle-assignment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.mythic-character-vehicle-assignment-actions .action-btn {
+  min-height: 28px;
+}
+
+.mythic-character-vehicle-overview-panel .vehicle-overview-shell > h2 {
+  display: none;
+}
+
+.mythic-character-vehicle-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 276px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.mythic-character-vehicle-tab .vehicle-overview-status-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mythic-character-vehicle-tab .vehicle-mobility-speed-row.is-read-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mythic-character-vehicle-tab .vehicle-mobility-speed-display {
+  height: 38px;
+  border: 1px solid rgba(156, 191, 235, 0.28);
+  border-radius: 5px;
+  background: rgba(78, 108, 152, 0.5);
+  color: #f5fbff;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 38px;
+}
+
+.mythic-character-vehicle-tab .vehicle-overview-shell.is-read-only input:disabled,
+.mythic-character-vehicle-tab .vehicle-weapon-strip-number:disabled {
+  opacity: 1;
+  border-color: rgba(152, 179, 214, 0.22);
+  background: rgba(18, 27, 42, 0.58);
+  color: rgba(248, 251, 255, 0.94);
+}
+
+.mythic-character-vehicle-empty-message {
+  padding: 8px 10px;
+  border: 1px solid rgba(148, 180, 220, 0.18);
+  background: rgba(10, 14, 24, 0.42);
+}
+
+.mythic-vehicle-fallback-sheet .tab[data-tab="vehicle-summary"] .vehicle-summary-grid {
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 3fr);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-main {
+  min-width: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-grid > .vehicle-summary-weapons-panel {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-weapons-panel {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-weapons-panel > h2 {
+  margin: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-weapons-table {
+  display: grid;
+  gap: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-weapons-table-head {
+  display: none;
+  grid-template-columns: minmax(0, 1.6fr) auto auto auto 24px;
+  gap: 6px;
+  align-items: center;
+  padding: 0 6px 6px;
+  border-bottom: 1px solid rgba(150, 179, 219, 0.22);
+  color: rgba(199, 220, 244, 0.72);
+  font-family: Orbitron, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-weapons-table-body {
+  display: grid;
+  gap: 10px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-weapons-panel .vehicle-summary-weapon-card {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(139, 180, 226, 0.2);
+  border-radius: 10px;
+  background: rgba(18, 27, 42, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(112, 170, 229, 0.08), 0 0 14px rgba(7, 15, 26, 0.45);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-row {
+  display: grid;
+  align-items: center;
+  gap: 6px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-primary {
+  align-items: start;
+  grid-template-columns: minmax(0, 1.6fr) auto auto 24px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-secondary {
+  grid-template-columns: auto auto minmax(0, auto) auto auto minmax(0, 1fr);
+  padding-top: 2px;
+  border-top: 1px solid rgba(150, 179, 219, 0.12);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-ident {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-slot-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(247, 194, 116, 0.72);
+  border-radius: 999px;
+  background: rgba(8, 11, 18, 0.9);
+  color: rgba(255, 218, 157, 0.94);
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-title-block {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(213, 228, 112, 0.96);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-controller {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(204, 218, 240, 0.76);
+  font-size: 11px;
+  line-height: 1.05;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(255, 116, 116, 0.78);
+  border-radius: 999px;
+  background: rgba(124, 21, 21, 0.7);
+  color: rgba(255, 231, 231, 0.95);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-edit-btn {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(148, 180, 220, 0.24);
+  border-radius: 4px;
+  background: rgba(23, 35, 51, 0.76);
+  color: rgba(243, 247, 255, 0.92);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-attacks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-attack-btn {
+  min-height: 24px;
+  padding: 2px 7px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-reload-btn {
+  margin-left: 2px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-nl {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-nl-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(230, 238, 250, 0.84);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-nl-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-nl-inline {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expand-btn {
+  min-width: 24px;
+  width: 24px;
+  min-height: 24px;
+  height: 24px;
+  padding: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-info,
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  font-size: 10px;
+  color: rgba(230, 238, 250, 0.84);
+  white-space: nowrap;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-ammo {
+  color: rgba(226, 236, 249, 0.9);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-field > span {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-select,
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-number {
+  height: 22px;
+  min-height: 22px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-select {
+  min-width: 60px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-number {
+  width: 48px;
+  text-align: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 0 6px;
+  border: 1px solid rgba(148, 180, 220, 0.24);
+  border-radius: 999px;
+  background: rgba(10, 14, 24, 0.84);
+  color: rgba(223, 235, 252, 0.88);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-badge.is-rule {
+  border-color: rgba(247, 194, 116, 0.48);
+  color: rgba(255, 219, 161, 0.92);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expanded {
+  display: grid;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(150, 179, 219, 0.18);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expanded-block {
+  display: grid;
+  gap: 4px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expanded-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(223, 235, 252, 0.72);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expanded-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-charge-row {
+  padding: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expanded-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 11px;
+  color: rgba(233, 240, 250, 0.9);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expanded-note {
+  padding: 4px 6px;
+  border: 1px solid rgba(148, 180, 220, 0.18);
+  border-radius: 4px;
+  background: rgba(26, 35, 51, 0.66);
+  color: rgba(233, 240, 250, 0.84);
+  font-size: 11px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expanded-note-warning {
+  border-color: rgba(255, 116, 116, 0.34);
+  background: rgba(92, 24, 24, 0.5);
+  color: rgba(255, 225, 225, 0.94);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-weapon-strip-expanded-rules {
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(235, 241, 250, 0.86);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-weapon-card.is-disabled {
+  opacity: 0.84;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-summary-weapon-card.is-disabled .vehicle-weapon-strip-title {
+  color: rgba(213, 228, 112, 0.72);
+}
+
+@media (max-width: 1100px) {
+  .mythic-vehicle-fallback-sheet .tab[data-tab="vehicle-summary"] .vehicle-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-summary-weapons-table-head {
+    display: none;
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-primary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-attacks,
+  .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-badges {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-title-block,
+  .mythic-vehicle-fallback-sheet .vehicle-weapon-strip-title-row {
+    flex-wrap: wrap;
+  }
+
+  .mythic-character-vehicle-panel-heading,
+  .mythic-character-vehicle-chip-row {
+    justify-content: flex-start;
+  }
+
+  .mythic-character-vehicle-panel-heading {
+    flex-direction: column;
+  }
+
+  .mythic-character-vehicle-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-vehicle-assignment-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-vehicle-assignment-badges,
+  .mythic-character-vehicle-assignment-actions {
+    justify-content: flex-start;
+  }
+}
+
+.vehicle-mobility .mobility-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.vehicle-mobility .mobility-row label {
+  width: 110px;
+  font-weight: bold;
+}
+
+.vehicle-mobility .mobility-value {
+  flex: 1;
+  text-align: center;
+  background: rgba(0,0,0,0.12);
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.vehicle-mobility .mobility-controls button {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+}
+
+.vehicle-mobility .mobility-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.vehicle-walker-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(228, 183, 106, 0.72);
+  background: rgba(88, 61, 28, 0.42);
+  color: rgba(255, 235, 194, 0.98);
+  font-family: Orbitron, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vehicle-walker-readonly-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.vehicle-walker-readonly-grid > div {
+  display: grid;
+  gap: 2px;
+  min-height: 42px;
+  padding: 6px;
+  border: 1px solid rgba(148, 180, 220, 0.22);
+  border-radius: 4px;
+  background: rgba(17, 28, 42, 0.62);
+}
+
+.vehicle-walker-readonly-grid span {
+  color: rgba(201, 219, 238, 0.72);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.vehicle-walker-readonly-grid strong {
+  color: rgba(246, 250, 255, 0.96);
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.vehicle-walker-derived {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.vehicle-walker-derived h3 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.vehicle-mobility-walker-note {
+  margin-top: 10px;
+  padding: 7px 8px;
+  border: 1px solid rgba(228, 183, 106, 0.32);
+  border-radius: 4px;
+  background: rgba(80, 58, 26, 0.28);
+  color: rgba(244, 226, 188, 0.92);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.vehicle-walker-evasion-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.vehicle-walker-characteristics-panel .compact-row .vehicle-walker-flex-break {
+  flex-basis: 100%;
+  height: 0;
+}
+
+.vehicle-walker-characteristics-panel .compact-row .compact-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.vehicle-walker-characteristics-panel .compact-row .small-input {
+  width: 100%;
+}
+
+.vehicle-walker-melee-setup {
+  display: grid;
+  gap: 6px;
+}
+
+.vehicle-walker-melee-block {
+  display: grid;
+  gap: 4px;
+}
+
+.vehicle-walker-melee-block-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(201, 219, 238, 0.78);
+  line-height: 1;
+}
+
+.vehicle-walker-melee-formula-row {
+  display: grid;
+  grid-template-columns: 64px 64px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.vehicle-walker-melee-modifier-select {
+  height: 28px;
+  min-width: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-walker-melee-table {
+  margin-bottom: 2px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-walker-melee-card .vehicle-weapon-strip-secondary {
+  grid-template-columns: auto auto auto minmax(0, 1fr);
+}
+
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .vehicle-summary-grid { grid-template-columns: 1fr; }
+}
+
+/* Setup compact panels */
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.setup-grid .panel { padding: 8px; }
+
+.vehicle-setup-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.compact-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.compact-field { display:flex; flex-direction:column; align-items:center; min-width:48px; }
+.compact-field .field-label { font-size:11px; margin-bottom:4px; text-align:center; }
+.compact-field.compact-field-checkbox { min-width: 72px; }
+.compact-field.compact-field-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 4px 0 0;
+}
+.small-input { width:64px; height:28px; text-align:center; font-size:13px; }
+
+.vehicle-walker-location-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.vehicle-walker-location-card {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(148, 180, 220, 0.24);
+  border-radius: 6px;
+  background: rgba(18, 27, 42, 0.58);
+}
+
+.vehicle-walker-location-card.is-disabled {
+  border-color: rgba(228, 183, 106, 0.38);
+  background: rgba(73, 55, 27, 0.44);
+}
+
+.vehicle-walker-location-card.is-destroyed {
+  border-color: rgba(226, 123, 108, 0.42);
+  background: rgba(87, 27, 24, 0.46);
+}
+
+.vehicle-walker-location-head {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  text-align: center;
+  color: rgba(246, 250, 255, 0.96);
+  font-size: 11px;
+}
+
+.vehicle-walker-location-head span,
+.vehicle-walker-location-state {
+  color: rgba(201, 219, 238, 0.72);
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.vehicle-walker-location-card label {
+  display: grid;
+  gap: 3px;
+  font-size: 10px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-table.vehicle-overview-walker-armor-table {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-table.vehicle-overview-walker-armor-table .vehicle-overview-armor-cell {
+  padding: 6px 2px;
+}
+
+.vehicle-overview-armor-value.is-disabled {
+  background: rgba(111, 80, 28, 0.62);
+}
+
+.vehicle-overview-armor-value.is-destroyed {
+  background: rgba(116, 28, 36, 0.76);
+}
+
+/* Slightly larger select inside compact-field */
+.compact-field select, .panel select { height:28px; }
+
+.vehicle-size-category-select {
+  min-width: 140px;
+  height: 28px;
+}
+
+@media (max-width: 900px) {
+  .setup-grid { grid-template-columns: 1fr; }
+}
+
+.vehicle-crew-panel {
+  --crew-shell-border: rgba(138, 179, 213, 0.2);
+  --crew-shell-strong: rgba(154, 207, 255, 0.42);
+  --crew-shell-bg:
+    radial-gradient(circle at top right, rgba(96, 167, 232, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(16, 24, 35, 0.96), rgba(8, 13, 21, 0.96));
+  --crew-text: rgba(239, 247, 255, 0.96);
+  --crew-subtle: rgba(191, 211, 231, 0.72);
+  --crew-muted: rgba(169, 192, 216, 0.56);
+  --crew-token: rgba(116, 205, 255, 0.9);
+  --crew-token-bg: rgba(44, 95, 128, 0.28);
+  --crew-character: rgba(111, 217, 194, 0.9);
+  --crew-character-bg: rgba(31, 88, 79, 0.28);
+  --crew-warning: rgba(222, 177, 98, 0.92);
+  --crew-warning-bg: rgba(90, 57, 16, 0.34);
+  --crew-danger: rgba(226, 123, 108, 0.92);
+  --crew-danger-bg: rgba(99, 29, 22, 0.34);
+  display: grid;
+  gap: 12px;
+}
+
+.vehicle-crew-command-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--crew-shell-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, rgba(139, 198, 248, 0.05) 0 1px, transparent 1px 22px),
+    var(--crew-shell-bg);
+  box-shadow: inset 0 1px 0 rgba(210, 232, 255, 0.06), 0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+.vehicle-crew-doctrine {
+  display: grid;
+  gap: 7px;
+}
+
+.vehicle-crew-kicker-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vehicle-crew-kicker,
+.vehicle-crew-preference-pill,
+.vehicle-crew-group-metric,
+.vehicle-crew-status-pill,
+.vehicle-crew-source-chip,
+.vehicle-crew-reference-label,
+.crew-label {
+  font-family: Orbitron, sans-serif;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.vehicle-crew-kicker,
+.vehicle-crew-preference-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid rgba(144, 188, 230, 0.22);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%, 6px 50%);
+  background: rgba(16, 28, 42, 0.82);
+  color: rgba(185, 218, 246, 0.84);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.vehicle-crew-preference-pill {
+  border-color: rgba(125, 212, 255, 0.34);
+  background: rgba(17, 42, 58, 0.82);
+  color: rgba(201, 239, 255, 0.92);
+}
+
+.vehicle-crew-panel h2,
+.vehicle-crew-group-heading h3 {
+  margin: 0;
+}
+
+.vehicle-crew-doctrine-text,
+.vehicle-crew-doctrine-subtext,
+.vehicle-crew-group-note,
+.vehicle-crew-slot-message,
+.vehicle-crew-empty-state,
+.vehicle-crew-help-body {
+  color: var(--crew-subtle);
+}
+
+.vehicle-crew-doctrine-text {
+  margin: 0;
+  max-width: 84ch;
+  color: var(--crew-text);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.vehicle-crew-doctrine-subtext {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.vehicle-crew-help {
+  border: 1px solid rgba(135, 174, 208, 0.18);
+  border-radius: 10px;
+  background: rgba(10, 16, 24, 0.62);
+  overflow: hidden;
+}
+
+.vehicle-crew-help summary {
+  cursor: pointer;
+  padding: 11px 13px;
+  color: var(--crew-text);
+  font-family: Orbitron, sans-serif;
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vehicle-crew-help[open] summary {
+  border-bottom: 1px solid rgba(135, 174, 208, 0.14);
+}
+
+.vehicle-crew-help-body {
+  display: grid;
+  gap: 10px;
+  padding: 12px 13px 14px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.vehicle-crew-help-body p {
+  margin: 0;
+}
+
+.vehicle-crew-help-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.vehicle-crew-help-list li + li {
+  margin-top: 4px;
+}
+
+.vehicle-crew-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.vehicle-crew-group {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(133, 173, 207, 0.16);
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, rgba(18, 27, 40, 0.92), rgba(11, 16, 24, 0.94)),
+    repeating-linear-gradient(90deg, rgba(127, 186, 241, 0.025) 0 18px, transparent 18px 36px);
+}
+
+.vehicle-crew-group-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.vehicle-crew-group-heading {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.vehicle-crew-group-heading h3 {
+  color: var(--crew-text);
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.vehicle-crew-group-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.vehicle-crew-group-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.vehicle-crew-group-metric {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgba(134, 176, 214, 0.18);
+  border-radius: 999px;
+  background: rgba(17, 28, 40, 0.84);
+  color: rgba(190, 218, 245, 0.78);
+  font-size: 8px;
+  line-height: 1;
+}
+
+.vehicle-crew-group-metric.is-warning {
+  border-color: rgba(222, 177, 98, 0.28);
+  color: rgba(245, 211, 148, 0.9);
+}
+
+.vehicle-crew-slot-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 8px;
+}
+
+.vehicle-crew-roster-slot {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(136, 176, 210, 0.18);
+  border-left-width: 3px;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(20, 32, 47, 0.9), rgba(12, 18, 28, 0.95)),
+    radial-gradient(circle at top right, rgba(122, 194, 255, 0.06), transparent 34%);
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.vehicle-crew-roster-slot.has-actor {
+  cursor: pointer;
+}
+
+.vehicle-crew-roster-slot.is-empty {
+  border-style: dashed;
+  border-left-color: rgba(123, 151, 179, 0.42);
+}
+
+.vehicle-crew-roster-slot.is-invalid,
+.vehicle-crew-roster-slot.status-invalid,
+.vehicle-crew-roster-slot.status-missing {
+  border-color: rgba(226, 123, 108, 0.28);
+  border-left-color: var(--crew-danger);
+}
+
+.vehicle-crew-roster-slot.status-reassign {
+  border-color: rgba(222, 177, 98, 0.28);
+  border-left-color: var(--crew-warning);
+}
+
+.vehicle-crew-roster-slot.status-token {
+  border-color: rgba(116, 205, 255, 0.24);
+  border-left-color: var(--crew-token);
+}
+
+.vehicle-crew-roster-slot.status-character {
+  border-color: rgba(111, 217, 194, 0.22);
+  border-left-color: var(--crew-character);
+}
+
+.vehicle-crew-roster-slot:focus-visible {
+  outline: 2px solid rgba(129, 205, 255, 0.78);
+  outline-offset: 1px;
+}
+
+.vehicle-crew-roster-slot.is-dragover {
+  border-color: rgba(127, 208, 255, 0.5);
+  background:
+    linear-gradient(180deg, rgba(22, 45, 68, 0.94), rgba(14, 26, 40, 0.96)),
+    radial-gradient(circle at top right, rgba(122, 194, 255, 0.1), transparent 34%);
+  box-shadow: 0 0 0 1px rgba(127, 208, 255, 0.14);
+}
+
+.vehicle-crew-roster-slot.is-expanded {
+  box-shadow: 0 0 0 1px rgba(127, 208, 255, 0.12);
+}
+
+.vehicle-crew-roster-slot:hover:not(.is-dragover) {
+  border-color: rgba(158, 198, 231, 0.28);
+}
+
+.vehicle-crew-slot-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.vehicle-crew-slot-title-block,
+.vehicle-crew-slot-identity {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.crew-label {
+  color: rgba(170, 208, 246, 0.82);
+  font-size: 8px;
+  line-height: 1.1;
+}
+
+.vehicle-crew-seat-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.vehicle-crew-seat-heading {
+  color: var(--crew-text);
+  font-size: 14px;
+  line-height: 1.15;
+  font-weight: 600;
+}
+
+.vehicle-crew-seat-position {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 7px;
+  border: 1px solid rgba(140, 177, 209, 0.16);
+  border-radius: 999px;
+  background: rgba(16, 27, 39, 0.82);
+  color: rgba(186, 213, 238, 0.76);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.crew-slot-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.vehicle-crew-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border: 1px solid rgba(134, 176, 214, 0.16);
+  border-radius: 999px;
+  background: rgba(16, 28, 40, 0.84);
+  color: rgba(196, 216, 239, 0.82);
+  font-size: 8px;
+  line-height: 1;
+}
+
+.vehicle-crew-status-pill.status-token {
+  border-color: rgba(116, 205, 255, 0.28);
+  background: var(--crew-token-bg);
+  color: rgba(205, 239, 255, 0.96);
+}
+
+.vehicle-crew-status-pill.status-character {
+  border-color: rgba(111, 217, 194, 0.26);
+  background: var(--crew-character-bg);
+  color: rgba(203, 248, 240, 0.96);
+}
+
+.vehicle-crew-status-pill.status-reassign {
+  border-color: rgba(222, 177, 98, 0.28);
+  background: var(--crew-warning-bg);
+  color: rgba(248, 220, 162, 0.96);
+}
+
+.vehicle-crew-status-pill.status-invalid,
+.vehicle-crew-status-pill.status-missing {
+  border-color: rgba(226, 123, 108, 0.28);
+  background: var(--crew-danger-bg);
+  color: rgba(255, 214, 208, 0.96);
+}
+
+.vehicle-crew-status-pill.status-empty {
+  color: rgba(184, 206, 228, 0.7);
+}
+
+.crew-clear-btn {
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.vehicle-crew-slot-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: 10px;
+  align-items: start;
+}
+
+.vehicle-crew-slot-name {
+  min-width: 0;
+  color: var(--crew-text);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.vehicle-crew-slot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.vehicle-crew-source-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 6px;
+  border: 1px solid rgba(134, 176, 214, 0.14);
+  border-radius: 999px;
+  background: rgba(14, 24, 35, 0.82);
+  color: rgba(181, 208, 233, 0.74);
+  font-size: 7px;
+  line-height: 1;
+}
+
+.vehicle-crew-slot-message {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.vehicle-crew-reference-field {
+  display: grid;
+  gap: 5px;
+}
+
+.vehicle-crew-reference-label {
+  color: rgba(172, 206, 239, 0.72);
+  font-size: 8px;
+  line-height: 1.1;
+}
+
+.vehicle-crew-reference-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 1px solid rgba(138, 178, 211, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 14, 22, 0.78);
+  color: var(--crew-text);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.vehicle-crew-reference-input::placeholder {
+  color: rgba(156, 181, 207, 0.48);
+}
+
+.vehicle-crew-reference-input:focus {
+  border-color: rgba(122, 205, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(122, 205, 255, 0.14);
+  outline: none;
+}
+
+.crew-slot-details {
+  display: none;
+  gap: 5px;
+  padding-top: 2px;
+}
+
+.vehicle-crew-roster-slot.is-expanded .crew-slot-details {
+  display: grid;
+}
+
+.crew-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.crew-stat-chip {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  padding: 4px 3px;
+  border: 1px solid rgba(149, 190, 228, 0.12);
+  border-radius: 5px;
+  background: linear-gradient(180deg, rgba(29, 49, 77, 0.76), rgba(17, 27, 42, 0.9));
+  text-align: center;
+}
+
+.crew-stat-chip-mythic {
+  border-color: rgba(128, 219, 255, 0.18);
+  background: linear-gradient(180deg, rgba(19, 60, 87, 0.78), rgba(11, 31, 50, 0.92));
+}
+
+.crew-stat-key {
+  color: rgba(177, 210, 245, 0.78);
+  font-size: 7px;
+  line-height: 1;
+}
+
+.crew-stat-value {
+  color: rgba(243, 249, 255, 0.98);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.crew-mythic-strip {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.crew-mythic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(38px, 1fr));
+  gap: 3px;
+  width: 100%;
+  max-width: 174px;
+}
+
+.vehicle-crew-empty-state {
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid rgba(125, 160, 205, 0.2);
+  border-radius: 10px;
+  background: rgba(12, 18, 27, 0.62);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 860px) {
+  .vehicle-crew-slot-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .vehicle-crew-command-panel,
+  .vehicle-crew-group {
+    padding: 11px;
+  }
+
+  .vehicle-crew-slot-top,
+  .vehicle-crew-group-header {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .crew-slot-actions,
+  .vehicle-crew-group-metrics {
+    justify-content: flex-start;
+  }
+
+  .crew-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-shell {
+  display: grid;
+  gap: 10px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-shell > h2 {
+  margin-bottom: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid rgba(228, 183, 106, 0.92);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(115, 88, 42, 0.34), rgba(68, 52, 25, 0.28));
+  color: rgba(255, 239, 212, 0.98);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-badge.is-disabled {
+  border-color: rgba(170, 185, 205, 0.52);
+  background: linear-gradient(180deg, rgba(70, 78, 90, 0.28), rgba(45, 50, 58, 0.22));
+  color: rgba(224, 232, 242, 0.72);
+  text-decoration: line-through;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-badge-row-empty {
+  min-height: 24px;
+  align-items: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-empty {
+  color: rgba(216, 230, 245, 0.76);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-shell {
+  display: grid;
+  gap: 4px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  grid-auto-rows: minmax(34px, auto);
+  gap: 6px;
+  align-items: stretch;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-toggle {
+  width: 100%;
+  border: 1px solid rgba(156, 187, 225, 0.28);
+  border-radius: 0;
+  background: #050608;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: flex-start;
+  align-self: stretch;
+  height: auto !important;
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-shell--nominal .vehicle-overview-status-toggle {
+  background: #050608;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-shell--warning .vehicle-overview-status-toggle {
+  background: linear-gradient(180deg, rgba(110, 40, 18, 0.92), rgba(152, 55, 24, 0.96));
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-shell--critical .vehicle-overview-status-toggle {
+  background: linear-gradient(180deg, rgba(194, 17, 12, 0.94), rgba(232, 24, 16, 0.96));
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-summary {
+  display: block;
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  padding-right: 8px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-toggle-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  font-family: Orbitron, sans-serif;
+  font-size: 12px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-detonate-btn {
+  min-width: 42px;
+  min-height: 34px;
+  align-self: stretch;
+  height: auto !important;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-detonate-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.75);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-panel {
+  padding: 8px 10px;
+  border: 1px solid rgba(151, 184, 222, 0.28);
+  background: rgba(58, 83, 120, 0.6);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-panel-title {
+  margin-bottom: 6px;
+  color: rgba(255, 230, 176, 0.96);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-message-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 18px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-status-message {
+  color: rgba(244, 248, 255, 0.94);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-block,
+.mythic-vehicle-fallback-sheet .vehicle-overview-card {
+  display: grid;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid rgba(148, 180, 220, 0.34);
+  border-radius: 6px;
+  background: rgba(80, 108, 148, 0.16);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-block-header,
+.mythic-vehicle-fallback-sheet .vehicle-overview-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid rgba(150, 179, 219, 0.28);
+  background: #050608;
+  color: #fff;
+  font-family: Orbitron, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-block-header {
+  justify-content: space-between;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoints.is-critical .vehicle-overview-block-header {
+  background: linear-gradient(180deg, rgba(194, 17, 12, 0.94), rgba(232, 24, 16, 0.96));
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-block-body {
+  display: grid;
+  gap: 8px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-subsection {
+  display: grid;
+  gap: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-subsection + .vehicle-overview-subsection {
+  margin-top: 2px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-subsection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  padding: 5px 10px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-subsection-title {
+  min-width: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-subsection-header-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-subsection-summary {
+  color: rgba(219, 231, 246, 0.9);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-subsection-summary-secondary {
+  color: rgba(245, 214, 166, 0.92);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-subsection-body {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0 0;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-subsection-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(221, 232, 245, 0.88);
+  font-size: 11px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-table + .vehicle-overview-breakpoint-table {
+  margin-top: 8px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-row > th,
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-row > td {
+  padding: 0;
+  border: 1px solid rgba(152, 179, 214, 0.18);
+  background: rgba(57, 76, 106, 0.52);
+  vertical-align: middle;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-row-head > th {
+  background: rgba(46, 35, 41, 0.66);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-corner,
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-axis {
+  width: 56px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-axis {
+  padding: 8px 6px;
+  color: rgba(243, 248, 255, 0.96);
+  font-weight: 700;
+  text-align: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-stat {
+  padding: 6px 4px;
+  text-align: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-label {
+  color: rgba(248, 251, 255, 0.96);
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-value {
+  padding: 4px 3px;
+  text-align: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-value input,
+.mythic-vehicle-fallback-sheet .vehicle-overview-custom-table input,
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-value input {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-row-current > th,
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-row-current > td {
+  background: rgba(71, 93, 128, 0.62);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-row-max > th,
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-row-max > td {
+  background: rgba(56, 72, 104, 0.62);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-value-static,
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-value-static,
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-value {
+  padding: 8px 6px;
+  color: rgba(248, 251, 255, 0.96);
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-stat.is-critical,
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-value.is-critical,
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-value-static.is-critical {
+  background: rgba(116, 28, 36, 0.76);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-breakpoint-value.is-critical input {
+  border-color: rgba(255, 169, 169, 0.84);
+  background: rgba(122, 38, 47, 0.72);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-table {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-cell {
+  padding: 7px 4px;
+  border: 1px solid rgba(152, 179, 214, 0.18);
+  text-align: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-head {
+  background: rgba(46, 35, 41, 0.66);
+  color: rgba(248, 251, 255, 0.96);
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-value {
+  background: rgba(57, 76, 106, 0.52);
+  font-size: 13px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-value.is-reduced {
+  background: rgba(111, 80, 28, 0.62);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-armor-value.is-critical {
+  background: rgba(116, 28, 36, 0.76);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-table {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 64px minmax(0, 1fr);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-label,
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-value,
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-recharge-btn {
+  min-height: 34px;
+  border: 1px solid rgba(152, 179, 214, 0.18);
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 5px;
+  background: rgba(46, 35, 41, 0.66);
+  color: rgba(248, 251, 255, 0.96);
+  font-weight: 700;
+  text-transform: capitalize;
+  font-size: 10px;
+  line-height: 1.05;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  background: rgba(57, 76, 106, 0.52);
+  font-size: 14px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-value input {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-shields-recharge-btn {
+  border-radius: 0;
+  padding: 4px 5px;
+  font-size: 10px;
+  line-height: 1.05;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-custom-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-custom-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-custom-table th,
+.mythic-vehicle-fallback-sheet .vehicle-overview-custom-table td {
+  border: 1px solid rgba(152, 179, 214, 0.18);
+  background: rgba(57, 76, 106, 0.52);
+  padding: 6px;
+  text-align: center;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-custom-table th {
+  min-width: 84px;
+  background: rgba(46, 35, 41, 0.66);
+  color: rgba(248, 251, 255, 0.96);
+  font-weight: 700;
+}
+
+.mythic-vehicle-fallback-sheet .vehicle-overview-custom-name-cell {
+  min-width: 0;
+}
+
+@media (max-width: 980px) {
+  .mythic-vehicle-fallback-sheet .vehicle-overview-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-overview-shields-table {
+    grid-template-columns: 56px minmax(0, 1fr) 56px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .mythic-vehicle-fallback-sheet .vehicle-overview-status-message-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-overview-status-row {
+    grid-template-columns: minmax(0, 1fr) 38px;
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-overview-subsection-header {
+    align-items: flex-start;
+  }
+
+  .mythic-vehicle-fallback-sheet .vehicle-overview-subsection-header-right {
+    gap: 6px;
+  }
+}
+
+.vehicle-crew-status-pill.status-npc {
+  background-color: var(--crew-warning-bg);
+  color: var(--crew-warning);
+}

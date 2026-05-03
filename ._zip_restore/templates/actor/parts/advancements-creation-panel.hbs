@@ -1,0 +1,290 @@
+<div class="ccadv-panel {{#unless mythicCcAdv.isCreationActive}}is-hidden{{/unless}}" data-subtab-panel="creation">
+  <div class="mythic-phase4-card full-width ccadv-wip-notice">
+    <p class="ccadv-note"><strong>⚠ Work In Progress:</strong> This section is actively being developed. Some features are incomplete and may change.</p>
+  </div>
+  <div class="mythic-phase4-card full-width ccadv-creation-lock-status {{#if mythicCcAdv.isCharacterCreationComplete}}is-finalized{{else}}is-open{{/if}}">
+    {{#if mythicCcAdv.isCharacterCreationComplete}}
+      <p class="ccadv-note"><strong>Character Creation Status:</strong> Finalized and locked for players.</p>
+      <p class="ccadv-note">Players can still view this tab, but only a GM can unlock edits.</p>
+    {{else}}
+      <p class="ccadv-note"><strong>Character Creation Status:</strong> Open for editing.</p>
+    {{/if}}
+    {{#if mythicCcAdv.userIsGM}}
+      <button type="button" class="action-btn cc-toggle-lock-btn">{{#if mythicCcAdv.isCharacterCreationComplete}}Unlock Character Creation{{else}}Lock Character Creation{{/if}} (GM)</button>
+    {{/if}}
+  </div>
+
+  <div class="ccadv-creation-lockable {{#if mythicCcAdv.isCreationLocked}}is-locked{{/if}}" {{#if mythicCcAdv.isCreationLocked}}inert{{/if}}>
+  <details class="ccadv-stage" data-collapse-key="ccadv-creation-soldier-type" open>
+    <summary>2. Soldier Type Selection</summary>
+    <div class="mythic-phase4-card full-width">
+      <div class="ccadv-soldier-type-row">
+        <div class="mythic-mini-field ccadv-soldier-type-field"><span>Current Soldier Type</span><input type="text" value="{{mythicHeader.values.soldierTypeFull}}" readonly /></div>
+        <button type="button" class="action-btn compendium-icon-btn creation-open-soldier-types-btn" title="Open Mythic Soldier Types compendium">
+          <i class="fas fa-book"></i> +
+        </button>
+        <p class="ccadv-note">Open the Soldier Types compendium and apply the selected Soldier Type during creation.</p>
+        {{#if mythicSoldierTypeScaffold.orionAugmentation.enabled}}
+          <p class="ccadv-note"><strong>Orion Scaffold:</strong> {{#if mythicSoldierTypeScaffold.orionAugmentation.notes}}{{mythicSoldierTypeScaffold.orionAugmentation.notes}}{{else}}Becoming an ORION Soldier is scaffolded for Advancement flow and not enforced yet.{{/if}}</p>
+        {{/if}}
+        {{#if mythicSoldierTypeScaffold.naturalArmorScaffold.enabled}}
+          <p class="ccadv-note"><strong>Natural Armor Scaffold:</strong> {{#if mythicSoldierTypeScaffold.naturalArmorScaffold.notes}}{{mythicSoldierTypeScaffold.naturalArmorScaffold.notes}}{{else}}Natural Armor is recorded for this Soldier Type but not yet applied automatically to DR.{{/if}}</p>
+        {{/if}}
+      </div>
+    </div>
+  </details>
+
+  <details class="ccadv-stage" data-collapse-key="ccadv-creation-path" open>
+    <summary>3. Upbringing / Environment / Lifestyle</summary>
+    <div class="mythic-phase4-card full-width creation-path-card">
+      <h3>Upbringing, Environment, and Lifestyles</h3>
+
+      <div class="creation-path-grid two-column">
+        <div class="creation-path-field">
+          <div class="creation-path-row">
+            <label>Upbringing</label>
+            <div class="creation-dropzone" data-kind="upbringing" title="Drag a Upbringing item here">
+              {{#if mythicAdvancements.creationPath.selectedUpbringingName}}
+                {{mythicAdvancements.creationPath.selectedUpbringingName}}
+              {{else}}
+                Drop Upbringing Here
+              {{/if}}
+            </div>
+            {{#if mythicAdvancements.creationPath.selectedUpbringingHasChoices}}
+              <button type="button" class="action-btn creation-upbringing-prompt-btn">Choices</button>
+            {{/if}}
+            <button type="button" class="action-btn compendium-icon-btn creation-open-upbringings-btn" title="Open Upbringings compendium"><i class="fas fa-book"></i> +</button>
+            <button type="button" class="action-btn creation-clear-btn" data-kind="upbringing">Clear</button>
+          </div>
+          {{#if mythicAdvancements.creationPath.upbringingRestrictionLabel}}
+            <div class="creation-path-meta">
+              <span class="creation-path-pill warning">{{mythicAdvancements.creationPath.upbringingRestrictionLabel}}</span>
+            </div>
+          {{/if}}
+          {{#if mythicAdvancements.creationPath.upbringingChoicePills.length}}
+            <div class="creation-path-meta">
+              {{#each mythicAdvancements.creationPath.upbringingChoicePills}}
+                <span class="creation-path-pill">{{this}}</span>
+              {{/each}}
+            </div>
+          {{/if}}
+        </div>
+
+        <div class="creation-path-field">
+          <div class="creation-path-row">
+            <label>Environment</label>
+            <div class="creation-dropzone" data-kind="environment" title="Drag an Environment item here">
+              {{#if mythicAdvancements.creationPath.selectedEnvironmentName}}
+                {{mythicAdvancements.creationPath.selectedEnvironmentName}}
+              {{else}}
+                Drop Environment Here
+              {{/if}}
+            </div>
+            {{#if mythicAdvancements.creationPath.selectedEnvironmentHasChoices}}
+              <button type="button" class="action-btn creation-environment-prompt-btn">Choices</button>
+            {{/if}}
+            <button type="button" class="action-btn compendium-icon-btn creation-open-environments-btn" title="Open Environments compendium"><i class="fas fa-book"></i> +</button>
+            <button type="button" class="action-btn creation-clear-btn" data-kind="environment">Clear</button>
+          </div>
+          <div class="creation-path-meta">
+            {{#each mythicAdvancements.creationPath.environmentMetaPills}}
+              <span class="creation-path-pill">{{this}}</span>
+            {{/each}}
+            {{#unless mythicAdvancements.creationPath.selectedEnvironmentIsAllowed}}
+              <span class="creation-path-pill warning">Invalid for upbringing</span>
+            {{/unless}}
+          </div>
+        </div>
+      </div>
+
+      <div class="creation-path-lifestyles">
+        <div class="creation-path-lifestyle-header-row">
+          <h4>Lifestyles (up to 3)</h4>
+          <button type="button" class="action-btn compendium-icon-btn creation-open-lifestyles-btn" title="Open Lifestyles compendium"><i class="fas fa-book"></i> +</button>
+        </div>
+
+        {{#each mythicAdvancements.creationPath.lifestyles}}
+          <div class="creation-lifestyle-slot">
+            <div class="creation-path-row creation-path-row-lifestyle">
+              <label>Lifestyle {{slotNumber}}</label>
+              <div class="creation-dropzone" data-kind="lifestyle" data-slot-index="{{slotIndex}}" title="Drag a Lifestyle item here">
+                {{#if lifestyleName}}
+                  {{lifestyleName}}
+                {{else}}
+                  Drop Lifestyle Here
+                {{/if}}
+              </div>
+              <button type="button" class="action-btn creation-lifestyle-prompt-btn" data-slot-index="{{slotIndex}}">Variant</button>
+              {{#if hasVariantChoices}}
+                <button type="button" class="action-btn creation-lifestyle-choice-btn" data-slot-index="{{slotIndex}}">Choices</button>
+              {{/if}}
+              <button type="button" class="action-btn creation-clear-btn" data-kind="lifestyle" data-slot-index="{{slotIndex}}">Clear</button>
+            </div>
+
+            {{#if metaPills.length}}
+              <div class="creation-path-meta">
+                {{#each metaPills}}
+                  <span class="creation-path-pill">{{this}}</span>
+                {{/each}}
+              </div>
+            {{/if}}
+          </div>
+        {{/each}}
+      </div>
+    </div>
+  </details>
+
+  <details class="ccadv-stage" data-collapse-key="ccadv-creation-characteristics" open>
+    <summary>4. Characteristics Builder</summary>
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/characteristics-builder.hbs"}}
+  </details>
+
+  <details class="ccadv-stage" data-collapse-key="ccadv-creation-specialization" open>
+    <summary>5. Specialization Pack Selection</summary>
+    <p class="mythic-known-bug-badge"><strong>BUG:</strong> GM specialization override currently may leave original pack grants. Tracked in TODO for hard-fix.</p>
+    {{#if mythicSpecialization.isSmartAi}}
+      <div class="mythic-smart-ai-spec-panel">
+        <div class="mythic-smart-ai-spec-header">
+          <div class="mythic-core-identity-block mythic-smart-ai-spec-identity-block" title="Cognitive Pattern: The architectural framework governing how a Smart AI processes information, prioritizes decision pathways, and develops emergent decision heuristics.">
+            <div class="mythic-core-identity-title">{{#if mythicSpecialization.cognitivePattern}}{{mythicSpecialization.cognitivePattern}}{{else}}Not Yet Generated{{/if}}</div>
+            <div class="mythic-core-identity-meta">UNSC SMART AI <span class="mythic-core-identity-status">Spec Locked</span></div>
+          </div>
+        </div>
+        <p class="ccadv-note">Smart AIs do not receive a Specialization Pack. The Cognitive Pattern system replaces Specialization for this soldier type.</p>
+        {{#if mythicSpecialization.oniData}}
+          <details class="mythic-oni-classification-details">
+            <summary class="mythic-oni-classification-summary">ONI Classification (Internal)</summary>
+            <div class="mythic-oni-classification-block">
+              <div class="mythic-oni-field"><span>ONI Heuristic Model</span><span>{{mythicSpecialization.oniData.model}}</span></div>
+              <div class="mythic-oni-field"><span>Logic Structure</span><span>{{mythicSpecialization.oniData.logicStructure}}</span></div>
+              <div class="mythic-oni-field"><span>AI Serial</span><span>{{mythicSpecialization.oniData.serial}}</span></div>
+            </div>
+          </details>
+        {{/if}}
+      </div>
+    {{else}}
+      <div class="mythic-phase4-grid two-column">
+        <div class="mythic-phase4-card">
+          <h3>Selection</h3>
+          <label class="mythic-training-stack">
+            <span>Specialization Pack</span>
+            <select name="system.specialization.selectedKey" {{#unless mythicSpecialization.canChange}}disabled{{/unless}}>
+              <option value="">Select pack...</option>
+              {{#each mythicSpecialization.options as |opt|}}
+                <option value="{{opt.value}}"{{#if opt.selected}} selected{{/if}}>{{opt.label}}</option>
+              {{/each}}
+            </select>
+          </label>
+          <button type="button" class="action-btn specialization-confirm-btn" {{#unless mythicSpecialization.canChange}}disabled{{/unless}}>Confirm Specialization</button>
+          {{#if mythicSpecialization.isBlockedBySoldierType}}
+            <p class="ccadv-note"><strong>Unavailable:</strong> {{mythicSpecialization.blockedReason}}</p>
+          {{/if}}
+          {{#if mythicSpecialization.confirmed}}
+            <p class="mythic-specialization-final-note">Finalized. Only a GM can change this selection.</p>
+          {{/if}}
+        </div>
+
+        <div class="mythic-phase4-card">
+          <h3>Pack Details</h3>
+          {{#if mythicSpecialization.selected}}
+            <div class="mythic-specialization-detail-block">
+              <div><strong>{{mythicSpecialization.selected.name}}</strong>{{#if mythicSpecialization.selected.limited}} <span class="mythic-specialization-limited-tag">Limited Pack</span>{{/if}}</div>
+              {{#if mythicSpecialization.selected.limitedDescription}}
+                <p class="mythic-specialization-limited-description">{{mythicSpecialization.selected.limitedDescription}}</p>
+                <label class="mythic-toggle-row">
+                  <input type="checkbox" name="system.specialization.limitedApprovalChecked" {{checked mythicSpecialization.limitedApprovalChecked}} {{#unless mythicSpecialization.canChange}}disabled{{/unless}} />
+                  GM and party approved this limited pack.
+                </label>
+              {{/if}}
+              <h4>Abilities</h4>
+              <ul>
+                {{#each mythicSpecialization.selected.abilities as |ability|}}
+                  <li>{{ability}}</li>
+                {{/each}}
+              </ul>
+              <h4>Skill Training Grants</h4>
+              <ul>
+                {{#each mythicSpecialization.selected.skillGrants as |grant|}}
+                  <li>{{grant.skillName}} ({{grant.tier}})</li>
+                {{/each}}
+              </ul>
+              <p class="ccadv-note">Skill training overlaps are highest-wins and do not stack.</p>
+            </div>
+          {{else}}
+            <p>Select a Specialization Pack to preview its grants.</p>
+          {{/if}}
+        </div>
+      </div>
+    {{/if}}
+  </details>
+
+  <details class="ccadv-stage" data-collapse-key="ccadv-creation-outliers" open>
+    <summary>6. Outliers</summary>
+    <div class="mythic-phase4-card full-width ccadv-outliers-grid">
+      <div class="ccadv-outliers-list">
+        <h3>Available Outliers</h3>
+        <div class="ccadv-outliers-scroll">
+          {{#each mythicOutliers.options as |outlier|}}
+            <button type="button" class="action-btn outlier-select-btn {{#if outlier.selected}}is-active{{/if}}" data-outlier-key="{{outlier.key}}" title="{{#unless outlier.canPurchase}}{{outlier.unavailableReason}}{{/unless}}">{{outlier.name}}</button>
+          {{/each}}
+        </div>
+      </div>
+
+      <div class="ccadv-outliers-detail">
+        <h3>Description</h3>
+        {{#if mythicOutliers.selected}}
+          <h4>{{mythicOutliers.selected.name}}</h4>
+          <p class="ccadv-note">{{mythicOutliers.selected.description}}</p>
+          {{#unless mythicOutliers.canPurchase}}
+            <p class="ccadv-note"><strong>Unavailable:</strong> {{mythicOutliers.purchaseDisabledReason}}</p>
+          {{/unless}}
+        {{else}}
+          <p class="ccadv-note">Select an Outlier to view its rules text.</p>
+        {{/if}}
+      </div>
+
+      <div class="ccadv-outliers-purchased">
+        <button type="button" class="action-btn outlier-add-btn" title="{{mythicOutliers.purchaseDisabledReason}}" {{#unless mythicOutliers.canPurchase}}disabled{{/unless}}>Add Selected Outlier (Burn 1 Luck)</button>
+        <p class="ccadv-note">Burned Luck from Outliers: <strong>{{mythicOutliers.burnedLuckCount}}</strong></p>
+        <div class="ccadv-outliers-scroll">
+          {{#if mythicOutliers.purchased.length}}
+            <ul>
+              {{#each mythicOutliers.purchased as |entry|}}
+                <li>
+                  #{{entry.index}} {{entry.name}}{{#if entry.choiceLabel}} ({{entry.choiceLabel}}){{/if}}
+                  <button type="button" class="action-btn outlier-remove-btn" data-outlier-index="{{entry.listIndex}}">Remove</button>
+                </li>
+              {{/each}}
+            </ul>
+          {{else}}
+            <p class="ccadv-note">No purchased Outliers yet.</p>
+          {{/if}}
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details class="ccadv-stage" data-collapse-key="ccadv-creation-finalize" open>
+    <summary>Final Step: Finalize Character Creation</summary>
+    <div class="mythic-phase4-card full-width">
+      <div class="mythic-phase4-field-grid compact ccadv-starting-xp-row">
+        <div class="mythic-mini-field"><span>Total XP Earned</span><input type="number" value="{{mythicCreationFinalizeSummary.xpEarned}}" readonly /></div>
+        <div class="mythic-mini-field"><span>Total XP Spent</span><input type="number" value="{{mythicCreationFinalizeSummary.xpSpent}}" readonly /></div>
+        <div class="mythic-phase4-stat"><span>XP Remaining</span><strong>{{mythicCreationFinalizeSummary.xpAvailable}}</strong></div>
+      </div>
+      <p class="ccadv-note">Luck Summary: Burned from Outliers {{mythicCreationFinalizeSummary.burnedLuckCount}} | Current {{mythicCreationFinalizeSummary.luckCurrent}} / Max {{mythicCreationFinalizeSummary.luckMax}}</p>
+      {{#if mythicCcAdv.isCharacterCreationComplete}}
+        <div class="mythic-phase4-card full-width" style="border: 2px solid var(--mythic-accent); background: rgba(var(--mythic-accent-rgb, 255,200,0), 0.1);">
+          <p class="ccadv-note" style="font-weight: bold; color: var(--mythic-accent);">🔒 Character Creation is Finalized</p>
+          <p class="ccadv-note">This section is now locked. Changes require GM approval.</p>
+          {{#if mythicCcAdv.userIsGM}}
+            <button type="button" class="action-btn cc-toggle-lock-btn">🔓 Unlock for Player (GM Only)</button>
+          {{/if}}
+        </div>
+      {{else}}
+        <button type="button" class="action-btn cc-move-to-part-two-btn">Move to Part Two</button>
+      {{/if}}
+    </div>
+  </details>
+  </div>
+</div>

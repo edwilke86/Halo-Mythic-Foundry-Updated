@@ -332,6 +332,9 @@
                   <div class="mythic-ready-weapon-attacks">
                     {{#if weapon.hasChargeModeSelected}}
                       <button type="button" class="action-btn weapon-attack-btn weapon-charge-fire-btn" data-item-id="{{weapon.id}}" data-action="chargeFire">Fire</button>
+                    {{else if weapon.isGrenadeWeapon}}
+                    <button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="half" data-grenade-action="throw">Throw</button>
+                    <button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="half" data-grenade-action="cook">Cook</button>
                     {{else}}
                     {{#if weapon.showSustainedAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="single">Attack</button>{{/if}}
                     {{#if weapon.showSingleAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="single">Single Attack</button>{{/if}}
@@ -342,6 +345,19 @@
                     {{#if weapon.showPumpReactionAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="pump-reaction">Reaction Shot</button>{{/if}}
                     {{/if}}
                   </div>
+
+                  {{#if weapon.isGrenadeWeapon}}
+                  <div class="mythic-ready-weapon-row-inline">
+                    <span><strong>Total:</strong> {{weapon.grenadeTotal}}</span>
+                    {{#if weapon.grenadeThrowCanThrow}}
+                    <span title="Default throw range; actual range will be modified by the WFM test."><strong>Default Throw Range:</strong> {{weapon.grenadeThrowRangeMax}} m</span>
+                    {{#if weapon.grenadeThrowServoAssisted}}<span><strong>Servo-Assisted:</strong> +25 STR</span>{{/if}}
+                    {{else}}
+                    <span title="Default throw range; actual range will be modified by the WFM test."><strong>Default Throw Range:</strong> Cannot throw</span>
+                    {{#if weapon.grenadeThrowReason}}<span>({{weapon.grenadeThrowReason}})</span>{{/if}}
+                    {{/if}}
+                  </div>
+                  {{/if}}
 
                   {{#if weapon.hasChargeModeSelected}}
                   <div class="mythic-ready-weapon-charge-row">
@@ -407,11 +423,13 @@
 
                   <div class="mythic-ready-weapon-controls">
                     {{#unless weapon.isMelee}}
+                    {{#unless weapon.isGrenadeWeapon}}
                     <label>Scope
                       <select class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="scopeMode">
                         {{selectOptions weapon.scopeOptions selected=weapon.scopeMode}}
                       </select>
                     </label>
+                    {{/unless}}
                     {{/unless}}
                     <label>To Hit Mod
                       <input type="number" step="1" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="toHitModifier" value="{{weapon.toHitModifier}}" />
@@ -422,10 +440,12 @@
                   </div>
 
                   {{#unless weapon.isMelee}}
+                  {{#unless weapon.isGrenadeWeapon}}
                   <div class="mythic-ready-weapon-row-inline">
                     <span><strong>Reload:</strong> {{weapon.rangeReload}}</span>
                     <span><strong>{{weapon.ammoCapacityLabel}}:</strong> {{weapon.magazineMax}}</span>
                   </div>
+                  {{/unless}}
                   {{/unless}}
                 </article>
                 {{/each}}

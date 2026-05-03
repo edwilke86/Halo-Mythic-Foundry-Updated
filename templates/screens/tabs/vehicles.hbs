@@ -1,0 +1,125 @@
+<div class="gm-screen-grid">
+
+  <article class="gm-panel">
+    <h2>Vehicle Movement</h2>
+    <div class="gm-source-ref core">Ref: p.52</div>
+
+    <div class="gm-callout">
+      <div><strong>Top Speed:</strong> Maximum movement per Turn.</div>
+      <div><strong>Accelerate and Brake:</strong> Amount vehicle speeds up or slows down.</div>
+      <div><strong>Maneuver:</strong> Vehicle’s maximum Evasion Test.</div>
+    </div>
+  </article>
+
+
+  <article class="gm-panel">
+    <h2>To Hit Locations</h2>
+    <div class="gm-source-ref core">Ref: p.52</div>
+
+    <div class="gm-tool-row">
+      <button
+        type="button"
+        class="gm-tool-button"
+        data-action="roll-vehicle-location">
+        Roll Location
+      </button>
+
+      <div class="gm-tool-result" data-vehicle-location-result>
+        Result: —
+      </div>
+    </div>
+
+    <table class="gm-ref-table">
+      <thead>
+        <tr>
+          <th>Roll</th>
+          <th>Hit Location</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">1-15</th><td>Weapon</td></tr>
+        <tr><th scope="row">16-30</th><td>Mobility</td></tr>
+        <tr><th scope="row">31-45</th><td>Engine</td></tr>
+        <tr><th scope="row">46-60</th><td>Optics</td></tr>
+        <tr><th scope="row">61-100</th><td>Hull</td></tr>
+      </tbody>
+    </table>
+  </article>
+
+  <article class="gm-panel">
+    <h2>Vehicle Detonation</h2>
+    <div class="gm-source-ref core">Ref: p.53</div>
+
+    <table class="gm-ref-table">
+      <thead>
+        <tr>
+          <th>Point</th>
+          <th>Damage Modifier</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Size points</th>
+          <td>+1D10 Damage per 2 Size Points, +5 Damage</td>
+        </tr>
+        <tr>
+          <th scope="row">Weapon points</th>
+          <td>+1D10 Damage per 2 Weapon Points, +5 Pierce</td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+
+  <article class="gm-panel wide">
+    <h2>Doomed State</h2>
+    <div class="gm-source-ref core">Ref: p.53</div>
+
+    <table class="gm-ref-table vehicle-doomed-table">
+      <thead>
+        <tr>
+          <th>Damage</th>
+          <th>Outcome</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">1-10</th>
+          <td>Nothing happens.</td>
+        </tr>
+        <tr>
+          <th scope="row">11-20</th>
+          <td>The Vehicle’s current Armor is reduced by 1 on all Locations.</td>
+        </tr>
+        <tr>
+          <th scope="row">21-30</th>
+          <td>The Vehicle’s current Armor is reduced by 2 on all Locations. A Character within the Vehicle takes the Damage of the Attack, reduced by half of the current Armor of the Vehicle.</td>
+        </tr>
+        <tr>
+          <th scope="row">31-40</th>
+          <td>The Vehicle’s current Armor is reduced by 3 on all Locations. A Character within the Vehicle takes the full Damage of the Attack.</td>
+        </tr>
+        <tr>
+          <th scope="row">41-50</th>
+          <td>The Vehicle’s current Armor is reduced by 4 on all Locations. The Vehicle can’t move and any weapon that needs an engine to move can no longer turn and aim.</td>
+        </tr>
+        <tr>
+          <th scope="row">51-65</th>
+          <td>The Vehicle’s current Armor is reduced by 5 on all Locations. The Vehicle catches fire and the Characters inside will take Flame (2) each Round until they escape.</td>
+        </tr>
+        <tr>
+          <th scope="row">66-80</th>
+          <td>The Vehicle catches fire and major sections of the Vehicle have been destroyed. The Vehicle’s ammunition and fuel will soon detonate. The Characters have 4 Rounds to escape the Vehicle before it fully detonates. The Blast Radius is half of the Vehicle’s Weapon Points and Size Points combined. The Kill Radius is half of the Blast Radius.</td>
+        </tr>
+        <tr>
+          <th scope="row">81-99</th>
+          <td>The Vehicle violently explodes due to the damage to the fuel systems and ammunition in the Vehicle. This gives the Characters 2 Rounds to escape before the Vehicle fully detonates. The Blast Radius the Vehicle’s Weapon Points and half of the Size Points combined. The Kill Radius is half of the Blast Radius.</td>
+        </tr>
+        <tr class="gm-ref-table-emphasis">
+          <th scope="row">100+</th>
+          <td>The Vehicle instantly detonates with no chance of escaping. The Blast Radius the Vehicle’s Weapon Points and Size Points combined. The Kill Radius is half of the Blast Radius.</td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+
+</div>

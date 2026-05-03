@@ -1,0 +1,99 @@
+<nav class="gear-item-tabs-nav tabs" data-group="explosives-tabs">
+  <a class="item" data-tab="general">General</a>
+  <a class="item" data-tab="special-rules">Special Rules</a>
+</nav>
+
+<div class="gear-item-tabs-content">
+  <section class="tab" data-tab="general" data-group="explosives-tabs">
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-training">Weapon Type</label>
+        <select id="gear-training" name="system.training" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each rangedTrainingOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-weapon-type">Weapon Category</label>
+        <select id="gear-weapon-type" name="system.weaponType" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each explosiveWeaponCategoryOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+    </div>
+
+    <div class="ability-grid-4">
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-dice-count">Damage Roll</label>
+        <div class="gear-damage-roll-inline">
+          <input id="gear-dmg-dice-count" type="number" min="0" step="1" name="system.damage.diceCount" value="{{gear.damage.diceCount}}" {{#unless canEditFields}}disabled{{/unless}} />
+          <select id="gear-dmg-dice-type" name="system.damage.diceType" {{#unless canEditFields}}disabled{{/unless}}>
+            {{#each damageDieTypeOptions as |opt|}}
+            <option value="{{opt.value}}" {{#if (eq ../gear.damage.diceType opt.value)}}selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-base">Base Damage</label>
+        <input id="gear-dmg-base" type="number" min="0" step="1" name="system.damage.baseDamage" value="{{gear.damage.baseDamage}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-pierce">Pierce</label>
+        <input id="gear-dmg-pierce" type="number" step="1" name="system.damage.pierce" value="{{gear.damage.pierce}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-base-to-hit-mod">To Hit Mod</label>
+        <input id="gear-base-to-hit-mod" type="number" step="1" name="system.baseToHitModifier" value="{{gear.baseToHitModifier}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-description">Description</label>
+      <textarea id="gear-description" name="system.description" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Tags</p>
+      <div class="ability-grid-3">
+        {{#each weaponTagOptions as |opt|}}
+        <label class="ability-checkbox-row">
+          <input type="checkbox" name="system.weaponTagKeys" value="{{opt.key}}" {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+          <span>{{opt.label}}</span>
+        </label>
+        {{/each}}
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" data-tab="special-rules" data-group="explosives-tabs">
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Explosive Weapon Special Rules</p>
+      <div class="ability-grid-3">
+        {{#each weaponSpecialRuleOptions as |opt|}}
+        <label class="ability-checkbox-row">
+          <input type="checkbox" name="system.weaponSpecialRuleKeys" value="{{opt.key}}" {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+          <span>{{opt.label}}</span>
+          {{#if opt.hasInlineValueField}}
+          {{#if opt.selected}}
+          <input type="text" class="photo-reactive-inline-value" name="system.weaponSpecialRuleValues.{{opt.key}}" value="{{opt.inlineValue}}" placeholder="X / Xd5 / Xd10" {{#unless ../canEditFields}}disabled{{/unless}} />
+          {{/if}}
+          {{/if}}
+        </label>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-col" style="max-width: 260px;">
+      <label for="gear-concealment-bonus">Concealment Bonus</label>
+      <input id="gear-concealment-bonus" type="text" name="system.concealmentBonus" value="{{concealmentBonus}}" placeholder="0 / +10 / Xd5" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-special-rules">Special Rule Notes</label>
+      <textarea id="gear-special-rules" name="system.specialRules" rows="8" {{#unless canEditFields}}disabled{{/unless}}>{{gear.specialRules}}</textarea>
+    </div>
+  </section>
+</div>

@@ -8,6 +8,10 @@ import { getOutlierEffectSummary } from "../mechanics/outliers.mjs";
 import { getSkillTierBonus } from "../reference/ref-utils.mjs";
 import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
 import { MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY } from "../config.mjs";
+import {
+  getBerserkerEvasionTestModifier,
+  triggerBerserkerFromDamage
+} from "../mechanics/berserker.mjs";
 
 const SPECIAL_DAMAGE_LOCATION_KEY_OVERRIDES = Object.freeze({
   eyes: "eye",
@@ -431,7 +435,8 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
       const evasionMod = Number(evasionSkill.modifier ?? 0);
       const reactionPenalty = reactionCount * -10;
       const fatiguePenalty = getFatigueRollModifier(targetActor);
-      const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty + miscModifier + fatiguePenalty);
+      const berserkerPenalty = getBerserkerEvasionTestModifier(targetActor, targetActor.system ?? {});
+      const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty + miscModifier + fatiguePenalty + berserkerPenalty.modifier);
 
       const evasionRoll = await new Roll("1d100").evaluate();
       messageRolls.push(evasionRoll);
@@ -514,7 +519,7 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
             A${incoming.attackIndex}: <strong>${evasionDegreeText}</strong> vs <strong>${attackDegreeText}</strong> Attack ${attackDOS >= 0 ? "DOS" : "DOF"} -
             <span class="mythic-attack-verdict ${isEvaded ? "success" : "failure"}">${isEvaded ? "Attack Evaded" : "Attack Hits"}</span>
           </summary>
-          <div class="mythic-evasion-roll-detail">Roll: <span class="mythic-roll-inline" title="${evasionRollTitle}">${evasionResult}</span> vs <span class="mythic-roll-target" title="Evasion target">${evasionTarget}</span></div>
+          <div class="mythic-evasion-roll-detail">Roll: <span class="mythic-roll-inline" title="${evasionRollTitle}">${evasionResult}</span> vs <span class="mythic-roll-target" title="Evasion target">${evasionTarget}</span>${berserkerPenalty.modifier ? ` (${foundry.utils.escapeHTML(berserkerPenalty.notes.join(", "))})` : ""}</div>
           ${shieldDetailLine}
           ${kineticDetailLine}
           ${headshotDetailLine}
@@ -740,6 +745,12 @@ export async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sc
     updateData["system.combat.shields.current"] = shieldsRemaining;
   }
   await targetActor.update(updateData);
+  await triggerBerserkerFromDamage(targetActor, {
+    woundDamage,
+    maxWounds,
+    tokenId,
+    sceneId
+  });
 
   const qualifiesForSpecialDamage = isMedicalAutomationEnabled() && woundDamage > 0 && (
     Boolean(options?.hasSpecialDamage)
@@ -858,7 +869,8 @@ export async function mythicRollEvadeIntoCover(messageId, attackData, targetMode
       : 0;
     const reactionPenalty = currentReactions * -10;
     const fatiguePenalty = getFatigueRollModifier(actor);
-    const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty + grenadePenalty + fatiguePenalty);
+    const berserkerPenalty = getBerserkerEvasionTestModifier(actor, actor.system ?? {});
+    const evasionTarget = Math.max(0, agiValue + tierBonus + evasionMod + reactionPenalty + grenadePenalty + fatiguePenalty + berserkerPenalty.modifier);
 
     const roll = await new Roll("1d100").evaluate();
     rolls.push(roll);
@@ -871,7 +883,8 @@ export async function mythicRollEvadeIntoCover(messageId, attackData, targetMode
       tokenName: token?.name ?? actor.name,
       degreeLabel,
       rollTitle,
-      resultClass
+      resultClass,
+      berserkerNote: berserkerPenalty.notes.join(", ")
     });
 
     if (tracksReactions) {
@@ -882,7 +895,7 @@ export async function mythicRollEvadeIntoCover(messageId, attackData, targetMode
   const lineHtml = rows.map((row) => `
     <div class="mythic-evasion-line ${row.resultClass === "success" ? "success" : "failure"}">
       <strong>${foundry.utils.escapeHTML(row.tokenName)}</strong> -
-      <span class="mythic-roll-inline" title="${row.rollTitle}">${foundry.utils.escapeHTML(row.degreeLabel)}</span>
+      <span class="mythic-roll-inline" title="${row.rollTitle}">${foundry.utils.escapeHTML(row.degreeLabel)}</span>${row.berserkerNote ? ` <span class="mythic-evasion-roll-detail">(${foundry.utils.escapeHTML(row.berserkerNote)})</span>` : ""}
     </div>
   `).join("");
 
@@ -930,6 +943,12 @@ async function applyCompactGrenadeDamage(messageId, attackData, targetMode = "se
     await actor.update({
       "system.combat.shields.current": resolved.shieldsRemaining,
       "system.combat.wounds.current": nextWounds
+    });
+    await triggerBerserkerFromDamage(actor, {
+      woundDamage: resolved.woundDamage,
+      maxWounds: actor.system?.combat?.wounds?.max,
+      tokenId: token?.id ?? "",
+      sceneId: attackData?.sceneId ?? canvas?.scene?.id ?? ""
     });
 
     rows.push({

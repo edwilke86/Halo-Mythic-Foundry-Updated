@@ -1,0 +1,182 @@
+<div class="tab skills" data-group="primary" data-tab="skills">
+  <section class="panel mythic-skills-tab">
+    <h2>Skills</h2>
+    {{#if mythicDerived.outliers.poised.enabled}}
+      <p class="ccadv-note">Poised: successful Social Skill tests can shift disposition one step up or down.</p>
+    {{/if}}
+    {{#if mythicDerived.outliers.olympian.enabled}}
+      <p class="ccadv-note">Olympian: halve penalties from difficult terrain, swimming, and climbing.</p>
+    {{/if}}
+    <div class="mythic-skills-table">
+
+      <div class="mythic-skills-col-headers">
+        <div>Name</div>
+        <div>Difficulty</div>
+        <div>Type</div>
+        <div>Characteristic</div>
+        <div>Training</div>
+        <div>Modifiers</div>
+        <div>Roll</div>
+        <div></div>
+      </div>
+
+      {{#each mythicSkills.base as |skill|}}
+        {{!-- Skills with variants: render ONLY the variants, no parent row --}}
+        {{#if skill.variantList.length}}
+          {{#each skill.variantList as |variant|}}
+            <div class="mythic-skills-row">
+              <div class="skills-col-name">{{skill.label}} ({{variant.label}}){{#if variant.notes}}<div class="skills-inline-note">{{variant.notes}}</div>{{/if}}</div>
+              <div class="skills-col-difficulty">{{variant.categoryLabel}}</div>
+              <div class="skills-col-type">{{variant.groupLabel}}</div>
+              <div class="skills-col-characteristic">
+                <select name="system.skills.base.{{skill.key}}.variants.{{variant.key}}.selectedCharacteristic">
+                  {{selectOptions variant.characteristicDisplayOptions selected=variant.selectedCharacteristic}}
+                </select>
+              </div>
+              <div class="skills-col-training">
+                <select name="system.skills.base.{{skill.key}}.variants.{{variant.key}}.tier">
+                  {{selectOptions @root.mythicSkillTierOptions selected=variant.tier}}
+                </select>
+              </div>
+              <div class="skills-col-modifiers">
+                <input type="number" name="system.skills.base.{{skill.key}}.variants.{{variant.key}}.modifier" value="{{variant.modifier}}" />
+              </div>
+              <div class="skills-col-roll roll-skill" data-roll-label="{{skill.label}} ({{variant.label}})" data-roll-group="{{skill.group}}" data-roll-target="{{variant.rollTarget}}" title="Click to roll">{{variant.rollTarget}}</div>
+              <div class="skills-col-delete"></div>
+            </div>
+          {{/each}}
+        {{else}}
+          {{!-- Skills without variants: render the skill itself --}}
+          <div class="mythic-skills-row">
+            <div class="skills-col-name">{{skill.label}}{{#if skill.notes}}<div class="skills-inline-note">{{skill.notes}}</div>{{/if}}</div>
+            <div class="skills-col-difficulty">{{skill.categoryLabel}}</div>
+            <div class="skills-col-type">{{skill.groupLabel}}</div>
+            <div class="skills-col-characteristic">
+              <select name="system.skills.base.{{skill.key}}.selectedCharacteristic">
+                {{selectOptions skill.characteristicDisplayOptions selected=skill.selectedCharacteristic}}
+              </select>
+            </div>
+            <div class="skills-col-training">
+              <select name="system.skills.base.{{skill.key}}.tier">
+                {{selectOptions ../mythicSkillTierOptions selected=skill.tier}}
+              </select>
+            </div>
+            <div class="skills-col-modifiers">
+              <input type="number" name="system.skills.base.{{skill.key}}.modifier" value="{{skill.modifier}}" />
+            </div>
+            <div class="skills-col-roll roll-skill" data-roll-label="{{skill.label}}" data-roll-group="{{skill.group}}" data-roll-target="{{skill.rollTarget}}" title="Click to roll">{{skill.rollTarget}}</div>
+            <div class="skills-col-delete"></div>
+          </div>
+        {{/if}}
+      {{/each}}
+
+      {{#each mythicSkills.custom as |skill|}}
+        <div class="mythic-skills-row">
+          <div class="skills-col-name">{{skill.label}} <span class="skills-custom-tag">Custom</span>{{#if skill.notes}}<div class="skills-inline-note">{{skill.notes}}</div>{{/if}}</div>
+          <div class="skills-col-difficulty">{{skill.categoryLabel}}</div>
+          <div class="skills-col-type">{{skill.groupLabel}}</div>
+          <div class="skills-col-characteristic">
+            <select name="system.skills.custom.{{@index}}.selectedCharacteristic">
+              {{selectOptions skill.characteristicDisplayOptions selected=skill.selectedCharacteristic}}
+            </select>
+          </div>
+          <div class="skills-col-training">
+            <select name="system.skills.custom.{{@index}}.tier">
+              {{selectOptions ../mythicSkillTierOptions selected=skill.tier}}
+            </select>
+          </div>
+          <div class="skills-col-modifiers">
+            <input type="number" name="system.skills.custom.{{@index}}.modifier" value="{{skill.modifier}}" />
+          </div>
+          <div class="skills-col-roll roll-skill" data-roll-label="{{skill.label}}" data-roll-group="{{skill.group}}" data-roll-target="{{skill.rollTarget}}" title="Click to roll">{{skill.rollTarget}}</div>
+          <div class="skills-col-delete">
+            <button class="skills-remove-btn action-btn" type="button" data-skill-index="{{@index}}" title="Remove custom skill">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      {{/each}}
+
+    </div>
+    <div class="section-actions-row">
+      <button class="skills-add-custom-btn action-btn" type="button" title="Add custom skill">
+        <i class="fas fa-plus"></i> Custom
+      </button>
+    </div>
+  </section>
+
+  <!-- ═══ Educations ═══════════════════════════════════════════════════════ -->
+  <section class="panel mythic-educations-section">
+    <h2>Educations</h2>
+    <p class="ccadv-note">Known Educations: {{mythicEducations.length}} / {{mythicDerived.outliers.acumen.educationCapacity}}. {{#if mythicDerived.outliers.acumen.enabled}}Acumen triples INT modifier for language and education caps.{{else}}Education cap equals INT modifier.{{/if}}</p>
+
+    {{#if mythicEducations.length}}
+    <div class="mythic-educations-table">
+
+      <div class="mythic-edu-col-headers">
+        <div>Name</div>
+        <div>Difficulty</div>
+        <div>Related Skills</div>
+        <div>Use Skill</div>
+        <div>Tier</div>
+        <div>Mod</div>
+        <div>Roll</div>
+        <div></div>
+      </div>
+
+      {{#each mythicEducations as |edu|}}
+        <div class="mythic-edu-row">
+          <div class="edu-col-name">
+            {{edu.name}}{{#if edu.restricted}} <span class="edu-restricted-star" title="Restricted">✦</span>{{/if}}
+          </div>
+          <div class="edu-col-difficulty">{{edu.difficultyLabel}}</div>
+          <div class="edu-col-skills" title="{{edu.skills}}">{{edu.skills}}</div>
+          <div class="edu-col-skill">
+            {{#if edu.skillOptions.length}}
+              <select class="edu-field-input" data-item-id="{{edu.id}}" data-field="selectedSkill">
+                {{selectOptions edu.skillOptions selected=edu.selectedSkill}}
+              </select>
+            {{else}}
+              <span class="edu-no-skill">—</span>
+            {{/if}}
+          </div>
+          <div class="edu-col-tier">
+            <select class="edu-field-input" data-item-id="{{edu.id}}" data-field="tier">
+              {{selectOptions ../mythicEducationTierOptions selected=edu.tier}}
+            </select>
+          </div>
+          <div class="edu-col-modifier">
+            <input type="number" class="edu-field-input" data-item-id="{{edu.id}}" data-field="modifier" value="{{edu.modifier}}" min="-200" max="200" />
+          </div>
+          <div class="edu-col-roll roll-education"
+               data-roll-label="{{edu.rollLabel}}"
+            data-roll-group="{{edu.rollGroup}}"
+               data-roll-target="{{edu.rollTarget}}"
+               title="Click to roll {{edu.rollLabel}} test">
+            {{edu.rollTarget}}
+          </div>
+          <div class="edu-col-delete">
+            <button class="edu-remove-btn action-btn" data-item-id="{{edu.id}}" type="button" title="Remove education">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      {{/each}}
+
+    </div>
+    {{else}}
+      <p class="edu-empty-hint">No educations — drag an item from the <em>Educations</em> compendium to add one.</p>
+    {{/if}}
+
+    <div class="section-actions-row">
+      <button class="edu-open-compendium-btn action-btn" type="button" title="Open Educations compendium">
+        <i class="fas fa-book"></i> +
+      </button>
+      <button class="edu-add-custom-btn action-btn" type="button" title="Create custom education">
+        <i class="fas fa-plus"></i> Custom
+      </button>
+    </div>
+    <p class="ccadv-note">Adding educations here is allowed, but XP is handled automatically only when purchased through the Advancement page.</p>
+
+  </section>
+</div>

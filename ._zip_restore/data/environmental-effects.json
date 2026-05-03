@@ -1,0 +1,117 @@
+[
+  {
+    "key": "extreme-temperatures",
+    "name": "Extreme Temperatures",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "Optional temperature effects measured in Celsius.",
+    "temperatureBands": [
+      { "min": 51, "max": null, "label": "51 and up", "summaryText": "Heat exhaustion in full effect.", "mechanicalText": "-20 to Perception and -20 to Warfare Characteristics. Toughness Test at -20 or gain a Fatigue every 10 minutes." },
+      { "min": 40, "max": 50, "label": "40 to 50", "summaryText": "Heat exhaustion begins setting in.", "mechanicalText": "-10 to Perception. Toughness Test or gain a Fatigue every hour." },
+      { "min": -19, "max": 40, "label": "-19 to 40", "summaryText": "The body is not affected.", "mechanicalText": "No temperature effect." },
+      { "min": -39, "max": -20, "label": "-20 to -39", "summaryText": "The body is slowed down.", "mechanicalText": "Temporary -10 to Agility. Toughness Test or gain a Fatigue every hour." },
+      { "min": -50, "max": -40, "label": "-40 to -50", "summaryText": "Hard to focus, shaking body.", "mechanicalText": "-20 to Agility, -20 to Warfare Characteristic Tests. Toughness Test at -20 or gain a Fatigue every 10 minutes." },
+      { "min": null, "max": -51, "label": "-51 and under", "summaryText": "Minimal breathing, poor reflexes.", "mechanicalText": "-30 to Agility, -30 to Warfare Characteristic Tests. Toughness Test at -30 or gain a Fatigue every 5 minutes." }
+    ],
+    "sourceText": "The body can only perform so well within high and extreme temperatures. Once the body is forced to perform within these extremes, complications begin. These temperatures are recorded in Celsius. This is an optional system the GM does not have to worry about, GM discretion is advised."
+  },
+  {
+    "key": "radiation-poisoning",
+    "name": "Radiation Poisoning",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "Permanent wound reduction; every 5 points causes 1 permanent Fatigue.",
+    "mechanicalText": "Radiation Poisoning adds to existing Radiation Poisoning. Total Wounds are permanently reduced by the Radiation Poisoning score. At every 5 Radiation Poisoning, gain 1 permanent Fatigue. If total Wounds reach 0, the Character dies.",
+    "recoveryText": "Requires an Extended Medical Test to remove.",
+    "sourceText": "Radiation Poisoning is a Medical Effect that degrades a Character's body. Whenever a Character gains Radiation Poisoning, it will add to any Radiation Poisoning already gained. A Character's total amount of Wounds are permanently reduced by the Radiation Poisoning a Character has. For every 5 Radiation Poisoning a Character has, the Character gains 1 permanent level of Fatigue. If a Character's total Wounds become 0, the Character dies. The Character must receive an Extended Medical Test to remove Radiation Poisoning."
+  },
+  {
+    "key": "radiation-levels",
+    "name": "Radiation Levels",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "Per-hour radiation effects based on RL 1 through 10.",
+    "radiationLevels": [
+      { "rollRange": "01-05", "rl": 1, "effect": "Radiation Poisoning (1)" },
+      { "rollRange": "06-15", "rl": 2, "effect": "Radiation Poisoning (2)" },
+      { "rollRange": "16-25", "rl": 3, "effect": "Radiation Poisoning (4)" },
+      { "rollRange": "26-40", "rl": 4, "effect": "Radiation Poisoning (6)" },
+      { "rollRange": "41-60", "rl": 5, "effect": "Radiation Poisoning (8)" },
+      { "rollRange": "61-75", "rl": 6, "effect": "Radiation Poisoning (12)" },
+      { "rollRange": "76-85", "rl": 7, "effect": "Radiation Poisoning (16)" },
+      { "rollRange": "86-95", "rl": 8, "effect": "Unconscious, Radiation Poisoning (1D10+10)" },
+      { "rollRange": "96-99", "rl": 9, "effect": "Unconscious, Radiation Poisoning (3D10+10)" },
+      { "rollRange": "100", "rl": 10, "effect": "Instant Death" }
+    ],
+    "sourceText": "Effects gained from Radiation Poisoning are on a per hour basis of being within the Radiation. The effects are gained at the beginning of each hour the Character is in the irradiated environment, though the Characters have a small leeway of 3 Turns before first taking the effects when first encountering Radiation."
+  },
+  {
+    "key": "electrocution",
+    "name": "Electrocution",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "Five levels of severity; each level is the number of D10s dealt at the start of each Turn.",
+    "mechanicalText": "Electrocution ignores Armor and half of Toughness and Mythic Toughness. Escape requires a Full Action Strength Test at -10 per severity level, up to -50. Helpers also become electrocuted at one lower severity.",
+    "sourceText": "Electrocution comes in 5 levels of severity, where the level chosen is the amount of D10s the Character takes in damage at the beginning of each Turn. Electrocution ignores the Character's Armor and half of their Toughness and Mythic Toughness."
+  },
+  {
+    "key": "on-fire",
+    "name": "On Fire",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "Fire deals ongoing damage ignoring Damage Resistance until put out.",
+    "mechanicalText": "Exposure requires a Half Action Agility Test to avoid catching fire. Putting out flames is a +10 Agility Test that improves by +10 each round spent on fire. Base fire deals 2D5 ignoring Damage Resistance, up to 5D5 for being fully engulfed.",
+    "sourceText": "Characters, who are on fire, or at least in it, take constant damage until the fire is put out. When a character is exposed to the fire, the character must make a Half Action Agility Test or catch on fire."
+  },
+  {
+    "key": "space-without-protection",
+    "name": "Space Without Protection",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "Within 3 Turns the Character goes unconscious, then takes repeating radiation, damage, and characteristic loss.",
+    "mechanicalText": "Every Round after unconsciousness: Radiation Poisoning (+1), 5 Damage ignoring Damage Resistance, -5 Strength as Special Damage, and -5 Toughness as Special Damage. Recovery of lost Strength and Toughness requires medical attention at 5 per day.",
+    "sourceText": "Space, without protection, is incredibly dangerous. Within 3 Turns (18 seconds) of being in space without protection, the Character goes unconscious. Every Round after, the Character takes the following set of effects: Radiation Poisoning (+1), 5 Damage ignoring Damage Resistance, -5 to Strength Characteristic as Special Damage, -5 to Toughness Characteristic as Special Damage."
+  },
+  {
+    "key": "flood-spores",
+    "name": "Flood Spores",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "Every 10 Rounds, make a +20 Toughness Test or spend Luck or become infected.",
+    "mechanicalText": "The infection takes 40 Rounds to take over unless the Flood delays activation. Vacuum suits, rebreathers, gas masks, and listed species protections prevent exposure.",
+    "sourceText": "For every 10 Rounds a Character is in an environmental location filled with Flood Spores, that Character must make a +20 Toughness Test. If Failed, the Character must spend a Luck Point or become infected."
+  },
+  {
+    "key": "slow-decompression",
+    "name": "Slow Decompression",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "3D10 Special Damage to Lungs, Heart, and Brain Sublocations, increasing by +1D10 each hour.",
+    "sourceText": "When inside a sealed system undergoing Slow Decompression, a Character will take 3D10 Special Damage to their Lungs, Heart, and Brain Sublocations. For each hour after, the Special Damage gained will increase by +1D10, stacking with each previous hour."
+  },
+  {
+    "key": "rapid-decompression",
+    "name": "Rapid Decompression",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "5D10 Special Damage to Lungs and Heart plus Toughness Test for Wound damage ignoring Armor.",
+    "sourceText": "When inside a sealed system undergoing Rapid Decompression, a Character will take 5D10 Special Damage to their Lungs and Heart Sublocations. Characters must also make a -20 Toughness Test. If Failed, the Character will take 2D10+10 Damage to Wounds, ignoring Armor. If Successful, the Character will only take 1D10+10 Damage to Wounds, ignoring Armor."
+  },
+  {
+    "key": "explosive-decompression",
+    "name": "Explosive Decompression",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "Per-round Special Damage and Wound damage based on distance from the decompression source.",
+    "mechanicalText": "Special Damage to Lungs and Heart begins at 8D10 and drops by 1 per 25 meters to a minimum of 3D10. Wound damage ignoring Armor begins at 5D10 and drops by 1 per 25 meters.",
+    "sourceText": "Characters suffering under Explosive Decompression will gain (X)D10 Special Damage to their Lungs and Heart Sublocations per Round, where (X) begins at 8 and is reduced by 1 for every 25 Meters away from the source of the Decompression to a minimum of 3. Characters will also suffer (X)D10 Damage to their Wounds, ignoring Armor, where (X) begins at 5 and is reduced by 1 for every 25 Meters away from the source of the Decompression."
+  },
+  {
+    "key": "knockback-and-impacting-walls",
+    "name": "Knockback and Impacting Walls",
+    "domain": "environmental",
+    "sourcePage": 45,
+    "summaryText": "Sudden impact deals 2D10 + interrupted meters ignoring Armor.",
+    "sourceText": "When a Character impacts a wall or surface, they will take 2D10 + (X) Damage, ignoring Armor. (X) is equal to the amount of meters the Character was going to travel that was interrupted by the sudden impact."
+  }
+]

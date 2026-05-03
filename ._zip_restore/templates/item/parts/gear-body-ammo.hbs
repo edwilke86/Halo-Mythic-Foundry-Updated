@@ -1,0 +1,26 @@
+<!-- Ammunition gear fields -->
+<p class="gear-tab-section-label">Base Ammo Profile</p>
+
+<div class="ability-grid-3">
+  <div class="ability-info-row ability-col">
+    <label for="ammo-special-category">Special Ammunition Category</label>
+    <select id="ammo-special-category" name="system.specialAmmoCategory" {{#unless canEditFields}}disabled{{/unless}}>
+      {{#each specialAmmoCategoryOptions as |opt|}}
+      <option value="{{opt.value}}" {{#if (eq ../gear.specialAmmoCategory opt.value)}}selected{{/if}}>{{opt.label}}</option>
+      {{/each}}
+    </select>
+  </div>
+  <div class="ability-info-row ability-col">
+    <label for="ammo-weight-per-round">Weight Per Round (kg)</label>
+    <input id="ammo-weight-per-round" type="number" min="0" step="0.001" name="system.weightPerRoundKg" value="{{gear.weightPerRoundKg}}" {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+  <div class="ability-info-row ability-col">
+    <label for="ammo-cost-per-100">Cost Per 100 Rounds (cR)</label>
+    <input id="ammo-cost-per-100" type="number" min="0" step="1" name="system.costPer100" value="{{gear.costPer100}}" {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+</div>
+
+<div class="ability-info-row ability-notes-row">
+  <label for="ammo-description">Description</label>
+  <textarea id="ammo-description" name="system.description" rows="3" {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
+</div>

@@ -1,0 +1,146 @@
+<div class="panel vehicle-crew-panel">
+  <div class="vehicle-crew-command-panel">
+    <div class="vehicle-crew-doctrine">
+      <div class="vehicle-crew-kicker-row">
+        <span class="vehicle-crew-kicker">Token-Tracked Occupancy Doctrine</span>
+        <span class="vehicle-crew-preference-pill">Preferred Input: Scene Token UUID</span>
+      </div>
+      <h2>Crew and Compartment</h2>
+      <p class="vehicle-crew-doctrine-text">Vehicle crew assignments are designed to track exact deployed occupants. For repeated NPCs, assign seats using unique Character-Type Actor UUIDs or placed Token UUIDs. Bestiary actors are not accepted as seat references because they represent templates, not individual occupants.</p>
+      <p class="vehicle-crew-doctrine-subtext">Unique Character-Type Actors are valid for seat assignments. Bestiary actors are not valid unless assigned via a placed Token UUID.</p>
+    </div>
+
+    <details class="vehicle-crew-help">
+      <summary>How to assign the correct UUID</summary>
+      <div class="vehicle-crew-help-body">
+        <p>To track individual NPCs inside a vehicle, those NPCs must exist as placed tokens on a scene. They can be staged off to the side or out of player view, but they must exist somewhere on the canvas if the vehicle is meant to distinguish one occupant from another.</p>
+        <ol class="vehicle-crew-help-list">
+          <li>Place the intended crew member as a token on a scene.</li>
+          <li>Open or inspect that placed token using your preferred Foundry workflow.</li>
+          <li>Copy the placed token UUID, not the parent Bestiary actor UUID. Left-click the <i class="fas fa-file-lines" aria-hidden="true"></i> icon in the top-right sheet header to copy the full UUID.</li>
+          <li>Paste the token UUID into the matching seat field, or drag a unique actor directly onto the seat.</li>
+        </ol>
+        <p>Character actors may also be assigned for genuinely unique individuals. Bestiary actors are not accepted as seat references because repeated templates do not identify a single deployed occupant.</p>
+      </div>
+    </details>
+  </div>
+
+  {{#if mythicVehicleCrewSummary.hasConfiguredSeats}}
+    <div class="vehicle-crew-groups">
+      {{#each mythicVehicleCrewGroups as |group|}}
+        <section class="vehicle-crew-group">
+          <header class="vehicle-crew-group-header">
+            <div class="vehicle-crew-group-heading">
+              <h3>{{group.title}}</h3>
+              <p class="vehicle-crew-group-note">{{group.description}}</p>
+            </div>
+            <div class="vehicle-crew-group-metrics">
+              <span class="vehicle-crew-group-metric">{{group.validCount}} linked</span>
+              <span class="vehicle-crew-group-metric">{{group.capacity}} seats</span>
+              {{#if group.invalidCount}}
+                <span class="vehicle-crew-group-metric is-warning">{{group.invalidCount}} reassign</span>
+              {{/if}}
+            </div>
+          </header>
+
+          <div class="vehicle-crew-slot-list">
+            {{#each group.rows as |crewSlot|}}
+              <article
+                class="crew-slot mythic-crew-dropzone vehicle-crew-roster-slot {{crewSlot.statusClass}}{{#if crewSlot.hasResolvedOccupant}} has-actor{{else}}{{#if crewSlot.hasReference}} is-invalid{{else}} is-empty{{/if}}{{/if}}{{#if crewSlot.isExpanded}} is-expanded{{/if}}"
+                data-kind="{{crewSlot.kind}}"
+                data-idx="{{crewSlot.idx}}"
+                data-slot-key="{{crewSlot.slotKey}}"
+                data-has-actor="{{crewSlot.canExpand}}"
+                aria-expanded="{{#if crewSlot.canExpand}}{{#if crewSlot.isExpanded}}true{{else}}false{{/if}}{{else}}false{{/if}}"
+                {{#if crewSlot.canExpand}}role="button" tabindex="0"{{/if}}
+              >
+                <div class="vehicle-crew-slot-top">
+                  <div class="vehicle-crew-slot-title-block">
+                    <span class="crew-label">{{crewSlot.slotCode}}</span>
+                    <div class="vehicle-crew-seat-heading-row">
+                      <h4 class="vehicle-crew-seat-heading">{{crewSlot.seatLabel}}</h4>
+                      {{#if crewSlot.position}}
+                        <span class="vehicle-crew-seat-position">{{crewSlot.position}}</span>
+                      {{/if}}
+                    </div>
+                  </div>
+                  <div class="crew-slot-actions">
+                    <span class="vehicle-crew-status-pill {{crewSlot.statusClass}}">{{crewSlot.statusLabel}}</span>
+                    {{#if crewSlot.showClear}}
+                      <button type="button" class="crew-clear-btn" data-kind="{{crewSlot.kind}}" data-idx="{{crewSlot.idx}}">Clear</button>
+                    {{/if}}
+                  </div>
+                </div>
+
+                <div class="vehicle-crew-slot-main">
+                  <div class="vehicle-crew-slot-identity">
+                    <div class="vehicle-crew-slot-name">
+                      {{#if crewSlot.display}}
+                        {{crewSlot.display}}
+                      {{else}}
+                        Unassigned
+                      {{/if}}
+                    </div>
+                    <div class="vehicle-crew-slot-meta">
+                      <span class="vehicle-crew-source-chip">{{crewSlot.referenceTypeLabel}}</span>
+                      {{#if crewSlot.sceneName}}
+                        <span class="vehicle-crew-source-chip">{{crewSlot.sceneName}}</span>
+                      {{/if}}
+                      {{#if crewSlot.weaponDisplay}}
+                        <span class="vehicle-crew-source-chip">{{crewSlot.weaponDisplay}}</span>
+                      {{/if}}
+                    </div>
+                    <p class="vehicle-crew-slot-message">{{#if crewSlot.isBestiaryToken}}<span class="vehicle-crew-status-pill status-npc">NPC</span>{{else}}{{crewSlot.statusMessage}}{{/if}}</p>
+                  </div>
+
+                  <label class="vehicle-crew-reference-field">
+                    <span class="vehicle-crew-reference-label">Occupant UUID</span>
+                    <input
+                      type="text"
+                      class="vehicle-crew-reference-input"
+                      data-kind="{{crewSlot.kind}}"
+                      data-idx="{{crewSlot.idx}}"
+                      data-reference-value="{{crewSlot.referenceValue}}"
+                      value="{{crewSlot.referenceInputValue}}"
+                      placeholder="{{crewSlot.referencePlaceholder}}"
+                      spellcheck="false"
+                      autocomplete="off"
+                    />
+                  </label>
+                </div>
+
+                {{#if crewSlot.canExpand}}
+                  <div class="crew-slot-details">
+                    <div class="crew-stat-grid">
+                      {{#each crewSlot.stats.characteristics}}
+                        <div class="crew-stat-chip" title="{{label}}">
+                          <span class="crew-stat-key">{{label}}</span>
+                          <span class="crew-stat-value">{{value}}</span>
+                        </div>
+                      {{/each}}
+                    </div>
+
+                    {{#if crewSlot.stats.hasMythicBoost}}
+                      <div class="crew-mythic-strip">
+                        <div class="crew-mythic-grid">
+                          {{#each crewSlot.stats.mythic}}
+                            <div class="crew-stat-chip crew-stat-chip-mythic" title="Mythic {{label}}">
+                              <span class="crew-stat-key">M{{label}}</span>
+                              <span class="crew-stat-value">{{value}}</span>
+                            </div>
+                          {{/each}}
+                        </div>
+                      </div>
+                    {{/if}}
+                  </div>
+                {{/if}}
+              </article>
+            {{/each}}
+          </div>
+        </section>
+      {{/each}}
+    </div>
+  {{else}}
+    <p class="vehicle-crew-empty-state">No operator, gunner, or passenger slots are configured yet. Define crew capacity in Setup, then assign seats with placed token UUIDs.</p>
+  {{/if}}
+</div>

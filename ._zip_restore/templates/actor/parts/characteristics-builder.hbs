@@ -1,0 +1,217 @@
+{{!-- Characteristics Builder / Calculator --}}
+<section class="panel mythic-phase4-panel mythic-charbuilder-panel">
+  <div class="mythic-charbuilder-header">
+    <h2>Characteristics Builder</h2>
+    <div class="mythic-charbuilder-controls">
+      {{#if mythicCharBuilder.managed}}
+        {{#if mythicCharBuilder.canToggleLowerTierUnlock}}
+          <button type="button" class="action-btn charbuilder-lower-tier-unlock-btn"
+                  title="GM control: allow temporary selection below purchased advancement tiers">
+            {{#if mythicCharBuilder.lowerTierUnlockEnabled}}Lock Purchased Tier Floor{{else}}Unlock Lower-Tier Advancements{{/if}}
+          </button>
+        {{/if}}
+        {{#if mythicCharBuilder.advancementXpTotal}}
+          <button type="button" class="action-btn charbuilder-finalize-btn"
+                  title="Spend {{mythicCharBuilder.advancementXpTotal}} XP on the selected advancement tiers">
+            Purchase Characteristic Advancements ({{mythicCharBuilder.advancementXpTotal}} XP)
+          </button>
+        {{/if}}
+      {{else}}
+        <button type="button" class="action-btn charbuilder-enable-btn"
+                title="Enable Builder — current characteristic values become the Creation Points row">Enable Builder</button>
+      {{/if}}
+    </div>
+  </div>
+
+  {{#if mythicCharBuilder.managed}}
+    <div class="mythic-charbuilder-pool-bar">
+      <div class="mythic-charbuilder-pool-section">
+        <label class="mythic-charbuilder-pool-label">Creation Points Pool:
+          {{#if mythicCharBuilder.creationPointsSettingLocked}}
+            <span class="mythic-charbuilder-pool-locked">{{mythicCharBuilder.pool}}</span>
+          {{else}}
+            <input type="number" min="1" name="system.charBuilder.creationPoints.pool"
+                   value="{{mythicCharBuilder.pool}}" class="mythic-charbuilder-pool-input"
+                   title="Total creation point budget" />
+          {{/if}}
+        </label>
+        <span class="mythic-charbuilder-pool-used{{#if mythicCharBuilder.poolOverBudget}} over-budget{{/if}}">
+          Used: {{mythicCharBuilder.poolUsed}} / {{mythicCharBuilder.pool}}
+          {{#if mythicCharBuilder.poolOverBudget}}
+            <span class="over-budget-warn">({{mythicCharBuilder.poolRemaining}} over budget!)</span>
+          {{else}}
+            ({{mythicCharBuilder.poolRemaining}} remaining)
+          {{/if}}
+        </span>
+      </div>
+      {{#if mythicCharBuilder.advancementXpTotal}}
+        <div class="mythic-charbuilder-xp-section">
+          <span class="mythic-charbuilder-xp-label">Advancement XP Cost:</span>
+          <span class="mythic-charbuilder-xp-total">{{mythicCharBuilder.advancementXpTotal}}</span>
+        </div>
+      {{/if}}
+    </div>
+  {{/if}}
+
+  {{#if mythicCharBuilder.managed}}
+    <p class="mythic-charbuilder-hint">Lowering previously purchased advancement tiers does not automatically refund XP. The GM must unlock lower tiers of advancements manually after confirmation of purchases.</p>
+  {{/if}}
+
+  <div class="mythic-charbuilder-table-wrap">
+    <table class="mythic-charbuilder-table">
+      <thead>
+        <tr>
+          <th class="mythic-charbuilder-row-label">Source</th>
+          {{#each mythicCharBuilder.headerColumns as |col|}}
+            <th>{{col.label}}</th>
+          {{/each}}
+        </tr>
+      </thead>
+      <tbody>
+
+        {{!-- Soldier Type row (always readonly — set when soldier type is dragged onto actor) --}}
+        <tr class="mythic-charbuilder-row row-soldiertype">
+          <td class="mythic-charbuilder-row-label">Soldier Type</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              <span class="mythic-charbuilder-cell-display">{{lookup ../mythicCharBuilder.soldierTypeRow statKey}}</span>
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Creation Points row (editable when managed, capped at statCap) --}}
+        <tr class="mythic-charbuilder-row row-creationpoints">
+          <td class="mythic-charbuilder-row-label">
+            Creation Points
+            {{#if mythicCharBuilder.managed}}
+              <span class="mythic-charbuilder-pool-hint">({{mythicCharBuilder.pool}})</span>
+            {{/if}}
+          </td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              {{#if ../mythicCharBuilder.managed}}
+                <input type="number" min="0"
+                       {{#if ../mythicCharBuilder.statCap}}max="{{../mythicCharBuilder.statCap}}"{{/if}}
+                       name="system.charBuilder.creationPoints.{{statKey}}"
+                       value="{{lookup ../mythicCharBuilder.creationPoints statKey}}"
+                       class="mythic-charbuilder-cell editable" />
+              {{else}}
+                <span class="mythic-charbuilder-cell-display muted">--</span>
+              {{/if}}
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Upbringing row (auto from upbringing creation path selection) --}}
+        <tr class="mythic-charbuilder-row row-upbringing">
+          <td class="mythic-charbuilder-row-label">Upbringing</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              <span class="mythic-charbuilder-cell-display auto-value">{{lookup ../mythicCharBuilder.upbringingRow statKey}}</span>
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Environment row --}}
+        <tr class="mythic-charbuilder-row row-environment">
+          <td class="mythic-charbuilder-row-label">Environment</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              <span class="mythic-charbuilder-cell-display auto-value">{{lookup ../mythicCharBuilder.environmentRow statKey}}</span>
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Lifestyle(s) row (combined total of all lifestyle slots) --}}
+        <tr class="mythic-charbuilder-row row-lifestyles">
+          <td class="mythic-charbuilder-row-label">Lifestyle(s)</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              <span class="mythic-charbuilder-cell-display auto-value">{{lookup ../mythicCharBuilder.lifestylesRow statKey}}</span>
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Advancements row: named tier dropdowns; options below soldier type min are disabled --}}
+        <tr class="mythic-charbuilder-row row-advancements">
+          <td class="mythic-charbuilder-row-label">Advancements</td>
+          {{#each mythicCharBuilder.advancementColumns as |col|}}
+            <td>
+              {{#if ../mythicCharBuilder.managed}}
+                <select name="{{col.name}}" class="mythic-charbuilder-cell editable adv-select">
+                  {{#each col.options as |opt|}}
+                    <option value="{{opt.value}}"
+                            {{#if opt.selected}} selected{{/if}}
+                            {{#if opt.disabled}} disabled{{/if}}>{{opt.label}}</option>
+                  {{/each}}
+                </select>
+              {{else}}
+                <span class="mythic-charbuilder-cell-display muted">--</span>
+              {{/if}}
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Equipment row (auto from currently equipped gear item modifiers) --}}
+        <tr class="mythic-charbuilder-row row-equipment">
+          <td class="mythic-charbuilder-row-label">Equipment</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              <span class="mythic-charbuilder-cell-display auto-value">{{lookup ../mythicCharBuilder.equipmentRow statKey}}</span>
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Medical row (placeholder — future auto-computed) --}}
+        <tr class="mythic-charbuilder-row row-medical">
+          <td class="mythic-charbuilder-row-label">Medical</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td><span class="mythic-charbuilder-cell-display">0</span></td>
+          {{/each}}
+        </tr>
+
+        {{!-- Penalties row (gravity penalty, etc.) --}}
+        <tr class="mythic-charbuilder-row row-penalties">
+          <td class="mythic-charbuilder-row-label">Penalties</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              {{#if (lookup ../mythicCharBuilder.penaltiesRow statKey)}}
+                <span class="mythic-charbuilder-cell-display gravity-penalty-cell" title="Gravity Penalty">−{{lookup ../mythicCharBuilder.penaltiesRow statKey}}</span>
+              {{else}}
+                <span class="mythic-charbuilder-cell-display">(−0)</span>
+              {{/if}}
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Other / Misc row (editable when managed) --}}
+        <tr class="mythic-charbuilder-row row-misc">
+          <td class="mythic-charbuilder-row-label">Other</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              {{#if ../mythicCharBuilder.managed}}
+                <input type="number"
+                       name="system.charBuilder.misc.{{statKey}}"
+                       value="{{lookup ../mythicCharBuilder.misc statKey}}"
+                       class="mythic-charbuilder-cell editable" />
+              {{else}}
+                <span class="mythic-charbuilder-cell-display muted">--</span>
+              {{/if}}
+            </td>
+          {{/each}}
+        </tr>
+
+        {{!-- Total row --}}
+        <tr class="mythic-charbuilder-row row-total">
+          <td class="mythic-charbuilder-row-label">Total</td>
+          {{#each mythicCharBuilder.displayKeys as |statKey|}}
+            <td>
+              <span class="mythic-charbuilder-cell-display total-value{{#if (lookup ../mythicCharBuilder.penaltiesRow statKey)}} penalized{{/if}}">{{lookup ../mythicCharBuilder.effectiveTotals statKey}}</span>
+            </td>
+          {{/each}}
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</section>

@@ -81,6 +81,11 @@
               <button class="trait-post-btn action-btn" type="button" data-item-id="{{trait.id}}" title="Post trait to chat">
                 <i class="fas fa-comments"></i>
               </button>
+              {{#if trait.isBerserker}}
+                <button class="trait-berserker-toggle-btn action-btn{{#if trait.berserkerActive}} is-active{{/if}}" type="button" data-item-id="{{trait.id}}" title="{{trait.berserkerToggleLabel}}">
+                  <i class="fas fa-fire"></i>
+                </button>
+              {{/if}}
             </div>
           </div>
           <div class="ability-col-action">{{trait.category}}</div>

@@ -1,0 +1,155 @@
+<div class="{{cssClass}} mythic-container-terminal">
+  <header class="mythic-container-header">
+    <img class="mythic-container-icon" src="{{item.img}}" alt="{{item.name}}" title="{{item.name}}" />
+    <div class="mythic-container-title-block">
+      <h1 class="mythic-container-title">{{item.name}}</h1>
+      <div class="mythic-container-subtitle">
+        <span>
+          {{containerTypeLabel}}
+          {{#if magazineAmmoLabel}}
+          - <span class="mythic-container-ammo-label">{{magazineAmmoLabel}}</span>
+          {{/if}}
+        </span>
+        {{#if breadcrumb}}
+        <span>{{breadcrumb}}</span>
+        {{/if}}
+      </div>
+    </div>
+    <div class="mythic-container-capacity {{#if containerState.overCapacity}}is-over{{/if}}">
+      <strong>{{capacityLabel}}</strong>
+      <span>{{remainingLabel}} free</span>
+    </div>
+  </header>
+
+  <section class="mythic-container-metrics">
+    <div class="mythic-container-metric">
+      <span>Used</span>
+      <strong>{{usedLabel}}</strong>
+    </div>
+    <div class="mythic-container-metric">
+      <span>Capacity</span>
+      <strong>{{capacityTotalLabel}}</strong>
+    </div>
+    <div class="mythic-container-metric">
+      <span>Quickdraw</span>
+      <strong>{{#if storage.quickdrawEligible}}YES{{else}}NO{{/if}}</strong>
+    </div>
+    <div class="mythic-container-metric">
+      <span>State</span>
+      <strong>{{storageStateLabel}}</strong>
+    </div>
+  </section>
+
+  {{#if hasWarnings}}
+  <section class="mythic-container-warnings">
+    {{#each containerState.warnings as |warning|}}
+    <div class="mythic-container-warning">
+      <i class="fas fa-triangle-exclamation"></i>
+      <span>{{warning}}</span>
+    </div>
+    {{/each}}
+  </section>
+  {{/if}}
+
+  {{#if isMagazineContainer}}
+  <section class="mythic-container-panel mythic-container-dropzone">
+    <div class="mythic-container-panel-header">
+      <span>Round Sequence</span>
+      <div class="mythic-container-panel-actions">
+        {{#if canQuickFillMagazine}}
+        <button type="button" class="action-btn mythic-container-pattern-fill" {{#unless canEditFields}}disabled{{/unless}}>Pattern Fill</button>
+        {{/if}}
+        <span>{{loadedRounds.length}} loaded</span>
+      </div>
+    </div>
+    {{#if quickFillPatternSummary}}
+    <div class="mythic-container-pattern-summary">Saved Pattern: {{quickFillPatternSummary}}</div>
+    {{/if}}
+    {{#if ammoCounts.length}}
+    <div class="mythic-ammo-counts">
+      {{#each ammoCounts as |entry|}}
+      <span>{{entry.label}} x{{entry.count}}</span>
+      {{/each}}
+    </div>
+    {{/if}}
+    <div class="mythic-magazine-sequence mythic-container-contents-scroll">
+      {{#each loadedRounds as |round|}}
+      <div class="mythic-round-cell {{#unless ../canReorderRounds}}is-reorder-locked{{/unless}}" data-round-index="{{round.index}}" title="{{#if ../reorderLockedInCombat}}Reordering is disabled during combat.{{else}}{{round.titleLabel}}{{/if}}">
+        <span class="mythic-round-index">{{round.displayIndex}}</span>
+        <span class="mythic-round-label">{{round.shortLabel}}</span>
+        <div class="mythic-round-actions">
+          <button type="button" class="mythic-icon-btn mythic-round-up" data-round-index="{{round.index}}" title="Move up" {{#unless ../canReorderRounds}}disabled{{/unless}}>
+            <i class="fas fa-chevron-up"></i>
+          </button>
+          <button type="button" class="mythic-icon-btn mythic-round-down" data-round-index="{{round.index}}" title="Move down" {{#unless ../canReorderRounds}}disabled{{/unless}}>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <button type="button" class="mythic-icon-btn mythic-round-remove" data-round-index="{{round.index}}" title="Unload" {{#unless ../canEditFields}}disabled{{/unless}}>
+            x
+          </button>
+        </div>
+      </div>
+      {{else}}
+      <div class="mythic-container-empty">No rounds loaded.</div>
+      {{/each}}
+    </div>
+  </section>
+  {{else}}
+  <section class="mythic-container-panel mythic-container-dropzone">
+    <div class="mythic-container-panel-header">
+      <span>Contents</span>
+      <span>{{contents.length}} item(s)</span>
+    </div>
+    {{#if hasLooseAmmoGuidance}}
+    <div class="mythic-container-note mythic-container-loose-ammo-note">{{looseAmmoGuidanceText}}</div>
+    {{/if}}
+    <div class="mythic-container-contents-scroll">
+      {{#each contents as |content|}}
+      <div class="mythic-container-content-row" data-item-id="{{content.id}}" draggable="true">
+        <img src="{{content.img}}" alt="{{content.name}}" />
+        <div class="mythic-container-content-main">
+          <div class="mythic-container-content-name">{{content.name}}</div>
+          <div class="mythic-container-content-meta">
+            <span>{{content.category}}</span>
+            <span class="mythic-container-content-quantity">Qty x{{content.quantity}}</span>
+            <span class="mythic-container-unit-control" title="{{#if content.unitsRuleKey}}{{content.unitsRuleKey}}{{else}}No carrying-unit table match{{/if}}">
+              <input class="mythic-container-units-input" type="number" min="0" step="0.1" data-item-id="{{content.id}}" value="{{content.units}}" {{#unless ../canEditFields}}disabled{{/unless}} />
+              <span>U</span>
+              <button type="button" class="mythic-icon-btn mythic-container-units-reset" data-item-id="{{content.id}}" title="Reset carrying units to auto" aria-label="Reset carrying units to auto" {{#unless ../canEditFields}}disabled{{/unless}}>
+                <i class="fas fa-rotate-left"></i>
+              </button>
+              <em>{{content.unitsSource}}</em>
+            </span>
+            {{#if content.capacityLabel}}
+            <span>{{content.capacityLabel}}</span>
+            {{/if}}
+            {{#if content.warningText}}
+            <span class="is-warning">{{content.warningText}}</span>
+            {{/if}}
+          </div>
+        </div>
+        <div class="mythic-container-content-actions">
+          <button type="button" class="mythic-icon-btn mythic-container-open-content" data-item-id="{{content.id}}" title="Open">
+            <i class="fas fa-up-right-from-square"></i>
+          </button>
+          <button type="button" class="mythic-icon-btn mythic-container-remove-content" data-item-id="{{content.id}}" title="Remove" {{#unless ../canEditFields}}disabled{{/unless}}>
+            <i class="fas fa-arrow-turn-up"></i>
+          </button>
+        </div>
+      </div>
+      {{else}}
+      <div class="mythic-container-empty">No contents.</div>
+      {{/each}}
+    </div>
+  </section>
+  {{/if}}
+
+  {{#if gear.description}}
+  <section class="mythic-container-rules">
+    <div class="mythic-container-panel-header">
+      <span>Rules</span>
+    </div>
+    <p>{{gear.description}}</p>
+  </section>
+  {{/if}}
+</div>

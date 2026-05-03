@@ -1,0 +1,106 @@
+<section class="mythic-fireteam-manager">
+  {{#unless isGM}}
+    <p class="ccadv-note">Only the GM can manage Fireteams.</p>
+  {{/unless}}
+
+  <header class="mythic-fireteam-header">
+    <div class="mythic-fireteam-title">
+      <h2>Fireteams</h2>
+      <p class="ccadv-note">{{visrHint}}</p>
+    </div>
+    {{#if isGM}}
+      <div class="mythic-fireteam-actions">
+        <button type="button" class="action-btn" data-action="create-fireteam">Create Fireteam</button>
+      </div>
+    {{/if}}
+  </header>
+
+  {{#if fireteams.length}}
+    <div class="mythic-fireteam-list">
+      {{#each fireteams}}
+        <details class="mythic-fireteam-card" open>
+          <summary class="mythic-fireteam-summary">
+            <div class="mythic-fireteam-summary-left">
+              <span class="mythic-fireteam-label">Name</span>
+              <input type="text" value="{{this.name}}" data-fireteam-id="{{this.id}}" data-field="name" {{#unless ../isGM}}disabled{{/unless}} />
+            </div>
+            {{#if ../isGM}}
+              <div class="mythic-fireteam-summary-right">
+                <button type="button" class="action-btn" data-action="add-selected" data-fireteam-id="{{this.id}}" {{#unless ../hasCanvas}}disabled{{/unless}}>Add Selected Tokens</button>
+                <button type="button" class="action-btn" data-action="check-all-visr" data-fireteam-id="{{this.id}}">Check All VISR</button>
+                <button type="button" class="action-btn" data-action="uncheck-all-visr" data-fireteam-id="{{this.id}}">Uncheck All VISR</button>
+                <button type="button" class="action-btn danger" data-action="delete-fireteam" data-fireteam-id="{{this.id}}">Delete</button>
+              </div>
+            {{/if}}
+          </summary>
+
+          <div class="mythic-fireteam-body">
+            <div class="mythic-fireteam-uuid-add">
+              <label>Paste Actor/Token UUID(s)</label>
+              <textarea rows="2" data-fireteam-id="{{this.id}}" data-field="uuidPaste" placeholder="Actor.uuid or Scene.token.uuid (one per line)"></textarea>
+              {{#if ../isGM}}
+                <button type="button" class="action-btn" data-action="add-uuid" data-fireteam-id="{{this.id}}">Add by UUID</button>
+              {{/if}}
+            </div>
+
+            {{#if this.members.length}}
+              <table class="mythic-fireteam-members">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Actor</th>
+                    <th>Token</th>
+                    <th class="center">VISR</th>
+                    <th class="center">Remove</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{#each this.members}}
+                    <tr class="mythic-fireteam-member-row">
+                      <td>{{this.displayName}}</td>
+                      <td>
+                        {{#if this.actorUuid}}
+                          <a class="content-link" data-uuid="{{this.actorUuid}}">{{this.actorUuid}}</a>
+                        {{else}}
+                          <span class="muted">Missing</span>
+                        {{/if}}
+                      </td>
+                      <td>
+                        {{#if this.tokenUuid}}
+                          <a class="content-link" data-uuid="{{this.tokenUuid}}">{{this.tokenUuid}}</a>
+                        {{else}}
+                          <span class="muted">Missing</span>
+                        {{/if}}
+                      </td>
+                      <td class="center">
+                        <input
+                          type="checkbox"
+                          {{#if this.hasVisr}}checked{{/if}}
+                          data-fireteam-id="{{../this.id}}"
+                          data-member-id="{{this.id}}"
+                          data-field="hasVisr"
+                          {{#unless ../../isGM}}disabled{{/unless}}
+                          title="VISR includes equivalent allied tactical-overlay systems."
+                        />
+                      </td>
+                      <td class="center">
+                        {{#if ../../isGM}}
+                          <button type="button" class="action-btn" data-action="remove-member" data-fireteam-id="{{../this.id}}" data-member-id="{{this.id}}">X</button>
+                        {{/if}}
+                      </td>
+                    </tr>
+                  {{/each}}
+                </tbody>
+              </table>
+            {{else}}
+              <p class="ccadv-note">No members yet.</p>
+            {{/if}}
+          </div>
+        </details>
+      {{/each}}
+    </div>
+  {{else}}
+    <p class="ccadv-note">No Fireteams yet.</p>
+  {{/if}}
+</section>
+

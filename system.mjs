@@ -9,6 +9,7 @@
 // ============================================================
 
 import { registerAllHooks } from "./scripts/core/hooks.mjs";
+import "./scripts/screens/cheat-sheet.mjs";
 
 // Boot the system — register all Foundry hooks (init, ready, preCreate*, etc.)
 registerAllHooks();

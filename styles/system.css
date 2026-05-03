@@ -6,6 +6,7 @@
 @import url('./item-creation-sheets.css');
 @import url('./character-creation-path.css');
 @import url('./chat-cards.css');
+@import url('./cheat-sheet.css');
 @import url('./vehicle.css');
 
 /* ============================================================
@@ -1129,6 +1130,24 @@
   justify-items: center;
   min-width: 108px;
   width: 108px;
+}
+
+.mythic-character-sheet .mythic-berserker-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 190, 120, 0.9);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(190, 44, 28, 0.92), rgba(92, 18, 18, 0.9));
+  box-shadow: 0 0 8px rgba(255, 93, 45, 0.45);
+  color: #fff4da;
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .mythic-character-sheet .mythic-header-portrait-wrap .mythic-sheet-banner {
@@ -4113,6 +4132,13 @@
 
 .mythic-character-sheet .mythic-trait-row:hover {
   background: rgba(74, 100, 140, 0.55);
+}
+
+.mythic-character-sheet .trait-berserker-toggle-btn.is-active {
+  border-color: rgba(255, 190, 120, 0.95);
+  background: linear-gradient(180deg, rgba(190, 44, 28, 0.95), rgba(92, 18, 18, 0.95));
+  color: #fff4da;
+  box-shadow: 0 0 6px rgba(255, 93, 45, 0.5);
 }
 
 /* Shared item sheet form controls */
@@ -8207,6 +8233,27 @@ input.gear-item-nickname::placeholder {
   border-radius: 3px;
 }
 
+.mythic-character-sheet .mythic-scope-min-range-text,
+.mythic-bestiary-sheet .mythic-scope-min-range-text {
+  cursor: help;
+}
+
+.mythic-character-sheet .mythic-perceptive-range-mult,
+.mythic-bestiary-sheet .mythic-perceptive-range-mult {
+  cursor: help;
+  font-weight: 700;
+}
+
+.mythic-character-sheet .mythic-perceptive-range-mult.is-penalty20,
+.mythic-bestiary-sheet .mythic-perceptive-range-mult.is-penalty20 {
+  color: #ffe9a6;
+}
+
+.mythic-character-sheet .mythic-perceptive-range-mult.is-penalty60,
+.mythic-bestiary-sheet .mythic-perceptive-range-mult.is-penalty60 {
+  color: #ff7d7d;
+}
+
 /* Non-button label/header strips should not use button black/white styling. */
 .mythic-character-sheet .mythic-resource-label,
 .mythic-character-sheet .mythic-mini-field > span,
@@ -9458,6 +9505,7 @@ input.gear-item-nickname::placeholder {
 
 .mythic-group-header,
 .mythic-group-linked-actors,
+.mythic-group-fireteam,
 .mythic-group-stats,
 .mythic-group-inventory {
   position: relative;
@@ -9473,6 +9521,7 @@ input.gear-item-nickname::placeholder {
 
 .mythic-group-header::before,
 .mythic-group-linked-actors::before,
+.mythic-group-fireteam::before,
 .mythic-group-stats::before,
 .mythic-group-inventory::before {
   content: "";
@@ -9583,7 +9632,8 @@ input.gear-item-nickname::placeholder {
 
 .mythic-group-type-row select,
 .mythic-group-funds-row input,
-.mythic-group-description textarea {
+.mythic-group-description textarea,
+.mythic-group-fireteam-uuid textarea {
   border: 1px solid rgba(104, 176, 221, 0.18);
   border-radius: 6px;
   background: rgba(24, 24, 36, 0.9);
@@ -9611,6 +9661,44 @@ input.gear-item-nickname::placeholder {
   width: 100%;
   resize: vertical;
   min-height: 78px;
+}
+
+.mythic-group-fireteam-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.mythic-group-fireteam-note {
+  margin: 0 0 8px;
+  color: rgba(183, 214, 236, 0.72);
+  font-size: 0.76em;
+  line-height: 1.35;
+}
+
+.mythic-group-fireteam-uuid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  margin: 8px 0 10px;
+}
+
+.mythic-group-fireteam-uuid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: rgba(213, 229, 246, 0.84);
+  font-size: 0.78em;
+  font-weight: 600;
+}
+
+.mythic-group-fireteam-uuid textarea {
+  width: 100%;
+  min-height: 48px;
+  resize: vertical;
 }
 
 .mythic-group-members-header,
@@ -9676,6 +9764,52 @@ input.gear-item-nickname::placeholder {
 
 .mythic-group-members-table {
   font-size: 0.78em;
+}
+
+.mythic-group-fireteam-table {
+  table-layout: auto;
+}
+
+.mythic-group-fireteam-table .content-link {
+  word-break: break-all;
+}
+
+.mythic-fireteam-muted {
+  color: rgba(184, 202, 220, 0.58);
+}
+
+.mythic-fireteam-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 118px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(120, 150, 175, 0.12);
+  color: rgba(210, 224, 238, 0.78);
+  font-size: 0.86em;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.mythic-fireteam-status.active {
+  background: rgba(100, 210, 255, 0.14);
+  color: rgba(142, 229, 255, 0.94);
+}
+
+.mythic-fireteam-status.actor-only {
+  background: rgba(176, 168, 120, 0.14);
+  color: rgba(238, 222, 154, 0.92);
+}
+
+.mythic-fireteam-status.warning {
+  background: rgba(220, 146, 64, 0.16);
+  color: rgba(255, 194, 114, 0.96);
+}
+
+.mythic-fireteam-status.missing {
+  background: rgba(180, 100, 100, 0.13);
+  color: rgba(255, 176, 176, 0.86);
 }
 
 .mythic-group-stats-table {
@@ -11772,4 +11906,125 @@ input.gear-item-nickname::placeholder {
   .mythic-container-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ============================================================
+   Fireteams + Active Camo (scaffold)
+   ============================================================ */
+.fireteam-manager .mythic-fireteam-manager {
+  padding: 10px;
+  min-height: 0;
+}
+
+.fireteam-manager .window-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.fireteam-manager .mythic-fireteam-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.fireteam-manager .mythic-fireteam-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.fireteam-manager .mythic-fireteam-card {
+  border: 1px solid rgba(155, 205, 255, 0.18);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(9, 16, 28, 0.50), rgba(4, 10, 18, 0.40));
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.fireteam-manager .mythic-fireteam-summary {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.fireteam-manager .mythic-fireteam-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.fireteam-manager .mythic-fireteam-summary-left input[type="text"] {
+  width: 260px;
+}
+
+.fireteam-manager .mythic-fireteam-summary-right {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.fireteam-manager .mythic-fireteam-body {
+  padding: 10px;
+  border-top: 1px solid rgba(155, 205, 255, 0.10);
+}
+
+.fireteam-manager .mythic-fireteam-uuid-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 10px;
+}
+
+.fireteam-manager .mythic-fireteam-uuid-add textarea {
+  grid-column: 1 / -1;
+  resize: vertical;
+}
+
+.fireteam-manager table.mythic-fireteam-members {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fireteam-manager table.mythic-fireteam-members th,
+.fireteam-manager table.mythic-fireteam-members td {
+  border-bottom: 1px solid rgba(155, 205, 255, 0.10);
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.fireteam-manager .mythic-fireteam-member-row td {
+  font-size: 12px;
+}
+
+.fireteam-manager .muted {
+  opacity: 0.6;
+}
+
+.fireteam-manager .center {
+  text-align: center;
+}
+
+.fireteam-manager .action-btn.danger {
+  border-color: rgba(200, 0, 0, 0.55);
+}
+
+.mythic-active-camo-toggle-btn {
+  border-color: rgba(119, 217, 255, 0.35);
+}
+
+/* Placeholder classes for future HTML-based overlays / HUD lists. Canvas tokens
+   are rendered via PIXI, so Active Camo visibility uses alpha/tint in code. */
+.mythic-active-camo {}
+.mythic-visr-camo-visible {
+  opacity: 0.45;
+  filter: drop-shadow(0 0 6px rgba(119, 217, 255, 0.35));
 }

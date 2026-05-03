@@ -1,0 +1,145 @@
+<div class="gm-screen-grid">
+
+  <article class="gm-panel">
+    <h2>Firewalls</h2>
+    <div class="gm-source-ref core">Ref: p.37</div>
+
+    <table class="gm-ref-table">
+      <thead>
+        <tr>
+          <th>Firewall Tier</th>
+          <th>Rating</th>
+          <th>Requirement</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">Simple</th><td>5</td><td>--</td></tr>
+        <tr><th scope="row">Civilian</th><td>10</td><td>Cryptography Trained</td></tr>
+        <tr><th scope="row">Corporate</th><td>20</td><td>Cryptography +10</td></tr>
+        <tr><th scope="row">Covenant</th><td>25</td><td>Cryptography +10</td></tr>
+        <tr><th scope="row">Military</th><td>30</td><td>Cryptography +20</td></tr>
+        <tr>
+          <th scope="row">Forerunner</th>
+          <td>40</td>
+          <td>Cryptography +20,<br>Computer Security Education +10</td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+
+
+  <article class="gm-panel double">
+    <h2>Upgrades</h2>
+    <div class="gm-source-ref core">Ref: p.37</div>
+
+    <table class="gm-ref-table upgrade-table">
+      <thead>
+        <tr>
+          <th>Upgrade</th>
+          <th>Effect</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Reactive</th>
+          <td>Deals 2 Damage to the Firewall of the device being used by the Hacking Character to attack this device for each Degree of Failure they gained on a Cryptography Test.</td>
+        </tr>
+        <tr>
+          <th scope="row">Scrambled</th>
+          <td>Hardened Firewalls will increase the time the Firewall is in Lockout by 1 Round for each Tier.</td>
+        </tr>
+        <tr>
+          <th scope="row">Smart</th>
+          <td>Turns the attempted Hack into an Opposed Test, using the Firewall Rating, multiplied by 2, as the device’s Cryptography Skill Test. If Successful, the Smart Upgrade stops any oncoming Damage.</td>
+        </tr>
+        <tr>
+          <th scope="row">Viral</th>
+          <td>When the Firewall enters Lockout, the intruding device is attacked for each Turn by the Viral Upgrade, using the Firewall Rating, multiplied by 2, as the Cryptography Skill Test. If Successful, the opposing device takes 1 Damage for each Degree of Success.</td>
+        </tr>
+        <tr>
+          <th scope="row">Dead-End</th>
+          <td>If the Hacking Character is using a device with a lower Firewall Tier, Damage to this Firewall is reduced by 1.</td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+
+
+  <article class="gm-panel">
+    <h2>Software</h2>
+    <div class="gm-source-ref core">Ref: p.38</div>
+
+    <table class="gm-ref-table software-table">
+      <thead>
+        <tr>
+          <th>Software</th>
+          <th>Effect</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Overflow Suite</th>
+          <td>Gives the Hacking Character a +10 Bonus to their Cryptography Tests against Firewalls.</td>
+        </tr>
+        <tr>
+          <th scope="row">Denial Of Service</th>
+          <td>Reduces Lockdown of an opposing Firewall by 1 for each Round.</td>
+        </tr>
+        <tr>
+          <th scope="row">SQLi</th>
+          <td>Counts the Encryption Tier of an opposing Firewall as 1 Tier lower.</td>
+        </tr>
+        <tr>
+          <th scope="row">T.A.E Force</th>
+          <td>Allows the Character to reroll one Failed Cryptography Test and stops the defending Firewall from entering Lockdown. Can only be used once against a Firewall.</td>
+        </tr>
+        <tr>
+          <th scope="row">White Hat</th>
+          <td>Increases damage dealt against a Firewall by doubling the Degrees of Success and the Degrees of Failure gained.</td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+
+
+  <article class="gm-panel double">
+    <h2>Protocols</h2>
+    <div class="gm-source-ref core">Ref: p.38</div>
+
+    <table class="gm-ref-table protocol-table">
+      <thead>
+        <tr>
+          <th>Protocol</th>
+          <th>Effect</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Host-Based Security</th>
+          <td>The Character forgoes their first Half Action of the Round, allowing the Character to increase their Damage Resistance by their Perception Modifier until the beginning of their next Turn.</td>
+        </tr>
+        <tr>
+          <th scope="row">Data Driven Attack</th>
+          <td>The Character announces they are using this Protocol at the beginning of their Turn. During the Turn, all Attacks made can only Damage Firewalls and increases the Character’s Base Damage by their Charisma Modifier multiplied by 2.</td>
+        </tr>
+        <tr>
+          <th scope="row">Spoofing</th>
+          <td>The Character makes a false duplicate of themselves as a Half Action. This Duplicate has a Firewall of 30 and will be destroyed when the Firewall is reduced to 0. The Opponent does not know which is the real AI unless they succeed on a Perception Test before the Attacks are made, each Turn. An AI can have up to their Perception Modifier in Spoofing Protocol copies active at once. Spoofing Copies can only mimic the host.</td>
+        </tr>
+        <tr>
+          <th scope="row">Log Retention</th>
+          <td>If the Character was Damaged the previous Round, the Character may make a Log Retention Protocol as a Half Action. This allows the Character to reduce all incoming Damage from the same Damage source for two received Attacks. This wears off at the beginning of the Character’s next Turn.</td>
+        </tr>
+        <tr>
+          <th scope="row">Worm</th>
+          <td>The Character reduces the amount of Attacks it can make in half, rounding down. Attacks made using Worm will not deal the Damage to the Character until the next Round, where the Damage that would have been dealt is increased by 25% and dealt before any other Actions are taken.</td>
+        </tr>
+        <tr>
+          <th scope="row">Intrusion Detection</th>
+          <td>The Character uses a Half Action to make themselves immune to any Protocol effects until the beginning of their next Turn.</td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+
+</div>

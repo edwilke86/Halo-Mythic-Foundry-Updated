@@ -36,6 +36,9 @@ import {
 } from "../mechanics/xp.mjs";
 
 import { isGoodFortuneModeEnabled } from "../mechanics/derived.mjs";
+import {
+  getActorEquippedGearMythicCharacteristicModifiers
+} from "../mechanics/mythic-characteristics.mjs";
 import { computeAttackDOS, resolveHitLocationForMode } from "../mechanics/combat.mjs";
 import { applyCombatTurnStart } from "../mechanics/action-economy.mjs";
 import { advanceFarSightForCombatTurn, clearActorFarSightState } from "../mechanics/perceptive-range.mjs";
@@ -47,6 +50,7 @@ import {
 } from "../mechanics/ballistic-item-backed.mjs";
 
 import { getMythicTokenDefaultsForCharacter } from "../core/token-defaults.mjs";
+import { tokenMatchesActor } from "../core/token-identity.mjs";
 import { promptAttackModifiersDialog } from "../ui/attack-modifiers-dialog.mjs";
 import { bindVehicleSplatterChatControls } from "../core/chat-splatter.mjs";
 import {
@@ -54,6 +58,15 @@ import {
   prepareBestiaryArmorSystemForSpawn,
   applyDeterministicBestiaryArmorForSpawn
 } from "../mechanics/bestiary-armor-service.mjs";
+
+import {
+  isBerserkerTraitName,
+  isBerserkerAutoEffect,
+  getBerserkerState,
+  setTokenBerserkerStatus,
+  stripBerserkerAutoEffectsFromItemData,
+  syncActorBerserkerFromTokenStatus
+} from "../mechanics/berserker.mjs";
 
 import {
   isHuragokCharacterSystem,
@@ -79,6 +92,79 @@ const MYTHIC_VEHICLE_DOOMED_PERSISTENT_RESET = Object.freeze({
     combatId: ""
   })
 });
+
+async function deleteBerserkerAutoEffects(item) {
+  if (!item || item.type !== "trait" || !isBerserkerTraitName(item.name)) return;
+  const effectIds = Array.from(item.effects ?? [])
+    .filter((effect) => isBerserkerAutoEffect(effect))
+    .map((effect) => String(effect.id ?? "").trim())
+    .filter(Boolean);
+  if (!effectIds.length || typeof item.deleteEmbeddedDocuments !== "function") return;
+  await item.deleteEmbeddedDocuments("ActiveEffect", effectIds);
+}
+
+function normalizeWoundsFormulaComparisonValue(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeWoundsFormulaComparisonValue(entry));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+        .map(([key, entryValue]) => [
+          key,
+          normalizeWoundsFormulaComparisonValue(entryValue)
+        ])
+    );
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed === "") return "";
+    const numeric = Number(trimmed);
+    return Number.isFinite(numeric) ? numeric : trimmed;
+  }
+  return value;
+}
+
+function hasMeaningfulWoundsFormulaChange(changesSystem = {}, actorSystem = {}) {
+  const formulaPaths = [
+    "characteristics",
+    "mythic",
+    "equipment.equipped",
+    "advancements",
+    "charBuilder",
+    "customOutliers"
+  ];
+  return formulaPaths.some((path) => {
+    if (!foundry.utils.hasProperty(changesSystem ?? {}, path)) return false;
+    const submittedValue = normalizeWoundsFormulaComparisonValue(
+      foundry.utils.getProperty(changesSystem, path)
+    );
+    const currentValue = normalizeWoundsFormulaComparisonValue(
+      foundry.utils.getProperty(actorSystem ?? {}, path)
+    );
+    return JSON.stringify(submittedValue) !== JSON.stringify(currentValue);
+  });
+}
+
+function preserveHigherExistingWoundsMaximum(normalizedSystem = {}, sourceSystem = {}, changesSystem = {}, actorSystem = {}) {
+  const derivedMax = toNonNegativeWhole(normalizedSystem?.combat?.wounds?.max, 0);
+  const sourceMax = toNonNegativeWhole(sourceSystem?.combat?.wounds?.max, 0);
+  if (sourceMax <= derivedMax) return normalizedSystem;
+
+  const affectsWoundsFormula = hasMeaningfulWoundsFormulaChange(
+    changesSystem,
+    actorSystem
+  );
+  if (affectsWoundsFormula) return normalizedSystem;
+
+  const current = Math.min(toNonNegativeWhole(normalizedSystem?.combat?.wounds?.current, 0), sourceMax);
+  foundry.utils.setProperty(normalizedSystem, "combat.wounds.max", sourceMax);
+  foundry.utils.setProperty(normalizedSystem, "combat.wounds.current", current);
+  foundry.utils.setProperty(normalizedSystem, "combat.woundsBar.value", current);
+  foundry.utils.setProperty(normalizedSystem, "combat.woundsBar.max", sourceMax);
+  return normalizedSystem;
+}
 
 function isEnergyCellAmmoMode(ammoMode = "") {
   return MYTHIC_ENERGY_CELL_AMMO_MODES.has(String(ammoMode ?? "").trim().toLowerCase());
@@ -3756,6 +3842,16 @@ export function registerMythicDocumentAndChatHooks({
   mythicGetFearFlowFlag,
   mythicDescribeFearFlowPermissionHint
 } = {}) {
+  Hooks.once("ready", () => {
+    if (!game.user?.isGM) return;
+    for (const actor of game.actors ?? []) {
+      if (actor?.type !== "character") continue;
+      for (const item of actor.items ?? []) {
+        void deleteBerserkerAutoEffects(item);
+      }
+    }
+  });
+
   Hooks.on("getSceneControlButtons", (controls) => {
     if (!game.user.isGM || !controls || typeof controls !== "object") return;
 
@@ -3853,8 +3949,34 @@ export function registerMythicDocumentAndChatHooks({
       || Object.prototype.hasOwnProperty.call(changed ?? {}, "y")
       || Object.prototype.hasOwnProperty.call(changed ?? {}, "width")
       || Object.prototype.hasOwnProperty.call(changed ?? {}, "height");
-    if (!moved) return;
-    void syncCookEventPositionsForTokenDocument(tokenDocument);
+    if (moved) void syncCookEventPositionsForTokenDocument(tokenDocument);
+
+    const statusChanged = Object.prototype.hasOwnProperty.call(changed ?? {}, "effects")
+      || Object.prototype.hasOwnProperty.call(changed ?? {}, "statuses");
+    if (statusChanged && tokenDocument?.actor) {
+      void syncActorBerserkerFromTokenStatus(tokenDocument.actor);
+    }
+  });
+
+  Hooks.on("createToken", (tokenDocument) => {
+    const actor = tokenDocument?.actor;
+    if (!actor) return;
+    if (getBerserkerState(actor, actor.system ?? {}).active) {
+      void setTokenBerserkerStatus(tokenDocument, true);
+    }
+  });
+
+  Hooks.on("updateActor", (actor, changes) => {
+    if (actor?.type !== "character") return;
+    const woundsChanged = foundry.utils.hasProperty(changes ?? {}, "system.combat.wounds.current")
+      || foundry.utils.hasProperty(changes ?? {}, "system.combat.wounds.max");
+    if (!woundsChanged) return;
+    const state = getBerserkerState(actor, actor.system ?? {});
+    if (!state.active || state.tokenActive) return;
+    for (const token of canvas?.tokens?.placeables ?? []) {
+      if (!tokenMatchesActor(token, actor)) continue;
+      void setTokenBerserkerStatus(token, true);
+    }
   });
 
   Hooks.on("deleteToken", (tokenDocument) => {
@@ -3893,6 +4015,7 @@ export function registerMythicDocumentAndChatHooks({
     if (item.type === "trait") {
       const normalized = normalizeTraitSystemData(createData.system ?? {}, initialName);
       foundry.utils.setProperty(createData, "system", normalized);
+      stripBerserkerAutoEffectsFromItemData(createData);
       const currentImg = createData.img ?? item.img ?? "";
       if (!currentImg || currentImg === "icons/svg/item-bag.svg" || currentImg.includes("mystery-man")) {
         foundry.utils.setProperty(createData, "img", MYTHIC_ABILITY_DEFAULT_ICON);
@@ -3951,6 +4074,10 @@ export function registerMythicDocumentAndChatHooks({
       }
       if (item.type === "trait") {
         changes.system = normalizeTraitSystemData(item.system ?? {}, nextName);
+        if (Array.isArray(changes.effects)) {
+          const stripped = stripBerserkerAutoEffectsFromItemData({ ...changes, type: item.type, name: nextName });
+          changes.effects = stripped.effects;
+        }
         return;
       }
       if (item.type === "education") {
@@ -3991,6 +4118,10 @@ export function registerMythicDocumentAndChatHooks({
 
     if (item.type === "trait") {
       changes.system = normalizeTraitSystemData(nextSystem, nextName);
+      if (Array.isArray(changes.effects)) {
+        const stripped = stripBerserkerAutoEffectsFromItemData({ ...changes, type: item.type, name: nextName });
+        changes.effects = stripped.effects;
+      }
       return;
     }
 
@@ -4218,10 +4349,20 @@ export function registerMythicDocumentAndChatHooks({
       for (const [path, value] of preservedUpdates.entries()) {
         foundry.utils.setProperty(nextSystem, path, value);
       }
+      foundry.utils.setProperty(
+        nextSystem,
+        "mythic.equipmentCharacteristicModifiers",
+        getActorEquippedGearMythicCharacteristicModifiers(actor, nextSystem?.equipment?.equipped ?? {})
+      );
       if (isHuragokCharacterSystem(nextSystem)) {
         foundry.utils.setProperty(nextSystem, "mythic.flyCombatActive", true);
       }
-      changes.system = normalizeCharacterSystemData(nextSystem);
+      changes.system = preserveHigherExistingWoundsMaximum(
+        normalizeCharacterSystemData(nextSystem),
+        nextSystem,
+        changesSystemWithoutAmmo,
+        actor.system ?? {}
+      );
 
       for (const [path, value] of preservedUpdates.entries()) {
         foundry.utils.setProperty(changes.system, path, value);
@@ -4272,6 +4413,10 @@ export function registerMythicDocumentAndChatHooks({
   Hooks.on("createItem", async (item) => {
     const actor = item?.parent;
     if (!actor || actor.documentName !== "Actor" || actor.type !== "character") return;
+    if (item.type === "trait") {
+      await deleteBerserkerAutoEffects(item);
+      return;
+    }
     if (item.type !== "gear") return;
 
     const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
@@ -4376,6 +4521,12 @@ export function registerMythicDocumentAndChatHooks({
       "system.equipment.ballisticContainers": nextBallisticContainers,
       "system.equipment.weaponState": nextWeaponState
     });
+  });
+
+  Hooks.on("updateItem", async (item) => {
+    const actor = item?.parent;
+    if (!actor || actor.documentName !== "Actor" || actor.type !== "character") return;
+    await deleteBerserkerAutoEffects(item);
   });
 
   Hooks.on("deleteItem", async (item) => {
@@ -5366,6 +5517,9 @@ async function promptAttackModifiersForActor(actor, weaponName = "Weapon", gear 
     actor,
     weaponName,
     gear,
+    scopeMagnificationDefault: Number.isFinite(Number(options?.scopeMagnificationDefault))
+      ? Number(options.scopeMagnificationDefault)
+      : 1,
     vehicleTargetingContext: (options?.vehicleTargetingContext && typeof options.vehicleTargetingContext === "object")
       ? options.vehicleTargetingContext
       : null,

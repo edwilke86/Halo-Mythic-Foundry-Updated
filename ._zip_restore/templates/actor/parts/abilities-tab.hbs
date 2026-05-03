@@ -1,0 +1,143 @@
+<div class="tab abilities" data-group="primary" data-tab="abilities">
+  <section class="panel mythic-abilities-section">
+    <h2>Abilities</h2>
+    <p class="mythic-known-bug-badge"><strong>BUG:</strong> Automatic XP handling from Ability Drops is not working 100% of the time. Be sure any XP is properly spent for abilities.</p>
+
+    {{#if mythicAbilities.length}}
+    <div class="mythic-abilities-table">
+      <div class="mythic-ability-col-headers">
+        <div>Name</div>
+        <div>Cost</div>
+        <div>Action</div>
+        <div>Activation</div>
+        <div>Description</div>
+        <div></div>
+      </div>
+
+      {{#each mythicAbilities as |ability|}}
+        <div class="mythic-ability-row">
+          <div class="ability-col-name">
+            <div class="ability-name-actions">
+              <button class="ability-open-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Open ability sheet">
+                {{ability.name}}
+              </button>
+              <button class="ability-post-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Post ability to chat">
+                <i class="fas fa-comments"></i>
+              </button>
+            </div>
+          </div>
+          <div class="ability-col-cost">{{ability.cost}}</div>
+          <div class="ability-col-action">{{ability.actionTypeLabel}}</div>
+          <div class="ability-col-activation">
+            {{#if ability.isActivatable}}
+              <button class="ability-activate-btn action-btn" type="button" data-item-id="{{ability.id}}" {{#unless ability.canActivate}}disabled{{/unless}}>Activate</button>
+              <button class="ability-cooldown-btn action-btn" type="button" data-item-id="{{ability.id}}" {{#unless ability.cooldownRemaining}}disabled{{/unless}}>Tick CD</button>
+              <div class="ability-activation-status">Uses {{ability.usesSpent}}{{#if ability.usesMax}}/{{ability.usesMax}}{{else}}/∞{{/if}} | CD {{ability.cooldownRemaining}}</div>
+            {{else}}
+              <div class="ability-activation-status">Passive</div>
+            {{/if}}
+          </div>
+          <div class="ability-col-description" title="{{ability.shortDescription}}">{{ability.shortDescription}}</div>
+          <div class="ability-col-delete">
+            <button class="ability-remove-btn action-btn" type="button" data-item-id="{{ability.id}}" title="Remove ability">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      {{/each}}
+    </div>
+    {{else}}
+      <p class="ability-empty-hint">No abilities yet — drag an item from the <em>Abilities</em> compendium to add one.</p>
+    {{/if}}
+
+    <div class="section-actions-row">
+      <button class="ability-open-compendium-btn action-btn" type="button" title="Open Abilities compendium">
+        <i class="fas fa-book"></i> +
+      </button>
+      <button class="ability-add-custom-btn action-btn" type="button" title="Create custom ability">
+        <i class="fas fa-plus"></i> Custom
+      </button>
+    </div>
+ 
+    <h2 style="margin-top: 12px;">Traits</h2>
+
+    {{#if mythicTraits.length}}
+    <div class="mythic-traits-table">
+      <div class="mythic-trait-col-headers">
+        <div>Name</div>
+        <div>Category</div>
+        <div>Access</div>
+        <div>Description</div>
+        <div></div>
+      </div>
+
+      {{#each mythicTraits as |trait|}}
+        <div class="mythic-trait-row">
+          <div class="ability-col-name">
+            <div class="ability-name-actions">
+              <button class="trait-open-btn action-btn" type="button" data-item-id="{{trait.id}}" title="Open trait sheet">
+                {{trait.name}}
+              </button>
+              <button class="trait-post-btn action-btn" type="button" data-item-id="{{trait.id}}" title="Post trait to chat">
+                <i class="fas fa-comments"></i>
+              </button>
+            </div>
+          </div>
+          <div class="ability-col-action">{{trait.category}}</div>
+          <div class="ability-col-action">{{#if trait.grantOnly}}Granted{{else}}Selectable{{/if}}</div>
+          <div class="ability-col-description" title="{{trait.shortDescription}}">{{trait.shortDescription}}</div>
+          <div class="ability-col-delete">
+            <button class="trait-remove-btn action-btn" type="button" data-item-id="{{trait.id}}" title="Remove trait">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      {{/each}}
+    </div>
+    {{else}}
+      <p class="ability-empty-hint">No traits yet.</p>
+    {{/if}}
+
+    <div class="section-actions-row">
+      <button class="trait-open-compendium-btn action-btn" type="button" title="Open Traits compendium">
+        <i class="fas fa-book"></i> +
+      </button>
+      <button class="trait-add-custom-btn action-btn" type="button" title="Create custom trait">
+        <i class="fas fa-plus"></i> New Trait
+      </button>
+    </div>
+  </section>
+
+<section class="panel mythic-outliers-section" style="margin-top: 24px;">
+  <h2>Outliers <span style="font-size:0.9em;color:#888;font-weight:normal;">(Standard outliers are set in Character Creation and Advancement)</span></h2>
+  <div class="custom-outliers-list">
+    {{#if mythicOutliers.hasEntries}}
+      {{#each mythicOutliers.entries as |entry|}}
+        {{#if entry.isCustom}}
+          <div class="custom-outlier-row" data-index="{{entry.listIndex}}">
+            <div style="display:flex;gap:8px;align-items:flex-start;width:100%;">
+              <input type="text" class="custom-outlier-name" name="system.customOutliers.{{entry.listIndex}}.name" value="{{entry.name}}" placeholder="Outlier name" />
+              <textarea class="custom-outlier-desc" name="system.customOutliers.{{entry.listIndex}}.description" rows="2">{{entry.description}}</textarea>
+              <button type="button" class="action-btn custom-outlier-remove" data-index="{{entry.listIndex}}" title="Remove custom outlier"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+        {{else}}
+          <div class="mythic-outlier-item">
+            <strong>{{entry.name}}</strong>
+            {{#if entry.choiceLabel}}<span style="color:#888">({{entry.choiceLabel}})</span>{{/if}}
+            {{#if entry.description}}<div class="mythic-outlier-desc">{{entry.description}}</div>{{/if}}
+          </div>
+        {{/if}}
+      {{/each}}
+    {{else}}
+      <p class="mythic-outlier-empty">No outliers selected in Character Creation and no custom outliers yet.</p>
+    {{/if}}
+
+    <div class="section-actions-row">
+      <button type="button" class="action-btn custom-outlier-add" data-path="customOutliers">
+        <i class="fas fa-plus"></i> Add Custom Outlier
+      </button>
+    </div>
+  </div>
+</section>
+</div>

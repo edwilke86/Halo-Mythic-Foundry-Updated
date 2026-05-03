@@ -1,0 +1,53 @@
+<div class="panel">
+  <h2>Crew & Complement</h2>
+  <div class="crew-section">
+    <h3>Operators</h3>
+    <div class="crew-list">
+      {{#each mythicVehicleSystem.crew.operators}}
+        <div class="crew-slot mythic-crew-dropzone" data-kind="operators" data-idx="{{idx}}">
+          <div class="crew-label">Operator {{slotNumber}}:</div>
+          {{#if id}}
+            <div class="crew-name">{{display}} <span class="crew-type">({{#if isPC}}PC{{else}}NPC{{/if}})</span></div>
+            <button type="button" class="crew-clear-btn" data-kind="operators" data-idx="{{idx}}">Clear</button>
+          {{else}}
+            <div class="crew-empty">Empty — drop actor</div>
+          {{/if}}
+        </div>
+      {{/each}}
+    </div>
+  </div>
+
+  <div class="crew-section" style="margin-top:12px;">
+    <h3>Gunners</h3>
+    <div class="crew-list">
+      {{#each mythicVehicleSystem.crew.gunners}}
+        <div class="crew-slot mythic-crew-dropzone" data-kind="gunners" data-idx="{{idx}}">
+          <div class="crew-label">Gunner {{slotNumber}}:</div>
+          {{#if id}}
+            <div class="crew-name">{{display}} <span class="crew-type">({{#if isPC}}PC{{else}}NPC{{/if}})</span></div>
+            <button type="button" class="crew-clear-btn" data-kind="gunners" data-idx="{{idx}}">Clear</button>
+          {{else}}
+            <div class="crew-empty">Empty — drop actor</div>
+          {{/if}}
+        </div>
+      {{/each}}
+    </div>
+  </div>
+
+  <div class="crew-section" style="margin-top:12px;">
+    <h3>Passengers</h3>
+    <div class="crew-list">
+      {{#each mythicVehicleSystem.crew.complement}}
+        <div class="crew-slot mythic-crew-dropzone" data-kind="complement" data-idx="{{idx}}">
+          <div class="crew-label">Passenger {{slotNumber}}:</div>
+          {{#if id}}
+            <div class="crew-name">{{display}} <span class="crew-type">({{#if isPC}}PC{{else}}NPC{{/if}})</span></div>
+            <button type="button" class="crew-clear-btn" data-kind="complement" data-idx="{{idx}}">Clear</button>
+          {{else}}
+            <div class="crew-empty">Empty — drop actor</div>
+          {{/if}}
+        </div>
+      {{/each}}
+    </div>
+  </div>
+</div>

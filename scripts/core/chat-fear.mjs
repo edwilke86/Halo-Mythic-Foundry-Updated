@@ -2,6 +2,7 @@ import { normalizeLookupText, toNonNegativeWhole } from "../utils/helpers.mjs";
 import { normalizeBestiarySystemData, normalizeCharacterSystemData } from "../data/normalization.mjs";
 import { computeCharacteristicModifiers, computeFatigueState } from "../mechanics/derived.mjs";
 import { loadMythicFearEffectDefinitions } from "../data/content-loading.mjs";
+import { getBerserkerState } from "../mechanics/berserker.mjs";
 import { openEffectReferenceDialog } from "../ui/effect-reference-dialog.mjs";
 import {
   buildFearCourageChatCard,
@@ -349,6 +350,30 @@ export async function mythicStartFearTest({ actor, promptModifier } = {}) {
     return null;
   }
 
+  if (getBerserkerState(actor, actor.system ?? {}).active) {
+    const actorName = String(actor.name ?? "Character");
+    const content = `
+      <div class="mythic-fear-card">
+        <div class="mythic-fear-header">Fear Test Auto-Passed</div>
+        <div class="mythic-fear-line"><strong>${escapeHtml(actorName)}</strong> automatically passes Fear, Shock, and Pinning tests while Berserking.</div>
+      </div>
+    `;
+    return postFearChatMessage(actor, content, {
+      type: "fear-courage-result",
+      actorId: String(actor.id ?? "").trim(),
+      actorUuid: String(actor.uuid ?? "").trim(),
+      actorName,
+      baseTarget,
+      miscModifier: 0,
+      effectiveTarget: baseTarget,
+      rolled: 0,
+      success: true,
+      fullDegrees: 0,
+      shockBonus: 0,
+      berserkerAutoPass: true
+    });
+  }
+
   const modifierPrompt = typeof promptModifier === "function"
     ? promptModifier
     : promptFearModifier;
@@ -407,6 +432,28 @@ export async function mythicFearRollShockTest(messageId) {
   if (!canUserRunFearFlow(actor)) {
     ui.notifications?.warn("Only the actor owner or GM can continue this fear test.");
     return;
+  }
+
+  if (getBerserkerState(actor, actor.system ?? {}).active) {
+    return postFearChatMessage(actor, `
+      <div class="mythic-fear-card">
+        <div class="mythic-fear-header">Shock Test Auto-Passed</div>
+        <div class="mythic-fear-line"><strong>${escapeHtml(actor.name ?? "Character")}</strong> automatically passes Shock while Berserking.</div>
+      </div>
+    `, {
+      type: "fear-shock-result",
+      actorId: String(actor.id ?? "").trim(),
+      actorUuid: String(actor.uuid ?? "").trim(),
+      actorName: String(actor.name ?? "Character"),
+      sourceFearMessageId: String(message.id ?? "").trim(),
+      shockRaw: 0,
+      shockBonus: 0,
+      shockTotal: 0,
+      outcomeRange: "Auto",
+      outcomeText: "Berserker auto-pass.",
+      requiresPtsd: false,
+      berserkerAutoPass: true
+    });
   }
 
   const definitions = await loadMythicFearEffectDefinitions();

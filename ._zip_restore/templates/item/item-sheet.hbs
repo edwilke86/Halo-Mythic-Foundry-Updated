@@ -1,0 +1,100 @@
+{{#if isGearItem}}
+<div class="{{cssClass}} mythic-character-sheet mythic-ability-item-sheet mythic-gear-item-sheet mythic-equipment-item-sheet">
+
+  <!--  D&D 5e-style compact header  -->
+  <header class="gear-item-header">
+    <img class="gear-item-icon" src="{{item.img}}" title="{{item.name}}" alt="{{item.name}}" />
+    <div class="gear-item-header-center">
+      <input class="gear-item-name" type="text" name="name" value="{{item.name}}"
+        {{#unless canEditFields}}disabled{{/unless}} />
+        <input class="gear-item-nickname" type="text" name="system.nickname" value="{{gear.nickname}}"
+          placeholder="Nickname (optional)" {{#unless canEditFields}}disabled{{/unless}} />
+      <div class="gear-item-header-type">
+        <select name="system.equipmentType" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each equipmentTypeOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if (eq ../gear.equipmentType opt.value)}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+        {{#unless isAmmoItem}}
+        <select name="system.armorySelection" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each armorySelectionOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if (eq ../gear.armorySelection opt.value)}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+        {{/unless}}
+      </div>
+    </div>
+    <div class="gear-item-header-stats">
+      {{#unless isAmmoItem}}
+      <div class="gear-item-stat">
+        <input type="number" min="0" step="0.1" name="system.weightKg" value="{{gear.weightKg}}"
+          {{#unless canEditFields}}disabled{{/unless}} />
+        <span class="gear-stat-unit">kg</span>
+      </div>
+      <div class="gear-item-stat">
+        <input type="number" min="0" step="1" name="system.price.amount" value="{{gear.price.amount}}"
+          {{#unless canEditFields}}disabled{{/unless}} />
+        <span class="gear-stat-unit">cR</span>
+      </div>
+      {{/unless}}
+      {{#if isAmmoItem}}
+      <div class="gear-item-stat">
+        <input type="number" min="0" step="1" name="system.quantity" value="{{gear.quantity}}"
+          {{#unless canEditFields}}disabled{{/unless}} />
+        <span class="gear-stat-unit">qty</span>
+      </div>
+      {{/if}}
+      <div class="gear-item-stat mythic-storage-unit-stat" title="{{#if gear.storage.storageUnitsRuleKey}}{{gear.storage.storageUnitsRuleKey}}{{else}}No carrying-unit table match{{/if}}">
+        <input class="mythic-storage-units-input" type="number" min="0" step="0.1" value="{{gear.storage.storageUnits}}"
+          {{#unless canEditFields}}disabled{{/unless}} />
+        <span class="gear-stat-unit">U</span>
+        <button type="button" class="mythic-storage-units-reset" title="Reset carrying units to auto" aria-label="Reset carrying units to auto"
+          {{#unless canEditFields}}disabled{{/unless}}>
+          <i class="fas fa-rotate-left"></i>
+        </button>
+      </div>
+      <div class="mythic-storage-unit-source {{#if (eq gear.storage.storageUnitsSource "manual")}}is-manual{{/if}}">
+        {{gear.storage.storageUnitsSource}}
+      </div>
+    </div>
+  </header>
+
+  <section class="ability-sheet-body gear-item-body">
+    {{#if isArmorItem}}
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-armor.hbs"}}
+    {{else if isAmmoItem}}
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-ammo.hbs"}}
+    {{else if isAmmoModItem}}
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-ammo-mod.hbs"}}
+    {{else if isMeleeWeaponItem}}
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-melee-weapon.hbs"}}
+    {{else if isRangedWeaponItem}}
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-ranged-weapon.hbs"}}
+    {{else if isExplosivesAndGrenadesItem}}
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-explosives-and-grenades.hbs"}}
+    {{else}}
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/gear-body-generic.hbs"}}
+    {{/if}}
+
+    <div class="ability-info-row ability-notes-row gear-sync-row">
+      <label for="gear-sync">Sync Metadata</label>
+      <div class="gear-sync-controls">
+        <button type="button" class="gear-sync-copy">Copy JSON</button>
+        <textarea id="gear-sync" rows="5" readonly>{{readOnlySystem}}</textarea>
+      </div>
+    </div>
+
+  </section>
+</div>
+{{else}}
+<div class="{{cssClass}}">
+  <header class="sheet-header">
+    <h1>{{item.name}}</h1>
+  </header>
+
+  <section class="sheet-body">
+    <p>Blank item sheet scaffold.</p>
+    <p>Type: {{item.type}}</p>
+  </section>
+</div>
+{{/if}}

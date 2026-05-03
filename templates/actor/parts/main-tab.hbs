@@ -82,6 +82,40 @@
         </details>
       </details>
 
+      <details class="mythic-derived-card" data-collapse-key="sight-card" open>
+        <summary>Sight</summary>
+        <div class="movement-strip">
+          <div class="movement-block movement-block-wide">
+            <div class="movement-value">{{mythicPerceptiveRange.effectiveMeters}}</div>
+            <div class="movement-label">Perceptive Range</div>
+          </div>
+        </div>
+        <div class="movement-ref-row" style="margin: 8px 0;">
+          <span>Lighting</span>
+          <select name="system.perceptiveRange.lightingCondition">
+            {{#each mythicPerceptiveRange.lightingOptions as |opt|}}
+              <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+        {{#if mythicFarSight.hasAbility}}
+          <div class="movement-ref-row" style="margin: 8px 0;">
+            <span>Far-Sight</span>
+            <button type="button" class="action-btn far-sight-activate-btn {{#unless mythicFarSight.canActivate}}is-disabled{{/unless}}" {{#unless mythicFarSight.canActivate}}disabled{{/unless}}>{{mythicFarSight.buttonLabel}}</button>
+          </div>
+        {{/if}}
+        <details class="movement-reference" data-collapse-key="sight-reference">
+          <summary>Lighting &amp; Range Penalties</summary>
+          <div class="movement-ref-content" title="Base {{mythicPerceptiveRange.breakdown.baseLightingMultiplier}} + VIGIL {{mythicPerceptiveRange.breakdown.vigilBonus}} + Far-Sight {{mythicPerceptiveRange.breakdown.farSightBonus}}; then optics x{{mythicPerceptiveRange.breakdown.opticsMultiplier}}">
+            <div class="movement-ref-row"><span>Bright / Low-Light</span><span>{{mythicDerived.perceptiveRange.brightOrLowLight}} m</span></div>
+            <div class="movement-ref-row"><span>Blinding / Darkness</span><span>{{mythicDerived.perceptiveRange.blindingOrDarkness}} m</span></div>
+            <div class="movement-ref-row"><span>-20 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty20Max}} m</span></div>
+            <div class="movement-ref-row"><span>-60 To Hit up to</span><span>{{mythicDerived.perceptiveRange.penalty60Max}} m</span></div>
+            <p>Scopes, sights, and binoculars multiply current Perceptive Range after lighting/outlier/temporary modifiers.</p>
+            <p>Aim is only legal up to current Perceptive Range. Beyond 3x Perceptive Range is impossible.</p>
+          </div>
+        </details>
+      </details>
       <details class="mythic-derived-card" data-collapse-key="weight-card" open>
         <summary>Weight</summary>
         <div class="movement-strip">
@@ -120,6 +154,9 @@
         <button type="button" class="action-btn mythic-initiative-roll-btn" title="Roll Initiative: 1d10 + AGI Mod + (Mythic AGI / 2) + Manual Bonus + Misc. Fast Foot upgrades to 2d10 keep highest.">
           <i class="fa-solid fa-dice-d10"></i>
         </button>
+        {{#if mythicCanToggleActiveCamo}}
+          <button type="button" class="action-btn mythic-active-camo-toggle-btn" title="Toggle Active Camo (core Invisibility) and roll a Camouflage test.">Active Camo</button>
+        {{/if}}
         <button type="button" class="action-btn fear-test-btn" title="Run a Fear Test flow (Courage -> Shock -> PTSD).">Fear Test</button>
       </div>
     </div>
@@ -439,7 +476,10 @@
             {{#unless weapon.isGrenadeWeapon}}
             <div class="mythic-ready-weapon-row-inline">
               <span><strong>Reload:</strong> {{#if weapon.isSingleLoadWeapon}}{{weapon.singleLoadPerHalfAction}}/HA{{else}}{{weapon.rangeReload}}{{/if}}</span>
-              <span><strong>{{weapon.ammoCapacityLabel}}:</strong> {{weapon.magazineMax}}</span>
+              <span class="mythic-perceptive-range-text"><strong>Effective Per. Ranges:</strong> {{weapon.perceptiveEffectiveMeters}} / <span class="mythic-perceptive-range-mult is-penalty20" title="{{weapon.perceptivePenalty20Tooltip}}">{{weapon.perceptivePenalty20Max}}</span> / <span class="mythic-perceptive-range-mult is-penalty60" title="{{weapon.perceptivePenalty60Tooltip}}">{{weapon.perceptivePenalty60Max}}</span></span>
+              {{#if weapon.showScopeMinimumRangeNote}}
+              <span class="mythic-scope-min-range-text" title="{{weapon.scopeMinimumRangeTooltip}}"><strong>Min Range:</strong> {{weapon.scopeMinimumRangeMeters}} m</span>
+              {{/if}}
             </div>
             {{/unless}}
             {{/unless}}

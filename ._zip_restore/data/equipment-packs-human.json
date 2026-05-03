@@ -1,0 +1,270 @@
+[
+  {
+    "key": "unsc-marine-point-man",
+    "group": "UNSC Marine Equipment",
+    "name": "Point Man Equipment",
+    "description": "Front-line breaching loadout with MA5-series rifle, M6-series sidearm, explosives, and mission utility gear.",
+    "soldierTypeCanonicalIds": [
+      "soldierType:unsc-or-insurrectionist-marine-soldier"
+    ],
+    "soldierTypeNames": [
+      "Marine Soldier"
+    ],
+    "displayItems": [
+      "Assault rifle choice: any MA5-series rifle",
+      "Sidearm choice: any M6-series pistol or carbine",
+      "Two M9 high-explosive dual-purpose grenades",
+      "Two flashbang grenades",
+      "Two tactical hard cases",
+      "Three ammunition pouches",
+      "Flashlight",
+      "M1 Combat Knife or Model 52 Navy Knife",
+      "Holographic tactical eyepiece",
+      "Armor choice by campaign year"
+    ],
+    "grants": [
+      {
+        "type": "weapon-choice",
+        "label": "MA5 Series Assault Rifle",
+        "choices": [
+          "MA5B Individual Combat Weapon System",
+          "MA5C Individual Combat Weapon System",
+          "MA5D Individual Combat Weapon System",
+          "MA5K Carbine"
+        ],
+        "addAsCarried": true,
+        "addAsReady": true,
+        "setAsWielded": true,
+        "grantStandardMagazines": 4
+      },
+      {
+        "type": "weapon-choice",
+        "label": "M6 Series Sidearm",
+        "promptNote": "Check with GM for campaign timeline constraints on selected M6 variants.",
+        "choices": [
+          "M6A Personal Defense Weapon System",
+          "M6B Personal Defense Weapon System",
+          "M6C Personal Defense Weapon System",
+          "M6D Personal Defense Weapon System",
+          "M6E Personal Defense Weapon System",
+          "M6F Personal Defense Weapon System",
+          "M6G Personal Defense Weapon System",
+          "M6H Personal Defense Weapon System",
+          "M6H2 Personal Defense Weapon System",
+          "M6I Adjustable Personal Defense Weapon System",
+          "M6J Adjustable Personal Defense Carbine",
+          "M6K Personal Defense Weapon System",
+          "M6P Pocket Pistol",
+          "M6Z Machine Pistol"
+        ],
+        "addAsCarried": true,
+        "grantStandardMagazines": 4
+      },
+      {
+        "type": "gear-choice",
+        "label": "Knife",
+        "choices": [
+          "M1 Combat Knife",
+          "Model 52 Navy Knife"
+        ],
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "M9 High-Explosive Dual-Purpose Grenade",
+        "quantity": 2,
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Flashbang Grenade",
+        "quantity": 2,
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Tactical Hard Case",
+        "quantity": 2,
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Ammunition Pouch",
+        "quantity": 3,
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Flashlight",
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Holographic Tactical Eyepiece",
+        "addAsCarried": true
+      },
+      {
+        "type": "armor-choice",
+        "label": "Marine Armor",
+        "choices": [
+          {
+            "name": "Pre war Marine M50B Standard BDU",
+            "yearEnd": 2524
+          },
+          {
+            "name": "Pre war Marine M50B Standard BDU",
+            "yearStart": 2525
+          },
+          {
+            "name": "Marine M52B Standard BDU",
+            "yearStart": 2525,
+            "yearEnd": 2552
+          },
+          {
+            "name": "Marine M52B Standard BDU",
+            "yearStart": 2553
+          },
+          {
+            "name": "Post-War M53 Standard BDU",
+            "yearStart": 2553
+          }
+        ],
+        "addAsCarried": true,
+        "equip": true
+      }
+    ]
+  },
+  {
+    "key": "unsc-marine-marksman",
+    "group": "UNSC Marine Equipment",
+    "name": "Marksman Equipment",
+    "description": "Precision-focused rifle package with sidearm, explosives, and utility gear.",
+    "soldierTypeCanonicalIds": [
+      "soldierType:unsc-or-insurrectionist-marine-soldier"
+    ],
+    "soldierTypeNames": [
+      "Marine Soldier"
+    ],
+    "displayItems": [
+      "Marksman rifle choice: M392 DMR or M395 DMR",
+      "Sidearm choice: any M6-series pistol or carbine",
+      "Two M9 high-explosive dual-purpose grenades",
+      "Two flashbang grenades",
+      "Two tactical hard cases",
+      "Three ammunition pouches",
+      "Flashlight",
+      "M1 Combat Knife or Model 52 Navy Knife",
+      "Holographic tactical eyepiece",
+      "Armor choice by campaign year"
+    ],
+    "grants": [
+      {
+        "type": "weapon-choice",
+        "label": "Marksman Rifle",
+        "choices": [
+          "M392 DMR",
+          "M395 DMR"
+        ],
+        "addAsCarried": true,
+        "addAsReady": true,
+        "setAsWielded": true,
+        "grantStandardMagazines": 4
+      },
+      {
+        "type": "weapon-choice",
+        "label": "M6 Series Sidearm",
+        "promptNote": "Check with GM for campaign timeline constraints on selected M6 variants.",
+        "choices": [
+          "M6A Personal Defense Weapon System",
+          "M6B Personal Defense Weapon System",
+          "M6C Personal Defense Weapon System",
+          "M6D Personal Defense Weapon System",
+          "M6E Personal Defense Weapon System",
+          "M6F Personal Defense Weapon System",
+          "M6G Personal Defense Weapon System",
+          "M6H Personal Defense Weapon System",
+          "M6H2 Personal Defense Weapon System",
+          "M6I Adjustable Personal Defense Weapon System",
+          "M6J Adjustable Personal Defense Carbine",
+          "M6K Personal Defense Weapon System",
+          "M6P Pocket Pistol",
+          "M6Z Machine Pistol"
+        ],
+        "addAsCarried": true,
+        "grantStandardMagazines": 4
+      },
+      {
+        "type": "gear-choice",
+        "label": "Knife",
+        "choices": [
+          "M1 Combat Knife",
+          "Model 52 Navy Knife"
+        ],
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "M9 High-Explosive Dual-Purpose Grenade",
+        "quantity": 2,
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Flashbang Grenade",
+        "quantity": 2,
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Tactical Hard Case",
+        "quantity": 2,
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Ammunition Pouch",
+        "quantity": 3,
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Flashlight",
+        "addAsCarried": true
+      },
+      {
+        "type": "gear",
+        "name": "Holographic Tactical Eyepiece",
+        "addAsCarried": true
+      },
+      {
+        "type": "armor-choice",
+        "label": "Marine Armor",
+        "choices": [
+          {
+            "name": "Pre war Marine M50B Standard BDU",
+            "yearEnd": 2524
+          },
+          {
+            "name": "Pre war Marine M50B Standard BDU",
+            "yearStart": 2525
+          },
+          {
+            "name": "Marine M52B Standard BDU",
+            "yearStart": 2525,
+            "yearEnd": 2552
+          },
+          {
+            "name": "Marine M52B Standard BDU",
+            "yearStart": 2553
+          },
+          {
+            "name": "Post-War M53 Standard BDU",
+            "yearStart": 2553
+          }
+        ],
+        "addAsCarried": true,
+        "equip": true
+      }
+    ]
+  }
+]

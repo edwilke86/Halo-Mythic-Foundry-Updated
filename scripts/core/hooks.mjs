@@ -99,6 +99,10 @@ import {
 } from "../core/token-defaults.mjs";
 
 import {
+  registerBerserkerStatusEffect
+} from "../mechanics/berserker.mjs";
+
+import {
   mythicRollEvasion as mythicRollEvasionImpl,
   mythicApplyDirectAttackDamage as mythicApplyDirectAttackDamageImpl,
   mythicApplyWoundDamage as mythicApplyWoundDamageImpl,
@@ -857,6 +861,8 @@ async function runMythicStartupCompendiumIntegrityPass(options = {}) {
 
 export function registerAllHooks() {
   Hooks.once("init", async () => {
+    registerBerserkerStatusEffect();
+
     const MYTHIC_STARTING_XP_SETTING_KEY = "startingXp";
     const MYTHIC_USE_AVG_PARTY_XP_SETTING_KEY = "useAveragePartyXp";
     const MYTHIC_PLAYER_HANDLE_XP_SETTING_KEY = "letPlayersHandleXp";

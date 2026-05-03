@@ -1,6 +1,9 @@
 <header class="mythic-sticky-header panel mythic-sheet-header-surface">
   <div class="mythic-header-grid">
     <div class="mythic-header-portrait-wrap">
+      {{#if mythicBerserker.active}}
+        <div class="mythic-berserker-badge">Berserking</div>
+      {{/if}}
       <div class="mythic-sheet-portrait-surface mythic-header-portrait-surface">
         <img src="{{actor.img}}" alt="{{actor.name}}" title="{{actor.name}}" class="profile-img mythic-sheet-portrait-image mythic-header-portrait-image" data-edit="img" />
       </div>

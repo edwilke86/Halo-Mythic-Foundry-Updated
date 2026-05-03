@@ -1,0 +1,364 @@
+<nav class="gear-item-tabs-nav tabs" data-group="ranged-tabs">
+  <a class="item" data-tab="general">General</a>
+  <a class="item" data-tab="special-rules">Special Rules</a>
+  <a class="item" data-tab="advanced">Advanced</a>
+  <a class="item" data-tab="weapon-mods">Weapon Mods</a>
+</nav>
+
+<div class="gear-item-tabs-content">
+  <section class="tab" data-tab="general" data-group="ranged-tabs">
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-training">Weapon Type</label>
+        <select id="gear-training" name="system.training" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each rangedTrainingOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-weapon-type">Weapon Category</label>
+        <select id="gear-weapon-type" name="system.weaponType" {{#unless canEditFields}}disabled{{/unless}}>
+          {{#each rangedWeaponTypeOptions as |opt|}}
+          <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="ability-info-row ability-col" style="grid-column: span 3">
+        <label>Ammunition Mode</label>
+        <div class="ammo-mode-selector">
+          {{#each ammoModeOptions as |opt|}}
+          <label class="ammo-mode-radio-label">
+            <input type="radio" name="system.ammoMode" value="{{opt.value}}" {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+            <span>{{opt.label}}</span>
+          </label>
+          {{/each}}
+        </div>
+        <div class="ability-info-row ability-col" style="margin-top: 0.5rem;">
+          <label class="checkbox-inline" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+            <input type="checkbox" name="system.singleLoading" {{#if singleLoading}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} />
+            <span>Single Loading</span>
+          </label>
+        </div>
+        <div class="ability-info-row ability-col" style="margin-top: 0.5rem;">
+          <label class="checkbox-inline" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+            <input type="checkbox" name="system.timedDetonation" {{#if timedDetonation}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} />
+            <span>Timed Detonation</span>
+          </label>
+        </div>
+        {{#if timedDetonation}}
+        <div class="ability-info-row ability-col" style="margin-top: 0.5rem;">
+          <label for="gear-timer-delay">Delay Rounds</label>
+          <input id="gear-timer-delay" type="number" min="1" step="1" name="system.timerDelayRounds" value="{{timerDelayRounds}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        {{/if}}
+        {{#if showBatterySubtype}}
+        <div class="ability-info-row ability-col" style="margin-top: 0.5rem;">
+          <label for="gear-battery-type">Battery Type</label>
+          <select id="gear-battery-type" name="system.batteryType" {{#unless canEditFields}}disabled{{/unless}}>
+            {{#each batterySubtypeOptions as |opt|}}
+            <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+        {{/if}}
+        {{#if isBallisticAmmoMode}}
+        <div class="ranged-weapon-ammo-row" style="margin-top: 0.5rem;">
+          <div class="ranged-weapon-ammo-drop-zone" data-ranged-ammo-drop>
+            <span class="ranged-weapon-ammo-label">{{#if weaponAmmoLabel}}{{weaponAmmoLabel}}{{else}}<em>Drop ammo here or select below</em>{{/if}}</span>
+            {{#if gear.ammoId}}
+            <button type="button" class="action-btn ranged-weapon-ammo-remove" {{#unless ../canEditFields}}disabled{{/unless}}>Clear</button>
+            {{/if}}
+          </div>
+          <select class="ranged-weapon-ammo-select" {{#unless ../canEditFields}}disabled{{/unless}}>
+            <option value="">— Select Ammo —</option>
+            {{#each ../ammoOptions as |opt|}}
+            <option value="{{opt.value}}" {{#if (eq ../../gear.ammoId opt.value)}}selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+        {{/if}}
+        {{#if hasUnresolvedAmmoName}}
+        <p class="gear-field-hint" style="margin-top: 0.4rem;">Ammo match missing: {{gear.unresolvedAmmoName}}</p>
+        {{/if}}
+      </div>
+    </div>
+
+    <div class="ability-grid-4">
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-dice-count">Damage Roll</label>
+        <div class="gear-damage-roll-inline">
+          <input id="gear-dmg-dice-count" type="number" min="0" step="1" name="system.damage.diceCount" value="{{gear.damage.diceCount}}" {{#unless canEditFields}}disabled{{/unless}} />
+          <select id="gear-dmg-dice-type" name="system.damage.diceType" {{#unless canEditFields}}disabled{{/unless}}>
+            {{#each damageDieTypeOptions as |opt|}}
+            <option value="{{opt.value}}" {{#if (eq ../gear.damage.diceType opt.value)}}selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-base">Base Damage</label>
+        <input id="gear-dmg-base" type="number" min="0" step="1" name="system.damage.baseDamage" value="{{gear.damage.baseDamage}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-dmg-pierce">Pierce</label>
+        <input id="gear-dmg-pierce" type="number" step="1" name="system.damage.pierce" value="{{gear.damage.pierce}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-base-to-hit-mod">To Hit Mod</label>
+        <input id="gear-base-to-hit-mod" type="number" step="1" name="system.baseToHitModifier" value="{{gear.baseToHitModifier}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-4">
+      <div class="ability-info-row ability-col">
+        <label for="gear-close">Low Range</label>
+        <input id="gear-close" type="number" min="0" step="1" name="system.range.close" value="{{gear.range.close}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-max">High Range</label>
+        <input id="gear-max" type="number" min="0" step="1" name="system.range.max" value="{{gear.range.max}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-mag">{{#if (eq gear.ammoMode "plasma-battery")}}Battery{{else}}{{#if (eq gear.ammoMode "belt")}}Belt Size{{else}}{{#if (eq gear.ammoMode "tube")}}Tube Size{{else}}Mag Size{{/if}}{{/if}}{{/if}}</label>
+        <input id="gear-mag" type="number" min="0" step="1" name="system.range.magazine" value="{{gear.range.magazine}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-reload">Reload</label>
+        {{#if singleLoading}}
+        <input id="gear-reload" type="text" value="-" disabled />
+        {{else}}
+        <input id="gear-reload" type="number" min="0" step="1" name="system.range.reload" value="{{gear.range.reload}}" {{#unless canEditFields}}disabled{{/unless}} />
+        {{/if}}
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Fire Modes</p>
+      <div class="ability-grid-4">
+        <div class="ability-info-row ability-col">
+          <label for="fire-mode-semi-auto">Semi-Auto</label>
+          <input id="fire-mode-semi-auto" type="number" min="0" step="1" class="fire-mode-input" data-fire-mode-key="semiAuto" value="{{rangedFireModes.semiAuto}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="fire-mode-burst">Burst</label>
+          <input id="fire-mode-burst" type="number" min="0" step="1" class="fire-mode-input" data-fire-mode-key="burst" value="{{rangedFireModes.burst}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="fire-mode-automatic">Automatic</label>
+          <input id="fire-mode-automatic" type="number" min="0" step="1" class="fire-mode-input" data-fire-mode-key="automatic" value="{{rangedFireModes.automatic}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="fire-mode-charge">Charge <span class="gear-field-hint">(Half Actions)</span></label>
+          <input id="fire-mode-charge" type="number" min="0" step="1" class="fire-mode-input" data-fire-mode-key="charge" value="{{rangedFireModes.charge}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="fire-mode-pump-action">Pump Action</label>
+          <input id="fire-mode-pump-action" type="number" min="0" step="1" class="fire-mode-input" data-fire-mode-key="pumpAction" value="{{rangedFireModes.pumpAction}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="fire-mode-sustained">Sustained</label>
+          <input id="fire-mode-sustained" type="number" min="0" step="1" class="fire-mode-input" data-fire-mode-key="sustained" value="{{rangedFireModes.sustained}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="fire-mode-drawback">Drawback</label>
+          <input id="fire-mode-drawback" type="number" min="0" step="1" class="fire-mode-input" data-fire-mode-key="drawback" value="{{rangedFireModes.drawback}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="fire-mode-flintlock">Flintlock</label>
+          <input id="fire-mode-flintlock" type="number" min="0" step="1" class="fire-mode-input" data-fire-mode-key="flintlock" value="{{rangedFireModes.flintlock}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+      </div>
+    </div>
+
+
+    {{#if hasChargeMode}}
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="gear-charge-damage">Charge Damage / Level</label>
+        <input id="gear-charge-damage" type="number" min="0" step="1" name="system.charge.damagePerLevel" value="{{gear.charge.damagePerLevel}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-charge-ammo">Charge Ammo / Level</label>
+        <input id="gear-charge-ammo" type="number" min="0" step="1" name="system.charge.ammoPerLevel" value="{{gear.charge.ammoPerLevel}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-charge-max">Max Charge Level</label>
+        <input id="gear-charge-max" type="number" min="0" step="1" value="{{rangedFireModes.charge}}" disabled />
+      </div>
+    </div>
+    {{/if}}
+
+    {{#if hasVariantAttacks}}
+    <div class="ability-info-row ability-col melee-primary-attack-name-row">
+      <label for="gear-attack-name">Primary Attack Name
+        <span class="gear-field-hint">(indicate damage type in name, e.g. "Ballistic [BD]")</span>
+      </label>
+      <input id="gear-attack-name" type="text" name="system.attackName" value="{{gear.attackName}}"
+        placeholder="e.g. Ballistic [BD]" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+    {{/if}}
+
+    <div class="melee-variant-attacks-section">
+      {{#each variantAttacks as |variant|}}
+      <div class="melee-variant-attack-row">
+        <div class="melee-variant-attack-header">
+          <strong class="melee-variant-attack-title">Variant Attack {{variant.displayIndex}}
+            <span class="gear-field-hint">(indicate damage type in the name field)</span>
+          </strong>
+          <button type="button" class="action-btn remove-variant-attack-btn" data-index="{{variant.index}}"
+            {{#unless ../canEditFields}}disabled{{/unless}}>&#10005; Remove</button>
+        </div>
+        <div class="ability-grid-3">
+          <div class="ability-info-row ability-col" style="grid-column: span 3">
+            <label>Variant Name</label>
+            <input type="text" name="system.variantAttacks.{{variant.index}}.name" value="{{variant.name}}"
+              placeholder="e.g. Armor Piercing [PD]" {{#unless ../canEditFields}}disabled{{/unless}} />
+          </div>
+          <div class="ability-info-row ability-col" style="grid-column: span 3">
+            <label>Ammunition (Optional)</label>
+            <div class="melee-variant-ammo-row">
+              <div class="melee-variant-ammo-drop-zone" data-variant-ammo-drop="{{variant.index}}">
+                <span class="melee-variant-ammo-label">{{#if variant.ammoLabel}}{{variant.ammoLabel}}{{else}}<em>Drop ammo here or select below</em>{{/if}}</span>
+                {{#if variant.ammoId}}
+                <button type="button" class="action-btn melee-variant-ammo-remove" data-variant-index="{{variant.index}}" {{#unless ../canEditFields}}disabled{{/unless}}>Clear</button>
+                {{/if}}
+              </div>
+              <select class="melee-variant-ammo-select" data-variant-index="{{variant.index}}" {{#unless ../canEditFields}}disabled{{/unless}}>
+                <option value="">— Select Ammo —</option>
+                {{#each ../ammoOptions as |opt|}}
+                <option value="{{opt.value}}" {{#if (eq ../variant.ammoId opt.value)}}selected{{/if}}>{{opt.label}}</option>
+                {{/each}}
+              </select>
+            </div>
+          </div>
+          <div class="ability-info-row ability-col">
+            <label>Damage Roll</label>
+            <div class="gear-damage-roll-inline">
+              <input type="number" min="0" step="1" name="system.variantAttacks.{{variant.index}}.diceCount"
+                value="{{variant.diceCount}}" {{#unless ../canEditFields}}disabled{{/unless}} />
+              <select name="system.variantAttacks.{{variant.index}}.diceType" {{#unless ../canEditFields}}disabled{{/unless}}>
+                {{#each variant.diceTypeOptions as |opt|}}
+                <option value="{{opt.value}}" {{#if opt.selected}}selected{{/if}}>{{opt.label}}</option>
+                {{/each}}
+              </select>
+            </div>
+          </div>
+          <div class="ability-info-row ability-col">
+            <label>Base Damage</label>
+            <input type="number" step="1" name="system.variantAttacks.{{variant.index}}.baseDamage"
+              value="{{variant.baseDamage}}" {{#unless ../canEditFields}}disabled{{/unless}} />
+          </div>
+          <div class="ability-info-row ability-col">
+            <label>Pierce</label>
+            <input type="number" step="1" name="system.variantAttacks.{{variant.index}}.pierce"
+              value="{{variant.pierce}}" {{#unless ../canEditFields}}disabled{{/unless}} />
+          </div>
+        </div>
+      </div>
+      {{/each}}
+      <div class="melee-variant-add-row">
+        <button type="button" class="action-btn add-variant-attack-btn" {{#unless canEditFields}}disabled{{/unless}}>
+          + Variant Attack
+        </button>
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-description">Description</label>
+      <textarea id="gear-description" name="system.description" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Tags</p>
+      <div class="ability-grid-3">
+        {{#each weaponTagOptions as |opt|}}
+        <label class="ability-checkbox-row">
+          <input type="checkbox" name="system.weaponTagKeys" value="{{opt.key}}"
+            {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+          <span>{{opt.label}}</span>
+        </label>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Break Points</p>
+      <div class="ability-grid-3">
+        <div class="ability-info-row ability-col">
+          <label for="ranged-bp-current">Current</label>
+          <input id="ranged-bp-current" type="number" step="1" name="system.breakPoints.current"
+            value="{{gear.breakPoints.current}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="ranged-bp-max">Max</label>
+          <input id="ranged-bp-max" type="number" step="1" name="system.breakPoints.max"
+            value="{{gear.breakPoints.max}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" data-tab="special-rules" data-group="ranged-tabs">
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Ranged Weapon Special Rules</p>
+      <div class="ability-grid-3">
+        {{#each weaponSpecialRuleOptions as |opt|}}
+        <label class="ability-checkbox-row">
+          <input type="checkbox" name="system.weaponSpecialRuleKeys" value="{{opt.key}}"
+            {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+          <span>{{opt.label}}</span>
+          {{#if opt.hasInlineValueField}}
+          {{#if opt.selected}}
+          <input type="text" class="photo-reactive-inline-value" name="system.weaponSpecialRuleValues.{{opt.key}}" value="{{opt.inlineValue}}" placeholder="X / Xd5 / Xd10" {{#unless ../canEditFields}}disabled{{/unless}} />
+          {{/if}}
+          {{/if}}
+        </label>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="ability-info-row ability-col" style="max-width: 260px;">
+      <label for="gear-concealment-bonus">Concealment Bonus</label>
+      <input id="gear-concealment-bonus" type="text" name="system.concealmentBonus" value="{{concealmentBonus}}" placeholder="0 / +10 / Xd5" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="gear-special-rules">Special Rule Notes</label>
+      <textarea id="gear-special-rules" name="system.specialRules" rows="8" {{#unless canEditFields}}disabled{{/unless}}>{{gear.specialRules}}</textarea>
+    </div>
+  </section>
+
+  <section class="tab" data-tab="advanced" data-group="ranged-tabs">
+    <div class="ccadv-wip-notice" role="note" aria-live="polite">
+      <p class="ccadv-note"><strong>WIP</strong> Advanced import fields are stored for CSV parity and future mechanics.</p>
+    </div>
+
+    <div class="ability-grid-2">
+      <div class="ability-info-row ability-col">
+        <label for="gear-advanced-firearm">Firearm / Cannon / Shotgun</label>
+        <input id="gear-advanced-firearm" type="text" name="system.advanced.firearm" value="{{rangedAdvancedFields.firearm}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-advanced-bullet-diameter">Bullet Diameter</label>
+        <input id="gear-advanced-bullet-diameter" type="text" name="system.advanced.bulletDiameter" value="{{rangedAdvancedFields.bulletDiameter}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-advanced-case-length">Case Length</label>
+        <input id="gear-advanced-case-length" type="text" name="system.advanced.caseLength" value="{{rangedAdvancedFields.caseLength}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="gear-advanced-barrel-size">Barrel Size</label>
+        <input id="gear-advanced-barrel-size" type="text" name="system.advanced.barrelSize" value="{{rangedAdvancedFields.barrelSize}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" data-tab="weapon-mods" data-group="ranged-tabs">
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Weapon Mods</p>
+      <label for="gear-attachments">Weapon Mods / Notes</label>
+      <textarea id="gear-attachments" name="system.attachments" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{gear.attachments}}</textarea>
+    </div>
+  </section>
+</div>

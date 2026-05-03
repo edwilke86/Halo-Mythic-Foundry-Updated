@@ -1926,7 +1926,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
     if (itemType === "gear") {
       const gear = normalizeGearSystemData(sourceItem.system ?? {}, sourceItem.name ?? "");
       const equipType = gear.equipmentType;
-      if (equipType === "ranged-weapon" || equipType === "melee-weapon") {
+      if (equipType === "ranged-weapon" || equipType === "melee-weapon" || equipType === "explosives-and-grenades") {
         await this._onDropWeapon(sourceItem, gear);
       } else if (equipType === "armor") {
         await this._onDropArmor(sourceItem);
@@ -2217,7 +2217,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
       .filter((item) => {
         if (item.type !== "gear") return false;
         const g = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
-        return g.equipmentType === "ranged-weapon" || g.equipmentType === "melee-weapon";
+        return g.equipmentType === "ranged-weapon" || g.equipmentType === "melee-weapon" || g.equipmentType === "explosives-and-grenades";
       })
       .map((item) => {
         const gear = normalizeGearSystemData(item.system ?? {}, item.name ?? "");
@@ -2227,8 +2227,12 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
         const isMelee = gear.weaponClass === "melee";
         const rawAmmoMode = gear.ammoMode ?? "";
+        const isGrenadeWeapon = String(gear.equipmentType ?? "").trim().toLowerCase() === "explosives-and-grenades"
+          || String(rawAmmoMode ?? "").trim().toLowerCase() === "grenade";
         const ammoMode = _isEnergyAmmoMode(rawAmmoMode)
           ? String(rawAmmoMode).trim().toLowerCase()
+          : isGrenadeWeapon
+            ? "grenade"
           : _normalizeBallisticAmmoMode(rawAmmoMode);
         const batteryCapacity = toNonNegativeWhole(gear.batteryCapacity, 0);
         const magazineMax = isMelee ? 0 : toNonNegativeWhole(gear.range?.magazine, 0);
@@ -2362,9 +2366,10 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
           img: item.img ?? "icons/svg/sword.svg",
           nickname: String(gear.nickname ?? "").trim(),
           weaponClass: String(gear.weaponClass ?? "ranged").trim().toLowerCase(),
-          displayWeaponClass: isMelee ? "Melee" : "Ranged",
+          displayWeaponClass: isGrenadeWeapon ? "Explosive" : (isMelee ? "Melee" : "Ranged"),
           isWielded: false,
           isMelee,
+          isGrenadeWeapon,
           isInfusionRadius: false,
           isEnergyWeapon,
           isSmartLinkCapable: false,
@@ -2396,7 +2401,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
           fireModes,
           selectedFireMode: fireModes.find((fm) => fm.isSelected)?.value ?? fireModes[0]?.value ?? "single",
           selectedFireModeLabel,
-          showStandardFireModes: !isMelee && fireModes.length > 0,
+          showStandardFireModes: !isMelee && !isGrenadeWeapon && fireModes.length > 0,
           showVariantSelector: isMelee && hasVariants,
           hasVariants,
           variantOptions,
@@ -2408,7 +2413,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
           showFullAttack: !isSustainedFireMode,
           showPumpReactionAttack: selectedProfile.kind === "pump",
           showExecutionAttack: true,
-          showButtstrokeAttack: !isMelee,
+          showButtstrokeAttack: !isMelee && !isGrenadeWeapon,
           halfActionAttackCount,
           fullActionAttackCount,
           hasChargeModeSelected,
@@ -2438,9 +2443,15 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
           ammoKey: "",
           ammoId: String(gear.ammoId ?? "").trim(),
           canUseSpecialAmmo: !isMelee
+            && !isGrenadeWeapon
             && !_isEnergyAmmoMode(ammoMode)
             && Boolean(String(gear.ammoId ?? "").trim()),
-          useSpecialAmmo: Boolean(state.useSpecialAmmo)
+          useSpecialAmmo: Boolean(state.useSpecialAmmo),
+          grenadeTotal: Math.max(1, toNonNegativeWhole(gear.quantityOwned, 1)),
+          grenadeThrowCanThrow: Math.max(0, Math.floor((Math.floor(strScore / 10)) * 15)) > 0,
+          grenadeThrowRangeMax: Math.max(0, Math.floor((Math.floor(strScore / 10)) * 15)),
+          grenadeThrowReason: "",
+          grenadeThrowServoAssisted: false,
         };
       });
   }

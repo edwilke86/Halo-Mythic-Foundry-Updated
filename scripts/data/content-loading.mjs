@@ -793,6 +793,8 @@ export function parseTraitTextStatBonuses(text) {
 }
 
 export function buildTraitAutoEffects(definition) {
+  if (String(definition?.name ?? "").trim().toLowerCase() === "berserker") return [];
+
   const benefit = String(definition?.benefit ?? "");
   const parsedBonuses = parseTraitTextStatBonuses(benefit);
   if (!parsedBonuses.length) return [];

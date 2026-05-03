@@ -1,0 +1,148 @@
+[
+  {
+    "key": "fear-test",
+    "name": "Fear and Shock Tests",
+    "domain": "fear-ptsd",
+    "sourcePage": 47,
+    "summaryText": "Failing a Courage-based Fear Test adds +10 per Degree of Failure to the Shock Test result.",
+    "fearExamples": [
+      { "label": "Gore on the Battlefield", "modifier": "+20" },
+      { "label": "An ambush from a superior force", "modifier": "+10" },
+      { "label": "An ally takes half of their Wounds in a single Attack", "modifier": "--" },
+      { "label": "Witnessing dismemberment", "modifier": "-10" },
+      { "label": "Horrible odds of survival", "modifier": "-20" },
+      { "label": "Watching an ally die", "modifier": "-30" },
+      { "label": "Having a limb dismembered", "modifier": "-50" },
+      { "label": "Witnessing the Flood for the first time", "modifier": "-60" }
+    ],
+    "sourceText": "When making a Fear Test, the Character must roll a Courage Test. The GM decides on the Modifiers, such as something being Disturbing, and add the Fear Modifiers to the Courage Test. If the Character fails, they must count their Degrees of Failure. For every Degree of Failure, the Character adds +10 to figuring the outcome of the Shock Test."
+  },
+  {
+    "key": "shock-test",
+    "name": "Shock Test",
+    "domain": "fear-ptsd",
+    "sourcePage": 47,
+    "summaryText": "Shock outcomes range from being startled to PTSD, amnesia, and Courage damage.",
+    "outcomes": [
+      { "rollRange": "01-40", "effect": "Only badly startled; may only take a single Half Action until the beginning of next turn." },
+      { "rollRange": "41-50", "effect": "Gripped by fear; all tests at -10 until passing a Courage Test, +10 to each subsequent test if the previous failed." },
+      { "rollRange": "51-60", "effect": "Deeply disturbed; cannot willingly approach the source unless passing a Courage Test, +10 to each subsequent test if the previous failed." },
+      { "rollRange": "61-70", "effect": "Nearly freezes; must make a Courage Test or stay frozen, +10 to each subsequent test if the previous failed." },
+      { "rollRange": "71-90", "effect": "Frozen from fear for 1D5 - Toughness Modifier Turns, minimum 1." },
+      { "rollRange": "91-120", "effect": "Develops a PTSD effect." },
+      { "rollRange": "121-140", "effect": "Develops a PTSD effect and takes 1D10 Courage damage that takes 2D10 - Courage Modifier days to recover, minimum 2." },
+      { "rollRange": "141+", "effect": "Falls into short amnesia for 5D10 - Toughness Modifier days, minimum 5; upon waking, takes 1D10 Courage damage and develops a PTSD effect." }
+    ]
+  },
+  {
+    "key": "ptsd-types",
+    "name": "PTSD",
+    "domain": "fear-ptsd",
+    "sourcePage": 47,
+    "summaryText": "PTSD manifests as Phobias, Obsessions, Nightmares, Delusions, or Tantrums.",
+    "types": [
+      { "rollRange": "1-30", "effect": "Phobias" },
+      { "rollRange": "31-50", "effect": "Obsessions" },
+      { "rollRange": "51-80", "effect": "Nightmares" },
+      { "rollRange": "81-90", "effect": "Delusions" },
+      { "rollRange": "91-100", "effect": "Tantrums" }
+    ],
+    "sourceText": "Post-Traumatic Stress Disorder, often known as PTSD for short, is a series of mental disorders that develop from experiencing traumatic events. When a Character gains PTSD, it will manifest in various ways."
+  },
+  {
+    "key": "phobias",
+    "name": "Phobias",
+    "domain": "fear-ptsd",
+    "sourcePage": 47,
+    "summaryText": "Phobias impose a -20 penalty to future Fear Tests dealing with the listed fear.",
+    "entries": [
+      { "name": "Aerophobia", "description": "The fear of flying." },
+      { "name": "Agoraphobia", "description": "The fear of vast openness." },
+      { "name": "Astrophobia", "description": "The fear of outer space." },
+      { "name": "Autophobia", "description": "The fear of being alone." },
+      { "name": "Claustrophobia", "description": "The fear of confined spaces." },
+      { "name": "Entomophobia", "description": "The fear of insects." },
+      { "name": "Eremophobia", "description": "The fear that allies may turn on you." },
+      { "name": "Hemophobia", "description": "The fear of blood." },
+      { "name": "Hoplophobia", "description": "The fear of weapons and using them." },
+      { "name": "Hypnophobia", "description": "The fear of sleep, especially cryosleep." },
+      { "name": "Necrophobia", "description": "The fear of death and dead bodies." },
+      { "name": "Nyctophobia", "description": "The fear of darkness." },
+      { "name": "Panthophobia", "description": "The fear of becoming sick and diseased." },
+      { "name": "Taphophobia", "description": "The fear of moving fast." },
+      { "name": "Xenophobia", "description": "The fear of aliens and strangers." }
+    ]
+  },
+  {
+    "key": "obsessions-and-manias",
+    "name": "Obsessions and Manias",
+    "domain": "fear-ptsd",
+    "sourcePage": 47,
+    "summaryText": "Examples of obsessive or manic behaviors chosen by GM and players.",
+    "entries": [
+      { "name": "Agromania", "description": "The obsession to be in open spaces." },
+      { "name": "Arithmomania", "description": "A manic tendency of tracking numbers and counting objects and occurrences." },
+      { "name": "Claustromania", "description": "An irrational need to be in enclosed spaces." },
+      { "name": "Egomania", "description": "Irrational self-centered attitude." },
+      { "name": "Eleutheromania", "description": "The obsession of being free from military or any other company or organization." },
+      { "name": "Ergomania", "description": "Irrational need to always be working." },
+      { "name": "Eudemonia", "description": "An obsession with wandering and traveling." },
+      { "name": "Kleptomania", "description": "The obsession of stealing objects from others." },
+      { "name": "Logomania", "description": "The obsession to always be talking." },
+      { "name": "Ludomania", "description": "An obsession with gambling." },
+      { "name": "Lypemania", "description": "The manic tendency for never seeing anything as good or welcoming." },
+      { "name": "Megalomania", "description": "An obsession for gaining more power." },
+      { "name": "Mythomania", "description": "The manic tendency to tell lies." },
+      { "name": "Oniomania", "description": "The obsession of spending cR." },
+      { "name": "Plutomania", "description": "An obsession with collecting or hoarding cR." },
+      { "name": "Polemanias", "description": "The obsession of war and violence." },
+      { "name": "Technomania", "description": "An obsession for technology." },
+      { "name": "Theomania", "description": "An obsession of being on a divine mission." },
+      { "name": "Xenomania", "description": "An inordinate obsession with aliens." }
+    ]
+  },
+  {
+    "key": "nightmares",
+    "name": "Nightmares",
+    "domain": "fear-ptsd",
+    "sourcePage": 47,
+    "summaryText": "Each night, make a Courage Test; on failure, make a Toughness Test at -10 or begin gaining Fatigue over time, up to 2 Fatigue total.",
+    "sourceText": "A character that has recurring nightmares must roll a Courage Test every night when asleep. If the character fails this Courage Test, a Toughness Test must be made with a -10 Penalty, if failed, the character begins to gain fatigue over time for not having good night sleep. Only two fatigue can be gained in total from having Nightmares."
+  },
+  {
+    "key": "tantrums",
+    "name": "Tantrums",
+    "domain": "fear-ptsd",
+    "sourcePage": 47,
+    "summaryText": "-30 to Social Skill Tests during a Tantrum and -10 to all Actions.",
+    "mechanicalText": "A Tantrum can be overcome through roleplay or Social Skill Tests at -20 for the person attempting to calm them.",
+    "sourceText": "Characters who are prone to Tantrums will gain a -30 Penalty to Social Skill Tests during a Tantrum and all Actions made are at a -10 Penalty. A Tantrum can be overcome by being talked down with roleplaying or through Social Skill Tests with a -20 Penalty for the person attempting to calm them."
+  },
+  {
+    "key": "delusions",
+    "name": "Delusions and Hallucinations",
+    "domain": "fear-ptsd",
+    "sourcePage": 47,
+    "summaryText": "Delusions and hallucinations follow the same principles as phobias and manias.",
+    "entries": [
+      { "name": "Auditory", "description": "False perception of voices and sounds." },
+      { "name": "Broadcast", "description": "A delusion of one's thoughts being read by others." },
+      { "name": "Control", "description": "The false belief that another person, group, or external force controls one's thoughts, feelings, impulses, or behaviors." },
+      { "name": "Erotomania", "description": "The false belief that others are in love with or obsessed with one's self." },
+      { "name": "Grandiose", "description": "The delusion that one is magic or untouchable through luck." },
+      { "name": "Guilt", "description": "An ungrounded feeling of constant remorse or guilt for events outside of their control." },
+      { "name": "Gustatory", "description": "The false perception of tastes." },
+      { "name": "Hypnogogic", "description": "Events before waking that cannot be differentiated from reality." },
+      { "name": "Olfactory", "description": "The false perception of smells and scents." },
+      { "name": "Paranoid", "description": "The belief that one is being controlled or persecuted by stealth powers and conspiracies." },
+      { "name": "Persecutory", "description": "A belief that one is being persecuted for any action being made." },
+      { "name": "Poverty", "description": "A strong belief that they are financially incapacitated regardless of wealth." },
+      { "name": "Referential", "description": "The delusion that events carry hidden or coded messages." },
+      { "name": "Sensation", "description": "Hallucinations that affect sensations triggered by events." },
+      { "name": "Somatic", "description": "The false perception of processes and events happening inside the body." },
+      { "name": "Tactile", "description": "False sensations of being touched, crawled upon, or feeling processes under the skin." },
+      { "name": "Thought Insertion", "description": "The false belief that outside or unknown internal forces are injecting thoughts into one's mind." },
+      { "name": "Visual", "description": "The false perception of objects, people, and events happening before one's eyes." }
+    ]
+  }
+]

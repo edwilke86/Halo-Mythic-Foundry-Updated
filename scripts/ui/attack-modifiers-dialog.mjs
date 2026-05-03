@@ -6,6 +6,10 @@ import {
   WALKER_ZONE_DEFS
 } from "../mechanics/combat.mjs";
 import { toNonNegativeWhole } from "../utils/helpers.mjs";
+import {
+  SCOPE_MIN_RANGE_TABLE,
+  normalizeScopeMagnification
+} from "../mechanics/perceptive-range.mjs";
 
 const TARGET_CATEGORY_STANDARD = "standard";
 const TARGET_CATEGORY_VEHICLE = "vehicle";
@@ -338,6 +342,7 @@ function buildDefaultAttackModifierResult() {
     rangeMode: null,
     rangeSource: "",
     rangeResolution: null,
+    scopeMagnification: null,
     targetCategory: TARGET_CATEGORY_STANDARD,
     targetMode: "character"
   };
@@ -352,6 +357,7 @@ function buildInitialFormState(state = {}) {
     calledShotZone: String(state?.calledShotZone ?? "none").trim().toLowerCase() || "none",
     calledShotSub: String(state?.calledShotSub ?? "").trim(),
     overrideRangeInput: String(state?.overrideRangeInput ?? "").trim(),
+    scopeMagnificationInput: String(state?.scopeMagnificationInput ?? state?.scopeMagnificationDefault ?? "1").trim(),
     targetCategory: getTargetCategory(state),
     targetMode: getTargetModeForCategory(state)
   });
@@ -369,6 +375,9 @@ function readAttackModifierFormState({ showRangeField = false, dialogBody = null
     overrideRangeInput: showRangeField
       ? String(root.querySelector("#mythic-atk-range")?.value ?? "").trim()
       : "",
+    scopeMagnificationInput: showRangeField
+      ? String(root.querySelector("#mythic-atk-scope")?.value ?? "1").trim()
+      : "1",
     targetCategory: String(root.querySelector("input[name='mythic-atk-target-category']:checked")?.value ?? TARGET_CATEGORY_STANDARD).trim().toLowerCase()
   });
 }
@@ -1464,6 +1473,21 @@ function buildRangeSectionMarkup({ esc, formState, rangeContext, rangeState, clo
   const targetLabel = String(candidateRange?.targetLabel ?? rangeState?.autoRange?.targetLabel ?? getSnapshotTargetLabel(rangeContext, scene)).trim() || "Target";
   const measuredValue = candidateRange && Number.isFinite(Number(candidateRange?.meters)) ? String(candidateRange.meters) : "";
   const overrideValue = String(formState?.overrideRangeInput ?? "");
+  const scopeOptionKeys = Object.keys(SCOPE_MIN_RANGE_TABLE)
+    .map((entry) => Number(entry))
+    .filter((entry) => Number.isFinite(entry) && entry >= 1)
+    .sort((a, b) => a - b);
+  const selectedScope = String(
+    normalizeScopeMagnification(formState?.scopeMagnificationInput ?? 1, { fallback: 1 }),
+  );
+  const scopeOptionsHtml = scopeOptionKeys
+    .map((mag) => {
+      const value = String(mag);
+      const label = mag <= 1 ? "No Scope" : `${mag}x Scope`;
+      const selected = value === selectedScope ? " selected" : "";
+      return `<option value="${esc(value)}"${selected}>${esc(label)}</option>`;
+    })
+    .join("");
 
   return `
     <div class="form-group">
@@ -1478,10 +1502,15 @@ function buildRangeSectionMarkup({ esc, formState, rangeContext, rangeState, clo
       <label for="mythic-atk-range">Manual Override Range (m)</label>
       <input id="mythic-atk-range" type="number" step="1" min="0" value="${esc(overrideValue)}" />
     </div>
+    <div class="form-group">
+      <label for="mythic-atk-scope">Scope</label>
+      <select id="mythic-atk-scope">${scopeOptionsHtml}</select>
+      <p class="hint">If target is closer than this Scope Minimum Range, no Aim Actions can be taken and any Point Blank and Close Range bonuses are lost while using the scope.</p>
+    </div>
   `;
 }
 
-export async function promptAttackModifiersDialog({ actor = null, weaponName = "Weapon", gear = null, vehicleTargetingContext = null, rangeContext = null, targetMode: initialTargetMode = "character" } = {}) {
+export async function promptAttackModifiersDialog({ actor = null, weaponName = "Weapon", gear = null, vehicleTargetingContext = null, rangeContext = null, targetMode: initialTargetMode = "character", scopeMagnificationDefault = 1 } = {}) {
   if (!actor) return buildDefaultAttackModifierResult();
 
   const esc = foundry.utils.escapeHTML;
@@ -1505,7 +1534,7 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
     sceneId: String(rangeContext?.sceneId ?? canvas?.scene?.id ?? game.scenes?.active?.id ?? "").trim()
   };
 
-  let formState = buildInitialFormState({ targetMode: initialTargetMode });
+  let formState = buildInitialFormState({ targetMode: initialTargetMode, scopeMagnificationDefault });
   let rangeState = showRangeField
     ? {
       autoRange: resolveAutoRange(resolvedRangeContext),
@@ -1689,6 +1718,9 @@ export async function promptAttackModifiersDialog({ actor = null, weaponName = "
         effectiveRange: cloneRangeRecord(effectiveRange),
         overrideRangeInput: String(formState.overrideRangeInput ?? "")
       } : null,
+      scopeMagnification: showRangeField
+        ? normalizeScopeMagnification(formState.scopeMagnificationInput ?? scopeMagnificationDefault, { fallback: 1 })
+        : null,
       targetCategory: String(formState.targetCategory ?? TARGET_CATEGORY_STANDARD),
       targetMode: getTargetModeForCategory(formState.targetCategory)
     };

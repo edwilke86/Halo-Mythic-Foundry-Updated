@@ -1,0 +1,1168 @@
+Name,Source,Type,COST,Difficulty,PREREQUISITE / CHARACTERISTICS,Trained,+5,+10,+20,"BENEFIT
+Long description","SHORT
+DESCRIPTION
+and 
+TYPE"
+Action Figure Hands,Mythic,Ability,800,,Strength: 50,,,,,"Reduces the Penalty To Drop while Dual Wielding and One-Handed Wielding by up to 15. If the Character were to drop a weapon from Special Damage Effects, roll Strength Test to keep ahold of the weapon.",Reduces the chance to drop weapons by up to 15.
+Adept Marksman,Mythic,Ability,800,,Warfare Range: 40 Perception: 45,,,,,"When a character makes any Aiming actions, that character may roll a Perception Test to allow the next single Attack to ignore half armor against an Opponent. If the Perception Test is failed, the attack is fired normally. This does not stack with any other Ability or Action that would already ignore Armor in any way.","Roll Perception for the next shot to ignore half armor against Infantry, and not vehicles."
+Aggressive Advance,Mythic,Ability,300,,"Warfare Range: 40
+ Warfare Melee: 35",,,,,"The character is able to fire one shot from any weapon that does not have the Heavy Weapon trait when making a Charge attack, without Penalty. Any shot following the first is at the standard Penalty for firing while charging.",Able to fire one shot when making a Charge attack without Penalty.
+Air Time,Mythic,Ability,250,,Perception: 35,,,,,Air Time gives a +10 Bonus to any Stunting Test involving ramping and landing in any vehicle.,Air Time gives a +10 Bonus to any Stunting Test involving ramping and landing in a vehicle.
+Akimbo,Mythic,Ability,750,,"Warfare Range: 40
+ Warfare Melee: 40",,,,,Reduces the To Hit Penalties from Dual Wielding weapons by half. Heavy Weapons must first be Braced to gain these benefits.,Lowers the Penalties taken by Dual Wielding by half.
+Alien Tech,Mythic,Ability,250,,Intellect: 45,,,,,Alien Tech halves any Penalties given by the GM when a Character is attempting to use foreign Technology. This includes unknown Technology that shares the Character’s Faction Training and technology that is alien in origin.,Halves Penalties when using alien and foreign technology.
+Always Ready,Mythic,Ability,500,,Perception: 35,,,,,"Always Ready allows a Character to ignore any Unaware conditions, even if they would not have normally been allowed to, like when asleep. During Opposed Tests for being caught Unaware, such as Opposing a sneaking Opponent, the Character gains a +10 Bonus.",Always Ready allows a character to ignore any Unaware Conditions.
+Ask Nicely,Mythic,Ability,500,,Charisma: 40,,,,,"If spending 2 or more Support Points on a single call-in, the Character may make a -10 Charisma Test. If Successful, the Support Point cost is reduced by 1.",A chance to reduce Support Point costs by 1.
+Aviator,Mythic,Ability,500,,Pilot (Air): +10,,,,,All Pilot Air Skill Tests gain a +10 for Maneuver and Evasion Tests.,All Pilot Air Skill Tests gain a +10 for Maneuver and Evasion Tests.
+Battle mind,Mythic,Ability,250,,Intellect: 40,,,,,"The character rolls initiative and adds the character’s Intellect Modifier instead of the Agility Modifier. This is to show the character’s ability to access the situation and to handle it with intelligence and not speed. The character may choose which Characteristic Modifier is used, Agility or Intellect.",Roll initiative and adds the character’s Intellect Modifier instead of the Agility Modifier.
+Barnstormer,Mythic,Ability,300,,"Agility: 30
+ Intellect:30",,,,,"Any Vehicle the Character is Piloting gains a +10 to Maneuver. The Character also has the choice to use their Intellect Characteristic when making Maneuver Actions, instead of using Agility.","The Character gains Bonuses to driving Actions and can use their Intellect when Piloting, instead of Agility."
+Blind Fight,Mythic,Ability,250,,Exceptional Hearing,,,,,"When a Character is blinded during Melee or Point Blank Combat, the Character halves the Penalty To Hit. When dealing with any Eyesight-based Penalties, the Character takes half the Penalties To Hit with any Melee or Ranged Combat at any Range, not including Blindness.",Reduces certain eyesight-based Penalties during combat.
+Blur,Mythic,Ability,750,,"Toughness: 45
+ Agility: 45",,,,,"The Character gains the Sprint Movement Action, giving them Agility Modifier *8 in Meters. The Character must make a +40 Toughness Test after each use or gain 1 level of Fatigue. 
+ 
+If Blur is used more than 10 times in 30 minutes, the Character gains a stacking -10 Penalty for each use until the Character rests for a minimum of 2 hours. If this Toughness Test is failed, the Character takes 8D10 Special Damage for each shin Sublocation.",Character may take a special Movement Action that allows them to Sprint at their Agility Modifier *8.
+Bound Back,Mythic,Ability,400,,Agility: 45,,,,,"Bound Back is a character’s prowess to instantly jump back up after being knocked to the ground. This can be taken on anyone’s turn or round as a Reaction. This does not remove the Reaction. Instead, anything that shares this Reaction with takes a -10 to the Test.",Instantly jump back up after being knocked to the ground as Reaction.
+Break Shot,Mythic,Ability,400,,Warfare Range: 40,,,,,"When making Ranged Attacks, natural Damage Rolls of 10 will give the Attack an extra +1D10 Special Damage, each.",Ranged Attacks gain +1D10 dealing Special Damage from Damage rolls of 10.
+Calculated Pilot,Mythic,Ability,500,,"Perception: 40
+ Agility: 40",,,,,Calculated Pilot halves Penalties for any Air Vehicle-based Stunting and Maneuvering Tests.,Takes half Penalties when maneuvering in air vehicles.
+Clear Target,Mythic,Ability,450,,Warfare Range: 55,,,,,Reduces the base Penalty for Called Shots in Ranged Combat by Half.,Reduces the Penalty for Called Shots by Half.
+Coordinate,Mythic,Ability,250,,Charisma: 25,,,,,Gives the Character the Squad Up Trait that an allied Character has. This Trait can’t stack with existing Squad Up Traits. This can be taken multiple times.,Gives the Character an allied Character’s Squad Up Trait.
+Cynical,Mythic,Ability,250,,Courage: 40,,,,,Reduces the Penalty given to Fear Tests by half.,Cynical allows the Character to ignore half of the Penalties given to Fear Tests.
+Decapitating Strike,Mythic,Ability,750,,Guillotine Strike,,,,,"Decapitating Strike is a powerful horizontal Melee Attack that strikes all Characters within 180 degree arc in front of the Character, within Melee Reach. One Warfare Melee Attack is made, which takes up half of the Character’s available Melee Attacks, as a Half Action. Parrying this Strike is at a -30 Penalty, but if Successful, the Strike is stopped. Those that Fail the Opposed Test are hit by the Attack. Each Character struck takes an extra set of Strength Modifier to Damage.",A great cleaving swipe that hits all enemies in range.
+Denial,Mythic,Ability,500,,Agility: 45,,,,,"Character can attempt stop an Opponent from leaving Melee Combat with a Warfare Melee Opposed Test. If successful, the Opponent must stay within the Character’s Melee Reach until the beginning of the Opponent’s next Turn. Can be used outside of the Character’s Turn and includes moving with Evasion.",Stops an Opponent from leaving Melee Combat with a Warfare Melee Opposed Test.
+Disarm,Mythic,Ability,250,,Warfare Melee: 40,,,,,"The character is able to roll Strength, Agility, or Warfare Melee to disarm the Opponent as a Full Action, who is able to Oppose the Test with their Strength, Agility, or Warfare Melee Characteristics.
+
+If the disarming character succeeds and the opposing character fails, the weapon is disarmed and in the control of the disarming character. If the character fails and the defender succeeds, the attempt fails. If both succeed, but the disarmer has more Degrees of Success, the weapon is knocked to the ground using the Scatter Table, based on the highest Strength of the characters. If both succeed, but the Opposing character has more degrees of Success, the character keeps their weapon.",Disarm the Opponent within Melee Reach.
+Disarm (Improved),Mythic,Ability,500,,"Disarm, Agility: 40",,,,,"If the character making a Disarm Action is successful, the Disarming Action only counts as a Half Action. If the Disarm is a failure, the Disarm is still considered to take a Full Action.",Disarming Action only counts as a Half Action if successful.
+Double Time,Mythic,Ability,700,,Leadership: 40,,,,,"The Character will make a +10 Leadership Test as a Half Action and give a command to those within earshot to rush to do an objective or to an important location. All Characters who hear this will gain +(X) Added to their Agility Modifier when figuring their Movement Speeds. (X) is equal to half of the User’s Leadership Modifier, rounding down, to a maximum of +3. This additional Movement Speed can only be used during their next Turn.",Leadership Test to give Characters additional movement speeds for their next Turn.
+Eagle Eye,Mythic,Ability,250,,Perception: 40,,,,,The character with Eagle Eye gains a +10 Bonus to all Visual Investigation and Perception Tests.,The character with Eagle Eye gains a +10 Bonus to all Visual Investigation and Perception Tests.
+Emergency Procedure,Mythic,Ability,500,,Intellect: 45,,,,,Reduces Extended Medical Tests to only need 1 hour to perform.,Allows the Character to perform Extended Medical Tests with only an hour.
+Emotionally Broken,Mythic,Ability,500,,Cynical,,,,,"Characters, while in the heat of battle, feel little-to-no emotion and gain an additional +20 to all Fear Tests. The character also gains a -30 Bonus when rolling on the Shock Chart, the character will gain less of a shock when dealing with horrors and fears of the Battlefield. ",Gain a +20 to all Fear Tests Also gains a -30 Bonus when rolling on the Shock Chart
+Evasive Maneuvers,Mythic,Ability,650,,Agility: 45,,,,,"The character may begin their Turn declaring Evasive Maneuvers as a Free Action. When declared, the Character gains a -20 Penalty to attacks made and a +20 Bonus to Evasion until the beginning of their next turn. 
+
+The Character halves all Penalties gained to Reactions when making Evasion Tests. These effects may be stacked with Guarded Attack action.","When used, applies -20 Penalty to Attacks but gives +20 to Evasions and halves Reaction Penalties."
+Even Out,Mythic,Ability,250,,Pilot: (TYPE) +10,,,,,Anyone that is riding in the character’s vehicle that are firing any sort of weapon take only half Penalties for terrain and speed. This shows the operator’s proper usage of the vehicle and a good eye for what their allies would need for a better shot.,Weaponry takes only half Penalties for terrain and speed from moving vehicles.
+Exceptional Hearing,Mythic,Ability,250,,Perception: 30,,,,,A character using the Exceptional Hearing Ability gains a +10 Bonus to any hearing-based Investigation and Perception Tests.,The character gains +10 to all hearing-based Perception and Investigation Tests.
+Far-Sight,Mythic,Ability,250,,Perception: 30,,,,,"At the beginning of the Character’s Turn, the Character’s Perceptive Range multiplier is increased by 1 until the beginning of their next Turn. The Character must then wait a minimum of 5 Turns before using Far-Sight again.",The Character can attempt to extend their Perceptive Range for one Turn.
+Fast Foot,Mythic,Ability,250,,Agility or Intellect: 40,,,,,The character uses incredible Agility or quick thinking to get an advantage on the battlefield. The character rolls twice when figuring the Initiative Test and takes the highest roll. ,Roll twice on the initiative roll and take the highest.
+Faster Than Reloading,Mythic,Ability,250,,Warfare Melee: 35,,,,,"The character no longer takes the -30 Penalty when throwing a Firearm and deals the amount of Damage they would have dealt if using it as a Melee Weapon, instead of the reduced Damage.","The Character takes no longer takes the -30 Penalty to throwing a Firearm, and increase Damage dealt."
+Fellowship,Mythic,Ability,650,,Charisma: 30,,,,,"While using Combined Actions with an ally from the party, the Character will gain a +5 Bonus to Tests made. If any other ally has this Ability, it is increased to +10.","Characters gain +5 to Combined Action Tests, which increases to +10 if another ally has this same Ability."
+Field Medic,Mythic,Ability,600,,Intellect: 55,,,,,"Allows the Character to make Medical Tests when lacking the proper tools. The Character must first make or find makeshift tools, which takes 3D10 - Intellect Modifier in minutes, to a minimum of 5. The Character also halves any Penalties given by poor environments for Medical Tests.","Allows Character to make Medical Tests without Tools, halves Penalties for bad conditions."
+Flame Spray,Mythic,Ability,250,,Intellect: 25,,,,,A character using Flame Spray with any flame-based weaponry gives any opponent within the fire a -10 Penalty to any Evasion Test.,Opponents targeted by fire-based attacks take a -10 Penalty to avoiding the fire
+Focused Warrior,Mythic,Ability,400,,Perception: 45,,,,,Focused Warrior allows the Character to make a Half Move and Full Move while taking Aim Actions.,Focused Warrior allows the Character to move while taking Aim Actions.
+Frenzy,Mythic,Ability,250,,Courage: 30,,,,,Characters using the Frenzy Ability no longer take Penalties to Evasion from Berserker and Adrenaline Rush,No longer take Penalties to Evasion from Berserker and Adrenaline Rush.
+Gather Senses,Mythic,Ability,500,,Courage: 40,,,,,"A character with the Gather Senses Ability is allowed to reroll one Failed Pinning Test and Fear Test, each, per Round.",Characters may reroll one failed Pinning Test or Fear Test per Turn.
+Guarded,Mythic,Ability,400,,Agility: 40,,,,,The Character gains a +10 Bonus when moving a Physical Shield to block incoming Attacks. The Character also gains a +10 To Hit when Attacking with a Physical Shield.,The Character gains a +10 to all Actions with a physical Shield.
+Grand Entrance,Mythic,Ability,600,,Leadership: 50,,,,,"The Character is able to give orders before a battle begins, which will allow allies and the User to use the Character’s Leadership Modifier when figuring Initiative. The Character must first give orders before the battle and will only work if the battle was initiated within 2 hours of the given orders.",Allows all allies to use Character’s Leadership Modifier for figuring Initiative.
+Guillotine Strike,Mythic,Ability,500,,Strength: 45,,,,,A downward strike Attack that boosts Damage and Pierce. Guillotine Strike takes half of the Character’s Melee Attacks to perform and takes a Half Action. This Attack adds another set of the Character’s Strength Modifier to the Attack’s Damage and Pierce. Parrying the Guillotine Strike is at a -20 Penalty and a -10 Penalty to Evasion.,Downward strike that deals extra damage.
+Gunboat Diplomacy,Mythic,Ability,600,,"Courage: 45 or
+ Leadership: 45",,,,,"The Character attempts to change the course of a discussion by using a weapon. Depending on the weapon used, the Character makes a Warfare Melee or Warfare Range Test that opposes the Opponent’s Courage. If Successful, the Character can either gain a +10 Bonus to a Appeal, Negotiation, Intimidation, or Interrogation Test, or be used to reroll the test once if the Test Fails.",The Character is able to supplement their Intimidation or Negotiation with their Warfare Melee or Warfare Range.
+Handler,Mythic,Ability,300,,"Charisma: 30 or
+ Leadership: 30",,,,,"When the Character gives a command to a trained Animal, such as a War Dog, the Animal gains a +10 to those Actions. GM discretion may be applied to what Actions can gain these benefits.",Commands given to trained animals gives that animal a +10 to their commanded Test.
+Hand-To-Hand Basic,Mythic,Ability,250,,Warfare Melee: 35,,,,,"This Ability shows the character is proficient with the standard Hand-to-Hand Martial Arts, giving the Character a +5 To Hit with all Melee Attacks and a +5 to Parry with Melee Weapons.",Gives an extra +5 To Hit with Melee Attacks and +5 to Parry with Melee Weapons.
+Handyman,Mythic,Ability,550,,Intellect: 35,,,,,Handyman allows the Character to double the amount of Breakpoints they repair and reduce the time by half that it takes.,Doubles the Breakpoints repaired with the Technology Skill and halves the time repairs will take.
+Heavy Preparation,Mythic,Ability,600,,Strength: 40,,,,,"The Character no longer has a chance of dropping Heavy Weapons when not braced. The Penalties taken for firing a Heavy Weapon while not braced are also reduced by 10, to a minimum of 1.",Characters no longer have a chance of dropping Heavy Weapons when not braced. Penalties taken reduced by 10.
+Heroic Sacrifice,Mythic,Ability,1000,,"Luck: 0-1
+ Courage: 45",,,,,"This Ability may only be used in dire situations. When the Character dies, they are able to perform one more Action, even if the Character was Unconscious or in a Coma. The Character makes one final Action that gains an automatic Critical Success and cannot be countered by Luck or other Actions taken. If this Action is an Attack, it deals its maximum damage, ignoring Half Armor. 
+
+This Action is to be the turning point of a battle in favor of the Players. If the dying player wishes to Burn Luck to survive after this Ability, they can do so, but their Coma time will be doubled.","As a Character dies, even if they were unconscious, they are able to perform one final Action of their choice. This Action acts as a Critical Success with added benefits."
+Improvised Mastery,Mythic,Ability,250,,Hand-To-Hand Basic,,,,,Characters with Improvised Mastery are able to make double the number of Attacks with Improvised Melee weapons.,The Character is able to make twice as many attacks with Improvised Melee Weaponry.
+Inspired,Mythic,Ability,250,,"Charisma: 50 or
+ Leadership: 50",,,,,"Once per turn using either Charisma or Leadership, the Character inspires another to improve a designated Characteristic Test by the User. The chosen Character gains a +10 Bonus to the Test to perform that Action.
+
+The chosen Character is the only one who gains the Bonus, and only for the chosen Test, else, the Bonus is lost. Inspired must come with a small speech or something inspirational to be used. If Inspiration was purchased, but the Character does not have enough Charisma, then this Ability cannot be used through the Charisma Characteristic. The same goes for Leadership.",Once per turn The character may use either Charisma or inspire others to give a +10 to their next Test.
+Iron Fist,Mythic,Ability,500,,Strength: 55,,,,,"The Character makes a Strength Test. If Successful, the first Attack made of the Turn gains the Stun (1D5+Strength Modifier) Special Rule.",Unarmed attacks gain the Stun (1D5+Strength Modifier) Special Rule with a successful Strength Test.
+Lucky Shot,Mythic,Ability,750,,Luck: 1+,,,,,To Hit Tests that roll 10 or under will give the Attack +1D10 Damage Dice.,To Hit Tests that roll 10 or under will give the Attack +1D10 Damage Dice.
+Manslaughter,Mythic,Ability,250,,Pilot (TYPE): +20,,,,,"With superior driving capabilities and a good eye, the character is able to easily run-down enemies on the battlefield with a vehicle of the chosen type. Any opponent attempting to dodge a character with Manslaughter gains a -10 Penalty to the Evasion. This can be taken once for every Pilot type.",Enemies attempting to evade the character’s vehicle are at a -10 Penalty.
+Marksman,Mythic,Ability,400,,Perception: 55,,,,,The Marksman Ability allows characters to only take half Penalties for long and extreme ranged attacks with Sniper Optics.,Character takes half Penalties from long and extreme ranged attacks.
+Medical Insight,Mythic,Ability,750,,Medication: +20,,,,,"Medical Insight shows true ability in the Medical field. Those with Medical Insight double what they rolled on a Medical Test to heal wounds. For example, a Medical Test that increased healing by +3 wounds per day now heals +6 wounds per day.",Heals twice as many wounds with each test.
+Medical Prowess,Mythic,Ability,400,,Intellect: 50,,,,,Any character with Medical Prowess only takes half Penalties when using medical skills and abilities towards characters of other races.,Only take half Penalties when doing medical tests on alien species.
+Mighty Mobility,Mythic,Ability,750,,Heavy Preparation,,,,,"When Bracing a weapon, the Character is able to move up to a Half Move per Half Action and still be considered Braced.",Allows the Character to move at Half and Full Movement Speeds while Bracing a weapon.
+Mind Timer,Mythic,Ability,450,,Intellect: 40,,,,,"When cooking Grenades, the character gains a +10 Bonus.",The character takes no base Penalties and gains a +10 when cooking Explosives.
+Mobile Fire,Mythic,Ability,500,,Warfare Range: 50,,,,,"When the character is moving and firing a weapon, the Penalty To Hit is reduced by 10, to a minimum of 1.","When moving and shooting, Characters reduce the To Hit Penalties by 10."
+Modern Army Combative,Mythic,Ability,800,,Hand-To-Hand Basic,,,,,"The Character is trained under special hand-to-hand combat, giving the Character access to one extra Melee Attack with a Full Action Melee Attack, the Advanced Melee Combat section, and a +5 Bonus To Hit with any Melee Attack. This becomes +10 alongside Hand-To-Hand Basic. This also allows the Character to surpass the usual preset amount of Melee Attacks that can be made per Round by 1 but gives them a -20 Penalty to Reactions until the beginning of their next Turn.","Opens availability to Advanced Melee Combat, gives an additional Melee Attack per Turn, and an additional +5 Bonus To Hit with Melee Weapons when used alongside Hand-To-Hand Basic."
+Not Enough,Mythic,Ability,750,,Courage: 55,,,,,"If the Character is Conscious, and receives an Attack that would render them Unconscious, the Character may take the first Half Action of their next Turn before falling Unconscious. If the Character would die before or during this, they can’t take the Half Action.","If the Character were to go unconscious, allow for one more Half Action beforehand."
+One Eye Open,Mythic,Ability,250,,Perception: 40,,,,,A character with the One Eye Open Ability always counts as ‘awake’ while sleeping. The One Eye Open Ability means any character sleeping with this ability does not count as helpless.,The character does not count as Helpless when sleeping.
+Order of Things,Mythic,Ability,250,,Leadership: 40,,,,,"When a character has ‘Order of Things’ Ability, the character gains a +10 to any Social Skills pertaining to characters of lesser rank. These only account for Social Opposed Tests and orders given.","When making Command Tests against those of lesser rank, the character gains a +10 Bonus to the test."
+Outstanding Olfactory,Mythic,Ability,250,,Perception: 40,,,,,A character with the Outstanding Olfactory Ability gains a +10 to any smell-based Investigation and Perception Tests.,The character gains +10 to all smell-based Perception and Investigation Tests.
+Peer,Mythic,Ability,250,,Charisma: 40,,,,,"The Peer Ability allows the character to have good standings with a selected group, giving the character a +20 to any social Skill Test.
+
+Peer works with subgroups such a battalion or ‘Medical Teams.’ A large Peer, such as an entire Country, cannot be chosen.",The character gains +20 to Social Skills dealing with characters in a specifically chosen groups.
+Practiced Fighter,Mythic,Ability,500,,Warfare Melee: 45,,,,,"When making Melee Attacks, the Character will make a -10 Investigation Test at the beginning of the Turn as a Free Action. If Successful, the next Attack will strike the lowest Body Location Armor on the Target with an extra +1D5 Pierce. For every Degree of Success, an additional Attack will gain this benefit for that Turn only. ",The character count as attacking the opponent’s lowest Armor Rating.
+Precision Strike,Mythic,Ability,350,,Warfare Melee: 55,,,,,Reduces the base Penalty for Called Shots for Melee Combat by Half.,Reduces the Penalty for Melee Called Shots by Half.
+Predictable,Mythic,Ability,750,,Warfare Melee: 60,,,,,"If the Character uses a Delay Action or have not taken their Action yet, they’re able to take a Half Action to counter an Opponent’s Charge Attack or Grapple. A Countered Opponent cannot make any further Melee Attacks that Round. The Counter takes an Opposed Warfare Melee Test against the Attack being made. If Successful, the Attack is countered. Countered Grapples deal a Melee Punch Attack with an additional Strength Modifier in Damage that leaves the Opponent Prone on the ground.
+
+The countered Charge Attack deals a Melee Punch Attack or the Melee Attack of the weapon being held and deals additional Pierce equal to the amount of Meters the Opponent Charged.",The Character attempts to counter a Charge or Grapple.
+Protector,Mythic,Ability,250,,Agility: 35,,,,,"A Character with this Ability is able to move in front of a nearby Ally. The Character must make a Successful Agility Test as a Reaction. The Character is able to move up to their Full Move in Meters, or up to as many Meters they have left in their Movement for the Turn, whichever is lower. This uses up the Character’s next Half Action.
+
+The Character may also shove or move the Ally away during this Action. To do this, the Character must make a Strength Test. If Successful, the Ally is moved up to the Character’s Strength Modifier away, or up to the amount of Meters the Character moved, whichever is lower. The Ally may Oppose this with a Strength or Agility Test.",Able to switch places with other character or move in front of them.
+Pull It Together!,Mythic,Ability,400,,Leadership: 35,,,,,"If another Character has failed a Fear Test or a Shock Test and is panicking, attempting to flee, or gaining a PTSD, the User may make a Full Action -10 Leadership Test. If successful, the Characters this is targeted to get to reroll Fear Tests with a +20 Bonus and Shock Tests with a -20 Bonus. Regardless of the outcome of these Fear and Shock Tests, the Character will not flee anymore.",Leadership Test to attempt to stop allies from fleeing and will give a reroll on Fear and Shock Tests.
+Quick Toss,Mythic,Ability,300,,Warfare Melee: 55,,,,,"The character gains the ability to use a Reaction to throw one-handed weaponry at a -10 Penalty. This attack does not use up the Reaction, but any other Reactions are at a -20 while Evasions gain only an extra -10, instead. It is considered that both actions are happening at the same time, such as Evading and throwing an Explosive.",Able to use a Reaction to throw one-handed weaponry at a -10 Penalty.
+Quickdraw,Mythic,Ability,250,,Agility: 40,,,,,"Quickdraw allows a Character to holster or draw an item as a Free Action. The Character can also ready two pieces of equipment with both hands. Quickdraw only works with equipment in holsters, rigs, or Permutations that store specified items, like grenades and shotgun shells. Quickdraw can only be used once per Turn.",Quickdraw allows a character to holster or equip a weapon or equipment as a Free Action.
+Quickscope,Mythic,Ability,750,,Perception: 45,,,,,"Quickscope allows the Character to halve To Hit Penalties gained by the Long Barrel Special Rule, as well as reducing the Evasion Bonus the Targeted Opponent gains to +10.",Halves Penalties for Long Barrel weapons at close range and reduces Opponent Evasion Bonus.
+Rapid Reload,Mythic,Ability,500,,Agility: 45,,,,,"Any character using Rapid Reload halves the Reload Time of any weapons reload after applying the Character’s Agility and Warfare Range Modifiers, to a minimum of 1. Rapid Reload increases Pump Action and Single Load Weapon reload counts by 1 per Half Action.
+
+Rapid Reload does not affect a weapon’s recharge rate.",Halves the Reload Time of any weapon’s reload after reduction from WFR and AGI  (minimum of 1).
+Reliable Reputation,Mythic,Ability,250,,Charisma: 45,,,,,"Any Character with this Ability is able to make Social Skill Tests against higher ranking individuals and will halve the Rank Bonus the higher ranking Character gains. This Ability can be lost if any respect or likeness towards the others within the group is lost. This also does not work against Characters that are under a chosen Revulsion Ability.
+
+This Ability can stack with Peer. This Ability does not remove the Bonuses given to the higher rank when dealing with lower levels.",Reduces Bonuses higher ranked Characters gain against the User in Social Skills.
+Resilient,Mythic,Ability,500,,Toughness: 35,,,,,"If a Character would have a bone Broken or a body location Lost, the Character will make a -10 Toughness Test. If Successful, the Body Location is not Broken or Lost. All other effects will be taken from the attack.",Roll Toughness Test to stop Special Damage from breaking or destroying a Body Location.
+Resourceful,Mythic,Ability,500,,Leadership: 45,,,,,"After completing a mission, the character gains an extra Support Point that does not refresh between missions or after it is used.",Gain an extra Support Point after every successful mission.
+Revulsion,Mythic,Ability,250,,Charisma: 35,,,,,"A character may select a group that they despise. When dealing against this group, the Character gains a +10 to Intimidation, Interrogation, and other Social Actions that would negatively affect that Group.
+
+Revulsion works with subgroups such a battalion or ‘Medical Teams.’ A large group, such as an entire Country or faction, cannot be chosen.",The character gains a +10 Bonus to Social Tests that would negatively affect a chosen Group.
+Rush,Mythic,Ability,500,,Agility: 40,,,,,Rush allows the Character to increase the Agility Modifier multiplier for figuring their Charge Movement distance by 1.,"When the character makes a Charge movement, the character moves extra meters equal to the character’s Agility Modifier."
+Second Chance,Mythic,Ability,750,,Toughness: 55,,,,,"The character is able to roll a Toughness Test when going under 0 Wounds from 1 or more Wounds. If the Toughness Test passes, the character stays at 1 Wound from the attack and takes no Special Damage. This can only be done once per day.","Roll a single -10 Toughness Test when going under 0 Wounds. If successful, stay at 1 Wounds."
+Shotfun,Mythic,Ability,500,,Warfare Range: 30,,,,,Opponents attempting to Evade the character’s shotgun attacks gain a -10 Penalty.,Opponents attempting to Evade the character’s shotgun attacks gain a -10 Penalty.
+Smooth Talker,Mythic,Ability,500,,Charisma: 45,,,,,"The Character may attempt to change another Character’s Disposition towards them or another Character. In doing so, the Character must smooth-talk them and roll a Charisma Test. If Successful, the Target’s Disposition will move up or down by one. Smooth Talker can only be used once on a Character per day.",Roll Charisma to change Disposition of a Character.
+Snapshot,Mythic,Ability,750,,Perception: 45,,,,,"If using a Scope or Sight under 6x Magnification, Snapshot allows for a Half Aim Action to be taken as a Reaction. This gives a -10 Penalty to all following Reactions during the Round.",The character is able to take a Half Action Aim as a Reaction if using a scope under 6x Magnification.
+Soldier of Fortune,Mythic,Ability,1500,,Luck: 2+,,,,,"The Soldier of Fortune Ability allows for a Character to gain a second reroll on failed Tests if Luck was Spent or Burnt. For example, if a Character missed an Attack and then Spent a Luck to Reroll that Test, and then failed the Reroll, they get one last chance. This can only be used once per encounter.",The character may reroll a failed Luck Roll.
+Stabilization,Mythic,Ability,750,,Medication: +10,,,,,"Medics with the Stabilization Ability are able to automatically recover one Wound with a First Aid Medical Test, even if the Test failed. The Character also stabilizes Characters who are suffering from Bleedout. A Character can only receive this once before they need to receive an Extended Medical Test.",Medics with the Stabilization Ability are able to automatically heal one Wound.
+Steady Aim,Mythic,Ability,500,,Perception: 40,,,,,The Character gains a +10 To Hit when using Aim Actions that are not taken as a Reaction.,"When the character makes an Aim Action, the character gains Bonuses To Hit."
+Sticky Fingers:,Mythic,Ability,450,,Athletics: +10,,,,,The character gains +10 to all Climb Tests.,The character gains +10 to all Climb Tests.
+Strafing Run,Mythic,Ability,500,,Agility: 40,,,,,"When moving, the Character is able to Strafe to dodge incoming fire. Any Attacks made against the Character are at a Penalty based on the Movement type being used. Charge is a -20 Penalty, Run is a -25 Penalty, and Sprint is a -30 Penalty. The Character using Strafing Run will gain an additional -10 Penalty To Hit when making Attacks while using Strafing Run.","When advancing, opponents take Penalties To Hit the character."
+Strong Back,Mythic,Ability,400,,Strength: 40,,,,,The Character doubles their Toughness Characteristic for figuring Lift and Push weights. Does not apply to figuring Carry Weights.,Doubles the Character’s Toughness Characteristic when figuring Push and Lift.
+Sure Strike,Mythic,Ability,400,,Warfare Melee: 40,,,,,"When making Melee Attacks, natural Damage Rolls of 10 will give the Attack an extra +1D10 Special Damage.",Melee Attacks gain +1D10 Damage when dealing Special Damage from Damage rolls of 10.
+Swift Shot,Mythic,Ability,500,,Quickdraw­,,,,,"When the character is making a Quickdraw using a [OH] weapon, the character is allowed to take a quick single shot at a -20 Penalty as a Reaction, that does not take up the Reaction completely, it just adds a -10 Penalty to anything else sharing the Action.","When making a Quickdraw, the character is allowed to fire with a Penalty of -20."
+Take The Bait,Mythic,Ability,350,,Courage: 40,,,,,"The Character will taunt an Opponent by making a +20 Courage Test that Opposes the Opponent’s Intellect. If Successful, the Opponent will stop attacking their current Target and begin to go after the Character for 1 Half Action per Degree of Success over the Opponent’s Test. This will be further increased by 1 Half Action for each Degree of Failure the Opponent may have. An Opponent can only be affected by Take the Bait once per encounter.",The Character attempts to have an Opponent go after them instead of their current target.
+Trample,Mythic,Ability,500,,Hand-To-Hand Basic,,,,,"The Character gains a Charge Trample. Trample is like Tackle, but the User is not knocked Prone alongside the Target. Trample also gains +2 Damage for each Size Category larger than the Target. ","When making a Charge Action, the Character can turn themselves into a powerful weapon of force."
+Triangulation,Mythic,Ability,250,,Intellect: 35,,,,,A character with the Triangulation Ability is able to remember previously traveled to locations. The Triangulation Ability gives the character the capability to not need to take any Navigation Tests when in a location they were previously in.,Easily remember previously traveled to locations with map-like accuracy.
+True Inspiration,Mythic,Ability,500,,Leadership: 35,,,,,"The Character is able to give a small speech and spend a Luck Point. Spending this Luck Point gives another Character a free Critical Success (Counts as rolling a 1 on the Test) on their next Test. The User may choose what Test gains the Critical Success, and if not used, the User does not spend that Luck Point.",The Character spends a Luck Point for another Character to get a free Critical Success.
+Unarmed Combatant,Mythic,Ability,250,,Warfare Melee: 35,,,,,"When using the Unarmed Combatant Ability, the character gains half of the character’s Warfare Melee Modifier (Rounding Down) to Piercing with Unarmed Melee Attacks.",Gains half of Warfare Melee Modifier (Rounding Down) to Pierce using Melee Attacks.
+Unbreakable Bond,Mythic,Ability,300,,Courage: 45,,,,,"When two or more characters of a group have this Ability, the characters take only half Penalties from Suppression, and a -30 on the Fear Charts when fighting together. These characters must be Party Members and be within 100 Meters of each other or have line of sight of the others.","When two or more allied characters in a group owns this Ability, the effects of Fear and suppression are halved."
+Under Control,Mythic,Ability,250,,Courage: 45,,,,,Characters under Suppressing Fire or taking Fear Tests gain a +15 to the Courage Test. This also counts for rerolls of the Tests given by other Abilities.,Characters under suppressing fire or taking Fear Tests gain a +15 to the roll.
+Unrestrained Reflexes,Mythic,Ability,750,,Agility: 45,,,,,"The Character, if aware of an Opponent who is in Point Blank Range, causes that Opponent to lose their Point-Blank Range Bonuses against the Character. Unrestrained Reflexes also gives the Character a +10 to spotting Lasers from Opponent weaponry.",The character avoids Point Blank Bonuses against them and can spot lasers easier.
+Valorous,Mythic,Ability,850,,"Leadership: 50, True Inspiration",,,,,"In a dire situation, the Character makes a Valorous speech and Burns a Luck Point. This Character inspires all allied Characters who can hear this speech. These Players all gain a single chosen free Critical Success and Special Damage usable for the next two Rounds.",Burn a Luck point and give a speech. This gives all allied Characters a Critical Success and Special Damage for their next Turns.
+Vault,Mythic,Ability,500,,Agility: 45,,,,,"The character uses incredible agility to use surroundings to double Jumping and Leaping ranges. For example, a character with Vault can use a wall or fence to jump higher to reach a specific location.",Able to use surroundings to double Jumping and Leaping range.
+Wheelman,Mythic,Ability,500,,Pilot: Ground +20,,,,,"When piloting ground vehicles, the operator only takes half Penalties when it comes to Difficult and Dangerous Terrain . Any Penalties originating from terrain are halved. This shows that the operator of the vehicle is trained and experienced in dealing with difficult driving situations.",Only takes half Penalties in Difficult and Dangerous Terrain  when piloting vehicles.
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+Appeal (Trained),Mythic,Skill,200,Basic,Charisma,1,,,,"Appeal is a talent of charm and social abilities. Appealing allows players and characters to sway the reactions of others with well-meaning words and facial expressions. A character with the Appeal Skill can attempt to alter any social interactions. Appeal can be used to attempt to change a character’s opinions and to convince characters and players to attempt something else.
+        When Appeal is used against someone, it is an Opposed Test, which is opposed by Interrogation (Courage) or Deception. 
+
+MOD        EXAMPLE
++10        The Target is a part of the same squad or commanding unit.
+-10        The Target does not want to be bothered
+-20        The Target is suspicious in nature.",Social
+Athletics (Trained),Mythic,Skill,200,Basic,"Agility, Strength",1,,,,"Athletics is the acrobatic and tactical movement skill that allows characters to make balanced and poised movement. Athletics have two sections, Agility and Strength based movement. 
+        
+STRENGTH
+Athletics Strength is a character’s ability to climb, swim, and other strength-based physical activities.
+        
+AGILITY
+Athletics Agility is a character’s ability to balance, jump, catch landings, and move around in a dignified and controlled manner.
+
+MOVE SILENTLY
+Another use for Athletics Agility is to move silently. If a character is attempting to move silently, they roll Athletics Agility against the Opposing hearing-based Investigation Test.
+",Movement
+Camouflage (Trained),Mythic,Skill,200,Basic,"Intellect, Perception",1,,,,"The Camouflage Skill is used to hide in your surroundings or to conceal your equipment. Using Camouflage requires an appropriate environment to mask whatever is in question. Camouflage is opposed by an Investigation Skill, and if the character does not have Investigation, use the Perception Characteristic at Penalty.
+
+CAMOUFLAGE HIDING
+When the Character is attempting to hide or sneak by using their Environment, they must make a Camouflage Test. A Character attempting to hide with a [TH] or [HW] Weapon will be unable to hide their weapon unless they use a Ghillie Cover. For every Size Category above Normal, the Character will gain a -5 Penalty.
+
+VEHICLE CAMOUFLAGE
+Hiding a Vehicle works the same and Vehicles may also gain Camouflage masking, painting, and covers. For every Size Point of a Vehicle, it gains a -5 Penalty to be Camouflaged.
+
+WEAPON CONCEALING
+Concealing Weapons is a Camouflage Test that allows the Character to hide a weapon on their person. [DW] weapons gain a +20 to Concealing, [OH] weapons gain a +10 to Concealing, [TH] weapons gain a -20 to concealing, and [HW] weapons are impossible to conceal without modification.
+        Concealed weapons cannot be used with Quick Draw and will add one Half Action to retrieve them.
+",Fieldcraft
+Command (Trained),Mythic,Skill,200,Basic,Leadership,1,,,,"Command is the ability to effectively lead others. Command deals with any character giving orders to another.
+	If two opposing commands are being made to counteract each other, the GM may allow the characters to choose whom to follow or have the two commands roll as an opposing test. 
+The Command Skill Test also uses the same type of example modifiers shown in the Appeal Skill Description a page back. If a command is suicidal or not in the best interests of the overall picture, the test automatically gains a -60 penalty.",Social
+Cryptography (Trained),Mythic,Skill,300,Advanced,Intellect,1,,,,"The use of the Cryptography Skill allows characters to encrypt and decrypt codes and frequencies, as well as hack and bypass systems. Skill Tests are not required to either leave or read basic messages and codes but are necessary to communicate or decipher complicated messages. Use this Skill alongside the Cyber Warfare section of the Handbook.",Fieldcraft
+Deception (Trained),Mythic,Skill,200,Basic,"Charisma, Leadership",1,,,,"The Deception Skill is when a character attempts to lie to a character or player. A character using this Skill attempts to lie. Examples of using the Deception Skill:
+•        Attempting to disguise an item. This is different from Camouflage as you aren’t attempting to hide the item, but you are trying to trick someone that it is something else.
+•        Attempting to distract someone. This could be by keeping someone’s attention or lying of something to quickly move the opponent’s eye away from what is actually happening. This can be used as a Sleight of Hand. 
+•        To tell someone orders, but to twist the words to show another meaning, or to outright lie about the situation.
+Deception skill is opposed by an opponent’s Investigation.",Social
+Demolition (Trained),Mythic,Skill,300,Advanced,Intellect,1,,,,"Demolition allows the Character to use various Demolition Skills when using Explosive weapons, not including Explosive Ammo modifications.
+
+ARMING EXPLOSIVES
+Armed Explosives are Explosives that have been armed and triggered to explode based on various options, such as a Timer, a Switch, a Deadman’s Switch, or tethering it to a nearby computer device. Armed Explosives need a Demolition Skill Test. If Failed, the Armed Explosive does not work and will need to be redone. This is an Extended 10 Full Action Test.
+	
+DISARMING EXPLOSIVES
+The only way to stop an Armed Explosive from detonating is by using a Demolition Test. The Demolition Test must Succeed with more Degrees of Success than the test made to Arm the Explosive. A Disarmed explosive may be kept by the Disarming Character and re-armed when needed. The Character who Armed the Explosive gains a +30 Bonus to Disarming it.
+
+STRUCTURAL WEAKNESS
+The Character is able to take a Full Action or Extended 2 Full Actions to study the layout and design of a Structure or a Vehicle. When complete, the Character then makes a Demolition Test, and depending on the amount of Actions taken, will gain bonus amounts of Pierce to the Attack. 
+Structural Weakness can be used before making a Ranged Attack and will only work with the first Attack made after the Study. The Character will still need to roll for Warfare Range, or Warfare Melee if using a Grenade. Structural Weakness must be rolled for each time it’s used.
+
+FULL ACTION STUDY
+If the Character studies the structure for a 1 Full Action, each Degree of Success gains +10% to the weapon’s Pierce. This begins at 0 Degrees of Success and maxes out at +40%.
+
+EXTENDED ACTION STUDY
+If the Character studies the structure for an extended 2 Full Actions, each Degree of Success gains +25% to the weapon’s Pierce. This begins at 0 Degrees of Success and maxes out at +100%.
+
+GRENADE COOKING
+Demolitions at Trained will give +5 to Cooking Grenades, Demolitions at +10 will give +10, and Demolitions +20 will give +20.",Fieldcraft
+Evasion (Trained),Mythic,Skill,200,Basic,Agility,1,,,,"Evade is a Reaction performed by attempting to dodge any source of Damage that struck the Character. If the Evasion is Successful, the Attack deals no Damage or effects. Evade Actions are made using an Opposed Agility Tests with the Evasion Skill against the Opponent’s Attack made. 
+To perform an Evasion, the Character rolls an Opposed Test against the Opponent’s To Hit that was made. If the Character gains more Degrees of Success against the Opponent’s Test, the Attack misses. Each Evasion Test after the first takes a stacking -10 Penalty, meaning the 2nd Test is at -10, the 3rd at -20, the 4th at -30, and so on. These Penalties reset at the beginning of the Character’s next Turn.
+
+EVADE INTO COVER
+The Character may also use their Evasion Skill to Evade Into Cover. Evade Into Cover allows the Character to move 2 Meters with each Degree of Success on the Evasion Test as long as they did not make a Full Move, Charge, Run or Sprint Action during the current Round.
+If the Character made no Movement Actions during the Round, they’re able to move up to their Full Move in Meters. If the Character only made a Half Action Move, they’re able to move up to their Half Move in Meters.
+	Using Evade Into Cover removes the Character’s ability to use Movement Actions and Reactions until the beginning of their next Turn, regardless of if the Character was successful.
+If the Character is attempting to Evade Into Cover to escape Melee Combat, the Opponent is able to initiate a Grapple as a reaction. If the Opponent is Successful, the Character is unable to Evade until the beginning of their next Turn and cannot leave the Melee Combat. If the Character successfully initiated a Grapple, they may decide to drop it as a Free Action before the Turn ends.",Movement
+Gambling (Trained),Mythic,Skill,200,Basic,"Intellect, Charisma",1,,,,"The Gambling Skill is used to deal with any sort of gaming or betting. Characters who have the Gambling Skill will have more understanding of how to improve their odds at winning, thus do not take Penalties. Gambling may be used to gamble cR, equipment, or just for fun. Gambling is best used when dealing with card games, games of chance, and so on.
+	Each participant will make an Opposed Gambling Skill Test and the Character with the most Degrees of Success will win. 
+
+CHEATING
+If a Character is attempting to cheat, they must make an Opposed Gambling Test against any Opponent’s Investigation Skill Test. If Successful, the cheating Character gains a +5 on the Opposed Gambling Test for determining the winner of the game. If Failed, they are caught in the act.",Social
+Interrogation (Trained),Mythic,Skill,200,Basic,"Charisma, Leadership, Intellect",1,,,,"Interrogation allows a character to extort information from an opponent with both mental and physical means. The GM may modify the Difficulty of the Interrogation Test according to the character’s training and tools being used by the characters making the test. 
+	Interrogation is an Opposed Test with the opponent’s Courage or Charisma Characteristic. If the opponent wins the Opposed Test, the interrogator gets nothing worthwhile. If the interrogators win the opposed test, every degree of success gets either another answer, or the answer becomes clearer. An Interrogation can be retried with a failure, but each time a test fails, it takes twice as long, and the next test gains a -10 penalty. ",Social
+Intimidation (Trained),Mythic,Skill,200,Basic,SPECIAL,1,,,,"Intimidation is one of the few Skills that can use many Characteristics. Players can use Strength, Charisma, Leadership, and Intellect to force and scare their opponent to give in to demands.
+        Intimidation is an Opposed Test. A character must not just choose their highest Characteristic to use the Intimidation. The Characteristic used must fit the situation that the Intimidation is being used in. ",Social
+Investigation (Trained),Mythic,Skill,200,Basic,"Intellect, Perception",1,,,,"Investigation has two uses, Social and Fieldcraft. The Social use of Investigation covers gaining information, while the Fieldcraft use covers the Character’s awareness of their surroundings.
+
+SOCIAL
+Social Investigation has a couple important uses, Information and Insight. For gathering information, the Character asks questions, starts conversations, and eavesdrops. This involves the Character focusing on gathering information from groups of people and piecing together context and clues. Depending on how the GM wants to handle this, they may give the Player or Character a Bonus on their Investigation Test for smart roleplaying and discussing how they would perform these actions. The more Degrees of Success gained, the more information the GM can give the Player.
+	Alternatively, Social Investigation also allows for Insight, which has the Character attempting to read another Character or situation. Social Investigation allows for reading a single Character’s intentions, which is Opposed by the Opposing Character’s Deception. This shouldn’t be used as a catch-all lie detector, and the GM must work with the Player to decide the outcome based on Degrees of Success or Failure.
+
+FIELDCRAFT
+Fieldcraft Investigation allows the character to visually understand and be aware of their surroundings. This is used when trying to find hidden objects and Characters. When attempting to find an object, only a Perception based Investigation Test needs to be rolled. If a character has hidden the item (or themself), then the test becomes Opposed against the opponent’s Camouflage Skill.","Social, Fieldcraft"
+Medication Human (Trained),Mythic,Skill,300,Advanced,Intellect,1,,,,"Medication is the Skill of having and using knowledge of biological and medical science. An effective time to allow Characters to learn the Medication Skill is between Missions with downtime.
+	A Character with the Medication Skill can Diagnose, give First Aid, Extended Medical Tests, and repaid Special Damage.
+This Skill relies heavily on Medical Tools. Surgeries cannot be done without the proper tools, wounds cannot be bandaged without bandages or clothe, and medication cannot be given if it is not owned.
+
+ALIEN BIOLOGY
+Alien Biology means a different biological makeup that the Character may not be used to. For example, a Human medical expert will not understand the biology of a Covenant species without study. Xenobiology Creatures, such as Mgalekgolo and Huragok, are also incredibly different from the norm.
+	Due to this, the Medication Skill is separated into 3 options of Human, Covenant, and Xenobiology. The GM may decide if what other creatures can be considered as Xenobiology.
+
+FIRST AID
+First Aid is the Character’s Ability to improve the Wound and Fatigue recovery of a Target when using Medical Equipment such as Biofoam and Sealant Mesh. First Aid is a Full Action to perform.
+	First Aid is a Full Action Medication Test. For every Degree of Success, First Aid will increase the amount of Wound and Fatigue recovery by 1.
+	First Aid is also used to Stabilize unconscious Characters suffering from Bleedout.
+
+EXTENDED MEDICAL TEST
+Extended Medical Tests are used to better assist a Character in both natural healing and recovering from Medical Equipment use. Extended Medical Tests will allow the Target to start receiving benefits from Medical Equipment that no longer offer benefits due to overuse, allows the Target to improve their Natural Healing, and diagnose Special Damage effects the Target received.
+	The Character must first roll a Medication Test. This is a 4 hour Extended Action. For every Degree of Success the Target recovers 2 Wounds and their Natural Healing is increased by 1 until they are either at Full Wounds or take more than 5 Wounds in a Turn. 
+	The benefits of an Extended Medical Test may only be given once a Day when on the Field. If the Character is on a ship or at a location with a properly stocked medical facility, they will receive triple the Wound recovery and Natural Healing received.
+	If the Character does not get rest, they cannot receive the benefits of the increased Natural Healing.
+
+REMOVING SPECIAL DAMAGE
+The Character may further extend their Extended Medical Test to remove the Target’s Special Damage when using the Medical Kit. Each hour extended; the Character can remove 1 Special Damage effect the Character has and reduce its buildup to 0. If the Location is destroyed, the Character will need a robotic replacement or a flash clone ready.
+
+MEDICAL ASSISTANCE
+A Character may be assisted during Extended Medical Tests. Each Character assisting will make a Medication Test. If Successful, the Extended Medical Test takes 1 less hour, to a minimum of 1.
+
+DIAGNOSIS
+With a successful Medication Test, the Character can diagnose diseases and medical issues, such as Radiation Poisoning. When diagnosing a well-known disease or medical issue, the Test is at a +20 Bonus.
+	Each time a Character makes a proper Diagnosis, the next time they come across the same medical issue, they gain a stacking +10 Bonus. Once the Character would reach +40 to their Diagnosis Test, they are considered to pass the test automatically.",Fieldcraft
+Medication Covenant (Trained),Mythic,Skill,300,Advanced,Intellect,1,,,,"Medication is the Skill of having and using knowledge of biological and medical science. An effective time to allow Characters to learn the Medication Skill is between Missions with downtime.
+	A Character with the Medication Skill can Diagnose, give First Aid, Extended Medical Tests, and repaid Special Damage.
+This Skill relies heavily on Medical Tools. Surgeries cannot be done without the proper tools, wounds cannot be bandaged without bandages or clothe, and medication cannot be given if it is not owned.
+
+ALIEN BIOLOGY
+Alien Biology means a different biological makeup that the Character may not be used to. For example, a Human medical expert will not understand the biology of a Covenant species without study. Xenobiology Creatures, such as Mgalekgolo and Huragok, are also incredibly different from the norm.
+	Due to this, the Medication Skill is separated into 3 options of Human, Covenant, and Xenobiology. The GM may decide if what other creatures can be considered as Xenobiology.
+
+FIRST AID
+First Aid is the Character’s Ability to improve the Wound and Fatigue recovery of a Target when using Medical Equipment such as Biofoam and Sealant Mesh. First Aid is a Full Action to perform.
+	First Aid is a Full Action Medication Test. For every Degree of Success, First Aid will increase the amount of Wound and Fatigue recovery by 1.
+	First Aid is also used to Stabilize unconscious Characters suffering from Bleedout.
+
+EXTENDED MEDICAL TEST
+Extended Medical Tests are used to better assist a Character in both natural healing and recovering from Medical Equipment use. Extended Medical Tests will allow the Target to start receiving benefits from Medical Equipment that no longer offer benefits due to overuse, allows the Target to improve their Natural Healing, and diagnose Special Damage effects the Target received.
+	The Character must first roll a Medication Test. This is a 4 hour Extended Action. For every Degree of Success the Target recovers 2 Wounds and their Natural Healing is increased by 1 until they are either at Full Wounds or take more than 5 Wounds in a Turn. 
+	The benefits of an Extended Medical Test may only be given once a Day when on the Field. If the Character is on a ship or at a location with a properly stocked medical facility, they will receive triple the Wound recovery and Natural Healing received.
+	If the Character does not get rest, they cannot receive the benefits of the increased Natural Healing.
+
+REMOVING SPECIAL DAMAGE
+The Character may further extend their Extended Medical Test to remove the Target’s Special Damage when using the Medical Kit. Each hour extended; the Character can remove 1 Special Damage effect the Character has and reduce its buildup to 0. If the Location is destroyed, the Character will need a robotic replacement or a flash clone ready.
+
+MEDICAL ASSISTANCE
+A Character may be assisted during Extended Medical Tests. Each Character assisting will make a Medication Test. If Successful, the Extended Medical Test takes 1 less hour, to a minimum of 1.
+
+DIAGNOSIS
+With a successful Medication Test, the Character can diagnose diseases and medical issues, such as Radiation Poisoning. When diagnosing a well-known disease or medical issue, the Test is at a +20 Bonus.
+	Each time a Character makes a proper Diagnosis, the next time they come across the same medical issue, they gain a stacking +10 Bonus. Once the Character would reach +40 to their Diagnosis Test, they are considered to pass the test automatically.",Fieldcraft
+Medication XENOBIOLOGY (Trained),Mythic,Skill,300,Advanced,Intellect,1,,,,"Medication is the Skill of having and using knowledge of biological and medical science. An effective time to allow Characters to learn the Medication Skill is between Missions with downtime.
+	A Character with the Medication Skill can Diagnose, give First Aid, Extended Medical Tests, and repaid Special Damage.
+This Skill relies heavily on Medical Tools. Surgeries cannot be done without the proper tools, wounds cannot be bandaged without bandages or clothe, and medication cannot be given if it is not owned.
+
+ALIEN BIOLOGY
+Alien Biology means a different biological makeup that the Character may not be used to. For example, a Human medical expert will not understand the biology of a Covenant species without study. Xenobiology Creatures, such as Mgalekgolo and Huragok, are also incredibly different from the norm.
+	Due to this, the Medication Skill is separated into 3 options of Human, Covenant, and Xenobiology. The GM may decide if what other creatures can be considered as Xenobiology.
+
+FIRST AID
+First Aid is the Character’s Ability to improve the Wound and Fatigue recovery of a Target when using Medical Equipment such as Biofoam and Sealant Mesh. First Aid is a Full Action to perform.
+	First Aid is a Full Action Medication Test. For every Degree of Success, First Aid will increase the amount of Wound and Fatigue recovery by 1.
+	First Aid is also used to Stabilize unconscious Characters suffering from Bleedout.
+
+EXTENDED MEDICAL TEST
+Extended Medical Tests are used to better assist a Character in both natural healing and recovering from Medical Equipment use. Extended Medical Tests will allow the Target to start receiving benefits from Medical Equipment that no longer offer benefits due to overuse, allows the Target to improve their Natural Healing, and diagnose Special Damage effects the Target received.
+	The Character must first roll a Medication Test. This is a 4 hour Extended Action. For every Degree of Success the Target recovers 2 Wounds and their Natural Healing is increased by 1 until they are either at Full Wounds or take more than 5 Wounds in a Turn. 
+	The benefits of an Extended Medical Test may only be given once a Day when on the Field. If the Character is on a ship or at a location with a properly stocked medical facility, they will receive triple the Wound recovery and Natural Healing received.
+	If the Character does not get rest, they cannot receive the benefits of the increased Natural Healing.
+
+REMOVING SPECIAL DAMAGE
+The Character may further extend their Extended Medical Test to remove the Target’s Special Damage when using the Medical Kit. Each hour extended; the Character can remove 1 Special Damage effect the Character has and reduce its buildup to 0. If the Location is destroyed, the Character will need a robotic replacement or a flash clone ready.
+
+MEDICAL ASSISTANCE
+A Character may be assisted during Extended Medical Tests. Each Character assisting will make a Medication Test. If Successful, the Extended Medical Test takes 1 less hour, to a minimum of 1.
+
+DIAGNOSIS
+With a successful Medication Test, the Character can diagnose diseases and medical issues, such as Radiation Poisoning. When diagnosing a well-known disease or medical issue, the Test is at a +20 Bonus.
+	Each time a Character makes a proper Diagnosis, the next time they come across the same medical issue, they gain a stacking +10 Bonus. Once the Character would reach +40 to their Diagnosis Test, they are considered to pass the test automatically.",Fieldcraft
+Navigation Ground and Air (Trained),Mythic,Skill,200,Basic,"Intellect, Perception",1,,,,"The Navigation Skill is a character’s ability to plot courses and find directions. There are multiple levels of Navigation: Ground, Space, and Slipspace.",Fieldcraft
+Navigation Space (Trained),Mythic,Skill,300,Basic,"Intellect, Perception",1,,,,"The Navigation Skill is a character’s ability to plot courses and find directions. There are multiple levels of Navigation: Ground, Space, and Slipspace.",Fieldcraft
+Negotiation (Trained),Mythic,Skill,200,Basic,Charisma,1,,,,"The Negotiation Skill is used to strike barters and create deals with others. This skill allows characters to negotiate better prices or outcomes for goods and services. All Negotiation tests are opposed, as they involve interaction. For every degree of success, the character gets, the price of an item is reduced by 5%. Failing gives no penalties.
+	Negotiation can also be used to deal with hostage situations and dealing with demands. This works as a normal Opposed Test against Charisma and Intellect based Negotiation Skill Tests.",Social
+Pilot Ground (Trained),Mythic,Skill,200,Basic,"Agility, Intellect",1,,,,"The Pilot Skill is the ability to drive and pilot vehicles, such land, air, and space vehicles. The following Table shows a list of various examples of Penalties and Bonuses that can apply to a Vehicle, not including the Rough and Dangerous Terrain in the Movement section of the Handbook.
+        
+MOD        EXAMPLE
++30        Driving a standard Civilian vehicle.
++20        Operating Civilian vehicles under moderate speeds.
++10        Piloting a vehicle in familiar terrain.
+0        Driving a vehicle never driven before.
+-10        Driving at high speeds. 
+-20        Piloting a vehicle while under heavy fire.
+-30        Attempting to pilot a damaged vehicle while still under fire.",Movement
+Pilot Air (Trained),Mythic,Skill,300,Basic,"Agility, Intellect",1,,,,"The Pilot Skill is the ability to drive and pilot vehicles, such land, air, and space vehicles. The following Table shows a list of various examples of Penalties and Bonuses that can apply to a Vehicle, not including the Rough and Dangerous Terrain in the Movement section of the Handbook.
+        
+MOD        EXAMPLE
++30        Driving a standard Civilian vehicle.
++20        Operating Civilian vehicles under moderate speeds.
++10        Piloting a vehicle in familiar terrain.
+0        Driving a vehicle never driven before.
+-10        Driving at high speeds. 
+-20        Piloting a vehicle while under heavy fire.
+-30        Attempting to pilot a damaged vehicle while still under fire.",Movement
+Pilot Space (Trained),Mythic,Skill,400,Advanced,"Agility, Intellect",1,,,,"The Pilot Skill is the ability to drive and pilot vehicles, such land, air, and space vehicles. The following Table shows a list of various examples of Penalties and Bonuses that can apply to a Vehicle, not including the Rough and Dangerous Terrain in the Movement section of the Handbook.
+        
+MOD        EXAMPLE
++30        Driving a standard Civilian vehicle.
++20        Operating Civilian vehicles under moderate speeds.
++10        Piloting a vehicle in familiar terrain.
+0        Driving a vehicle never driven before.
+-10        Driving at high speeds. 
+-20        Piloting a vehicle while under heavy fire.
+-30        Attempting to pilot a damaged vehicle while still under fire.",Movement
+Security (Trained),Mythic,Skill,300,Advanced,Intellect,1,,,,"The Security Skill is how a Character creates, bypasses, and can spot locks, traps, and security systems. Security is the action of creating and disabling physical objects, like disabling a trip wire, lock-picking doors, or even something like spacing security cameras to properly cover a location. Most any mechanical and primitive trap will also count towards a Security Skill Test.
+        If a Character sets up a Security system and another attempts to disable it, this will result in an Opposed Security Test.
+        The more advanced the trap is, the more difficult it may be to disable it. The GM must come up with proper modifiers for the Test.
+
+MOD	EXAMPLE
++60	Placing a basic lock strategically.
++10	Setting up a trip wire. 
+0	Opening a standard lock.
+-10	Unlocking a more advanced lock.
+-20	Trying to take down a computer system that does not have an AI.",Fieldcraft
+Stunting (Trained),Mythic,Skill,200,Basic,Agility,1,,,,"The Stunting Skill is used for things that involve tricky movement, ramping, and anything that involves incredible concentration to pull off. While under Combat, Stunting works well with merging multiple half actions such as taking a shot while falling or jumping out of a moving vehicle and landing on a specific point.
+	The GM should always come up with a modifier for the skill. Examples will be shown below.
+
+MOD	EXAMPLE
++40	Doing a donut or burning out in a vehicle.
++20	Stopping quickly with a turn without flipping the vehicle.
+0	Jumping off a building and taking a shot at an opponent.
+-20	Jumping off a moving vehicle on to a specific target.
+-40	Attempting to ramp off of a ruined building and land on a specific small point.",Movement
+Survival (Trained),Mythic,Skill,200,Basic,"Intellect, Perception",1,,,,"The Survival Skill allows characters to endure harsh situations and find answers to bad situations. Survival allows characters to find edible plants, construct viable shelters, determine whether water is safe or not, and many other situations.
+	Survival also lets characters track others by following signs left of fleeing or hiding opponents. Tracking can be used similar to Investigation. Cunning opponents may attempt to use Camouflage to erase their tracks, in which the character will need to use Investigation Skill Tests to find the tracks, and then Survival Tracking tests take over to continue finding and following the trail. Inquiry may be used to ask nearby passerby if the opponent was seen.",Fieldcraft
+Technology Human (Trained),Mythic,Skill,200,Advanced,Intellect,1,,,,"The Technology Skill permits the character to use and repair equipment and vehicles. Using a basic piece of equipment should not require a Technology Skill Test. Using unusual equipment or advanced technology should require a Technology Skill Test. 
+        When attempting to repair something, the character will need proper equipment or will not be able to make the test. 
+
+MOD        EXAMPLE
++30        Repairing a simple device such as an antenna or installing computer hardware.
++20        Repairing or removing parts of a vehicle when the proper tools are on hand.
++10        Equipping a weapon attachment that has been damaged.
+0        Using a scanner for the first time.
+-10        Repairing damaged equipment without all of the proper tools.
+-20        Attempting to use modern technology for the first time.
+-40        Repairing advanced technology without all of the proper tools or knowledge.
+
+REPAIRS
+Characters repairing should be handled in Narrative Structure as they can take time to perform. Even some of the quickest repairs still take time to repair. Using the following table will assist the Players and GM to figure out how long it will take a repair to be made. Everything is listed in minutes, but if it needs to be done in Structured Time, it’s best to remember that 1 Minute is 10 Rounds.
+        Characters may assist each other to reduce the time taken. Depending on the size of the repair, the GM should restrict the number of Characters who can assist the repair. For example, the GM could allow three Characters to change a tire. The GM shouldn’t allow 3 characters to try to fix a radio. For every Character assisting in a repair, the time should be divided by that much. Two characters can change a tire in half the time.
+
+MINUTES        EXAMPLE
+20        Changing a tire on a vehicle.
+120       Repairing or replacing a tank tread.
+10        The Character can repair 10+Intellect Modifier in Breakpoints for every 10 Minutes spent on Equipment.
+60        The Character can repair 20+Intellect Modifier in Breakpoints for every hour spent on a Vehicle.
+20        Replacing a part on a firearm or piece of equipment.
+",Fieldcraft
+Technology Covenant (Trained),Mythic,Skill,200,Advanced,Intellect,1,,,,"The Technology Skill permits the character to use and repair equipment and vehicles. Using a basic piece of equipment should not require a Technology Skill Test. Using unusual equipment or advanced technology should require a Technology Skill Test. 
+        When attempting to repair something, the character will need proper equipment or will not be able to make the test. 
+
+MOD        EXAMPLE
++30        Repairing a simple device such as an antenna or installing computer hardware.
++20        Repairing or removing parts of a vehicle when the proper tools are on hand.
++10        Equipping a weapon attachment that has been damaged.
+0        Using a scanner for the first time.
+-10        Repairing damaged equipment without all of the proper tools.
+-20        Attempting to use modern technology for the first time.
+-40        Repairing advanced technology without all of the proper tools or knowledge.
+
+REPAIRS
+Characters repairing should be handled in Narrative Structure as they can take time to perform. Even some of the quickest repairs still take time to repair. Using the following table will assist the Players and GM to figure out how long it will take a repair to be made. Everything is listed in minutes, but if it needs to be done in Structured Time, it’s best to remember that 1 Minute is 10 Rounds.
+        Characters may assist each other to reduce the time taken. Depending on the size of the repair, the GM should restrict the number of Characters who can assist the repair. For example, the GM could allow three Characters to change a tire. The GM shouldn’t allow 3 characters to try to fix a radio. For every Character assisting in a repair, the time should be divided by that much. Two characters can change a tire in half the time.
+
+MINUTES        EXAMPLE
+20        Changing a tire on a vehicle.
+120       Repairing or replacing a tank tread.
+10        The Character can repair 10+Intellect Modifier in Breakpoints for every 10 Minutes spent on Equipment.
+60        The Character can repair 20+Intellect Modifier in Breakpoints for every hour spent on a Vehicle.
+20        Replacing a part on a firearm or piece of equipment.
+",Fieldcraft
+Technology Forerunner (Trained),Mythic,Skill,300,Advanced,Intellect,1,,,,"The Technology Skill permits the character to use and repair equipment and vehicles. Using a basic piece of equipment should not require a Technology Skill Test. Using unusual equipment or advanced technology should require a Technology Skill Test. 
+        When attempting to repair something, the character will need proper equipment or will not be able to make the test. 
+
+MOD        EXAMPLE
++30        Repairing a simple device such as an antenna or installing computer hardware.
++20        Repairing or removing parts of a vehicle when the proper tools are on hand.
++10        Equipping a weapon attachment that has been damaged.
+0        Using a scanner for the first time.
+-10        Repairing damaged equipment without all of the proper tools.
+-20        Attempting to use modern technology for the first time.
+-40        Repairing advanced technology without all of the proper tools or knowledge.
+
+REPAIRS
+Characters repairing should be handled in Narrative Structure as they can take time to perform. Even some of the quickest repairs still take time to repair. Using the following table will assist the Players and GM to figure out how long it will take a repair to be made. Everything is listed in minutes, but if it needs to be done in Structured Time, it’s best to remember that 1 Minute is 10 Rounds.
+        Characters may assist each other to reduce the time taken. Depending on the size of the repair, the GM should restrict the number of Characters who can assist the repair. For example, the GM could allow three Characters to change a tire. The GM shouldn’t allow 3 characters to try to fix a radio. For every Character assisting in a repair, the time should be divided by that much. Two characters can change a tire in half the time.
+
+MINUTES        EXAMPLE
+20        Changing a tire on a vehicle.
+120       Repairing or replacing a tank tread.
+10        The Character can repair 10+Intellect Modifier in Breakpoints for every 10 Minutes spent on Equipment.
+60        The Character can repair 20+Intellect Modifier in Breakpoints for every hour spent on a Vehicle.
+20        Replacing a part on a firearm or piece of equipment.
+",Fieldcraft
+,Mythic,,,,,,,,,,
+Appeal (+10),Mythic,Skill,400,Basic,Charisma,,,1,,"Appeal is a talent of charm and social abilities. Appealing allows players and characters to sway the reactions of others with well-meaning words and facial expressions. A character with the Appeal Skill can attempt to alter any social interactions. Appeal can be used to attempt to change a character’s opinions and to convince characters and players to attempt something else.
+        When Appeal is used against someone, it is an Opposed Test, which is opposed by Interrogation (Courage) or Deception. 
+
+MOD        EXAMPLE
++10        The Target is a part of the same squad or commanding unit.
+-10        The Target does not want to be bothered
+-20        The Target is suspicious in nature.",Social
+Athletics (+10),Mythic,Skill,400,Basic,"Agility, Strength",,,1,,"Athletics is the acrobatic and tactical movement skill that allows characters to make balanced and poised movement. Athletics have two sections, Agility and Strength based movement. 
+        
+STRENGTH
+Athletics Strength is a character’s ability to climb, swim, and other strength-based physical activities.
+        
+AGILITY
+Athletics Agility is a character’s ability to balance, jump, catch landings, and move around in a dignified and controlled manner.
+
+MOVE SILENTLY
+Another use for Athletics Agility is to move silently. If a character is attempting to move silently, they roll Athletics Agility against the Opposing hearing-based Investigation Test.
+",Movement
+Camouflage (+10),Mythic,Skill,400,Basic,"Intellect, Perception",,,1,,"The Camouflage Skill is used to hide in your surroundings or to conceal your equipment. Using Camouflage requires an appropriate environment to mask whatever is in question. Camouflage is opposed by an Investigation Skill, and if the character does not have Investigation, use the Perception Characteristic at Penalty.
+
+CAMOUFLAGE HIDING
+When the Character is attempting to hide or sneak by using their Environment, they must make a Camouflage Test. A Character attempting to hide with a [TH] or [HW] Weapon will be unable to hide their weapon unless they use a Ghillie Cover. For every Size Category above Normal, the Character will gain a -5 Penalty.
+
+VEHICLE CAMOUFLAGE
+Hiding a Vehicle works the same and Vehicles may also gain Camouflage masking, painting, and covers. For every Size Point of a Vehicle, it gains a -5 Penalty to be Camouflaged.
+
+WEAPON CONCEALING
+Concealing Weapons is a Camouflage Test that allows the Character to hide a weapon on their person. [DW] weapons gain a +20 to Concealing, [OH] weapons gain a +10 to Concealing, [TH] weapons gain a -20 to concealing, and [HW] weapons are impossible to conceal without modification.
+	Concealed weapons cannot be used with Quick Draw and will add one Half Action to retrieve them.",Fieldcraft
+Command (+10),Mythic,Skill,400,Basic,Leadership,,,1,,"Command is the ability to effectively lead others. Command deals with any character giving orders to another.
+	If two opposing commands are being made to counteract each other, the GM may allow the characters to choose whom to follow or have the two commands roll as an opposing test. 
+The Command Skill Test also uses the same type of example modifiers shown in the Appeal Skill Description a page back. If a command is suicidal or not in the best interests of the overall picture, the test automatically gains a -60 penalty.",Social
+Cryptography (+10),Mythic,Skill,500,Advanced,Intellect,,,1,,"The use of the Cryptography Skill allows characters to encrypt and decrypt codes and frequencies, as well as hack and bypass systems. Skill Tests are not required to either leave or read basic messages and codes but are necessary to communicate or decipher complicated messages. Use this Skill alongside the Cyber Warfare section of the Handbook.",Fieldcraft
+Deception (+10),Mythic,Skill,400,Basic,"Charisma, Leadership",,,1,,"The Deception Skill is when a character attempts to lie to a character or player. A character using this Skill attempts to lie. Examples of using the Deception Skill:
+•        Attempting to disguise an item. This is different from Camouflage as you aren’t attempting to hide the item, but you are trying to trick someone that it is something else.
+•        Attempting to distract someone. This could be by keeping someone’s attention or lying of something to quickly move the opponent’s eye away from what is actually happening. This can be used as a Sleight of Hand. 
+•        To tell someone orders, but to twist the words to show another meaning, or to outright lie about the situation.
+Deception skill is opposed by an opponent’s Investigation.",Social
+Demolition (+10),Mythic,Skill,500,Advanced,Intellect,,,1,,"Demolition allows the Character to use various Demolition Skills when using Explosive weapons, not including Explosive Ammo modifications.
+
+ARMING EXPLOSIVES
+Armed Explosives are Explosives that have been armed and triggered to explode based on various options, such as a Timer, a Switch, a Deadman’s Switch, or tethering it to a nearby computer device. Armed Explosives need a Demolition Skill Test. If Failed, the Armed Explosive does not work and will need to be redone. This is an Extended 10 Full Action Test.
+	
+DISARMING EXPLOSIVES
+The only way to stop an Armed Explosive from detonating is by using a Demolition Test. The Demolition Test must Succeed with more Degrees of Success than the test made to Arm the Explosive. A Disarmed explosive may be kept by the Disarming Character and re-armed when needed. The Character who Armed the Explosive gains a +30 Bonus to Disarming it.
+
+STRUCTURAL WEAKNESS
+The Character is able to take a Full Action or Extended 2 Full Actions to study the layout and design of a Structure or a Vehicle. When complete, the Character then makes a Demolition Test, and depending on the amount of Actions taken, will gain bonus amounts of Pierce to the Attack. 
+Structural Weakness can be used before making a Ranged Attack and will only work with the first Attack made after the Study. The Character will still need to roll for Warfare Range, or Warfare Melee if using a Grenade. Structural Weakness must be rolled for each time it’s used.
+
+FULL ACTION STUDY
+If the Character studies the structure for a 1 Full Action, each Degree of Success gains +10% to the weapon’s Pierce. This begins at 0 Degrees of Success and maxes out at +40%.
+
+EXTENDED ACTION STUDY
+If the Character studies the structure for an extended 2 Full Actions, each Degree of Success gains +25% to the weapon’s Pierce. This begins at 0 Degrees of Success and maxes out at +100%.
+
+GRENADE COOKING
+Demolitions at Trained will give +5 to Cooking Grenades, Demolitions at +10 will give +10, and Demolitions +20 will give +20.",Fieldcraft
+Evasion (+10),Mythic,Skill,400,Basic,Agility,,,1,,"Evade is a Reaction performed by attempting to dodge any source of Damage that struck the Character. If the Evasion is Successful, the Attack deals no Damage or effects. Evade Actions are made using an Opposed Agility Tests with the Evasion Skill against the Opponent’s Attack made. 
+To perform an Evasion, the Character rolls an Opposed Test against the Opponent’s To Hit that was made. If the Character gains more Degrees of Success against the Opponent’s Test, the Attack misses. Each Evasion Test after the first takes a stacking -10 Penalty, meaning the 2nd Test is at -10, the 3rd at -20, the 4th at -30, and so on. These Penalties reset at the beginning of the Character’s next Turn.
+
+EVADE INTO COVER
+The Character may also use their Evasion Skill to Evade Into Cover. Evade Into Cover allows the Character to move 2 Meters with each Degree of Success on the Evasion Test as long as they did not make a Full Move, Charge, Run or Sprint Action during the current Round.
+If the Character made no Movement Actions during the Round, they’re able to move up to their Full Move in Meters. If the Character only made a Half Action Move, they’re able to move up to their Half Move in Meters.
+	Using Evade Into Cover removes the Character’s ability to use Movement Actions and Reactions until the beginning of their next Turn, regardless of if the Character was successful.
+If the Character is attempting to Evade Into Cover to escape Melee Combat, the Opponent is able to initiate a Grapple as a reaction. If the Opponent is Successful, the Character is unable to Evade until the beginning of their next Turn and cannot leave the Melee Combat. If the Character successfully initiated a Grapple, they may decide to drop it as a Free Action before the Turn ends.",Movement
+Gambling (+10),Mythic,Skill,400,Basic,"Intellect, Charisma",,,1,,"The Gambling Skill is used to deal with any sort of gaming or betting. Characters who have the Gambling Skill will have more understanding of how to improve their odds at winning, thus do not take Penalties. Gambling may be used to gamble cR, equipment, or just for fun. Gambling is best used when dealing with card games, games of chance, and so on.
+	Each participant will make an Opposed Gambling Skill Test and the Character with the most Degrees of Success will win. 
+
+CHEATING
+If a Character is attempting to cheat, they must make an Opposed Gambling Test against any Opponent’s Investigation Skill Test. If Successful, the cheating Character gains a +5 on the Opposed Gambling Test for determining the winner of the game. If Failed, they are caught in the act.",Social
+Interrogation (+10),Mythic,Skill,400,Basic,"Charisma, Leadership, Intellect",,,1,,"Interrogation allows a character to extort information from an opponent with both mental and physical means. The GM may modify the Difficulty of the Interrogation Test according to the character’s training and tools being used by the characters making the test. 
+	Interrogation is an Opposed Test with the opponent’s Courage or Charisma Characteristic. If the opponent wins the Opposed Test, the interrogator gets nothing worthwhile. If the interrogators win the opposed test, every degree of success gets either another answer, or the answer becomes clearer. An Interrogation can be retried with a failure, but each time a test fails, it takes twice as long, and the next test gains a -10 penalty. ",Social
+Intimidation (+10),Mythic,Skill,400,Basic,SPECIAL,,,1,,"Intimidation is one of the few Skills that can use many Characteristics. Players can use Strength, Charisma, Leadership, and Intellect to force and scare their opponent to give in to demands.
+        Intimidation is an Opposed Test. A character must not just choose their highest Characteristic to use the Intimidation. The Characteristic used must fit the situation that the Intimidation is being used in. ",Social
+Investigation (+10),Mythic,Skill,400,Basic,"Intellect, Perception",,,1,,"Investigation has two uses, Social and Fieldcraft. The Social use of Investigation covers gaining information, while the Fieldcraft use covers the Character’s awareness of their surroundings.
+
+SOCIAL
+Social Investigation has a couple important uses, Information and Insight. For gathering information, the Character asks questions, starts conversations, and eavesdrops. This involves the Character focusing on gathering information from groups of people and piecing together context and clues. Depending on how the GM wants to handle this, they may give the Player or Character a Bonus on their Investigation Test for smart roleplaying and discussing how they would perform these actions. The more Degrees of Success gained, the more information the GM can give the Player.
+	Alternatively, Social Investigation also allows for Insight, which has the Character attempting to read another Character or situation. Social Investigation allows for reading a single Character’s intentions, which is Opposed by the Opposing Character’s Deception. This shouldn’t be used as a catch-all lie detector, and the GM must work with the Player to decide the outcome based on Degrees of Success or Failure.
+
+FIELDCRAFT
+Fieldcraft Investigation allows the character to visually understand and be aware of their surroundings. This is used when trying to find hidden objects and Characters. When attempting to find an object, only a Perception based Investigation Test needs to be rolled. If a character has hidden the item (or themself), then the test becomes Opposed against the opponent’s Camouflage Skill.","Social, Fieldcraft"
+Medication Human (+10),Mythic,Skill,500,Advanced,Intellect,,,1,,"Medication is the Skill of having and using knowledge of biological and medical science. An effective time to allow Characters to learn the Medication Skill is between Missions with downtime.
+	A Character with the Medication Skill can Diagnose, give First Aid, Extended Medical Tests, and repaid Special Damage.
+This Skill relies heavily on Medical Tools. Surgeries cannot be done without the proper tools, wounds cannot be bandaged without bandages or clothe, and medication cannot be given if it is not owned.
+
+ALIEN BIOLOGY
+Alien Biology means a different biological makeup that the Character may not be used to. For example, a Human medical expert will not understand the biology of a Covenant species without study. Xenobiology Creatures, such as Mgalekgolo and Huragok, are also incredibly different from the norm.
+	Due to this, the Medication Skill is separated into 3 options of Human, Covenant, and Xenobiology. The GM may decide if what other creatures can be considered as Xenobiology.
+
+FIRST AID
+First Aid is the Character’s Ability to improve the Wound and Fatigue recovery of a Target when using Medical Equipment such as Biofoam and Sealant Mesh. First Aid is a Full Action to perform.
+	First Aid is a Full Action Medication Test. For every Degree of Success, First Aid will increase the amount of Wound and Fatigue recovery by 1.
+	First Aid is also used to Stabilize unconscious Characters suffering from Bleedout.
+
+EXTENDED MEDICAL TEST
+Extended Medical Tests are used to better assist a Character in both natural healing and recovering from Medical Equipment use. Extended Medical Tests will allow the Target to start receiving benefits from Medical Equipment that no longer offer benefits due to overuse, allows the Target to improve their Natural Healing, and diagnose Special Damage effects the Target received.
+	The Character must first roll a Medication Test. This is a 4 hour Extended Action. For every Degree of Success the Target recovers 2 Wounds and their Natural Healing is increased by 1 until they are either at Full Wounds or take more than 5 Wounds in a Turn. 
+	The benefits of an Extended Medical Test may only be given once a Day when on the Field. If the Character is on a ship or at a location with a properly stocked medical facility, they will receive triple the Wound recovery and Natural Healing received.
+	If the Character does not get rest, they cannot receive the benefits of the increased Natural Healing.
+
+REMOVING SPECIAL DAMAGE
+The Character may further extend their Extended Medical Test to remove the Target’s Special Damage when using the Medical Kit. Each hour extended; the Character can remove 1 Special Damage effect the Character has and reduce its buildup to 0. If the Location is destroyed, the Character will need a robotic replacement or a flash clone ready.
+
+MEDICAL ASSISTANCE
+A Character may be assisted during Extended Medical Tests. Each Character assisting will make a Medication Test. If Successful, the Extended Medical Test takes 1 less hour, to a minimum of 1.
+
+DIAGNOSIS
+With a successful Medication Test, the Character can diagnose diseases and medical issues, such as Radiation Poisoning. When diagnosing a well-known disease or medical issue, the Test is at a +20 Bonus.
+	Each time a Character makes a proper Diagnosis, the next time they come across the same medical issue, they gain a stacking +10 Bonus. Once the Character would reach +40 to their Diagnosis Test, they are considered to pass the test automatically.",Fieldcraft
+Medication Covenant (+10),Mythic,Skill,500,Advanced,Intellect,,,1,,"Medication is the Skill of having and using knowledge of biological and medical science. An effective time to allow Characters to learn the Medication Skill is between Missions with downtime.
+	A Character with the Medication Skill can Diagnose, give First Aid, Extended Medical Tests, and repaid Special Damage.
+This Skill relies heavily on Medical Tools. Surgeries cannot be done without the proper tools, wounds cannot be bandaged without bandages or clothe, and medication cannot be given if it is not owned.
+
+ALIEN BIOLOGY
+Alien Biology means a different biological makeup that the Character may not be used to. For example, a Human medical expert will not understand the biology of a Covenant species without study. Xenobiology Creatures, such as Mgalekgolo and Huragok, are also incredibly different from the norm.
+	Due to this, the Medication Skill is separated into 3 options of Human, Covenant, and Xenobiology. The GM may decide if what other creatures can be considered as Xenobiology.
+
+FIRST AID
+First Aid is the Character’s Ability to improve the Wound and Fatigue recovery of a Target when using Medical Equipment such as Biofoam and Sealant Mesh. First Aid is a Full Action to perform.
+	First Aid is a Full Action Medication Test. For every Degree of Success, First Aid will increase the amount of Wound and Fatigue recovery by 1.
+	First Aid is also used to Stabilize unconscious Characters suffering from Bleedout.
+
+EXTENDED MEDICAL TEST
+Extended Medical Tests are used to better assist a Character in both natural healing and recovering from Medical Equipment use. Extended Medical Tests will allow the Target to start receiving benefits from Medical Equipment that no longer offer benefits due to overuse, allows the Target to improve their Natural Healing, and diagnose Special Damage effects the Target received.
+	The Character must first roll a Medication Test. This is a 4 hour Extended Action. For every Degree of Success the Target recovers 2 Wounds and their Natural Healing is increased by 1 until they are either at Full Wounds or take more than 5 Wounds in a Turn. 
+	The benefits of an Extended Medical Test may only be given once a Day when on the Field. If the Character is on a ship or at a location with a properly stocked medical facility, they will receive triple the Wound recovery and Natural Healing received.
+	If the Character does not get rest, they cannot receive the benefits of the increased Natural Healing.
+
+REMOVING SPECIAL DAMAGE
+The Character may further extend their Extended Medical Test to remove the Target’s Special Damage when using the Medical Kit. Each hour extended; the Character can remove 1 Special Damage effect the Character has and reduce its buildup to 0. If the Location is destroyed, the Character will need a robotic replacement or a flash clone ready.
+
+MEDICAL ASSISTANCE
+A Character may be assisted during Extended Medical Tests. Each Character assisting will make a Medication Test. If Successful, the Extended Medical Test takes 1 less hour, to a minimum of 1.
+
+DIAGNOSIS
+With a successful Medication Test, the Character can diagnose diseases and medical issues, such as Radiation Poisoning. When diagnosing a well-known disease or medical issue, the Test is at a +20 Bonus.
+	Each time a Character makes a proper Diagnosis, the next time they come across the same medical issue, they gain a stacking +10 Bonus. Once the Character would reach +40 to their Diagnosis Test, they are considered to pass the test automatically.",Fieldcraft
+Medication XENOBIOLOGY (+10),Mythic,Skill,500,Advanced,Intellect,,,1,,"Medication is the Skill of having and using knowledge of biological and medical science. An effective time to allow Characters to learn the Medication Skill is between Missions with downtime.
+	A Character with the Medication Skill can Diagnose, give First Aid, Extended Medical Tests, and repaid Special Damage.
+This Skill relies heavily on Medical Tools. Surgeries cannot be done without the proper tools, wounds cannot be bandaged without bandages or clothe, and medication cannot be given if it is not owned.
+
+ALIEN BIOLOGY
+Alien Biology means a different biological makeup that the Character may not be used to. For example, a Human medical expert will not understand the biology of a Covenant species without study. Xenobiology Creatures, such as Mgalekgolo and Huragok, are also incredibly different from the norm.
+	Due to this, the Medication Skill is separated into 3 options of Human, Covenant, and Xenobiology. The GM may decide if what other creatures can be considered as Xenobiology.
+
+FIRST AID
+First Aid is the Character’s Ability to improve the Wound and Fatigue recovery of a Target when using Medical Equipment such as Biofoam and Sealant Mesh. First Aid is a Full Action to perform.
+	First Aid is a Full Action Medication Test. For every Degree of Success, First Aid will increase the amount of Wound and Fatigue recovery by 1.
+	First Aid is also used to Stabilize unconscious Characters suffering from Bleedout.
+
+EXTENDED MEDICAL TEST
+Extended Medical Tests are used to better assist a Character in both natural healing and recovering from Medical Equipment use. Extended Medical Tests will allow the Target to start receiving benefits from Medical Equipment that no longer offer benefits due to overuse, allows the Target to improve their Natural Healing, and diagnose Special Damage effects the Target received.
+	The Character must first roll a Medication Test. This is a 4 hour Extended Action. For every Degree of Success the Target recovers 2 Wounds and their Natural Healing is increased by 1 until they are either at Full Wounds or take more than 5 Wounds in a Turn. 
+	The benefits of an Extended Medical Test may only be given once a Day when on the Field. If the Character is on a ship or at a location with a properly stocked medical facility, they will receive triple the Wound recovery and Natural Healing received.
+	If the Character does not get rest, they cannot receive the benefits of the increased Natural Healing.
+
+REMOVING SPECIAL DAMAGE
+The Character may further extend their Extended Medical Test to remove the Target’s Special Damage when using the Medical Kit. Each hour extended; the Character can remove 1 Special Damage effect the Character has and reduce its buildup to 0. If the Location is destroyed, the Character will need a robotic replacement or a flash clone ready.
+
+MEDICAL ASSISTANCE
+A Character may be assisted during Extended Medical Tests. Each Character assisting will make a Medication Test. If Successful, the Extended Medical Test takes 1 less hour, to a minimum of 1.
+
+DIAGNOSIS
+With a successful Medication Test, the Character can diagnose diseases and medical issues, such as Radiation Poisoning. When diagnosing a well-known disease or medical issue, the Test is at a +20 Bonus.
+	Each time a Character makes a proper Diagnosis, the next time they come across the same medical issue, they gain a stacking +10 Bonus. Once the Character would reach +40 to their Diagnosis Test, they are considered to pass the test automatically.",Fieldcraft
+Navigation Ground and Air (+10),Mythic,Skill,400,Basic,"Intellect, Perception",,,1,,"The Navigation Skill is a character’s ability to plot courses and find directions. There are multiple levels of Navigation: Ground, Space, and Slipspace.",Fieldcraft
+Navigation Space (+10),Mythic,Skill,500,Basic,"Intellect, Perception",,,1,,"The Navigation Skill is a character’s ability to plot courses and find directions. There are multiple levels of Navigation: Ground, Space, and Slipspace.",Fieldcraft
+Negotiation (+10),Mythic,Skill,400,Basic,Charisma,,,1,,"The Negotiation Skill is used to strike barters and create deals with others. This skill allows characters to negotiate better prices or outcomes for goods and services. All Negotiation tests are opposed, as they involve interaction. For every degree of success, the character gets, the price of an item is reduced by 5%. Failing gives no penalties.
+	Negotiation can also be used to deal with hostage situations and dealing with demands. This works as a normal Opposed Test against Charisma and Intellect based Negotiation Skill Tests.",Social
+Pilot Ground (+10),Mythic,Skill,400,Basic,"Agility, Intellect",,,1,,"The Pilot Skill is the ability to drive and pilot vehicles, such land, air, and space vehicles. The following Table shows a list of various examples of Penalties and Bonuses that can apply to a Vehicle, not including the Rough and Dangerous Terrain in the Movement section of the Handbook.
+        
+MOD        EXAMPLE
++30        Driving a standard Civilian vehicle.
++20        Operating Civilian vehicles under moderate speeds.
++10        Piloting a vehicle in familiar terrain.
+0        Driving a vehicle never driven before.
+-10        Driving at high speeds. 
+-20        Piloting a vehicle while under heavy fire.
+-30        Attempting to pilot a damaged vehicle while still under fire.",Movement
+Pilot Air (+10),Mythic,Skill,500,Basic,"Agility, Intellect",,,1,,"The Pilot Skill is the ability to drive and pilot vehicles, such land, air, and space vehicles. The following Table shows a list of various examples of Penalties and Bonuses that can apply to a Vehicle, not including the Rough and Dangerous Terrain in the Movement section of the Handbook.
+        
+MOD        EXAMPLE
++30        Driving a standard Civilian vehicle.
++20        Operating Civilian vehicles under moderate speeds.
++10        Piloting a vehicle in familiar terrain.
+0        Driving a vehicle never driven before.
+-10        Driving at high speeds. 
+-20        Piloting a vehicle while under heavy fire.
+-30        Attempting to pilot a damaged vehicle while still under fire.",Movement
+Pilot Space (+10),Mythic,Skill,800,Advanced,"Agility, Intellect",,,1,,"The Pilot Skill is the ability to drive and pilot vehicles, such land, air, and space vehicles. The following Table shows a list of various examples of Penalties and Bonuses that can apply to a Vehicle, not including the Rough and Dangerous Terrain in the Movement section of the Handbook.
+        
+MOD        EXAMPLE
++30        Driving a standard Civilian vehicle.
++20        Operating Civilian vehicles under moderate speeds.
++10        Piloting a vehicle in familiar terrain.
+0        Driving a vehicle never driven before.
+-10        Driving at high speeds. 
+-20        Piloting a vehicle while under heavy fire.
+-30        Attempting to pilot a damaged vehicle while still under fire.",Movement
+Security (+10),Mythic,Skill,500,Advanced,Intellect,,,1,,"The Security Skill is how a Character creates, bypasses, and can spot locks, traps, and security systems. Security is the action of creating and disabling physical objects, like disabling a trip wire, lock-picking doors, or even something like spacing security cameras to properly cover a location. Most any mechanical and primitive trap will also count towards a Security Skill Test.
+        If a Character sets up a Security system and another attempts to disable it, this will result in an Opposed Security Test.
+        The more advanced the trap is, the more difficult it may be to disable it. The GM must come up with proper modifiers for the Test.
+
+MOD	EXAMPLE
++60	Placing a basic lock strategically.
++10	Setting up a trip wire. 
+0	Opening a standard lock.
+-10	Unlocking a more advanced lock.
+-20	Trying to take down a computer system that does not have an AI.",Fieldcraft
+Stunting (+10),Mythic,Skill,400,Basic,Agility,,,1,,"The Stunting Skill is used for things that involve tricky movement, ramping, and anything that involves incredible concentration to pull off. While under Combat, Stunting works well with merging multiple half actions such as taking a shot while falling or jumping out of a moving vehicle and landing on a specific point.
+	The GM should always come up with a modifier for the skill. Examples will be shown below.
+
+MOD	EXAMPLE
++40	Doing a donut or burning out in a vehicle.
++20	Stopping quickly with a turn without flipping the vehicle.
+0	Jumping off a building and taking a shot at an opponent.
+-20	Jumping off a moving vehicle on to a specific target.
+-40	Attempting to ramp off of a ruined building and land on a specific small point.",Movement
+Survival (+10),Mythic,Skill,400,Basic,"Intellect, Perception",,,1,,"The Survival Skill allows characters to endure harsh situations and find answers to bad situations. Survival allows characters to find edible plants, construct viable shelters, determine whether water is safe or not, and many other situations.
+	Survival also lets characters track others by following signs left of fleeing or hiding opponents. Tracking can be used similar to Investigation. Cunning opponents may attempt to use Camouflage to erase their tracks, in which the character will need to use Investigation Skill Tests to find the tracks, and then Survival Tracking tests take over to continue finding and following the trail. Inquiry may be used to ask nearby passerby if the opponent was seen.",Fieldcraft
+Technology Human (+10),Mythic,Skill,400,Advanced,Intellect,,,1,,"The Technology Skill permits the character to use and repair equipment and vehicles. Using a basic piece of equipment should not require a Technology Skill Test. Using unusual equipment or advanced technology should require a Technology Skill Test. 
+        When attempting to repair something, the character will need proper equipment or will not be able to make the test. 
+
+MOD        EXAMPLE
++30        Repairing a simple device such as an antenna or installing computer hardware.
++20        Repairing or removing parts of a vehicle when the proper tools are on hand.
++10        Equipping a weapon attachment that has been damaged.
+0        Using a scanner for the first time.
+-10        Repairing damaged equipment without all of the proper tools.
+-20        Attempting to use modern technology for the first time.
+-40        Repairing advanced technology without all of the proper tools or knowledge.
+
+REPAIRS
+Characters repairing should be handled in Narrative Structure as they can take time to perform. Even some of the quickest repairs still take time to repair. Using the following table will assist the Players and GM to figure out how long it will take a repair to be made. Everything is listed in minutes, but if it needs to be done in Structured Time, it’s best to remember that 1 Minute is 10 Rounds.
+        Characters may assist each other to reduce the time taken. Depending on the size of the repair, the GM should restrict the number of Characters who can assist the repair. For example, the GM could allow three Characters to change a tire. The GM shouldn’t allow 3 characters to try to fix a radio. For every Character assisting in a repair, the time should be divided by that much. Two characters can change a tire in half the time.
+
+MINUTES        EXAMPLE
+20        Changing a tire on a vehicle.
+120       Repairing or replacing a tank tread.
+10        The Character can repair 10+Intellect Modifier in Breakpoints for every 10 Minutes spent on Equipment.
+60        The Character can repair 20+Intellect Modifier in Breakpoints for every hour spent on a Vehicle.
+20        Replacing a part on a firearm or piece of equipment.
+",Fieldcraft
+Technology Covenant (+10),Mythic,Skill,400,Advanced,Intellect,,,1,,"The Technology Skill permits the character to use and repair equipment and vehicles. Using a basic piece of equipment should not require a Technology Skill Test. Using unusual equipment or advanced technology should require a Technology Skill Test. 
+        When attempting to repair something, the character will need proper equipment or will not be able to make the test. 
+
+MOD        EXAMPLE
++30        Repairing a simple device such as an antenna or installing computer hardware.
++20        Repairing or removing parts of a vehicle when the proper tools are on hand.
++10        Equipping a weapon attachment that has been damaged.
+0        Using a scanner for the first time.
+-10        Repairing damaged equipment without all of the proper tools.
+-20        Attempting to use modern technology for the first time.
+-40        Repairing advanced technology without all of the proper tools or knowledge.
+
+REPAIRS
+Characters repairing should be handled in Narrative Structure as they can take time to perform. Even some of the quickest repairs still take time to repair. Using the following table will assist the Players and GM to figure out how long it will take a repair to be made. Everything is listed in minutes, but if it needs to be done in Structured Time, it’s best to remember that 1 Minute is 10 Rounds.
+        Characters may assist each other to reduce the time taken. Depending on the size of the repair, the GM should restrict the number of Characters who can assist the repair. For example, the GM could allow three Characters to change a tire. The GM shouldn’t allow 3 characters to try to fix a radio. For every Character assisting in a repair, the time should be divided by that much. Two characters can change a tire in half the time.
+
+MINUTES        EXAMPLE
+20        Changing a tire on a vehicle.
+120       Repairing or replacing a tank tread.
+10        The Character can repair 10+Intellect Modifier in Breakpoints for every 10 Minutes spent on Equipment.
+60        The Character can repair 20+Intellect Modifier in Breakpoints for every hour spent on a Vehicle.
+20        Replacing a part on a firearm or piece of equipment.
+",Fieldcraft
+Technology Forerunner (+10),Mythic,Skill,500,Advanced,Intellect,,,1,,"The Technology Skill permits the character to use and repair equipment and vehicles. Using a basic piece of equipment should not require a Technology Skill Test. Using unusual equipment or advanced technology should require a Technology Skill Test. 
+        When attempting to repair something, the character will need proper equipment or will not be able to make the test. 
+
+MOD        EXAMPLE
++30        Repairing a simple device such as an antenna or installing computer hardware.
++20        Repairing or removing parts of a vehicle when the proper tools are on hand.
++10        Equipping a weapon attachment that has been damaged.
+0        Using a scanner for the first time.
+-10        Repairing damaged equipment without all of the proper tools.
+-20        Attempting to use modern technology for the first time.
+-40        Repairing advanced technology without all of the proper tools or knowledge.
+
+REPAIRS
+Characters repairing should be handled in Narrative Structure as they can take time to perform. Even some of the quickest repairs still take time to repair. Using the following table will assist the Players and GM to figure out how long it will take a repair to be made. Everything is listed in minutes, but if it needs to be done in Structured Time, it’s best to remember that 1 Minute is 10 Rounds.
+        Characters may assist each other to reduce the time taken. Depending on the size of the repair, the GM should restrict the number of Characters who can assist the repair. For example, the GM could allow three Characters to change a tire. The GM shouldn’t allow 3 characters to try to fix a radio. For every Character assisting in a repair, the time should be divided by that much. Two characters can change a tire in half the time.
+
+MINUTES        EXAMPLE
+20        Changing a tire on a vehicle.
+120       Repairing or replacing a tank tread.
+10        The Character can repair 10+Intellect Modifier in Breakpoints for every 10 Minutes spent on Equipment.
+60        The Character can repair 20+Intellect Modifier in Breakpoints for every hour spent on a Vehicle.
+20        Replacing a part on a firearm or piece of equipment.
+",Fieldcraft
+,Mythic,,,,,,,,,,
+Appeal (+20),Mythic,Skill,600,Basic,Charisma,,,,1,"Appeal is a talent of charm and social abilities. Appealing allows players and characters to sway the reactions of others with well-meaning words and facial expressions. A character with the Appeal Skill can attempt to alter any social interactions. Appeal can be used to attempt to change a character’s opinions and to convince characters and players to attempt something else.
+        When Appeal is used against someone, it is an Opposed Test, which is opposed by Interrogation (Courage) or Deception. 
+
+MOD        EXAMPLE
++10        The Target is a part of the same squad or commanding unit.
+-10        The Target does not want to be bothered
+-20        The Target is suspicious in nature.",Social
+Athletics (+20),Mythic,Skill,600,Basic,"Agility, Strength",,,,1,"Athletics is the acrobatic and tactical movement skill that allows characters to make balanced and poised movement. Athletics have two sections, Agility and Strength based movement. 
+        
+STRENGTH
+Athletics Strength is a character’s ability to climb, swim, and other strength-based physical activities.
+        
+AGILITY
+Athletics Agility is a character’s ability to balance, jump, catch landings, and move around in a dignified and controlled manner.
+
+MOVE SILENTLY
+Another use for Athletics Agility is to move silently. If a character is attempting to move silently, they roll Athletics Agility against the Opposing hearing-based Investigation Test.
+",Movement
+Camouflage (+20),Mythic,Skill,600,Basic,"Intellect, Perception",,,,1,"The Camouflage Skill is used to hide in your surroundings or to conceal your equipment. Using Camouflage requires an appropriate environment to mask whatever is in question. Camouflage is opposed by an Investigation Skill, and if the character does not have Investigation, use the Perception Characteristic at Penalty.
+
+CAMOUFLAGE HIDING
+When the Character is attempting to hide or sneak by using their Environment, they must make a Camouflage Test. A Character attempting to hide with a [TH] or [HW] Weapon will be unable to hide their weapon unless they use a Ghillie Cover. For every Size Category above Normal, the Character will gain a -5 Penalty.
+
+VEHICLE CAMOUFLAGE
+Hiding a Vehicle works the same and Vehicles may also gain Camouflage masking, painting, and covers. For every Size Point of a Vehicle, it gains a -5 Penalty to be Camouflaged.
+
+WEAPON CONCEALING
+Concealing Weapons is a Camouflage Test that allows the Character to hide a weapon on their person. [DW] weapons gain a +20 to Concealing, [OH] weapons gain a +10 to Concealing, [TH] weapons gain a -20 to concealing, and [HW] weapons are impossible to conceal without modification.
+	Concealed weapons cannot be used with Quick Draw and will add one Half Action to retrieve them.",Fieldcraft
+Command (+20),Mythic,Skill,600,Basic,Leadership,,,,1,"Command is the ability to effectively lead others. Command deals with any character giving orders to another.
+	If two opposing commands are being made to counteract each other, the GM may allow the characters to choose whom to follow or have the two commands roll as an opposing test. 
+The Command Skill Test also uses the same type of example modifiers shown in the Appeal Skill Description a page back. If a command is suicidal or not in the best interests of the overall picture, the test automatically gains a -60 penalty.",Social
+Cryptography (+20),Mythic,Skill,700,Advanced,Intellect,,,,1,"The use of the Cryptography Skill allows characters to encrypt and decrypt codes and frequencies, as well as hack and bypass systems. Skill Tests are not required to either leave or read basic messages and codes but are necessary to communicate or decipher complicated messages. Use this Skill alongside the Cyber Warfare section of the Handbook.",Fieldcraft
+Deception (+20),Mythic,Skill,600,Basic,"Charisma, Leadership",,,,1,"The Deception Skill is when a character attempts to lie to a character or player. A character using this Skill attempts to lie. Examples of using the Deception Skill:
+•        Attempting to disguise an item. This is different from Camouflage as you aren’t attempting to hide the item, but you are trying to trick someone that it is something else.
+•        Attempting to distract someone. This could be by keeping someone’s attention or lying of something to quickly move the opponent’s eye away from what is actually happening. This can be used as a Sleight of Hand. 
+•        To tell someone orders, but to twist the words to show another meaning, or to outright lie about the situation.
+Deception skill is opposed by an opponent’s Investigation.",Social
+Demolition (+20),Mythic,Skill,700,Advanced,Intellect,,,,1,"Demolition allows the Character to use various Demolition Skills when using Explosive weapons, not including Explosive Ammo modifications.
+
+ARMING EXPLOSIVES
+Armed Explosives are Explosives that have been armed and triggered to explode based on various options, such as a Timer, a Switch, a Deadman’s Switch, or tethering it to a nearby computer device. Armed Explosives need a Demolition Skill Test. If Failed, the Armed Explosive does not work and will need to be redone. This is an Extended 10 Full Action Test.
+	
+DISARMING EXPLOSIVES
+The only way to stop an Armed Explosive from detonating is by using a Demolition Test. The Demolition Test must Succeed with more Degrees of Success than the test made to Arm the Explosive. A Disarmed explosive may be kept by the Disarming Character and re-armed when needed. The Character who Armed the Explosive gains a +30 Bonus to Disarming it.
+
+STRUCTURAL WEAKNESS
+The Character is able to take a Full Action or Extended 2 Full Actions to study the layout and design of a Structure or a Vehicle. When complete, the Character then makes a Demolition Test, and depending on the amount of Actions taken, will gain bonus amounts of Pierce to the Attack. 
+Structural Weakness can be used before making a Ranged Attack and will only work with the first Attack made after the Study. The Character will still need to roll for Warfare Range, or Warfare Melee if using a Grenade. Structural Weakness must be rolled for each time it’s used.
+
+FULL ACTION STUDY
+If the Character studies the structure for a 1 Full Action, each Degree of Success gains +10% to the weapon’s Pierce. This begins at 0 Degrees of Success and maxes out at +40%.
+
+EXTENDED ACTION STUDY
+If the Character studies the structure for an extended 2 Full Actions, each Degree of Success gains +25% to the weapon’s Pierce. This begins at 0 Degrees of Success and maxes out at +100%.
+
+GRENADE COOKING
+Demolitions at Trained will give +5 to Cooking Grenades, Demolitions at +10 will give +10, and Demolitions +20 will give +20.",Fieldcraft
+Evasion (+20),Mythic,Skill,600,Basic,Agility,,,,1,"Evade is a Reaction performed by attempting to dodge any source of Damage that struck the Character. If the Evasion is Successful, the Attack deals no Damage or effects. Evade Actions are made using an Opposed Agility Tests with the Evasion Skill against the Opponent’s Attack made. 
+To perform an Evasion, the Character rolls an Opposed Test against the Opponent’s To Hit that was made. If the Character gains more Degrees of Success against the Opponent’s Test, the Attack misses. Each Evasion Test after the first takes a stacking -10 Penalty, meaning the 2nd Test is at -10, the 3rd at -20, the 4th at -30, and so on. These Penalties reset at the beginning of the Character’s next Turn.
+
+EVADE INTO COVER
+The Character may also use their Evasion Skill to Evade Into Cover. Evade Into Cover allows the Character to move 2 Meters with each Degree of Success on the Evasion Test as long as they did not make a Full Move, Charge, Run or Sprint Action during the current Round.
+If the Character made no Movement Actions during the Round, they’re able to move up to their Full Move in Meters. If the Character only made a Half Action Move, they’re able to move up to their Half Move in Meters.
+	Using Evade Into Cover removes the Character’s ability to use Movement Actions and Reactions until the beginning of their next Turn, regardless of if the Character was successful.
+If the Character is attempting to Evade Into Cover to escape Melee Combat, the Opponent is able to initiate a Grapple as a reaction. If the Opponent is Successful, the Character is unable to Evade until the beginning of their next Turn and cannot leave the Melee Combat. If the Character successfully initiated a Grapple, they may decide to drop it as a Free Action before the Turn ends.",Movement
+Gambling (+20),Mythic,Skill,600,Basic,"Intellect, Charisma",,,,1,"The Gambling Skill is used to deal with any sort of gaming or betting. Characters who have the Gambling Skill will have more understanding of how to improve their odds at winning, thus do not take Penalties. Gambling may be used to gamble cR, equipment, or just for fun. Gambling is best used when dealing with card games, games of chance, and so on.
+	Each participant will make an Opposed Gambling Skill Test and the Character with the most Degrees of Success will win. 
+
+CHEATING
+If a Character is attempting to cheat, they must make an Opposed Gambling Test against any Opponent’s Investigation Skill Test. If Successful, the cheating Character gains a +5 on the Opposed Gambling Test for determining the winner of the game. If Failed, they are caught in the act.",Social
+Interrogation (+20),Mythic,Skill,600,Basic,"Charisma, Leadership, Intellect",,,,1,"Interrogation allows a character to extort information from an opponent with both mental and physical means. The GM may modify the Difficulty of the Interrogation Test according to the character’s training and tools being used by the characters making the test. 
+	Interrogation is an Opposed Test with the opponent’s Courage or Charisma Characteristic. If the opponent wins the Opposed Test, the interrogator gets nothing worthwhile. If the interrogators win the opposed test, every degree of success gets either another answer, or the answer becomes clearer. An Interrogation can be retried with a failure, but each time a test fails, it takes twice as long, and the next test gains a -10 penalty. ",Social
+Intimidation (+20),Mythic,Skill,600,Basic,SPECIAL,,,,1,"Intimidation is one of the few Skills that can use many Characteristics. Players can use Strength, Charisma, Leadership, and Intellect to force and scare their opponent to give in to demands.
+        Intimidation is an Opposed Test. A character must not just choose their highest Characteristic to use the Intimidation. The Characteristic used must fit the situation that the Intimidation is being used in. ",Social
+Investigation (+20),Mythic,Skill,600,Basic,"Intellect, Perception",,,,1,"Investigation has two uses, Social and Fieldcraft. The Social use of Investigation covers gaining information, while the Fieldcraft use covers the Character’s awareness of their surroundings.
+
+SOCIAL
+Social Investigation has a couple important uses, Information and Insight. For gathering information, the Character asks questions, starts conversations, and eavesdrops. This involves the Character focusing on gathering information from groups of people and piecing together context and clues. Depending on how the GM wants to handle this, they may give the Player or Character a Bonus on their Investigation Test for smart roleplaying and discussing how they would perform these actions. The more Degrees of Success gained, the more information the GM can give the Player.
+	Alternatively, Social Investigation also allows for Insight, which has the Character attempting to read another Character or situation. Social Investigation allows for reading a single Character’s intentions, which is Opposed by the Opposing Character’s Deception. This shouldn’t be used as a catch-all lie detector, and the GM must work with the Player to decide the outcome based on Degrees of Success or Failure.
+
+FIELDCRAFT
+Fieldcraft Investigation allows the character to visually understand and be aware of their surroundings. This is used when trying to find hidden objects and Characters. When attempting to find an object, only a Perception based Investigation Test needs to be rolled. If a character has hidden the item (or themself), then the test becomes Opposed against the opponent’s Camouflage Skill.","Social, Fieldcraft"
+Medication Human (+20),Mythic,Skill,700,Advanced,Intellect,,,,1,"Medication is the Skill of having and using knowledge of biological and medical science. An effective time to allow Characters to learn the Medication Skill is between Missions with downtime.
+	A Character with the Medication Skill can Diagnose, give First Aid, Extended Medical Tests, and repaid Special Damage.
+This Skill relies heavily on Medical Tools. Surgeries cannot be done without the proper tools, wounds cannot be bandaged without bandages or clothe, and medication cannot be given if it is not owned.
+
+ALIEN BIOLOGY
+Alien Biology means a different biological makeup that the Character may not be used to. For example, a Human medical expert will not understand the biology of a Covenant species without study. Xenobiology Creatures, such as Mgalekgolo and Huragok, are also incredibly different from the norm.
+	Due to this, the Medication Skill is separated into 3 options of Human, Covenant, and Xenobiology. The GM may decide if what other creatures can be considered as Xenobiology.
+
+FIRST AID
+First Aid is the Character’s Ability to improve the Wound and Fatigue recovery of a Target when using Medical Equipment such as Biofoam and Sealant Mesh. First Aid is a Full Action to perform.
+	First Aid is a Full Action Medication Test. For every Degree of Success, First Aid will increase the amount of Wound and Fatigue recovery by 1.
+	First Aid is also used to Stabilize unconscious Characters suffering from Bleedout.
+
+EXTENDED MEDICAL TEST
+Extended Medical Tests are used to better assist a Character in both natural healing and recovering from Medical Equipment use. Extended Medical Tests will allow the Target to start receiving benefits from Medical Equipment that no longer offer benefits due to overuse, allows the Target to improve their Natural Healing, and diagnose Special Damage effects the Target received.
+	The Character must first roll a Medication Test. This is a 4 hour Extended Action. For every Degree of Success the Target recovers 2 Wounds and their Natural Healing is increased by 1 until they are either at Full Wounds or take more than 5 Wounds in a Turn. 
+	The benefits of an Extended Medical Test may only be given once a Day when on the Field. If the Character is on a ship or at a location with a properly stocked medical facility, they will receive triple the Wound recovery and Natural Healing received.
+	If the Character does not get rest, they cannot receive the benefits of the increased Natural Healing.
+
+REMOVING SPECIAL DAMAGE
+The Character may further extend their Extended Medical Test to remove the Target’s Special Damage when using the Medical Kit. Each hour extended; the Character can remove 1 Special Damage effect the Character has and reduce its buildup to 0. If the Location is destroyed, the Character will need a robotic replacement or a flash clone ready.
+
+MEDICAL ASSISTANCE
+A Character may be assisted during Extended Medical Tests. Each Character assisting will make a Medication Test. If Successful, the Extended Medical Test takes 1 less hour, to a minimum of 1.
+
+DIAGNOSIS
+With a successful Medication Test, the Character can diagnose diseases and medical issues, such as Radiation Poisoning. When diagnosing a well-known disease or medical issue, the Test is at a +20 Bonus.
+	Each time a Character makes a proper Diagnosis, the next time they come across the same medical issue, they gain a stacking +10 Bonus. Once the Character would reach +40 to their Diagnosis Test, they are considered to pass the test automatically.",Fieldcraft
+Medication Covenant (+20),Mythic,Skill,700,Advanced,Intellect,,,,1,"Medication is the Skill of having and using knowledge of biological and medical science. An effective time to allow Characters to learn the Medication Skill is between Missions with downtime.
+	A Character with the Medication Skill can Diagnose, give First Aid, Extended Medical Tests, and repaid Special Damage.
+This Skill relies heavily on Medical Tools. Surgeries cannot be done without the proper tools, wounds cannot be bandaged without bandages or clothe, and medication cannot be given if it is not owned.
+
+ALIEN BIOLOGY
+Alien Biology means a different biological makeup that the Character may not be used to. For example, a Human medical expert will not understand the biology of a Covenant species without study. Xenobiology Creatures, such as Mgalekgolo and Huragok, are also incredibly different from the norm.
+	Due to this, the Medication Skill is separated into 3 options of Human, Covenant, and Xenobiology. The GM may decide if what other creatures can be considered as Xenobiology.
+
+FIRST AID
+First Aid is the Character’s Ability to improve the Wound and Fatigue recovery of a Target when using Medical Equipment such as Biofoam and Sealant Mesh. First Aid is a Full Action to perform.
+	First Aid is a Full Action Medication Test. For every Degree of Success, First Aid will increase the amount of Wound and Fatigue recovery by 1.
+	First Aid is also used to Stabilize unconscious Characters suffering from Bleedout.
+
+EXTENDED MEDICAL TEST
+Extended Medical Tests are used to better assist a Character in both natural healing and recovering from Medical Equipment use. Extended Medical Tests will allow the Target to start receiving benefits from Medical Equipment that no longer offer benefits due to overuse, allows the Target to improve their Natural Healing, and diagnose Special Damage effects the Target received.
+	The Character must first roll a Medication Test. This is a 4 hour Extended Action. For every Degree of Success the Target recovers 2 Wounds and their Natural Healing is increased by 1 until they are either at Full Wounds or take more than 5 Wounds in a Turn. 
+	The benefits of an Extended Medical Test may only be given once a Day when on the Field. If the Character is on a ship or at a location with a properly stocked medical facility, they will receive triple the Wound recovery and Natural Healing received.
+	If the Character does not get rest, they cannot receive the benefits of the increased Natural Healing.
+
+REMOVING SPECIAL DAMAGE
+The Character may further extend their Extended Medical Test to remove the Target’s Special Damage when using the Medical Kit. Each hour extended; the Character can remove 1 Special Damage effect the Character has and reduce its buildup to 0. If the Location is destroyed, the Character will need a robotic replacement or a flash clone ready.
+
+MEDICAL ASSISTANCE
+A Character may be assisted during Extended Medical Tests. Each Character assisting will make a Medication Test. If Successful, the Extended Medical Test takes 1 less hour, to a minimum of 1.
+
+DIAGNOSIS
+With a successful Medication Test, the Character can diagnose diseases and medical issues, such as Radiation Poisoning. When diagnosing a well-known disease or medical issue, the Test is at a +20 Bonus.
+	Each time a Character makes a proper Diagnosis, the next time they come across the same medical issue, they gain a stacking +10 Bonus. Once the Character would reach +40 to their Diagnosis Test, they are considered to pass the test automatically.",Fieldcraft
+Medication XENOBIOLOGY (+20),Mythic,Skill,700,Advanced,Intellect,,,,1,"Medication is the Skill of having and using knowledge of biological and medical science. An effective time to allow Characters to learn the Medication Skill is between Missions with downtime.
+	A Character with the Medication Skill can Diagnose, give First Aid, Extended Medical Tests, and repaid Special Damage.
+This Skill relies heavily on Medical Tools. Surgeries cannot be done without the proper tools, wounds cannot be bandaged without bandages or clothe, and medication cannot be given if it is not owned.
+
+ALIEN BIOLOGY
+Alien Biology means a different biological makeup that the Character may not be used to. For example, a Human medical expert will not understand the biology of a Covenant species without study. Xenobiology Creatures, such as Mgalekgolo and Huragok, are also incredibly different from the norm.
+	Due to this, the Medication Skill is separated into 3 options of Human, Covenant, and Xenobiology. The GM may decide if what other creatures can be considered as Xenobiology.
+
+FIRST AID
+First Aid is the Character’s Ability to improve the Wound and Fatigue recovery of a Target when using Medical Equipment such as Biofoam and Sealant Mesh. First Aid is a Full Action to perform.
+	First Aid is a Full Action Medication Test. For every Degree of Success, First Aid will increase the amount of Wound and Fatigue recovery by 1.
+	First Aid is also used to Stabilize unconscious Characters suffering from Bleedout.
+
+EXTENDED MEDICAL TEST
+Extended Medical Tests are used to better assist a Character in both natural healing and recovering from Medical Equipment use. Extended Medical Tests will allow the Target to start receiving benefits from Medical Equipment that no longer offer benefits due to overuse, allows the Target to improve their Natural Healing, and diagnose Special Damage effects the Target received.
+	The Character must first roll a Medication Test. This is a 4 hour Extended Action. For every Degree of Success the Target recovers 2 Wounds and their Natural Healing is increased by 1 until they are either at Full Wounds or take more than 5 Wounds in a Turn. 
+	The benefits of an Extended Medical Test may only be given once a Day when on the Field. If the Character is on a ship or at a location with a properly stocked medical facility, they will receive triple the Wound recovery and Natural Healing received.
+	If the Character does not get rest, they cannot receive the benefits of the increased Natural Healing.
+
+REMOVING SPECIAL DAMAGE
+The Character may further extend their Extended Medical Test to remove the Target’s Special Damage when using the Medical Kit. Each hour extended; the Character can remove 1 Special Damage effect the Character has and reduce its buildup to 0. If the Location is destroyed, the Character will need a robotic replacement or a flash clone ready.
+
+MEDICAL ASSISTANCE
+A Character may be assisted during Extended Medical Tests. Each Character assisting will make a Medication Test. If Successful, the Extended Medical Test takes 1 less hour, to a minimum of 1.
+
+DIAGNOSIS
+With a successful Medication Test, the Character can diagnose diseases and medical issues, such as Radiation Poisoning. When diagnosing a well-known disease or medical issue, the Test is at a +20 Bonus.
+	Each time a Character makes a proper Diagnosis, the next time they come across the same medical issue, they gain a stacking +10 Bonus. Once the Character would reach +40 to their Diagnosis Test, they are considered to pass the test automatically.",Fieldcraft
+Navigation Ground and Air (+20),Mythic,Skill,600,Basic,"Intellect, Perception",,,,1,"The Navigation Skill is a character’s ability to plot courses and find directions. There are multiple levels of Navigation: Ground, Space, and Slipspace.",Fieldcraft
+Navigation Space (+20),Mythic,Skill,700,Basic,"Intellect, Perception",,,,1,"The Navigation Skill is a character’s ability to plot courses and find directions. There are multiple levels of Navigation: Ground, Space, and Slipspace.",Fieldcraft
+Negotiation (+20),Mythic,Skill,600,Basic,Charisma,,,,1,"The Negotiation Skill is used to strike barters and create deals with others. This skill allows characters to negotiate better prices or outcomes for goods and services. All Negotiation tests are opposed, as they involve interaction. For every degree of success, the character gets, the price of an item is reduced by 5%. Failing gives no penalties.
+	Negotiation can also be used to deal with hostage situations and dealing with demands. This works as a normal Opposed Test against Charisma and Intellect based Negotiation Skill Tests.",Social
+Pilot Ground (+20),Mythic,Skill,600,Basic,"Agility, Intellect",,,,1,"The Pilot Skill is the ability to drive and pilot vehicles, such land, air, and space vehicles. The following Table shows a list of various examples of Penalties and Bonuses that can apply to a Vehicle, not including the Rough and Dangerous Terrain in the Movement section of the Handbook.
+        
+MOD        EXAMPLE
++30        Driving a standard Civilian vehicle.
++20        Operating Civilian vehicles under moderate speeds.
++10        Piloting a vehicle in familiar terrain.
+0        Driving a vehicle never driven before.
+-10        Driving at high speeds. 
+-20        Piloting a vehicle while under heavy fire.
+-30        Attempting to pilot a damaged vehicle while still under fire.",Movement
+Pilot Air (+20),Mythic,Skill,700,Basic,"Agility, Intellect",,,,1,"The Pilot Skill is the ability to drive and pilot vehicles, such land, air, and space vehicles. The following Table shows a list of various examples of Penalties and Bonuses that can apply to a Vehicle, not including the Rough and Dangerous Terrain in the Movement section of the Handbook.
+        
+MOD        EXAMPLE
++30        Driving a standard Civilian vehicle.
++20        Operating Civilian vehicles under moderate speeds.
++10        Piloting a vehicle in familiar terrain.
+0        Driving a vehicle never driven before.
+-10        Driving at high speeds. 
+-20        Piloting a vehicle while under heavy fire.
+-30        Attempting to pilot a damaged vehicle while still under fire.",Movement
+Pilot Space (+20),Mythic,Skill,"1,000",Advanced,"Agility, Intellect",,,,1,"The Pilot Skill is the ability to drive and pilot vehicles, such land, air, and space vehicles. The following Table shows a list of various examples of Penalties and Bonuses that can apply to a Vehicle, not including the Rough and Dangerous Terrain in the Movement section of the Handbook.
+        
+MOD        EXAMPLE
++30        Driving a standard Civilian vehicle.
++20        Operating Civilian vehicles under moderate speeds.
++10        Piloting a vehicle in familiar terrain.
+0        Driving a vehicle never driven before.
+-10        Driving at high speeds. 
+-20        Piloting a vehicle while under heavy fire.
+-30        Attempting to pilot a damaged vehicle while still under fire.",Movement
+Security (+20),Mythic,Skill,700,Advanced,Intellect,,,,1,"The Security Skill is how a Character creates, bypasses, and can spot locks, traps, and security systems. Security is the action of creating and disabling physical objects, like disabling a trip wire, lock-picking doors, or even something like spacing security cameras to properly cover a location. Most any mechanical and primitive trap will also count towards a Security Skill Test.
+        If a Character sets up a Security system and another attempts to disable it, this will result in an Opposed Security Test.
+        The more advanced the trap is, the more difficult it may be to disable it. The GM must come up with proper modifiers for the Test.
+
+MOD	EXAMPLE
++60	Placing a basic lock strategically.
++10	Setting up a trip wire. 
+0	Opening a standard lock.
+-10	Unlocking a more advanced lock.
+-20	Trying to take down a computer system that does not have an AI.",Fieldcraft
+Stunting (+20),Mythic,Skill,600,Basic,Agility,,,,1,"The Stunting Skill is used for things that involve tricky movement, ramping, and anything that involves incredible concentration to pull off. While under Combat, Stunting works well with merging multiple half actions such as taking a shot while falling or jumping out of a moving vehicle and landing on a specific point.
+	The GM should always come up with a modifier for the skill. Examples will be shown below.
+
+MOD	EXAMPLE
++40	Doing a donut or burning out in a vehicle.
++20	Stopping quickly with a turn without flipping the vehicle.
+0	Jumping off a building and taking a shot at an opponent.
+-20	Jumping off a moving vehicle on to a specific target.
+-40	Attempting to ramp off of a ruined building and land on a specific small point.",Movement
+Survival (+20),Mythic,Skill,600,Basic,"Intellect, Perception",,,,1,"The Survival Skill allows characters to endure harsh situations and find answers to bad situations. Survival allows characters to find edible plants, construct viable shelters, determine whether water is safe or not, and many other situations.
+	Survival also lets characters track others by following signs left of fleeing or hiding opponents. Tracking can be used similar to Investigation. Cunning opponents may attempt to use Camouflage to erase their tracks, in which the character will need to use Investigation Skill Tests to find the tracks, and then Survival Tracking tests take over to continue finding and following the trail. Inquiry may be used to ask nearby passerby if the opponent was seen.",Fieldcraft
+Technology Human (+20),Mythic,Skill,600,Advanced,Intellect,,,,1,"The Technology Skill permits the character to use and repair equipment and vehicles. Using a basic piece of equipment should not require a Technology Skill Test. Using unusual equipment or advanced technology should require a Technology Skill Test. 
+        When attempting to repair something, the character will need proper equipment or will not be able to make the test. 
+
+MOD        EXAMPLE
++30        Repairing a simple device such as an antenna or installing computer hardware.
++20        Repairing or removing parts of a vehicle when the proper tools are on hand.
++10        Equipping a weapon attachment that has been damaged.
+0        Using a scanner for the first time.
+-10        Repairing damaged equipment without all of the proper tools.
+-20        Attempting to use modern technology for the first time.
+-40        Repairing advanced technology without all of the proper tools or knowledge.
+
+REPAIRS
+Characters repairing should be handled in Narrative Structure as they can take time to perform. Even some of the quickest repairs still take time to repair. Using the following table will assist the Players and GM to figure out how long it will take a repair to be made. Everything is listed in minutes, but if it needs to be done in Structured Time, it’s best to remember that 1 Minute is 10 Rounds.
+        Characters may assist each other to reduce the time taken. Depending on the size of the repair, the GM should restrict the number of Characters who can assist the repair. For example, the GM could allow three Characters to change a tire. The GM shouldn’t allow 3 characters to try to fix a radio. For every Character assisting in a repair, the time should be divided by that much. Two characters can change a tire in half the time.
+
+MINUTES        EXAMPLE
+20        Changing a tire on a vehicle.
+120       Repairing or replacing a tank tread.
+10        The Character can repair 10+Intellect Modifier in Breakpoints for every 10 Minutes spent on Equipment.
+60        The Character can repair 20+Intellect Modifier in Breakpoints for every hour spent on a Vehicle.
+20        Replacing a part on a firearm or piece of equipment.
+",Fieldcraft
+Technology Covenant (+20),Mythic,Skill,600,Advanced,Intellect,,,,1,"The Technology Skill permits the character to use and repair equipment and vehicles. Using a basic piece of equipment should not require a Technology Skill Test. Using unusual equipment or advanced technology should require a Technology Skill Test. 
+        When attempting to repair something, the character will need proper equipment or will not be able to make the test. 
+
+MOD        EXAMPLE
++30        Repairing a simple device such as an antenna or installing computer hardware.
++20        Repairing or removing parts of a vehicle when the proper tools are on hand.
++10        Equipping a weapon attachment that has been damaged.
+0        Using a scanner for the first time.
+-10        Repairing damaged equipment without all of the proper tools.
+-20        Attempting to use modern technology for the first time.
+-40        Repairing advanced technology without all of the proper tools or knowledge.
+
+REPAIRS
+Characters repairing should be handled in Narrative Structure as they can take time to perform. Even some of the quickest repairs still take time to repair. Using the following table will assist the Players and GM to figure out how long it will take a repair to be made. Everything is listed in minutes, but if it needs to be done in Structured Time, it’s best to remember that 1 Minute is 10 Rounds.
+        Characters may assist each other to reduce the time taken. Depending on the size of the repair, the GM should restrict the number of Characters who can assist the repair. For example, the GM could allow three Characters to change a tire. The GM shouldn’t allow 3 characters to try to fix a radio. For every Character assisting in a repair, the time should be divided by that much. Two characters can change a tire in half the time.
+
+MINUTES        EXAMPLE
+20        Changing a tire on a vehicle.
+120       Repairing or replacing a tank tread.
+10        The Character can repair 10+Intellect Modifier in Breakpoints for every 10 Minutes spent on Equipment.
+60        The Character can repair 20+Intellect Modifier in Breakpoints for every hour spent on a Vehicle.
+20        Replacing a part on a firearm or piece of equipment.
+",Fieldcraft
+Technology Forerunner (+20),Mythic,Skill,700,Advanced,Intellect,,,,1,"The Technology Skill permits the character to use and repair equipment and vehicles. Using a basic piece of equipment should not require a Technology Skill Test. Using unusual equipment or advanced technology should require a Technology Skill Test. 
+        When attempting to repair something, the character will need proper equipment or will not be able to make the test. 
+
+MOD        EXAMPLE
++30        Repairing a simple device such as an antenna or installing computer hardware.
++20        Repairing or removing parts of a vehicle when the proper tools are on hand.
++10        Equipping a weapon attachment that has been damaged.
+0        Using a scanner for the first time.
+-10        Repairing damaged equipment without all of the proper tools.
+-20        Attempting to use modern technology for the first time.
+-40        Repairing advanced technology without all of the proper tools or knowledge.
+
+REPAIRS
+Characters repairing should be handled in Narrative Structure as they can take time to perform. Even some of the quickest repairs still take time to repair. Using the following table will assist the Players and GM to figure out how long it will take a repair to be made. Everything is listed in minutes, but if it needs to be done in Structured Time, it’s best to remember that 1 Minute is 10 Rounds.
+        Characters may assist each other to reduce the time taken. Depending on the size of the repair, the GM should restrict the number of Characters who can assist the repair. For example, the GM could allow three Characters to change a tire. The GM shouldn’t allow 3 characters to try to fix a radio. For every Character assisting in a repair, the time should be divided by that much. Two characters can change a tire in half the time.
+
+MINUTES        EXAMPLE
+20        Changing a tire on a vehicle.
+120       Repairing or replacing a tank tread.
+10        The Character can repair 10+Intellect Modifier in Breakpoints for every 10 Minutes spent on Equipment.
+60        The Character can repair 20+Intellect Modifier in Breakpoints for every hour spent on a Vehicle.
+20        Replacing a part on a firearm or piece of equipment.
+",Fieldcraft
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+Aeronautics (+5),Mythic,Education,100,Advanced,"Stunting, Pilot, Evasion, Technology",,1,,,,
+Agriculture (+5),Mythic,Education,50,Basic,"Technology, Survival",,1,,,,
+Architecture (+5),Mythic,Education,75,Advanced,"Technology, Security",,1,,,,
+Armor Smithing (+5),Mythic,Education,100,Basic,Technology,,1,,,,
+Astronautics (+5),Mythic,Education,100,Advanced,"Pilot, Technology, Stunting, Evasion",,1,,,,
+Astrophysics (+5),Mythic,Education,100,Advanced,"Pilot, Technology",,1,,,,
+Bartering (+5),Mythic,Education,50,Basic,"Appeal, Investigation, Deception",,1,,,,
+Brewing (+5),Mythic,Education,50,Basic,Survival,,1,,,,
+Carpentry (+5),Mythic,Education,50,Basic,Technology,,1,,,,
+Computer Security (+5),Mythic,Education,50,Advanced,"Security, Cryptography",,1,,,,
+Construction (+5),Mythic,Education,100,Basic,"Technology, Demolition",,1,,,,
+Culinary (+5),Mythic,Education,50,Basic,Survival,,1,,,,
+Demolitions Assembly (+5),Mythic,Education,100,Basic,Demolition,,1,,,,
+Economics (+5),Mythic,Education,75,Advanced,"Appeal, Command, Deception, Interrogation, Intimidation, Negotiation",,1,,,,
+Etiquette (+5),Mythic,Education,50,Basic,"Appeal, Deception",,1,,,,
+Faction Culture (+5),Mythic,Education,50,Basic,"Appeal, Investigation",,1,,,,
+Faction History (+5),Mythic,Education,50,Basic,"Appeal, Command, Investigation",,1,,,,
+Faction Law (+5),Mythic,Education,100,Advanced,"Command, Investigation, Deception, Negotiation",,1,,,,
+Faction Linguistics (+5),Mythic,Education,50,Basic,"Cryptography, Technology",,1,,,,
+Faction Literature (+5),Mythic,Education,50,Basic,"Appeal, Command, Investigation",,1,,,,
+Faction Medical Science (+5),Mythic,Education,100,Advanced,"Medication, Survival, Interrogation",,1,,,,
+Faction Military (+5),Mythic,Education,100,Advanced,"Command, Appeal, Investigation, Deception, Interrogation, Security",,1,,,,
+Faction Psychology (+5),Mythic,Education,150,Advanced,"Appeal, Command, Deception, Interrogation, Intimidation, Negotiation",,1,,,,
+Faction Religion (+5),Mythic,Education,50,Basic,"Appeal, Command, Deception, Interrogation, Intimidation, Negotiation",,1,,,,
+Faction Vehicle Maintenance (+5),Mythic,Education,100,Basic,Technology,,1,,,,
+Faction Weaponry (+5),Mythic,Education,100,Basic,Technology,,1,,,,
+Flood Biology (+5),Mythic,Education,200,Advanced,Medication,,1,,,,
+Forerunner Artifacts (+5),Mythic,Education,250,Advanced,Technology,,1,,,,
+Forerunner Linguistics (+5),Mythic,Education,150,Advanced,"Technology, Cryptography, Investigation",,1,,,,
+Forerunner Weaponry (+5),Mythic,Education,200,Advanced,Technology,,1,,,,
+Ground Vehicle Dynamics (+5),Mythic,Education,100,Basic,"Pilot, Technology, Stunting, Evasion",,1,,,,
+Hunting and Fishing (+5),Mythic,Education,50,Basic,"Investigation, Deception, Athletics, Technology, Security, Survival",,1,,,,
+Locksmith (+5),Mythic,Education,50,Basic,"Technology, Security",,1,,,,
+Martial Arts (+5),Mythic,Education,100,Basic,"Evasion, Athletics",,1,,,,
+Mathematics (+5),Mythic,Education,100,Basic,"Security, Cryptography, Gambling",,1,,,,
+Merchant (+5),Mythic,Education,50,Basic,"Appeal, Negotiation, Deception",,1,,,,
+Military Command (+5),Mythic,Education,100,Advanced,"Command, Appeal, Interrogation, Negotiation, Deception",,1,,,,
+Mount Training (+5),Mythic,Education,50,Basic,"Appeal, Command, Deception, Intimidation, Investigation, Stunting",,1,,,,
+Musical Training (Chosen Instrument) (+5),Mythic,Education,25,Basic,Appeal,,1,,,,
+Planetary Science (+5),Mythic,Education,100,Advanced,"Survival, Camouflage",,1,,,,
+Slipspace Travel (+5),Mythic,Education,250,Advanced,"Pilot (Space), Navigation, Technology, Stunting",,1,,,,
+Tailor (+5),Mythic,Education,50,Basic,"Survival, Technology",,1,,,,
+Tanning (Leather) (+5),Mythic,Education,50,Basic,Technology,,1,,,,
+Weapon Smithing (+5),Mythic,Education,75,Advanced,Technology,,1,,,,
+Black Market (+5),Mythic,Education,100,Advanced,"Investigation, Appeal, Negotiation",,1,,,,
+Crime Organizations (+5),Mythic,Education,100,Advanced,All Social Skills,,1,,,,
+Streetwise (+5),Mythic,Education,25,Basic,"Investigation, Charisma",,1,,,,
+Subculture (+5),Mythic,Education,50,Basic,All Social Skills,,1,,,,
+,Mythic,,,,,,,,,,
+Aeronautics (+10),Mythic,Education,150,Advanced,"Stunting, Pilot, Evasion, Technology",,,1,,,
+Agriculture (+10),Mythic,Education,100,Basic,"Technology, Survival",,,1,,,
+Architecture (+10),Mythic,Education,125,Advanced,"Technology, Security",,,1,,,
+Armor Smithing (+10),Mythic,Education,150,Basic,Technology,,,1,,,
+Astronautics (+10),Mythic,Education,150,Advanced,"Pilot, Technology, Stunting, Evasion",,,1,,,
+Astrophysics (+10),Mythic,Education,150,Advanced,"Pilot, Technology",,,1,,,
+Bartering (+10),Mythic,Education,100,Basic,"Appeal, Investigation, Deception",,,1,,,
+Brewing (+10),Mythic,Education,100,Basic,Survival,,,1,,,
+Carpentry (+10),Mythic,Education,100,Basic,Technology,,,1,,,
+Computer Security (+10),Mythic,Education,100,Advanced,"Security, Cryptography",,,1,,,
+Construction (+10),Mythic,Education,150,Basic,"Technology, Demolition",,,1,,,
+Culinary (+10),Mythic,Education,100,Basic,Survival,,,1,,,
+Demolitions Assembly (+10),Mythic,Education,150,Basic,Demolition,,,1,,,
+Economics (+10),Mythic,Education,125,Advanced,"Appeal, Command, Deception, Interrogation, Intimidation, Negotiation",,,1,,,
+Etiquette (+10),Mythic,Education,100,Basic,"Appeal, Deception",,,1,,,
+Faction Culture (+10),Mythic,Education,100,Basic,"Appeal, Investigation",,,1,,,
+Faction History (+10),Mythic,Education,100,Basic,"Appeal, Command, Investigation",,,1,,,
+Faction Law (+10),Mythic,Education,150,Advanced,"Command, Investigation, Deception, Negotiation",,,1,,,
+Faction Linguistics (+10),Mythic,Education,100,Basic,"Cryptography, Technology",,,1,,,
+Faction Literature (+10),Mythic,Education,100,Basic,"Appeal, Command, Investigation",,,1,,,
+Faction Medical Science (+10),Mythic,Education,150,Advanced,"Medication, Survival, Interrogation",,,1,,,
+Faction Military (+10),Mythic,Education,150,Advanced,"Command, Appeal, Investigation, Deception, Interrogation, Security",,,1,,,
+Faction Psychology (+10),Mythic,Education,200,Advanced,"Appeal, Command, Deception, Interrogation, Intimidation, Negotiation",,,1,,,
+Faction Religion (+10),Mythic,Education,100,Basic,"Appeal, Command, Deception, Interrogation, Intimidation, Negotiation",,,1,,,
+Faction Vehicle Maintenance (+10),Mythic,Education,150,Basic,Technology,,,1,,,
+Faction Weaponry (+10),Mythic,Education,150,Basic,Technology,,,1,,,
+Flood Biology (+10),Mythic,Education,250,Advanced,Medication,,,1,,,
+Forerunner Artifacts (+10),Mythic,Education,300,Advanced,Technology,,,1,,,
+Forerunner Linguistics (+10),Mythic,Education,200,Advanced,"Technology, Cryptography, Investigation",,,1,,,
+Forerunner Weaponry (+10),Mythic,Education,250,Advanced,Technology,,,1,,,
+Ground Vehicle Dynamics (+10),Mythic,Education,150,Basic,"Pilot, Technology, Stunting, Evasion",,,1,,,
+Hunting and Fishing (+10),Mythic,Education,100,Basic,"Investigation, Deception, Athletics, Technology, Security, Survival",,,1,,,
+Locksmith (+10),Mythic,Education,100,Basic,"Technology, Security",,,1,,,
+Martial Arts (+10),Mythic,Education,150,Basic,"Evasion, Athletics",,,1,,,
+Mathematics (+10),Mythic,Education,150,Basic,"Security, Cryptography, Gambling",,,1,,,
+Merchant (+10),Mythic,Education,100,Basic,"Appeal, Negotiation, Deception",,,1,,,
+Military Command (+10),Mythic,Education,150,Advanced,"Command, Appeal, Interrogation, Negotiation, Deception",,,1,,,
+Mount Training (+10),Mythic,Education,100,Basic,"Appeal, Command, Deception, Intimidation, Investigation, Stunting",,,1,,,
+Musical Training (Chosen Instrument) (+10),Mythic,Education,50,Basic,Appeal,,,1,,,
+Planetary Science (+10),Mythic,Education,150,Advanced,"Survival, Camouflage",,,1,,,
+Slipspace Travel (+10),Mythic,Education,300,Advanced,"Pilot (Space), Navigation, Technology, Stunting",,,1,,,
+Tailor (+10),Mythic,Education,100,Basic,"Survival, Technology",,,1,,,
+Tanning (Leather) (+10),Mythic,Education,100,Basic,Technology,,,1,,,
+Weapon Smithing (+10),Mythic,Education,125,Advanced,Technology,,,1,,,
+Black Market (+10),Mythic,Education,150,Advanced,"Investigation, Appeal, Negotiation",,,1,,,
+Crime Organizations (+10),Mythic,Education,150,Advanced,All Social Skills,,,1,,,
+Streetwise (+10),Mythic,Education,50,Basic,"Investigation, Charisma",,,1,,,
+Subculture (+10),Mythic,Education,100,Basic,All Social Skills,,,1,,,
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+Acumen,Mythic,Outlier,1 Luck,,,,,,,The Character triples their Intellect Modifier to figure the amount of Education and languages they can learn.,
+Advocate,Mythic,Outlier,1 Luck,,,,,,,The Character gains +2 Support Points at Character Creation and each time they’re rewarded after a mission.,
+Aptitude,Mythic,Outlier,1 Luck,,,,,,,"The Character gains 5 Points in a single chosen Characteristic at Character Creation. 
+Aptitude can be taken twice for each Characteristic.",
+Enduring,Mythic,Outlier,1 Luck,,,,,,,The Character ignores the Penalties of the first two levels of Fatigue. This may be increased to four levels of Fatigue by taking Enduring twice.,
+Forte,Mythic,Outlier,1 Luck,,,,,,,"The Character gains or increases a selected Mythic Characteristic by +1. 
+Forte can only be taken twice per Mythic Characteristic.",
+Hard-Head,Mythic,Outlier,1 Luck,,,,,,,The Character keeps half of their Toughness Modifier against the Headshot Special Rule.,
+Imposing,Mythic,Outlier,1 Luck,,,,,,,"The Character’s Height is increased up to 40%, the Character’s Weight is doubled.
+
+The character counts as being one Size category larger. This gives +3 to Strength and Toughness.",
+Olympian,Mythic,Outlier,1 Luck,,,,,,,"The Character halves Penalties from Rough and Dangerous Terrain, and from Swimming and Climbing.",
+Poised,Mythic,Outlier,1 Luck,,,,,,,The Character is able to move the Disposition of any Target up or down one spot when making Social Skill Tests.,
+Robust,Mythic,Outlier,1 Luck,,,,,,,The Character gains +5 Wounds. Can be taken 4 times.,
+Rugged,Mythic,Outlier,1 Luck,,,,,,,The Character takes half of all Penalties and Fatigue gained from Extreme Temperatures.,
+Strongman,Mythic,Outlier,1 Luck,,,,,,,Halves Penalties from being Over-Encumbered.,
+Vigil,Mythic,Outlier,1 Luck,,,,,,,The Character’s Perceptive Range multiplier becomes 10.,
+Vigorous,Mythic,Outlier,1 Luck,,,,,,,"The Character doubles their Natural Healing. 
+This may be increased to triple their Natural Healing by taking Vigorous twice.",
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+Wounds (Iron),Mythic,Outlier,500,,,,,,,Gives +5 Wounds.,
+Wounds (Copper),Mythic,Outlier,750,,,,,,,Gives +5 Wounds. The previous  Wound Upgrade Tier (Iron) must be purchased before the next can be taken.,
+Wounds (Bronze),Mythic,Outlier,1250,,,,,,,Gives +5 Wounds. The previous  Wound Upgrade Tier (Copper) must be purchased before the next can be taken.,
+Wounds (Steel),Mythic,Outlier,2000,,,,,,,Gives +5 Wounds. The previous  Wound Upgrade Tier (Bronze) must be purchased before the next can be taken.,
+Wounds (Titanium),Mythic,Outlier,3000,,,,,,,Gives +5 Wounds. The previous  Wound Upgrade Tier (Steel) must be purchased before the next can be taken.,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+UNSC / Insurrection,Mythic,Faction Training,300,,,,,,,Faction training,
+Covenant / Banished,Mythic,Faction Training,300,,,,,,,Faction training,
+Forerunner,Mythic,Faction Training,300,,,,,,,Faction training,
+Basic,Mythic,Weapon Training,150,,,,,,,"Pistol, Knife, Shotgun",
+Infantry,Mythic,Weapon Training,200,,,,,,,"Rifle, Carbine, SMG, Grenade",
+Heavy,Mythic,Weapon Training,200,,,,,,,"Light Machine Gun, Machine Gun, Heavy Machine Gun",
+Advanced,Mythic,Weapon Training,300,,,,,,,"Energy Weapon, Railgun, Chemical Sprayer, Beam",
+Launcher,Mythic,Weapon Training,250,,,,,,,"Missile Launcher, Rocket Launcher, Grenade Launcher",
+Long Range,Mythic,Weapon Training,150,,,,,,,Sniper Rifle,
+Ordnance,Mythic,Weapon Training,300,,,,,,,"Satchel Charge, Demolition, Ordinance, Landmine",
+Cannon,Mythic,Weapon Training,250,,,,,,,"Cannon, Mortar Cannon, Autocannon, Coilgun, Energy Cannon",
+Melee,Mythic,Weapon Training,150,,,,,,,All non-knife Melee Weapons and Physical Shields,
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,
+,Mythic,,,,,,,,,,

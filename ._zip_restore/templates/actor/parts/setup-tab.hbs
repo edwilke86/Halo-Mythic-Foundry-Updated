@@ -1,0 +1,211 @@
+<div class="tab setup" data-group="primary" data-tab="setup">
+
+  <section class="panel mythic-phase4-panel">
+    <h2>Settings</h2>
+
+    <p class="ccadv-note">Character creation systems now live in the Character Creation and Advancement tab.</p>
+
+    <div class="mythic-phase4-grid two-column">
+      <div class="mythic-phase4-card">
+        <h3>Automation</h3>
+        <label class="mythic-toggle-row"><input type="checkbox" name="system.settings.automation.enforceAbilityPrereqs" {{checked mythicSystem.settings.automation.enforceAbilityPrereqs}} /> Enforce ability prerequisite checks on add</label>
+        <label class="mythic-toggle-row"><input type="checkbox" name="system.settings.automation.showRollHints" {{checked mythicSystem.settings.automation.showRollHints}} /> Show roll guidance and helper copy</label>
+        <label class="mythic-toggle-row"><input type="checkbox" name="system.settings.automation.showWorkflowGuidance" {{checked mythicSystem.settings.automation.showWorkflowGuidance}} /> Show workflow guidance tags</label>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Sheet Behavior</h3>
+        <p class="mythic-sheet-behavior-note">Biography portrait or token preview selection is remembered automatically per actor.</p>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field">
+            <span>Manual Language Cap Bonus</span>
+            <input type="number" min="0" step="1" name="system.advancements.purchases.languageCapacityBonus" value="{{mythicSystem.advancements.purchases.languageCapacityBonus}}" />
+          </div>
+        </div>
+        <p class="ccadv-note">Bonus added to language cap. Base cap is INT modifier plus this bonus.</p>
+        <p class="ccadv-note">Current learning limits: Languages {{mythicDerived.outliers.acumen.languageCapacity}}, Educations {{mythicDerived.outliers.acumen.educationCapacity}}. {{#if mythicDerived.outliers.acumen.enabled}}Acumen triples INT modifier before these caps are applied.{{/if}}</p>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Initiative</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field">
+            <span>Constant Manual Bonus</span>
+            <input type="number" step="0.1" name="system.settings.initiative.manualBonus" value="{{mythicSystem.settings.initiative.manualBonus}}" />
+          </div>
+        </div>
+        <p class="ccadv-note">Applied to every initiative roll after AGI Modifier and Mythic AGI / 2. Situational modifiers are prompted when you roll.</p>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Mythic Characteristic Modifiers</h3>
+        <div class="mythic-phase4-field-grid compact mythic-mythic-stat-mod-grid">
+          <div class="mythic-mini-field">
+            <span>STR Modifier</span>
+            <input type="number" step="1" name="system.mythic.characteristicModifiers.str" value="{{mythicSystem.mythic.characteristicModifiers.str}}" />
+          </div>
+          <div class="mythic-mini-field">
+            <span>TOU Modifier</span>
+            <input type="number" step="1" name="system.mythic.characteristicModifiers.tou" value="{{mythicSystem.mythic.characteristicModifiers.tou}}" />
+          </div>
+          <div class="mythic-mini-field">
+            <span>AGI Modifier</span>
+            <input type="number" step="1" name="system.mythic.characteristicModifiers.agi" value="{{mythicSystem.mythic.characteristicModifiers.agi}}" />
+          </div>
+        </div>
+        <p class="ccadv-note">Additive bonuses (or penalties) applied on top of Soldier Type / Advancement Mythic Characteristics. These are not overrides.</p>
+        <p class="ccadv-note">Current effective totals: STR {{mythicDerived.mythicCharacteristics.str}}, TOU {{mythicDerived.mythicCharacteristics.tou}}, AGI {{mythicDerived.mythicCharacteristics.agi}}.</p>
+      </div>
+
+      {{#if mythicSpecialization.isSmartAi}}
+      <div class="mythic-phase4-card">
+        <h3>Smart AI</h3>
+        <p class="ccadv-note">Regenerate this Smart AI's Cognitive Pattern based on their current skill training.</p>
+        {{#if mythicSpecialization.cognitivePattern}}
+          <p class="ccadv-note">Current: <strong>{{mythicSpecialization.cognitivePattern}}</strong></p>
+        {{/if}}
+        <button type="button" class="action-btn mythic-cognitive-reroll-btn">Reroll Cognitive Pattern</button>
+      </div>
+      {{/if}}
+
+      <div class="mythic-phase4-card">
+        <h3>Formula Legend</h3>
+        <div class="mythic-formula-legend">
+          <div class="mythic-legend-row">
+            <div class="mythic-legend-col">
+              <p><strong>C</strong> = Carry Capacity</p>
+              <p><strong>L</strong> = Leap Distance</p>
+              <p><strong>W</strong> = Wounds Max</p>
+            </div>
+            <div class="mythic-legend-col">
+              <p><strong>M<sub>STR</sub></strong> = Mythic STR, <strong>M<sub>TOU</sub></strong> = Mythic TOU</p>
+              <p><strong>S<sub>STR</sub></strong> = Soldier Type STR Multiplier</p>
+              <p><strong>S<sub>TOU</sub></strong> = Soldier Type TOU Multiplier</p>
+            </div>
+            <div class="mythic-legend-col">
+              <p><strong>A<sub>mod</sub></strong> = AGI Modifier, <strong>S<sub>mod</sub></strong> = STR Modifier</p>
+              <p><strong>T<sub>mod</sub></strong> = TOU Modifier</p>
+              <p><strong>L<sub>mult</sub></strong> = Soldier Type Leap Multiplier, <strong>L<sub>man</sub></strong> = Manual Leap Modifier</p>
+              <p><strong>B</strong> = Misc Carry Bonus, <strong>W<sub>man</sub></strong> = Manual Wounds Modifier</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Carry Weight Formula</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field">
+            <span>Multipliers</span>
+            <div class="mythic-carry-multiplier-pair">
+              <div class="mythic-carry-multiplier-cell">
+                <input type="number" min="0" step="0.1" name="system.mythic.soldierTypeStrCarryMultiplier" value="{{mythicSystem.mythic.soldierTypeStrCarryMultiplier}}" readonly />
+                <small>STR</small>
+              </div>
+              <div class="mythic-carry-multiplier-cell">
+                <input type="number" min="0" step="0.1" name="system.mythic.soldierTypeTouCarryMultiplier" value="{{mythicSystem.mythic.soldierTypeTouCarryMultiplier}}" readonly />
+                <small>TOU</small>
+              </div>
+            </div>
+          </div>
+          <div class="mythic-mini-field"><span>Misc Carry Bonus</span><input type="number" step="0.1" name="system.mythic.miscCarryBonus" value="{{mythicSystem.mythic.miscCarryBonus}}" /></div>
+        </div>
+        <div class="mythic-formula-block" aria-label="Base carry formula">
+          <p class="mythic-formula-math">
+            <span class="mythic-formula-term">C</span>
+            <span class="mythic-formula-op">=</span>
+            <span class="mythic-formula-group">(</span>
+            <span class="mythic-frac"><span>STR</span><span>2</span></span>
+            <span class="mythic-formula-op">+</span>
+            <span>10 &times; M<sub>STR</sub></span>
+            <span class="mythic-formula-group">)</span>
+            <span class="mythic-formula-op">&times;</span>
+            <span>S<sub>STR</sub></span>
+            <span class="mythic-formula-op">+</span>
+            <span class="mythic-formula-group">(</span>
+            <span class="mythic-frac"><span>TOU</span><span>2</span></span>
+            <span class="mythic-formula-op">+</span>
+            <span>10 &times; M<sub>TOU</sub></span>
+            <span class="mythic-formula-group">)</span>
+            <span class="mythic-formula-op">&times;</span>
+            <span>S<sub>TOU</sub></span>
+            <span class="mythic-formula-op">+</span>
+            <span>B</span>
+          </p>
+        </div>
+        {{#if mythicDerived.carryingCapacity.usesFullCharacteristicsForCarry}}
+          <p class="ccadv-note"><strong>Strongman:</strong> this actor ignores the halved STR and TOU terms in the base carry formula.</p>
+        {{/if}}
+        <p class="ccadv-note">Current values: Carry {{mythicDerived.carryingCapacity.carry}}, Lift {{mythicDerived.carryingCapacity.lift}}, Push {{mythicDerived.carryingCapacity.push}}.</p>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Leap Distance Formula</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field"><span>Soldier Type Leap Multiplier</span><input type="number" min="0" step="0.1" name="system.mythic.soldierTypeLeapMultiplier" value="{{mythicSystem.mythic.soldierTypeLeapMultiplier}}" readonly /></div>
+          <div class="mythic-mini-field"><span>Manual Leap Modifier</span><input type="number" step="0.1" name="system.mythic.miscLeapModifier" value="{{mythicSystem.mythic.miscLeapModifier}}" /></div>
+        </div>
+        <div class="mythic-formula-block" aria-label="Leap distance formula">
+          <p class="mythic-formula-math">
+            <span class="mythic-formula-term">L</span>
+            <span class="mythic-formula-op">=</span>
+            <span>max</span>
+            <span class="mythic-formula-group">(</span>
+            <span class="mythic-frac"><span>(A<sub>mod</sub> &times; L<sub>mult</sub>)</span><span>2</span></span>
+            <span class="mythic-formula-op">,</span>
+            <span class="mythic-frac"><span>(S<sub>mod</sub> &times; L<sub>mult</sub>)</span><span>2</span></span>
+            <span class="mythic-formula-group">)</span>
+            <span class="mythic-formula-op">+</span>
+            <span>L<sub>man</sub></span>
+          </p>
+        </div>
+        <p class="ccadv-note">Current value: Leap {{mythicDerived.movement.leap}}.</p>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Wounds Formula</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field"><span>Soldier Type TOU Multiplier</span><input type="number" min="0" step="0.1" name="system.mythic.soldierTypeTouWoundsMultiplier" value="{{mythicSystem.mythic.soldierTypeTouWoundsMultiplier}}" readonly /></div>
+          <div class="mythic-mini-field"><span>Manual Wounds Modifier</span><input type="number" step="1" name="system.mythic.miscWoundsModifier" value="{{mythicSystem.mythic.miscWoundsModifier}}" /></div>
+        </div>
+        <div class="mythic-formula-block" aria-label="Wounds max formula">
+          <p class="mythic-formula-math">
+            <span class="mythic-formula-term">W</span>
+            <span class="mythic-formula-op">=</span>
+            <span>40</span>
+            <span class="mythic-formula-op">+</span>
+            <span>2 &times;</span>
+            <span class="mythic-formula-group">(</span>
+            <span class="mythic-formula-group">(</span>
+            <span>T<sub>mod</sub></span>
+            <span class="mythic-formula-op">&times;</span>
+            <span>S<sub>TOU</sub></span>
+            <span class="mythic-formula-group">)</span>
+            <span class="mythic-formula-op">+</span>
+            <span>M<sub>TOU</sub></span>
+            <span class="mythic-formula-group">)</span>
+            <span class="mythic-formula-op">+</span>
+            <span>W<sub>man</sub></span>
+          </p>
+        </div>
+        <p class="ccadv-note">Current value: Wounds Max {{mythicCombat.wounds.max}}.</p>
+      </div>
+
+      <div class="mythic-phase4-card">
+        <h3>Natural Armor Modifier</h3>
+        <div class="mythic-phase4-field-grid compact">
+          <div class="mythic-mini-field"><span>Additive Modifier</span><input type="number" step="1" name="system.mythic.naturalArmorModifier" value="{{mythicSystem.mythic.naturalArmorModifier}}" /></div>
+        </div>
+        <p class="ccadv-note">Adds to (or subtracts from) the base Natural Armor set by the soldier type. Negative values reduce it. Has no effect if the character has no natural armor from their soldier type.</p>
+        {{#if mythicDerived.naturalArmor.enabled}}
+        <p class="ccadv-note">Current: base {{mythicDerived.naturalArmor.baseValue}}, effective {{mythicDerived.naturalArmor.effectiveValue}}{{#if mythicDerived.naturalArmor.isWearingArmor}} (halved while armored){{/if}}.</p>
+        {{/if}}
+      </div>
+
+      <div class="mythic-phase4-card mythic-sheet-appearance-card mythic-sheet-appearance-card-wide">
+        <h3>Sheet Appearance</h3>
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-fields.hbs"}}
+      </div>
+    </div>
+  </section>
+</div>

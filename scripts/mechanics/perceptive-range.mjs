@@ -44,6 +44,51 @@ export function parseOpticsMagnification(optics = null) {
   return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
+export const SCOPE_MIN_RANGE_TABLE = Object.freeze({
+  1: 0,
+  2: 5,
+  3: 10,
+  4: 15,
+  5: 20,
+  6: 25,
+  7: 30,
+  8: 35,
+  9: 40,
+  10: 50,
+  11: 60,
+  12: 70,
+  13: 80,
+  14: 90,
+  15: 100,
+  16: 110,
+  17: 120,
+  18: 130,
+  19: 140,
+  20: 150,
+  21: 170,
+  22: 190,
+  23: 210,
+  24: 230,
+  25: 250,
+  30: 300,
+  35: 350,
+  40: 400,
+  50: 500
+});
+
+export function normalizeScopeMagnification(value = null, { fallback = 1 } = {}) {
+  const parsed = parseOpticsMagnification(value);
+  const rounded = Math.max(1, Math.round(Number(parsed) || 1));
+  if (Object.prototype.hasOwnProperty.call(SCOPE_MIN_RANGE_TABLE, rounded)) return rounded;
+  const fallbackRounded = Math.max(1, Math.round(Number(fallback) || 1));
+  return Object.prototype.hasOwnProperty.call(SCOPE_MIN_RANGE_TABLE, fallbackRounded) ? fallbackRounded : 1;
+}
+
+export function getScopeMinimumRangeMeters(magnification = 1) {
+  const normalized = normalizeScopeMagnification(magnification, { fallback: 1 });
+  return Math.max(0, Number(SCOPE_MIN_RANGE_TABLE[normalized] ?? 0) || 0);
+}
+
 export function actorHasAbilityByName(actor, abilityName = "") {
   const target = String(abilityName ?? "").trim().toLowerCase();
   if (!target || !actor?.items) return false;

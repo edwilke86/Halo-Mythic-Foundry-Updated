@@ -1,0 +1,459 @@
+﻿<div class="tab main" data-group="primary" data-tab="main">
+    {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/main-tab-characteristics-panel.hbs" }}
+
+<section class="panel mythic-derived-panel">
+    <div class="mythic-derived-4col">
+
+      <details class="mythic-derived-card" data-collapse-key="mythic-card" open>
+        <summary>Mythic</summary>
+        <div class="mythic-mini-strip">
+          <div class="mythic-mini-block">
+            <div class="mythic-mini-label">STR</div>
+            <input type="number" min="0" name="system.mythic.characteristics.str" value="{{mythicDerived.mythicCharacteristics.str}}" disabled title="Edit Mythic Characteristics from Character Creation/Advancement. Additive modifiers live in the Setup tab." />
+          </div>
+          <div class="mythic-mini-block">
+            <div class="mythic-mini-label">TOU</div>
+            <input type="number" min="0" name="system.mythic.characteristics.tou" value="{{mythicDerived.mythicCharacteristics.tou}}" disabled title="Edit Mythic Characteristics from Character Creation/Advancement. Additive modifiers live in the Setup tab." />
+          </div>
+          <div class="mythic-mini-block">
+            <div class="mythic-mini-label">AGI</div>
+            <input type="number" min="0" name="system.mythic.characteristics.agi" value="{{mythicDerived.mythicCharacteristics.agi}}" disabled title="Edit Mythic Characteristics from Character Creation/Advancement. Additive modifiers live in the Setup tab." />
+          </div>
+        </div>
+      </details>
+
+      <details class="mythic-derived-card movement-card" data-collapse-key="movement-card" open>
+        <summary>{{#if mythicIsHuragok}}Character Movement (ONLY FLIGHT){{else}}Character Movement{{/if}}</summary>
+        <div class="movement-strip">
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flyHalf}}{{else}}{{mythicDerived.movement.half}}{{/if}}</div><div class="movement-label movement-label-half">Half</div></div>
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flyFull}}{{else}}{{mythicDerived.movement.full}}{{/if}}</div><div class="movement-label movement-label-full">Full</div></div>
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flyCharge}}{{else}}{{mythicDerived.movement.charge}}{{/if}}</div><div class="movement-label movement-label-charge">Charge</div></div>
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flyRun}}{{else}}{{mythicDerived.movement.run}}{{/if}}</div><div class="movement-label movement-label-run">Run</div></div>
+          {{#if mythicHasBlurAbility}}
+            <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}{{mythicDerived.movement.flySprint}}{{else}}{{mythicDerived.movement.sprint}}{{/if}}</div><div class="movement-label movement-label-sprint">Sprint</div></div>
+          {{/if}}
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}-{{else}}{{mythicDerived.movement.jump}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Jump{{else}}Jump{{/if}}</div></div>
+          <div class="movement-block"><div class="movement-value">{{#if mythicIsHuragok}}-{{else}}{{mythicDerived.movement.leap}}{{/if}}</div><div class="movement-label">{{#if mythicIsHuragok}}Leap{{else}}Leap{{/if}}</div></div>
+        </div>
+        {{#if mythicDerived.movement.hasFlightTrait}}
+        {{#unless mythicIsHuragok}}
+        <div class="movement-fly-section">
+          <div class="movement-fly-header">Fly Speeds</div>
+          {{#if mythicDerived.movement.canFly}}
+          <div class="movement-strip">
+            <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flyHalf}}</div><div class="movement-label movement-label-half">Half</div></div>
+            <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flyFull}}</div><div class="movement-label movement-label-full">Full</div></div>
+            <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flyCharge}}</div><div class="movement-label movement-label-charge">Charge</div></div>
+            <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flyRun}}</div><div class="movement-label movement-label-run">Run</div></div>
+            {{#if mythicHasBlurAbility}}
+              <div class="movement-block"><div class="movement-value">{{mythicDerived.movement.flySprint}}</div><div class="movement-label movement-label-sprint">Sprint</div></div>
+            {{/if}}
+            <div class="movement-block movement-block-wide movement-fly-action-block">
+              <button type="button" class="action-btn movement-fly-action-btn {{#if mythicSystem.mythic.flyCombatActive}}fly-mode-active{{/if}}" title="{{#if mythicSystem.mythic.flyCombatActive}}Disable fly mode{{else}}Enable fly mode{{/if}}">{{#if mythicSystem.mythic.flyCombatActive}}FLY ON{{else}}Fly{{/if}}</button>
+            </div>
+          </div>
+          {{else}}
+          <div class="movement-fly-unavailable">Unable to fly - carrying capacity over 75%</div>
+          {{/if}}
+          <div class="movement-fly-encumbrance">Carry: {{mythicDerived.movement.carryPercentage}}%</div>
+        </div>
+        {{/unless}}
+        {{/if}}
+
+        <details class="movement-reference" data-collapse-key="movement-reference">
+          <summary>Movement Reference</summary>
+          <div class="movement-ref-content">
+            <p><strong>Jump Distance:</strong> {{mythicDerived.movement.jump}} m. This is the maximum vertical height your character can jump.</p>
+            <p><strong>Leap Distance:</strong> {{mythicDerived.movement.leap}} m. This is the maximum horizontal distance your character can clear.</p>
+            <p><strong>Climb Speed:</strong> Full Action up to {{mythicDerived.movement.climbNoTest}} m with no test. Up to {{mythicDerived.movement.climbWithTest}} m with a Climb Test.</p>
+            <p><strong>Jump Bonus While Moving:</strong> Add +1 m leap distance for every 10 m moved this turn.</p>
+            <p><strong>Swim Speed:</strong> {{mythicDerived.movement.swimSpeed}} m/turn (STR MOD, no Mythic).</p>
+            <p><strong>Initiative Formula:</strong> 1d10 + AGI MOD + (Mythic AGI / 2) + Manual Bonus + Misc. Fast Foot changes the die roll to 2d10 keep highest.</p>
+            <p><strong>Ruler Color Key:</strong> Half = green, Full = blue, Charge = yellow, Run = orange, Sprint = red. These colors match token movement banding while measuring.</p>
+            <p><strong>No Grid Maps:</strong> If the Scene grid type is set to No Grid, the ruler path line itself changes color by movement band, but no grid squares or hexes are highlighted.</p>
+            <hr />
+            <p><strong>Simple Climb:</strong> Hands-free = no test. Hurried or one-handed: -10 Test. Fail = no progress; 2+ DOF = fall.</p>
+            <p><strong>Difficult Climb:</strong> Climb Test required. Abseiling/harnessing: +40 and doubles Climb Speed.</p>
+            <hr />
+            <p><strong>Simple Swim:</strong> Hands-free, calm water = no test. Hurried or carrying: -10 Test. Fail = Speed halved; 2+ DOF = no distance.</p>
+            <p><strong>Swim Weight Penalties:</strong> &gt;50% Carry: -10 / -1 spd &nbsp;&middot;&nbsp; &gt;75%: -30 / -2 spd &nbsp;&middot;&nbsp; &gt;=90%: -50 / -3 spd &nbsp;&middot;&nbsp; Over-encumbered: can't swim without flotation.</p>
+            <p><strong>Swim Endurance:</strong> TOU MOD hours; then Toughness Test per hour (cumulative -10). Fail: +1 Fatigue per DOF.</p>
+          </div>
+        </details>
+      </details>
+
+      <details class="mythic-derived-card" data-collapse-key="weight-card" open>
+        <summary>Weight</summary>
+        <div class="movement-strip">
+          <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.carry}}</div><div class="movement-label">Carry</div></div>
+          <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.lift}}</div><div class="movement-label">Lift</div></div>
+          <div class="movement-block"><div class="movement-value">{{mythicDerived.carryingCapacity.push}}</div><div class="movement-label">Push</div></div>
+        </div>
+        {{#if mythicDerived.carryingCapacity.usesFullCharacteristicsForCarry}}
+          <p class="ccadv-note">Strongman: carry calculations use full STR and TOU instead of halved values.</p>
+        {{/if}}
+        <details class="movement-reference" data-collapse-key="weight-reference">
+          <summary>Gravity</summary>
+          <div class="movement-ref-content">
+            <div class="movement-ref-row gravity-input-row">
+              <label>Current Gravity</label>
+              <input type="number" name="system.gravity" min="0" max="4" step="0.1" value="{{mythicGravityValue}}" readonly
+                title="{{#if mythicIsGM}}World gravity is set in Game Settings -> Configure Settings -> System Settings -> World Gravity Level.{{else}}Set by the Game Master via Game Settings.{{/if}}" />
+              {{#if mythicIsGM}}<span class="mythic-gravity-gm-hint">Set in <strong>Game Settings</strong></span>{{/if}}
+            </div>
+            <p>Gravity modifies Carry, Lift, Push, Jump, Leap, and Climb Speed (/ gravity). Ultra-High/Low gravity also applies AGI penalties. Zero-G: normal movement requires a surface or propulsion to push off.</p>
+          </div>
+        </details>
+      </details>
+
+    </div>
+  </section>
+
+  <section class="panel mythic-combat-panel">
+    <div class="mythic-combat-section-header">
+      <h2>Combat Resources</h2>
+      <div class="mythic-initiative-control">
+        <span class="mythic-initiative-label">Init:</span>
+        <button type="button" class="action-btn mythic-initiative-roll-btn" title="Roll Initiative: 1d10 + AGI Mod + (Mythic AGI / 2) + Manual Bonus + Misc. Fast Foot upgrades to 2d10 keep highest.">
+          <i class="fa-solid fa-dice-d10"></i>
+        </button>
+        <button type="button" class="action-btn fear-test-btn" title="Run a Fear Test flow (Courage -> Shock -> PTSD).">Fear Test</button>
+      </div>
+    </div>
+    <div class="mythic-combat-grid">
+      <div class="mythic-combat-column left">
+        <div class="mythic-resource-line">
+          <div class="mythic-resource-label">Wounds</div>
+          <div class="mythic-resource-values">
+            <div class="mythic-mini-field"><span>Current</span><input type="number" min="0" name="system.combat.wounds.current" value="{{mythicCombat.wounds.current}}" /></div>
+            <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.wounds.max" value="{{mythicCombat.wounds.max}}" readonly title="Derived: 40 + ((TOU mod * Soldier TOU Multiplier + Mythic TOU) * 2) + Manual Wounds Modifier" /></div>
+          </div>
+          <div class="mythic-resource-actions">
+            <button type="button" class="action-btn wounds-full-heal-btn">Full Heal</button>
+          </div>
+        </div>
+        {{#if mythicDerived.outliers.robust.enabled}}
+          <p class="ccadv-note">Robust: +{{mythicDerived.outliers.robust.woundsBonus}} max Wounds.</p>
+        {{/if}}
+        {{#if (gt mythicDerived.naturalHealing.multiplier 1)}}
+          <p class="ccadv-note">Vigorous: Natural Healing x{{mythicDerived.naturalHealing.multiplier}}.</p>
+        {{/if}}
+
+        <div class="mythic-resource-line">
+          <div class="mythic-resource-label">Fatigue</div>
+          <div class="mythic-resource-values">
+            <div class="mythic-mini-field"><span>Current</span><input type="number" min="0" name="system.combat.fatigue.current" value="{{mythicCombat.fatigue.current}}" /></div>
+            <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.fatigue.max" value="{{mythicCombat.fatigue.max}}" readonly title="Coma threshold: fatigue greater than this value" /></div>
+          </div>
+        </div>
+        {{#if mythicDerived.outliers.enduring.enabled}}
+          <p class="ccadv-note">Enduring: first {{mythicDerived.outliers.enduring.ignoredLevels}} Fatigue levels are ignored for penalties{{#if (gt mythicDerived.outliers.enduring.currentFatigue 0)}}; currently {{mythicDerived.outliers.enduring.suppressedLevels}} suppressed{{#if (gt mythicDerived.outliers.enduring.effectiveLevels 0)}}, {{mythicDerived.outliers.enduring.effectiveLevels}} still active{{/if}}{{/if}}.</p>
+        {{/if}}
+        {{#if mythicDerived.outliers.rugged.enabled}}
+          <p class="ccadv-note">Rugged: halve harsh-environment and hunger/thirst fatigue penalties.</p>
+        {{/if}}
+
+        <div class="mythic-resource-line">
+          <div class="mythic-resource-label">Luck</div>
+          <div class="mythic-resource-values">
+            <div class="mythic-mini-field"><span>Current</span><input type="number" min="0" name="system.combat.luck.current" value="{{mythicCombat.luck.current}}" /></div>
+            <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.luck.max" value="{{mythicCombat.luck.max}}" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mythic-combat-column center">
+        <div class="mythic-dr-headings">
+          <div></div>
+          <div class="mythic-dr-column-label">DR</div>
+          <div class="mythic-dr-column-label">Armor Only</div>
+        </div>
+
+        <div class="mythic-dr-row"><div class="mythic-dr-label">Head</div><div class="mythic-dr-value">{{mythicCombat.dr.head.total}}</div><input type="number" min="0" name="system.combat.dr.armor.head" value="{{mythicCombat.dr.head.armor}}" title="Head Armor Value" readonly /></div>
+        <div class="mythic-dr-row"><div class="mythic-dr-label">Chest</div><div class="mythic-dr-value">{{mythicCombat.dr.chest.total}}</div><input type="number" min="0" name="system.combat.dr.armor.chest" value="{{mythicCombat.dr.chest.armor}}" title="Chest Armor Value" readonly /></div>
+        <div class="mythic-dr-row"><div class="mythic-dr-label">L Arm</div><div class="mythic-dr-value">{{mythicCombat.dr.lArm.total}}</div><input type="number" min="0" name="system.combat.dr.armor.lArm" value="{{mythicCombat.dr.lArm.armor}}" title="Left Arm Armor Value" readonly /></div>
+        <div class="mythic-dr-row"><div class="mythic-dr-label">R Arm</div><div class="mythic-dr-value">{{mythicCombat.dr.rArm.total}}</div><input type="number" min="0" name="system.combat.dr.armor.rArm" value="{{mythicCombat.dr.rArm.armor}}" title="Right Arm Armor Value" readonly /></div>
+        <div class="mythic-dr-row"><div class="mythic-dr-label">L Leg</div><div class="mythic-dr-value">{{mythicCombat.dr.lLeg.total}}</div><input type="number" min="0" name="system.combat.dr.armor.lLeg" value="{{mythicCombat.dr.lLeg.armor}}" title="Left Leg Armor Value" readonly /></div>
+        <div class="mythic-dr-row"><div class="mythic-dr-label">R Leg</div><div class="mythic-dr-value">{{mythicCombat.dr.rLeg.total}}</div><input type="number" min="0" name="system.combat.dr.armor.rLeg" value="{{mythicCombat.dr.rLeg.armor}}" title="Right Leg Armor Value" readonly /></div>
+        <div class="mythic-dr-row tou-row"><div class="mythic-dr-label">Base</div><div class="mythic-dr-value">{{mythicCombat.dr.touCombined}}</div><div class="mythic-dr-note">--</div></div>
+        {{#if mythicDerived.naturalArmor.enabled}}
+        <div class="mythic-dr-row mythic-dr-nat-armor-row">
+          <div class="mythic-dr-label">Nat.</div>
+          <div class="mythic-dr-value">+{{mythicCombat.dr.naturalArmorBody}}</div>
+          <div class="mythic-dr-note">Natural Armor{{#if mythicDerived.naturalArmor.isWearingArmor}} (halved){{/if}}</div>
+        </div>
+        {{/if}}
+        {{#if mythicDerived.outliers.hardHead.enabled}}
+          <p class="ccadv-note">Hard-Head: headshots keep half your TOU modifier and Head-butt attacks gain +{{mythicDerived.outliers.hardHead.headbuttDamageBonus}} damage.</p>
+        {{/if}}
+      </div>
+
+      <div class="mythic-combat-column right">
+        <div class="mythic-right-block">
+          <div class="mythic-resource-label">Shields</div>
+          <div class="mythic-shield-grid">
+            <div class="mythic-mini-field"><span>Current Integrity</span><input type="number" min="0" name="system.combat.shields.current" value="{{mythicCombat.shields.current}}" /></div>
+            <div class="mythic-mini-field"><span>Max Integrity</span><input type="number" min="0" name="system.combat.shields.integrity" value="{{mythicCombat.shields.integrity}}" readonly /></div>
+            <div class="mythic-mini-field"><span>Recharge Delay</span><input type="number" min="0" name="system.combat.shields.rechargeDelay" value="{{mythicCombat.shields.rechargeDelay}}" readonly /></div>
+            <div class="mythic-mini-field"><button type="button" class="shields-recharge-btn mythic-mini-action-label">Recharge</button><input type="number" min="0" name="system.combat.shields.rechargeRate" value="{{mythicCombat.shields.rechargeRate}}" readonly /></div>
+          </div>
+        </div>
+
+        <div class="mythic-right-block">
+          <div class="mythic-resource-label">Support Points</div>
+          <div class="mythic-resource-values">
+            <div class="mythic-mini-field"><span>Current</span><input type="number" min="0" name="system.combat.supportPoints.current" value="{{mythicCombat.supportPoints.current}}" /></div>
+            <div class="mythic-mini-field"><span>Max</span><input type="number" min="0" name="system.combat.supportPoints.max" value="{{mythicCombat.supportPoints.max}}" /></div>
+          </div>
+          {{#if mythicDerived.outliers.advocate.enabled}}
+            <p class="ccadv-note">Advocate: each Support Point award should grant +{{mythicDerived.outliers.advocate.supportPointsPerAward}} extra Support Points.</p>
+          {{/if}}
+        </div>
+
+        <div class="mythic-right-block">
+          <div class="mythic-resource-label">Turn Economy</div>
+          <div class="mythic-reactions-tracker mythic-action-economy-tracker">
+            <div class="mythic-turn-economy-row">
+              <span>Reactions: <strong class="mythic-turn-economy-symbols">{{mythicCombat.reactions.symbols}}</strong></span>
+              <span>Half Actions: <strong>{{mythicCombat.actionEconomy.compactLabel}}</strong></span>
+            </div>
+            <div class="mythic-turn-economy-row">
+              <span>Penalty: <strong>{{mythicCombat.reactions.penaltyLabel}}</strong></span>
+              <span>Status: <strong>{{mythicCombat.actionEconomy.statusText}}</strong></span>
+            </div>
+            {{#if mythicCombat.actionEconomy.hasHistory}}
+              <div class="mythic-action-economy-history">
+                {{#each mythicCombat.actionEconomy.history}}<div>{{label}} ({{halfActions}} HA)</div>{{/each}}
+              </div>
+            {{/if}}
+            <div class="mythic-reaction-controls">
+              <button type="button" class="action-btn reaction-add-btn">+ Reaction</button>
+              <button type="button" class="action-btn action-economy-advance-half-btn" title="Advance one Half Action if you do something that the sheet is not mechanically programmed to count as a Half Action.">+HA</button>
+              <button type="button" class="action-btn turn-economy-reset-btn">Reset Turn</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mythic-ready-weapons-section">
+      <h3>Readied Weapons</h3>
+      {{#if mythicEquipment.readyWeaponCards.length}}
+        <div class="mythic-ready-weapon-grid">
+          {{#each mythicEquipment.readyWeaponCards as |weapon|}}
+          <article class="mythic-ready-weapon-card">
+            <header class="mythic-ready-weapon-card-header">
+              <div>
+                {{#if weapon.hasTrainingWarning}}
+                <div class="mythic-ready-weapon-warning" title="{{weapon.trainingWarningText}}">{{weapon.trainingWarningText}}</div>
+                {{/if}}
+                <div class="mythic-ready-weapon-name-row">
+                  <div class="mythic-ready-weapon-name">{{weapon.name}}</div>
+                  <button type="button" class="action-btn gear-open-btn mythic-ready-weapon-edit-btn" data-item-id="{{weapon.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+                </div>
+                  {{#if weapon.nickname}}<div class="mythic-ready-weapon-nickname">"{{weapon.nickname}}"</div>{{/if}}
+                <div class="mythic-ready-weapon-meta">
+                  {{weapon.displayWeaponClass}}
+                  {{#if weapon.isSmartLinkCapable}}
+                  <span class="mythic-ready-weapon-flag">Smart-Link</span>
+                  {{/if}}
+                </div>
+              </div>
+              <div class="mythic-ready-weapon-header-actions">
+                <span class="mythic-ready-weapon-state">{{#if weapon.isWielded}}Wielded{{else}}Ready{{/if}}</span>
+                {{#unless weapon.isWielded}}
+                <button type="button" class="action-btn gear-wield-btn" data-item-id="{{weapon.id}}">Wield this weapon</button>
+                {{/unless}}
+              </div>
+            </header>
+
+            {{#if weapon.showStandardFireModes}}
+            <div class="mythic-ready-weapon-modes">
+              {{#each weapon.fireModes as |mode|}}
+              <button
+                type="button"
+                class="action-btn weapon-fire-mode-btn {{#if mode.isSelected}}is-active{{/if}}"
+                data-item-id="{{weapon.id}}"
+                data-fire-mode="{{mode.value}}">{{mode.label}}</button>
+              {{/each}}
+            </div>
+            {{/if}}
+
+            {{#if weapon.showVariantSelector}}
+            <div class="mythic-ready-weapon-modes mythic-variant-selector" aria-label="Attack variant">
+              {{#each weapon.variantOptions as |opt|}}
+              <button
+                type="button"
+                class="action-btn weapon-variant-btn {{#if opt.isSelected}}is-active{{/if}}"
+                data-item-id="{{weapon.id}}"
+                data-variant-index="{{opt.index}}"
+                aria-pressed="{{#if opt.isSelected}}true{{else}}false{{/if}}"
+                title="Switch to {{opt.label}}">{{opt.label}}</button>
+              {{/each}}
+            </div>
+            {{/if}}
+
+            <div class="mythic-ready-weapon-attacks">
+              {{#if weapon.hasChargeModeSelected}}
+                <button type="button" class="action-btn weapon-attack-btn weapon-charge-fire-btn" data-item-id="{{weapon.id}}" data-action="chargeFire">Fire</button>
+              {{else if weapon.isGrenadeWeapon}}
+              <button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="half" data-grenade-action="throw">Throw</button>
+              <button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="half" data-grenade-action="cook">Cook</button>
+              {{else}}
+              {{#if weapon.showSustainedAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="single">Attack</button>{{/if}}
+              {{#if weapon.showSingleAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="single">Single Attack</button>{{/if}}
+              {{#if weapon.showHalfAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="half">Half Action ({{weapon.halfActionAttackCount}})</button>{{/if}}
+              {{#if weapon.showFullAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="full">Full Action ({{weapon.fullActionAttackCount}})</button>{{/if}}
+              {{#if weapon.showExecutionAttack}}<button type="button" class="action-btn weapon-attack-btn weapon-execution-btn" data-item-id="{{weapon.id}}" data-action="execution" aria-label="Execution Attack">&#9760;</button>{{/if}}
+              {{#if weapon.showButtstrokeAttack}}<button type="button" class="action-btn weapon-attack-btn weapon-buttstroke-btn" data-item-id="{{weapon.id}}" data-action="buttstroke" aria-label="Buttstroke">Butt</button>{{/if}}
+              {{#if weapon.showPumpReactionAttack}}<button type="button" class="action-btn weapon-attack-btn" data-item-id="{{weapon.id}}" data-action="pump-reaction">Reaction Shot</button>{{/if}}
+              {{/if}}
+            </div>
+
+            {{#if weapon.isInfusionRadius}}
+              <div class="mythic-ready-weapon-row-inline">
+                <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>
+                <label>Recharge
+                  <input type="number" min="0" max="{{weapon.infusionRechargeMax}}" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="rechargeRemaining" value="{{weapon.infusionRechargeRemaining}}" />
+                </label>
+                <span><strong>Max:</strong> {{weapon.infusionRechargeMax}} half actions</span>
+              </div>
+            {{/if}}
+
+            {{#if weapon.hasChargeModeSelected}}
+            <div class="mythic-ready-weapon-charge-row">
+              <div class="mythic-charge-meter" title="Charge Level">
+                {{#each weapon.chargePips as |pip|}}
+                <span class="mythic-charge-pip {{#if pip.filled}}is-filled{{/if}}" aria-hidden="true"></span>
+                {{/each}}
+              </div>
+              <div class="mythic-charge-label">Charge {{weapon.chargeLevel}}/{{weapon.chargeMaxLevel}} (+{{weapon.chargeDamageBonusPreview}} dmg)</div>
+              <button type="button" class="action-btn weapon-charge-btn" data-item-id="{{weapon.id}}">Charge</button>
+              <button type="button" class="action-btn weapon-clear-charge-btn" data-item-id="{{weapon.id}}">Clear</button>
+            </div>
+            {{/if}}
+
+            {{#if weapon.isInfusionRadius}}
+              <div class="mythic-ready-weapon-row-inline">
+                <span><strong>Damage:</strong> {{weapon.damageD10}}d10 + INT Mod</span>
+                <span><strong>Rules:</strong> Blast (8), Half Action, manual recharge tracking</span>
+              </div>
+            {{else}}
+              {{#if weapon.isMelee}}
+              <div class="mythic-ready-weapon-row-inline">
+                <span><strong>Reach:</strong> {{weapon.reach}} m</span>
+                <span><strong>Damage:</strong> {{weapon.damageDiceLabel}} + {{weapon.displayDamageBase}}</span>
+                <span><strong>Pierce:</strong> {{weapon.displayDamagePierce}}</span>
+                {{#if weapon.currentAttackName}}<span class="mythic-attack-type-badge">{{weapon.currentAttackName}}</span>{{/if}}
+              </div>
+              {{else}}
+              {{#unless weapon.isGrenadeWeapon}}
+              {{#if weapon.isEnergyWeapon}}
+              <div class="mythic-ready-weapon-row-inline mythic-energy-weapon-row">
+                <div class="mythic-energy-meter-wrap" title="{{weapon.energyCellCurrent}} / {{weapon.energyCellCapacity}}">
+                  <span class="mythic-energy-meter-label"><strong>{{weapon.ammoLabel}}:</strong></span>
+                  <div class="mythic-energy-meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{weapon.energyCellPercent}}">
+                    <div class="mythic-energy-meter-fill" style="width: {{weapon.energyCellPercent}}%;"></div>
+                    <span class="mythic-energy-meter-text">{{weapon.energyCellPercentDisplay}}%</span>
+                  </div>
+                </div>
+                <span><strong>Inventory:</strong> {{weapon.energyCellInventoryTotal}}</span>
+                <button type="button" class="action-btn weapon-reload-btn" data-item-id="{{weapon.id}}">Reload</button>
+                <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>
+              </div>
+              {{else}}
+              <div class="mythic-ready-weapon-row-inline">
+                {{#if weapon.showReadOnlyAmmoState}}
+                <span><strong>{{weapon.ammoLoadLabel}}:</strong> {{weapon.magazineCurrent}} / {{weapon.magazineMax}}</span>
+                {{#if weapon.activeLoaderLabel}}<span><strong>Loader:</strong> {{weapon.activeLoaderLabel}}</span>{{/if}}
+                {{#if weapon.nextRoundLabel}}<span><strong>Next:</strong> {{weapon.nextRoundLabel}}{{#if weapon.nextRoundSymbol}} <span class="mythic-special-ammo-symbol" title="{{weapon.nextRoundLabel}}">{{weapon.nextRoundSymbol}}</span>{{/if}}</span>{{/if}}
+                {{else}}
+                <label>Ammo ({{weapon.ammoLabel}})
+                  <input type="number" min="0" max="{{weapon.magazineMax}}" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="magazineCurrent" value="{{weapon.magazineCurrent}}" />
+                </label>
+                <span><strong>{{weapon.ammoLoadLabel}}:</strong> {{weapon.magazineCurrent}} / {{weapon.magazineMax}}</span>
+                {{/if}}
+                <span><strong>Inventory:</strong> {{weapon.ammoInventoryTotal}}</span>
+                <button type="button" class="action-btn weapon-reload-btn" data-item-id="{{weapon.id}}">Reload</button>
+                <span><strong>Range:</strong> {{weapon.rangeClose}} / {{weapon.rangeMax}} m</span>
+              </div>
+              {{/if}}
+              {{/unless}}
+              {{/if}}
+            {{/if}}
+
+            {{#if weapon.isGrenadeWeapon}}
+            <div class="mythic-ready-weapon-row-inline">
+              <span><strong>Total:</strong> {{weapon.grenadeTotal}}</span>
+              {{#if weapon.grenadeThrowCanThrow}}
+              <span title="Default throw range; actual range will be modified by the WFM test."><strong>Default Throw Range:</strong> {{weapon.grenadeThrowRangeMax}} m</span>
+              {{#if weapon.grenadeThrowServoAssisted}}<span><strong>Servo-Assisted:</strong> +25 STR</span>{{/if}}
+              {{else}}
+              <span title="Default throw range; actual range will be modified by the WFM test."><strong>Default Throw Range:</strong> Cannot throw</span>
+              {{#if weapon.grenadeThrowReason}}<span>({{weapon.grenadeThrowReason}})</span>{{/if}}
+              {{/if}}
+            </div>
+            {{/if}}
+            {{#if weapon.hasReadyBadges}}
+            <div class="mythic-ready-weapon-badges" aria-label="Weapon tags and special rules">
+              {{#each weapon.readyBadges as |badge|}}
+              <span class="mythic-ready-weapon-badge {{#if (eq badge.kind "rule")}}is-rule{{else}}is-tag{{/if}}" title="{{badge.fullLabel}}">{{badge.shortLabel}}</span>
+              {{/each}}
+            </div>
+            {{/if}}
+
+            <div class="mythic-ready-weapon-controls">
+              {{#unless weapon.isMelee}}
+              {{#unless weapon.isInfusionRadius}}
+              {{#unless weapon.isGrenadeWeapon}}
+              <label>Scope
+                <select class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="scopeMode">
+                  {{selectOptions weapon.scopeOptions selected=weapon.scopeMode}}
+                </select>
+              </label>
+              {{#if weapon.isSmartLinkCapable}}
+              <div class="mythic-smart-link-note" title="This weapon supports Smart-Link">Smart-Link Capable</div>
+              {{/if}}
+              {{/unless}}
+              {{/unless}}
+              {{/unless}}
+              <label>To Hit Mod
+                <input type="number" step="1" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="toHitModifier" value="{{weapon.toHitModifier}}" />
+              </label>
+              <label>Damage Mod
+                <input type="number" step="1" class="weapon-state-input" data-item-id="{{weapon.id}}" data-field="damageModifier" value="{{weapon.damageModifier}}" />
+              </label>
+            </div>
+
+            {{#unless weapon.isMelee}}
+            {{#unless weapon.isInfusionRadius}}
+            {{#unless weapon.isGrenadeWeapon}}
+            <div class="mythic-ready-weapon-row-inline">
+              <span><strong>Reload:</strong> {{#if weapon.isSingleLoadWeapon}}{{weapon.singleLoadPerHalfAction}}/HA{{else}}{{weapon.rangeReload}}{{/if}}</span>
+              <span><strong>{{weapon.ammoCapacityLabel}}:</strong> {{weapon.magazineMax}}</span>
+            </div>
+            {{/unless}}
+            {{/unless}}
+            {{/unless}}
+          </article>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="mythic-ready-weapon-empty">No readied weapons yet. Set weapon items to Ready in Inventory.</p>
+      {{/if}}
+    </div>
+
+    <details class="mythic-hand-to-hand-section">
+      <summary>Hand-to-Hand Combat</summary>
+      <div class="mythic-hth-actions">
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Unarmed Strike">Unarmed Strike</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Head-butt">Head-butt</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Grapple">Grapple</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Disarm">Disarm</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Tackle">Tackle</button>
+        <button type="button" class="action-btn hth-attack-btn" data-attack="Shove">Shove</button>
+      </div>
+    </details>
+  </section>
+</div>
+

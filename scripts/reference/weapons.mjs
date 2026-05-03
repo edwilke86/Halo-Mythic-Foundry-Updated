@@ -146,6 +146,17 @@ function deriveAmmoModeFallback(weaponCategory = "", weaponType = "") {
   return { ammoMode: "magazine", singleLoading: false };
 }
 
+const EXPLOSIVE_WEAPON_CATEGORIES = new Set([
+  "grenade",
+  "grenades",
+  "satchel charge",
+  "satchel charges",
+  "demolition",
+  "demolitions",
+  "landmine",
+  "landmines"
+]);
+
 function parseSpecialRuleValueNumber(row, headerMap, keys = []) {
   const raw = getCellAny(row, headerMap, keys);
   const numeric = parseReferenceNumber(raw);
@@ -335,6 +346,10 @@ export function parseReferenceWeaponRows(rows, weaponClass, tableName) {
       ? getCellAny(row, headerMap, ["Training", "Weapon Type", "Weapon type"])
       : getCellAny(row, headerMap, ["Weapon Type", "Weapon type"]);
     const weaponType = getCell(row, headerMap, "Weapon Category");
+    const normalizedWeaponCategory = String(weaponType ?? "").trim().toLowerCase();
+    const equipmentType = isMelee
+      ? "melee-weapon"
+      : (EXPLOSIVE_WEAPON_CATEGORIES.has(normalizedWeaponCategory) ? "explosives-and-grenades" : "ranged-weapon");
     const wieldingType = isMelee
       ? getCellAny(row, headerMap, ["Wielding Type", "Ammo Carrying Type"])
       : getCellAny(row, headerMap, ["Ammo Carrying Type", "Wielding Type"]);
@@ -420,7 +435,7 @@ export function parseReferenceWeaponRows(rows, weaponClass, tableName) {
       type: "gear",
       img: defaultIcon,
       system: normalizeGearSystemData({
-        equipmentType: isMelee ? "melee-weapon" : "ranged-weapon",
+        equipmentType,
         itemClass: "weapon",
         weaponClass,
         faction: getCell(row, headerMap, "faction"),

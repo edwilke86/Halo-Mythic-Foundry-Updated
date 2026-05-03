@@ -1,0 +1,54 @@
+<!-- â”€â”€ Non-armor gear fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<div class="ability-grid-3">
+  <div class="ability-info-row ability-col">
+    <label for="gear-category">Category</label>
+    <input id="gear-category" type="text" name="system.category" value="{{gear.category}}" {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+  {{#if showUniversalToggle}}
+  <div class="ability-info-row ability-col">
+    <label for="gear-is-universal">Universal</label>
+    <input id="gear-is-universal" type="checkbox" name="system.isUniversal" {{#if gear.isUniversal}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+  {{/if}}
+  {{#unless isDescriptionOnlyEquipmentItem}}
+  <div class="ability-info-row ability-col">
+    <label for="gear-weapon-type">Weapon Type</label>
+    <input id="gear-weapon-type" type="text" name="system.weaponType" value="{{gear.weaponType}}" {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+  {{/unless}}
+</div>
+
+{{#if gear.storage.isContainer}}
+<div class="ability-grid-3 mythic-storage-item-fields">
+  <div class="ability-info-row ability-col">
+    <label for="gear-storage-container-type">Container Type</label>
+    <input id="gear-storage-container-type" type="text" name="system.storage.containerType" value="{{gear.storage.containerType}}" {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+  <div class="ability-info-row ability-col">
+    <label for="gear-storage-capacity-units">Capacity Units</label>
+    <input id="gear-storage-capacity-units" type="number" min="0" step="1" name="system.storage.capacityUnits" value="{{gear.storage.capacityUnits}}" {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+  <div class="ability-info-row ability-col">
+    <label for="gear-storage-ammo-capacity">Ammo Capacity</label>
+    <input id="gear-storage-ammo-capacity" type="number" min="0" step="1" name="system.magazine.ammoCapacity" value="{{gear.magazine.ammoCapacity}}" {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+  <div class="ability-info-row ability-col">
+    <label for="gear-storage-weight-mode">Weight Mode</label>
+    <select id="gear-storage-weight-mode" name="system.storage.weightModifierMode" {{#unless canEditFields}}disabled{{/unless}}>
+      <option value="normal" {{#if (eq gear.storage.weightModifierMode "normal")}}selected{{/if}}>Normal</option>
+      <option value="halveContentsWeightWhenWorn" {{#if (eq gear.storage.weightModifierMode "halveContentsWeightWhenWorn")}}selected{{/if}}>Halve Contents When Worn</option>
+    </select>
+  </div>
+  <div class="ability-info-row ability-col">
+    <label for="gear-storage-quickdraw">Quickdraw</label>
+    <input id="gear-storage-quickdraw" type="checkbox" name="system.storage.quickdrawEligible" {{#if gear.storage.quickdrawEligible}}checked{{/if}} {{#unless canEditFields}}disabled{{/unless}} />
+  </div>
+</div>
+{{/if}}
+
+{{#if isDescriptionOnlyEquipmentItem}}
+<div class="ability-info-row ability-notes-row">
+  <label for="gear-general-description">Description</label>
+  <textarea id="gear-general-description" name="system.description" rows="12" {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
+</div>
+{{/if}}

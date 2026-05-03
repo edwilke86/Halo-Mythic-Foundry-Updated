@@ -1,0 +1,269 @@
+<div class="vehicle-overview-shell{{#if @root.mythicVehicleOverviewReadOnly}} is-read-only{{/if}}">
+  <h2>Overview</h2>
+
+  {{#if mythicVehicleOverview.specialRules.length}}
+    <div class="vehicle-overview-badge-row">
+      {{#each mythicVehicleOverview.specialRules as |rule|}}
+        <span class="vehicle-overview-badge{{#if rule.isDisabled}} is-disabled{{/if}}">{{rule.label}}</span>
+      {{/each}}
+    </div>
+  {{else}}
+    <div class="vehicle-overview-badge-row vehicle-overview-badge-row-empty">
+      <span class="vehicle-overview-empty">No special rules configured.</span>
+    </div>
+  {{/if}}
+
+  <section class="vehicle-overview-status-shell vehicle-overview-status-shell--{{mythicVehicleOverview.status.severity}}">
+    <div class="vehicle-overview-status-row">
+      <button
+        type="button"
+        class="vehicle-overview-toggle vehicle-overview-status-toggle"
+        data-target-path="{{mythicVehicleOverview.status.togglePath}}"
+        aria-expanded="{{#if mythicVehicleOverview.status.expanded}}true{{else}}false{{/if}}">
+        <span class="vehicle-overview-status-summary">{{mythicVehicleOverview.status.summaryText}}</span>
+        <span class="vehicle-overview-toggle-indicator">{{#if mythicVehicleOverview.status.expanded}}-{{else}}+{{/if}}</span>
+      </button>
+      {{#unless @root.mythicVehicleOverviewReadOnly}}
+      <button type="button" class="action-btn vehicle-overview-detonate-btn" title="Detonate" {{#unless mythicVehicleOverview.status.canDetonate}}disabled{{/unless}}>
+        <i class="fas fa-bomb"></i>
+      </button>
+      {{/unless}}
+    </div>
+
+    {{#if mythicVehicleOverview.status.expanded}}
+      <div class="vehicle-overview-status-panel">
+        <div class="vehicle-overview-status-panel-title">{{mythicVehicleOverview.status.summaryText}}</div>
+        {{#if mythicVehicleOverview.status.hasMessages}}
+          <div class="vehicle-overview-status-message-grid">
+            {{#each mythicVehicleOverview.status.messages as |message|}}
+              <div class="vehicle-overview-status-message">{{message.text}}</div>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="vehicle-overview-empty">No active status warnings.</div>
+        {{/if}}
+      </div>
+    {{/if}}
+  </section>
+
+  <section class="vehicle-overview-block vehicle-overview-breakpoints{{#if mythicVehicleOverview.breakpoints.isCritical}} is-critical{{/if}}">
+    <button
+      type="button"
+      class="vehicle-overview-toggle vehicle-overview-block-header"
+      data-target-path="{{mythicVehicleOverview.breakpoints.togglePath}}"
+      aria-expanded="{{#if mythicVehicleOverview.breakpoints.expanded}}true{{else}}false{{/if}}">
+      <span>Breakpoints</span>
+      <span class="vehicle-overview-toggle-indicator">{{#if mythicVehicleOverview.breakpoints.expanded}}-{{else}}+{{/if}}</span>
+    </button>
+
+    {{#if mythicVehicleOverview.breakpoints.expanded}}
+      <div class="vehicle-overview-block-body">
+        {{#each mythicVehicleOverview.breakpoints.sections as |section|}}
+          <section class="vehicle-overview-subsection">
+            <button
+              type="button"
+              class="vehicle-overview-toggle vehicle-overview-subsection-header"
+              data-target-path="{{section.togglePath}}"
+              aria-expanded="{{#if section.expanded}}true{{else}}false{{/if}}">
+              <span class="vehicle-overview-subsection-title">{{section.label}}</span>
+              <span class="vehicle-overview-subsection-header-right">
+                {{#if section.summaryPrimary}}<span class="vehicle-overview-subsection-summary">{{section.summaryPrimary}}</span>{{/if}}
+                {{#if section.summarySecondary}}<span class="vehicle-overview-subsection-summary vehicle-overview-subsection-summary-secondary">{{section.summarySecondary}}</span>{{/if}}
+                <span class="vehicle-overview-toggle-indicator">{{#if section.expanded}}-{{else}}+{{/if}}</span>
+              </span>
+            </button>
+
+            {{#if section.expanded}}
+              <div class="vehicle-overview-subsection-body">
+                {{#if section.descriptionText}}
+                  <div class="vehicle-overview-subsection-meta">
+                    <span>{{section.descriptionText}}</span>
+                  </div>
+                {{/if}}
+
+                {{#if section.hasRows}}
+                  {{#each section.bands as |band|}}
+                    <table class="vehicle-overview-breakpoint-table">
+                      <tbody>
+                        <tr class="vehicle-overview-breakpoint-row vehicle-overview-breakpoint-row-head">
+                          <th class="vehicle-overview-breakpoint-corner" scope="col"></th>
+                          {{#each band as |row|}}
+                            <th class="vehicle-overview-breakpoint-stat{{#if row.isCritical}} is-critical{{/if}}" scope="col">
+                              <div class="vehicle-overview-breakpoint-label">{{row.label}}</div>
+                            </th>
+                          {{/each}}
+                        </tr>
+
+                        <tr class="vehicle-overview-breakpoint-row vehicle-overview-breakpoint-row-current">
+                          <th class="vehicle-overview-breakpoint-axis" scope="row">Current</th>
+                          {{#each band as |row|}}
+                            <td class="vehicle-overview-breakpoint-value{{#if row.isCritical}} is-critical{{/if}}">
+                              <input
+                                class="vehicle-breakpoint-current-input"
+                                type="number"
+                                {{#unless @root.mythicVehicleOverviewReadOnly}}name="{{row.currentName}}"{{/unless}}
+                                data-update-path="{{row.currentName}}"
+                                data-current="{{row.current}}"
+                                {{#if @root.mythicCharacterVehicle.vehicleActorId}}data-vehicle-actor-id="{{@root.mythicCharacterVehicle.vehicleActorId}}"{{/if}}
+                                {{#if @root.mythicCharacterVehicle.vehicleUuid}}data-vehicle-uuid="{{@root.mythicCharacterVehicle.vehicleUuid}}"{{/if}}
+                                value="{{row.current}}"
+                                min="{{row.clampMin}}"
+                                max="{{row.clampMax}}"
+                                data-clamp-min="{{row.clampMin}}"
+                                data-clamp-max="{{row.clampMax}}"
+                                {{#unless @root.mythicVehicleBreakpointEditable}}disabled{{/unless}} />
+                            </td>
+                          {{/each}}
+                        </tr>
+
+                        <tr class="vehicle-overview-breakpoint-row vehicle-overview-breakpoint-row-max">
+                          <th class="vehicle-overview-breakpoint-axis" scope="row">Max</th>
+                          {{#each band as |row|}}
+                            <td class="vehicle-overview-breakpoint-value vehicle-overview-breakpoint-value-static{{#if row.isCritical}} is-critical{{/if}}">{{row.max}}</td>
+                          {{/each}}
+                        </tr>
+                      </tbody>
+                    </table>
+                  {{/each}}
+                {{else}}
+                  <div class="vehicle-overview-empty">{{section.emptyText}}</div>
+                {{/if}}
+              </div>
+            {{/if}}
+          </section>
+        {{/each}}
+      </div>
+    {{/if}}
+  </section>
+
+  <div class="vehicle-overview-card-grid">
+    <section class="vehicle-overview-card">
+      <div class="vehicle-overview-card-header">{{#if mythicVehicleIsWalker}}Walker Armor{{else}}Armor{{/if}}</div>
+      {{#if mythicVehicleIsWalker}}
+      <div class="vehicle-overview-armor-table vehicle-overview-walker-armor-table">
+        {{#each mythicVehicleWalker.locations as |location|}}
+          <div class="vehicle-overview-armor-cell vehicle-overview-armor-head">{{location.shortLabel}}</div>
+        {{/each}}
+        {{#each mythicVehicleWalker.locations as |location|}}
+          <div class="vehicle-overview-armor-cell vehicle-overview-armor-value {{location.stateClass}}">{{location.armor}}</div>
+        {{/each}}
+      </div>
+      {{else}}
+      <div class="vehicle-overview-armor-table">
+        {{#each mythicVehicleOverview.armor.rows as |row|}}
+          <div class="vehicle-overview-armor-cell vehicle-overview-armor-head">{{row.label}}</div>
+        {{/each}}
+        {{#each mythicVehicleOverview.armor.rows as |row|}}
+          <div class="vehicle-overview-armor-cell vehicle-overview-armor-value{{#if row.isCritical}} is-critical{{else}}{{#if row.isReduced}} is-reduced{{/if}}{{/if}}">{{row.current}}</div>
+        {{/each}}
+      </div>
+      {{/if}}
+    </section>
+
+    <section class="vehicle-overview-card">
+      <div class="vehicle-overview-card-header">Shields</div>
+      <div class="vehicle-overview-shields-table">
+        <div class="vehicle-overview-shields-label">Current</div>
+        <div class="vehicle-overview-shields-value">
+          <input
+            type="number"
+            name="{{mythicVehicleOverview.shields.currentName}}"
+            value="{{mythicVehicleOverview.shields.current}}"
+            min="0"
+            max="{{mythicVehicleOverview.shields.max}}"
+            data-clamp-min="0"
+            data-clamp-max="{{mythicVehicleOverview.shields.max}}"
+            {{#if @root.mythicVehicleOverviewReadOnly}}disabled{{else}}{{#unless editable}}readonly{{/unless}}{{/if}} />
+        </div>
+        <div class="vehicle-overview-shields-label">Delay</div>
+        <div class="vehicle-overview-shields-value vehicle-overview-shields-value-static">{{mythicVehicleOverview.shields.delay}}</div>
+
+        <div class="vehicle-overview-shields-label">Max</div>
+        <div class="vehicle-overview-shields-value vehicle-overview-shields-value-static">{{mythicVehicleOverview.shields.max}}</div>
+        {{#if @root.mythicVehicleOverviewReadOnly}}
+        <div class="vehicle-overview-shields-label">Recharge</div>
+        {{else}}
+        <button type="button" class="shields-recharge-btn vehicle-overview-shields-recharge-btn">Recharge</button>
+        {{/if}}
+        <div class="vehicle-overview-shields-value vehicle-overview-shields-value-static">{{mythicVehicleOverview.shields.recharge}}</div>
+      </div>
+    </section>
+  </div>
+
+  <section class="vehicle-overview-block vehicle-overview-custom-breakpoints">
+    <button
+      type="button"
+      class="vehicle-overview-toggle vehicle-overview-block-header"
+      data-target-path="{{mythicVehicleOverview.custom.togglePath}}"
+      aria-expanded="{{#if mythicVehicleOverview.custom.expanded}}true{{else}}false{{/if}}">
+      <span>Custom Breakpoints</span>
+      <span class="vehicle-overview-toggle-indicator">{{#if mythicVehicleOverview.custom.expanded}}-{{else}}+{{/if}}</span>
+    </button>
+
+    {{#if mythicVehicleOverview.custom.expanded}}
+      <div class="vehicle-overview-block-body">
+        {{#if @root.mythicVehicleBreakpointManagementEditable}}
+          <div class="vehicle-overview-custom-actions">
+            <button type="button" class="action-btn vehicle-overview-custom-add-btn">Add</button>
+            {{#if mythicVehicleOverview.custom.hasEntries}}
+              <button type="button" class="action-btn vehicle-overview-custom-clear-btn">Remove Table</button>
+            {{/if}}
+          </div>
+        {{/if}}
+
+        {{#if mythicVehicleOverview.custom.hasEntries}}
+          <table class="vehicle-overview-custom-table">
+            <tbody>
+              <tr>
+                <th scope="row"></th>
+                {{#each mythicVehicleOverview.custom.entries as |entry|}}
+                  <td class="vehicle-overview-custom-name-cell">
+                    <input type="hidden" name="{{entry.idName}}" value="{{entry.id}}" {{#unless @root.mythicVehicleBreakpointManagementEditable}}disabled{{/unless}} />
+                    <input type="text" name="{{entry.labelName}}" value="{{entry.label}}" placeholder="Breakpoint Name" {{#unless @root.mythicVehicleBreakpointManagementEditable}}disabled{{/unless}} />
+                  </td>
+                {{/each}}
+              </tr>
+              <tr>
+                <th scope="row">Current</th>
+                {{#each mythicVehicleOverview.custom.entries as |entry|}}
+                  <td>
+                    <input
+                      class="vehicle-breakpoint-current-input"
+                      type="number"
+                      {{#unless @root.mythicVehicleOverviewReadOnly}}name="{{entry.currentName}}"{{/unless}}
+                      data-update-path="{{entry.currentName}}"
+                      data-current="{{entry.current}}"
+                      {{#if @root.mythicCharacterVehicle.vehicleActorId}}data-vehicle-actor-id="{{@root.mythicCharacterVehicle.vehicleActorId}}"{{/if}}
+                      {{#if @root.mythicCharacterVehicle.vehicleUuid}}data-vehicle-uuid="{{@root.mythicCharacterVehicle.vehicleUuid}}"{{/if}}
+                      value="{{entry.current}}"
+                      min="0"
+                      max="{{entry.max}}"
+                      data-clamp-min="0"
+                      data-clamp-max="{{entry.max}}"
+                      {{#unless @root.mythicVehicleBreakpointEditable}}disabled{{/unless}} />
+                  </td>
+                {{/each}}
+              </tr>
+              <tr>
+                <th scope="row">Max</th>
+                {{#each mythicVehicleOverview.custom.entries as |entry|}}
+                  <td>
+                    <input
+                      type="number"
+                      name="{{entry.maxName}}"
+                      value="{{entry.max}}"
+                      min="0"
+                      data-clamp-min="0"
+                      {{#unless @root.mythicVehicleBreakpointManagementEditable}}disabled{{/unless}} />
+                  </td>
+                {{/each}}
+              </tr>
+            </tbody>
+          </table>
+        {{else}}
+          <div class="vehicle-overview-empty">No custom breakpoints yet.</div>
+        {{/if}}
+      </div>
+    {{/if}}
+  </section>
+</div>

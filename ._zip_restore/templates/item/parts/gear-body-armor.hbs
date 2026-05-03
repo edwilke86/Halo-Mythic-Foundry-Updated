@@ -1,0 +1,249 @@
+<nav class="gear-item-tabs-nav tabs" data-group="armor-tabs">
+  <a class="item" data-tab="general">General</a>
+  <a class="item" data-tab="special-rules">Special Rules</a>
+  <a class="item" data-tab="armor-abilities">Armor Abilities</a>
+  <a class="item" data-tab="armor-permutations">Permutations & Variants</a>
+  <a class="item" data-tab="char-bonus">Char. Bonus</a>
+</nav>
+
+<div class="gear-item-tabs-content">
+
+  <!-- â”€â”€ GENERAL TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <section class="tab" data-tab="general" data-group="armor-tabs">
+    <div class="armor-body-layout ability-notes-row">
+      <div class="armor-diagram-title">Mirrored Diagram</div>
+      <div class="armor-body-diagram">
+        {{> "systems/Halo-Mythic-Foundry-Updated/templates/item/parts/armor-protection-grid.hbs"}}
+      </div>
+
+        <div class="armor-power-row">
+          <label class="ability-checkbox-row">
+            <input type="checkbox" name="system.isPoweredArmor"
+              {{#if gear.isPoweredArmor}}checked{{/if}}
+              {{#unless canEditFields}}disabled{{/unless}} />
+            <span>Powered / Semi-Powered</span>
+          </label>
+
+          {{#if gear.isPoweredArmor}}
+            <label class="ability-checkbox-row">
+              <input type="checkbox" name="system.isCurrentlyUnpowered"
+                {{#if gear.isCurrentlyUnpowered}}checked{{/if}}
+                {{#unless canEditFields}}disabled{{/unless}} />
+              <span>Currently Unpowered</span>
+            </label>
+          {{/if}}
+        </div>
+
+      <div class="ability-grid-3">
+        <div class="ability-info-row ability-col">
+          <label for="armor-shield">Shield Integrity</label>
+          <input id="armor-shield" type="number" min="0" step="1" name="system.shields.integrity"
+            value="{{gear.shields.integrity}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="armor-delay">Shield Delay</label>
+          <input id="armor-delay" type="number" min="0" step="1" name="system.shields.delay"
+            value="{{gear.shields.delay}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+        <div class="ability-info-row ability-col">
+          <label for="armor-recharge">Recharge Rate</label>
+          <input id="armor-recharge" type="number" min="0" step="1" name="system.shields.rechargeRate"
+            value="{{gear.shields.rechargeRate}}" {{#unless canEditFields}}disabled{{/unless}} />
+        </div>
+      </div>
+      <div class="ability-info-row ability-notes-row">
+        <label for="armor-notes">{{#if isArmorModificationItem}}Description{{else}}Notes &amp; Features{{/if}}</label>
+        <textarea id="armor-notes" name="system.description" rows="{{#if isArmorModificationItem}}12{{else}}8{{/if}}"
+          {{#unless canEditFields}}disabled{{/unless}}>{{gear.description}}</textarea>
+      </div>
+
+      <div class="ability-info-row ability-notes-row">
+        <p class="gear-tab-section-label">Break Points</p>
+        <div class="ability-grid-3">
+          <div class="ability-info-row ability-col">
+            <label for="armor-bp-current">Current</label>
+            <input id="armor-bp-current" type="number" step="1" name="system.breakPoints.current"
+              value="{{gear.breakPoints.current}}" {{#unless canEditFields}}disabled{{/unless}} />
+          </div>
+          <div class="ability-info-row ability-col">
+            <label for="armor-bp-max">Max</label>
+            <input id="armor-bp-max" type="number" step="1" name="system.breakPoints.max"
+              value="{{gear.breakPoints.max}}" {{#unless canEditFields}}disabled{{/unless}} />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- â”€â”€ SPECIAL RULES TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <section class="tab" data-tab="special-rules" data-group="armor-tabs">
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Armor Special Rules</p>
+      {{#if armorSpecialRuleOptions.length}}
+      <div class="ability-grid-3">
+        {{#each armorSpecialRuleOptions as |opt|}}
+        <label class="ability-checkbox-row">
+          <input type="checkbox" name="system.armorSpecialRuleKeys" value="{{opt.key}}"
+            {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+          <span>{{opt.label}}</span>
+          {{#if opt.hasInlineValueField}}
+          {{#if opt.selected}}
+          <input class="photo-reactive-inline-value" type="number" min="0" max="99" step="1"
+            name="system.photoReactivePanelsBonus" value="{{../photoReactivePanelsBonus}}"
+            {{#unless ../canEditFields}}disabled{{/unless}} />
+          {{/if}}
+          {{/if}}
+        </label>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="gear-placeholder-note">Armor special rules have not been defined yet.</p>
+      {{/if}}
+    </div>
+
+    {{#if gear.isPoweredArmor}}
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Power Armor Traits</p>
+      <div class="ability-grid-3">
+        {{#each powerArmorTraitOptions as |opt|}}
+        <label class="ability-checkbox-row">
+          <input type="checkbox" name="system.powerArmorTraitKeys" value="{{opt.key}}"
+            {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+          <span>{{opt.label}}</span>
+        </label>
+        {{/each}}
+      </div>
+    </div>
+    <div class="ability-info-row ability-notes-row">
+      <label>Built-In Items</label>
+      <div class="armor-built-in-items" data-built-in-drop-zone>
+        <p class="armor-built-in-drop-hint">Drop gear items here to link them as built-in components.</p>
+        {{#if builtInItems.length}}
+        <div class="armor-built-in-list">
+          {{#each builtInItems as |entry|}}
+          <div class="armor-built-in-row {{#if entry.missing}}is-missing{{/if}}">
+            <span class="armor-built-in-label">{{entry.label}}</span>
+            {{#if ../canEditFields}}
+            <button type="button" class="armor-built-in-remove" data-built-in-remove="{{entry.uuid}}">Remove</button>
+            {{/if}}
+          </div>
+          {{/each}}
+        </div>
+        {{else}}
+        <p class="gear-placeholder-note">No linked built-in items yet.</p>
+        {{/if}}
+      </div>
+    </div>
+    {{/if}}
+  </section>
+
+  <!-- â”€â”€ ARMOR ABILITIES TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <section class="tab" data-tab="armor-abilities" data-group="armor-tabs">
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Armor Abilities</p>
+      {{#if armorAbilityOptions.length}}
+      <div class="ability-grid-3">
+        {{#each armorAbilityOptions as |opt|}}
+        <label class="ability-checkbox-row">
+          <input type="checkbox" name="system.armorAbilityKeys" value="{{opt.key}}"
+            {{#if opt.selected}}checked{{/if}} {{#unless ../canEditFields}}disabled{{/unless}} />
+          <span>{{opt.label}}</span>
+        </label>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="gear-placeholder-note">Armor abilities have not been defined yet.</p>
+      {{/if}}
+    </div>
+  </section>
+
+  <!-- â”€â”€ ARMOR PERMUTATIONS TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <section class="tab" data-tab="armor-permutations" data-group="armor-tabs">
+    <div class="ability-info-row ability-notes-row">
+      <p class="gear-tab-section-label">Armor Permutations</p>
+      <p class="gear-placeholder-note">Coming soon.</p>
+    </div>
+  </section>
+
+  <!-- â”€â”€ CHAR. BONUS TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <section class="tab tab-char-bonus" data-tab="char-bonus" data-group="armor-tabs">
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-str">STR</label>
+        <input id="armor-mod-str" type="number" step="1" name="system.characteristicMods.base.str"
+          value="{{gear.characteristicMods.base.str}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-tou">TOU</label>
+        <input id="armor-mod-tou" type="number" step="1" name="system.characteristicMods.base.tou"
+          value="{{gear.characteristicMods.base.tou}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-agi">AGI</label>
+        <input id="armor-mod-agi" type="number" step="1" name="system.characteristicMods.base.agi"
+          value="{{gear.characteristicMods.base.agi}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-wfm">WFM</label>
+        <input id="armor-mod-wfm" type="number" step="1" name="system.characteristicMods.base.wfm"
+          value="{{gear.characteristicMods.base.wfm}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-wfr">WFR</label>
+        <input id="armor-mod-wfr" type="number" step="1" name="system.characteristicMods.base.wfr"
+          value="{{gear.characteristicMods.base.wfr}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-int">INT</label>
+        <input id="armor-mod-int" type="number" step="1" name="system.characteristicMods.base.int"
+          value="{{gear.characteristicMods.base.int}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-per">PER</label>
+        <input id="armor-mod-per" type="number" step="1" name="system.characteristicMods.base.per"
+          value="{{gear.characteristicMods.base.per}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-crg">CRG</label>
+        <input id="armor-mod-crg" type="number" step="1" name="system.characteristicMods.base.crg"
+          value="{{gear.characteristicMods.base.crg}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-cha">CHA</label>
+        <input id="armor-mod-cha" type="number" step="1" name="system.characteristicMods.base.cha"
+          value="{{gear.characteristicMods.base.cha}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-ldr">LDR</label>
+        <input id="armor-mod-ldr" type="number" step="1" name="system.characteristicMods.base.ldr"
+          value="{{gear.characteristicMods.base.ldr}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+    <p class="gear-tab-section-label">Mythic Characteristics</p>
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-mythic-str">Mythic STR</label>
+        <input id="armor-mod-mythic-str" type="number" step="1" name="system.characteristicMods.mythic.str"
+          value="{{gear.characteristicMods.mythic.str}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-mythic-tou">Mythic TOU</label>
+        <input id="armor-mod-mythic-tou" type="number" step="1" name="system.characteristicMods.mythic.tou"
+          value="{{gear.characteristicMods.mythic.tou}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-mod-mythic-agi">Mythic AGI</label>
+        <input id="armor-mod-mythic-agi" type="number" step="1" name="system.characteristicMods.mythic.agi"
+          value="{{gear.characteristicMods.mythic.agi}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+  </section>
+
+</div><!-- end .gear-item-tabs-content -->

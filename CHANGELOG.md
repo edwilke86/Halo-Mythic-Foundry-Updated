@@ -4,6 +4,13 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
+## [0.5.0-alpha.3] - 2026-05-04
+
+### Changed (0.5.0-alpha.3)
+
+- Updated ranged weapon reference content and related compendium/source synchronization for current alpha balancing updates.
+- Refined combat and actor-sheet workflow behavior in core hooks and sheet handling to support the latest rules pass.
+
 ## [0.5.0-alpha.1] - 2026-04-24
 
 ### Added (0.5.0-alpha.1)

@@ -5,6 +5,7 @@ import {
   MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY,
   MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY,
   MYTHIC_BESTIARY_DIFFICULTY_MODES,
+  MYTHIC_ALLOW_PLAYER_BLAST_KILL_TEMPLATE_PLACEMENT_SETTING_KEY,
   MYTHIC_EDUCATION_DEFAULT_ICON,
   MYTHIC_ABILITY_DEFAULT_ICON,
   MYTHIC_UPBRINGING_DEFAULT_ICON,
@@ -1348,6 +1349,318 @@ function parseBlastKillRadii(attackData = {}) {
     blastRadius: blastMatch ? Math.max(0, Number(blastMatch[1])) : 0,
     killRadius: killMatch ? Math.max(0, Number(killMatch[1])) : 0,
   };
+}
+
+function getSourceWeaponItemFromPayload(itemOrPayload = {}) {
+  const payload =
+    itemOrPayload && typeof itemOrPayload === "object" ? itemOrPayload : {};
+  const ownerActorId = String(
+    payload?.weaponOwnerActorId ?? payload?.attackerId ?? "",
+  ).trim();
+  const weaponId = String(payload?.weaponId ?? "").trim();
+  if (!ownerActorId || !weaponId) return null;
+  const ownerActor = game.actors?.get(ownerActorId) ?? null;
+  if (!ownerActor) return null;
+  return ownerActor.items?.get?.(weaponId) ?? null;
+}
+
+function getNormalizedEquipmentClassification(itemOrPayload = {}) {
+  const directType = String(
+    itemOrPayload?.equipmentType ??
+      itemOrPayload?.weaponEquipmentType ??
+      itemOrPayload?.system?.equipmentType ??
+      "",
+  )
+    .trim()
+    .toLowerCase();
+  if (directType) return directType;
+  const sourceItem = getSourceWeaponItemFromPayload(itemOrPayload);
+  if (!sourceItem) return "";
+  return String(sourceItem?.system?.equipmentType ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function readRadiusValueFromPayload(itemOrPayload = {}, key = "blast radius") {
+  const payload =
+    itemOrPayload && typeof itemOrPayload === "object" ? itemOrPayload : {};
+  const numericDirect = Number(payload?.[key === "blast radius" ? "blastRadius" : "killRadius"] ?? NaN);
+  if (Number.isFinite(numericDirect) && numericDirect > 0) {
+    return Math.floor(numericDirect);
+  }
+  const specialRuleValues =
+    payload?.weaponSpecialRuleValues &&
+    typeof payload.weaponSpecialRuleValues === "object" &&
+    !Array.isArray(payload.weaponSpecialRuleValues)
+      ? payload.weaponSpecialRuleValues
+      : {};
+  const ruleValue = Number(String(specialRuleValues?.[key] ?? "").trim());
+  if (Number.isFinite(ruleValue) && ruleValue > 0) return Math.floor(ruleValue);
+  const sourceItem = getSourceWeaponItemFromPayload(payload);
+  if (sourceItem) {
+    const itemSpecialRuleValues =
+      sourceItem?.system?.weaponSpecialRuleValues &&
+      typeof sourceItem.system.weaponSpecialRuleValues === "object" &&
+      !Array.isArray(sourceItem.system.weaponSpecialRuleValues)
+        ? sourceItem.system.weaponSpecialRuleValues
+        : {};
+    const itemRuleValue = Number(
+      String(itemSpecialRuleValues?.[key] ?? "").trim(),
+    );
+    if (Number.isFinite(itemRuleValue) && itemRuleValue > 0) {
+      return Math.floor(itemRuleValue);
+    }
+  }
+  const rulesText = String(
+    payload?.specialRules ??
+      sourceItem?.system?.specialRules ??
+      "",
+  );
+  const regex =
+    key === "blast radius"
+      ? /blast\s*\((\d+)\)/iu
+      : /kill\s*(?:radius)?\s*\((\d+)\)/iu;
+  const match = rulesText.match(regex);
+  return match ? Math.max(0, Math.floor(Number(match[1] ?? 0))) : 0;
+}
+
+function getBlastRadius(itemOrPayload = {}) {
+  return readRadiusValueFromPayload(itemOrPayload, "blast radius");
+}
+
+function getKillRadius(itemOrPayload = {}) {
+  return readRadiusValueFromPayload(itemOrPayload, "kill radius");
+}
+
+function isBlastKillRangedWeapon(itemOrPayload = {}) {
+  const classification = getNormalizedEquipmentClassification(itemOrPayload);
+  if (!classification) return false;
+  if (classification === "explosives-and-grenades") return false;
+  if (classification !== "ranged-weapon" && classification !== "ranged weapon") {
+    return false;
+  }
+  return getBlastRadius(itemOrPayload) > 0 || getKillRadius(itemOrPayload) > 0;
+}
+
+async function createBlastKillRadiusTemplates({
+  sceneId = null,
+  x = 0,
+  y = 0,
+  blastRadius = 0,
+  killRadius = 0,
+  sourceChatMessageId = "",
+} = {}) {
+  const scene = game.scenes?.get(String(sceneId ?? "")) ?? canvas?.scene;
+  if (!scene) return { count: 0, templateIds: [] };
+  const messageId = String(sourceChatMessageId ?? "").trim();
+  const templateData = [];
+  const bx = Number(x ?? 0);
+  const by = Number(y ?? 0);
+  const blast = Math.max(0, Number(blastRadius ?? 0) || 0);
+  const kill = Math.max(0, Number(killRadius ?? 0) || 0);
+  if (blast > 0) {
+    templateData.push({
+      t: "circle",
+      user: game.user.id,
+      x: bx,
+      y: by,
+      distance: blast,
+      direction: 0,
+      borderColor: "#ffff00",
+      fillColor: "#ffffff",
+      flags: {
+        "Halo-Mythic-Foundry-Updated": {
+          blastKillFlow: true,
+          sourceChatMessageId: messageId,
+          templateRole: "blast",
+        },
+      },
+    });
+  }
+  if (kill > 0) {
+    templateData.push({
+      t: "circle",
+      user: game.user.id,
+      x: bx,
+      y: by,
+      distance: kill,
+      direction: 0,
+      borderColor: "#ffffff",
+      fillColor: "#ff0000",
+      flags: {
+        "Halo-Mythic-Foundry-Updated": {
+          blastKillFlow: true,
+          sourceChatMessageId: messageId,
+          templateRole: "kill",
+        },
+      },
+    });
+  }
+  if (!templateData.length) return { count: 0, templateIds: [] };
+  try {
+    const created = await scene.createEmbeddedDocuments("MeasuredTemplate", templateData);
+    const templateIds = Array.isArray(created)
+      ? normalizeGrenadeExplosionTemplateIds(created.map((entry) => entry?.id))
+      : [];
+    return { count: templateIds.length, templateIds };
+  } catch (_error) {
+    return { count: 0, templateIds: [] };
+  }
+}
+
+function promptBlastKillTemplateCenterPoint() {
+  return new Promise((resolve) => {
+    const appView = canvas?.app?.view ?? null;
+    if (!appView) {
+      resolve(null);
+      return;
+    }
+    let finished = false;
+    let teardownHookId = null;
+    let readyHookId = null;
+    const cleanup = () => {
+      appView.removeEventListener("pointerdown", onPointerDown, true);
+      appView.removeEventListener("contextmenu", onContextMenu, true);
+      if (teardownHookId) Hooks.off("canvasTearDown", teardownHookId);
+      if (readyHookId) Hooks.off("canvasReady", readyHookId);
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+    const finalize = (point) => {
+      if (finished) return;
+      finished = true;
+      cleanup();
+      resolve(point);
+    };
+    const resolveCanvasPointFromClient = (clientX, clientY) => {
+      const x = Number(clientX ?? NaN);
+      const y = Number(clientY ?? NaN);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+      try {
+        if (typeof canvas?.canvasCoordinatesFromClient === "function") {
+          const p = canvas.canvasCoordinatesFromClient({ x, y });
+          if (p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y))) {
+            return { x: Math.round(Number(p.x)), y: Math.round(Number(p.y)) };
+          }
+        }
+      } catch (_error) {
+        // fall through to manual transform
+      }
+      const rect = appView.getBoundingClientRect();
+      const localX = x - rect.left;
+      const localY = y - rect.top;
+      const tx = Number(canvas?.stage?.transform?.tx ?? 0);
+      const ty = Number(canvas?.stage?.transform?.ty ?? 0);
+      const sx = Number(canvas?.stage?.transform?.a ?? 1) || 1;
+      const sy = Number(canvas?.stage?.transform?.d ?? 1) || 1;
+      return {
+        x: Math.round((localX - tx) / sx),
+        y: Math.round((localY - ty) / sy),
+      };
+    };
+    const onPointerDown = (event) => {
+      if (event?.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const point = resolveCanvasPointFromClient(event.clientX, event.clientY);
+      finalize(point);
+    };
+    const onContextMenu = (event) => {
+      event.preventDefault();
+      finalize(null);
+    };
+    const onKeyDown = (event) => {
+      if (String(event?.key ?? "").toLowerCase() === "escape") {
+        event.preventDefault();
+        finalize(null);
+      }
+    };
+    teardownHookId = Hooks.on("canvasTearDown", () => finalize(null));
+    readyHookId = Hooks.on("canvasReady", () => finalize(null));
+    appView.addEventListener("pointerdown", onPointerDown, true);
+    appView.addEventListener("contextmenu", onContextMenu, true);
+    window.addEventListener("keydown", onKeyDown, true);
+    ui.notifications?.info("Click a point to place Blast/Kill templates. Right-click or Esc to cancel.");
+  });
+}
+
+function buildRadiusDamagePreviewAttackData(
+  attackData = {},
+  { damageTotal = 0, damagePierce = 0, label = "Radius Damage" } = {},
+) {
+  const controlled = Array.isArray(canvas?.tokens?.controlled)
+    ? canvas.tokens.controlled
+    : [];
+  const selectedTokenIds = controlled
+    .map((token) => String(token?.id ?? "").trim())
+    .filter(Boolean);
+  const selectedActorIds = controlled
+    .map((token) => String(token?.actor?.id ?? "").trim())
+    .filter(Boolean);
+  const hitLoc = {
+    zone: "",
+    subZone: "",
+    drKey: "",
+    radiusUsesLowestArmor: true,
+  };
+  return {
+    ...attackData,
+    isSuccess: true,
+    dosValue: Number(attackData?.dosValue ?? 0),
+    targetTokenIds: selectedTokenIds,
+    targetActorIds: selectedActorIds,
+    targetTokenId: selectedTokenIds[0] ?? null,
+    targetActorId: selectedActorIds[0] ?? null,
+    evasionRows: [
+      {
+        attackIndex: 1,
+        repeatCount: 1,
+        damageTotal: Math.max(0, Number(damageTotal ?? 0) || 0),
+        damagePierce: Math.max(0, Number(damagePierce ?? 0) || 0),
+        hitLoc,
+        hasSpecialDamage: Boolean(attackData?.hasSpecialDamage),
+        isHardlight: Boolean(attackData?.isHardlight),
+        isKinetic: Boolean(attackData?.isKinetic),
+        isHeadshot: false,
+        isPenetrating: Boolean(attackData?.isPenetrating),
+        hasBlastOrKill: true,
+        radiusUsesLowestArmor: true,
+        appliesShieldPierce: Boolean(attackData?.appliesShieldPierce),
+        explosiveShieldPierce: Boolean(attackData?.explosiveShieldPierce),
+        ignoresShields: false,
+      },
+    ],
+    attackRows: [
+      {
+        index: 1,
+        dosValue: Number(attackData?.dosValue ?? 0),
+        isSuccess: true,
+        hitLoc,
+        damageInstances: [
+          {
+            damageTotal: Math.max(0, Number(damageTotal ?? 0) || 0),
+            damagePierce: Math.max(0, Number(damagePierce ?? 0) || 0),
+            hitLoc,
+            hasSpecialDamage: Boolean(attackData?.hasSpecialDamage),
+            isHardlight: Boolean(attackData?.isHardlight),
+            isKinetic: Boolean(attackData?.isKinetic),
+            isHeadshot: false,
+            isPenetrating: Boolean(attackData?.isPenetrating),
+            hasBlastOrKill: true,
+            radiusUsesLowestArmor: true,
+            appliesShieldPierce: Boolean(attackData?.appliesShieldPierce),
+            explosiveShieldPierce: Boolean(attackData?.explosiveShieldPierce),
+            ignoresShields: false,
+          },
+        ],
+        wouldDamage: [],
+      },
+    ],
+  };
+}
+
+function computeKillRadiusPreviewDamageTotal(attackData = {}) {
+  const blastTotal = Math.max(0, Number(attackData?.damageTotal ?? 0) || 0);
+  return Math.max(0, blastTotal * 2);
 }
 
 function isCookGrenadeEvent(event = {}) {
@@ -5151,6 +5464,7 @@ export function registerMythicDocumentAndChatHooks({
   mythicRollEvadeIntoCover,
   mythicApplyGrenadeBlastDamage,
   mythicApplyGrenadeKillDamage,
+  mythicApplyBlastKillRangedDamage,
   mythicRollVehicleSplatterEvasion,
   mythicRollVehicleSplatterFollowup,
   mythicApplyVehicleSplatterDamage,
@@ -6837,6 +7151,11 @@ export function registerMythicDocumentAndChatHooks({
         entry?.actor?.testUserPermission?.(game.user, "OWNER"),
       );
     })();
+    const blastRadius = getBlastRadius(attackData ?? {});
+    const killRadius = getKillRadius(attackData ?? {});
+    const isBlastKillRangedAttackMessage = Boolean(
+      attackData && isBlastKillRangedWeapon(attackData),
+    );
     const getAttackRowOverrides = () => {
       const raw = message.getFlag(
         "Halo-Mythic-Foundry-Updated",
@@ -7006,9 +7325,10 @@ export function registerMythicDocumentAndChatHooks({
           if (!Number.isFinite(attackIndex) || attackIndex <= 0) return;
           const rowPayload = getEffectiveAttackIndexPayload(attackIndex);
           const canUseButtons = canUsePerAttackPlayerButtons;
+          const hideRowDamageButton = isBlastKillRangedAttackMessage;
           actionRoot.innerHTML = `
             <button type="button" class="action-btn mythic-row-ev-btn" data-attack-index="${attackIndex}" title="Roll Evasion for Targeted Token" aria-label="Roll Evasion for Targeted Token" ${canUseButtons && rowPayload ? "" : "disabled"}>E</button>
-            <button type="button" class="action-btn mythic-row-dmg-btn" data-attack-index="${attackIndex}" title="Preview Damage for Targeted Token" aria-label="Preview Damage for Targeted Token" ${canUseButtons && rowPayload ? "" : "disabled"}>D</button> `;
+            ${hideRowDamageButton ? "" : `<button type="button" class="action-btn mythic-row-dmg-btn" data-attack-index="${attackIndex}" title="Preview Damage for Targeted Token" aria-label="Preview Damage for Targeted Token" ${canUseButtons && rowPayload ? "" : "disabled"}>D</button>`} `;
           const evBtn = actionRoot.querySelector(".mythic-row-ev-btn");
           const dmgBtn = actionRoot.querySelector(".mythic-row-dmg-btn");
           evBtn?.addEventListener("click", async () => {
@@ -7150,6 +7470,135 @@ export function registerMythicDocumentAndChatHooks({
           .querySelectorAll(".mythic-row-override-btn")
           .forEach((btn) => btn.remove());
       }
+    }
+
+    if (attackData && isBlastKillRangedAttackMessage) {
+      const msgId = String(message.id ?? "").trim();
+      const sceneId = String(attackData?.sceneId ?? canvas?.scene?.id ?? "").trim();
+      const controlsFlag =
+        message.getFlag("Halo-Mythic-Foundry-Updated", "blastKillRangedControls") ?? {};
+      const templateIds = normalizeGrenadeExplosionTemplateIds(
+        controlsFlag?.templateIds ?? [],
+      );
+      const allowPlayersPlace = Boolean(
+        game.settings.get(
+          "Halo-Mythic-Foundry-Updated",
+          MYTHIC_ALLOW_PLAYER_BLAST_KILL_TEMPLATE_PLACEMENT_SETTING_KEY,
+        ),
+      );
+      const canPlaceTemplates =
+        game.user.isGM || (allowPlayersPlace && message.isAuthor === true);
+      const panel = document.createElement("div");
+      panel.classList.add("mythic-gm-attack-panel");
+      panel.innerHTML = `
+        <div class="mythic-gm-panel-title">Blast/Kill Controls</div>
+        ${(blastRadius > 0 || killRadius > 0) ? '<button type="button" class="action-btn mythic-bk-drop-templates-btn">Drop Radius Templates</button>' : ""}
+        ${blastRadius > 0 ? '<button type="button" class="action-btn mythic-bk-blast-damage-btn">Blast Damage</button>' : ""}
+        ${killRadius > 0 ? '<button type="button" class="action-btn mythic-bk-kill-damage-btn">Kill Damage</button>' : ""}
+        ${templateIds.length > 0 ? '<button type="button" class="action-btn mythic-bk-clear-templates-btn">Clear Templates</button>' : ""}
+      `;
+
+      panel
+        .querySelector(".mythic-bk-drop-templates-btn")
+        ?.addEventListener("click", async () => {
+          if (!canPlaceTemplates) {
+            ui.notifications?.warn("Only the GM may place these templates with current settings.");
+            return;
+          }
+          if (!canvas?.scene || sceneId !== String(canvas.scene.id ?? "").trim()) {
+            ui.notifications?.warn("Open the source scene to place templates for this attack.");
+            return;
+          }
+          const canCreate = Boolean(
+            canvas?.scene?.canUserModify?.(game.user, "create") ??
+              game.user.isGM,
+          );
+          if (!canCreate) {
+            ui.notifications?.warn(
+              "You cannot create measured templates in this scene. Ask the GM to place Blast/Kill templates.",
+            );
+            return;
+          }
+          const point = await promptBlastKillTemplateCenterPoint();
+          if (!point) return;
+          const created = await createBlastKillRadiusTemplates({
+            sceneId,
+            x: point.x,
+            y: point.y,
+            blastRadius,
+            killRadius,
+            sourceChatMessageId: msgId,
+          });
+          if (Number(created?.count ?? 0) <= 0) {
+            ui.notifications?.warn("No radius templates were created.");
+            return;
+          }
+          await message.setFlag("Halo-Mythic-Foundry-Updated", "blastKillRangedControls", {
+            templateIds: normalizeGrenadeExplosionTemplateIds([
+              ...templateIds,
+              ...(Array.isArray(created?.templateIds) ? created.templateIds : []),
+            ]),
+            sceneId,
+          });
+          await message.render(true);
+        });
+
+      panel
+        .querySelector(".mythic-bk-blast-damage-btn")
+        ?.addEventListener("click", async () => {
+          if (typeof mythicCreateAttackDamagePreview !== "function") return;
+          const scopedPreviewData = buildRadiusDamagePreviewAttackData(attackData, {
+            damageTotal: Number(attackData?.damageTotal ?? 0),
+            damagePierce: Number(attackData?.damagePierce ?? 0),
+            label: "Blast",
+          });
+          await mythicCreateAttackDamagePreview(msgId, scopedPreviewData, {
+            attackIndex: 1,
+          });
+        });
+      panel
+        .querySelector(".mythic-bk-kill-damage-btn")
+        ?.addEventListener("click", async () => {
+          if (typeof mythicCreateAttackDamagePreview !== "function") return;
+          const scopedPreviewData = buildRadiusDamagePreviewAttackData(attackData, {
+            damageTotal: computeKillRadiusPreviewDamageTotal(attackData),
+            damagePierce: Number(attackData?.damagePierce ?? 0),
+            label: "Kill",
+          });
+          await mythicCreateAttackDamagePreview(msgId, scopedPreviewData, {
+            attackIndex: 1,
+          });
+        });
+      panel
+        .querySelector(".mythic-bk-clear-templates-btn")
+        ?.addEventListener("click", async () => {
+          const targetScene = game.scenes?.get(sceneId) ?? canvas?.scene;
+          if (!targetScene) return;
+          const docs = Array.from(targetScene.templates ?? []);
+          const owned = docs
+            .filter((doc) => {
+              const flag = doc?.getFlag?.("Halo-Mythic-Foundry-Updated", "blastKillFlow");
+              const sourceId = String(
+                doc?.getFlag?.("Halo-Mythic-Foundry-Updated", "sourceChatMessageId") ?? "",
+              ).trim();
+              return flag === true && sourceId === msgId;
+            })
+            .map((doc) => String(doc?.id ?? "").trim())
+            .filter(Boolean);
+          if (!owned.length) return;
+          try {
+            await targetScene.deleteEmbeddedDocuments("MeasuredTemplate", owned);
+          } catch (_error) {
+            return;
+          }
+          await message.setFlag(
+            "Halo-Mythic-Foundry-Updated",
+            "blastKillRangedControls",
+            { templateIds: [], sceneId },
+          );
+          await message.render(true);
+        });
+      cardEl.appendChild(panel);
     }
 
     if (
@@ -7335,16 +7784,37 @@ export function registerMythicDocumentAndChatHooks({
       panel
         .querySelector(".mythic-blast-damage-btn")
         ?.addEventListener("click", async () => {
-          if (typeof mythicApplyGrenadeBlastDamage === "function") {
-            await mythicApplyGrenadeBlastDamage(msgId, attackData, "selected");
-          }
+          if (typeof mythicCreateAttackDamagePreview !== "function") return;
+          const scopedPreviewData = buildRadiusDamagePreviewAttackData(attackData, {
+            damageTotal: Number(
+              attackData?.grenadeBlastDamage ?? attackData?.damageTotal ?? 0,
+            ),
+            damagePierce: Number(
+              attackData?.grenadeBlastPierce ?? attackData?.damagePierce ?? 0,
+            ),
+            label: "Blast",
+          });
+          await mythicCreateAttackDamagePreview(msgId, scopedPreviewData, {
+            attackIndex: 1,
+          });
         });
       panel
         .querySelector(".mythic-kill-damage-btn")
         ?.addEventListener("click", async () => {
-          if (typeof mythicApplyGrenadeKillDamage === "function") {
-            await mythicApplyGrenadeKillDamage(msgId, attackData, "selected");
-          }
+          if (typeof mythicCreateAttackDamagePreview !== "function") return;
+          const scopedPreviewData = buildRadiusDamagePreviewAttackData(attackData, {
+            damageTotal: Number(
+              attackData?.grenadeKillDamage ??
+                (Number(attackData?.grenadeBlastDamage ?? attackData?.damageTotal ?? 0) * 2),
+            ),
+            damagePierce: Number(
+              attackData?.grenadeKillPierce ?? attackData?.damagePierce ?? 0,
+            ),
+            label: "Kill",
+          });
+          await mythicCreateAttackDamagePreview(msgId, scopedPreviewData, {
+            attackIndex: 1,
+          });
         });
       panel
         .querySelector(".mythic-create-grenade-templates-btn")
@@ -8026,6 +8496,10 @@ export function registerMythicDocumentAndChatHooks({
                   .toLowerCase() === "true",
               hasBlastOrKill:
                 String(btn.dataset.blastKill ?? "")
+                  .trim()
+                  .toLowerCase() === "true",
+              radiusUsesLowestArmor:
+                String(btn.dataset.radiusLowestArmor ?? "")
                   .trim()
                   .toLowerCase() === "true",
               isKinetic:

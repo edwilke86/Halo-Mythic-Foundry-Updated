@@ -56,6 +56,7 @@ import {
   MYTHIC_MEDICAL_AUTOMATION_ENABLED_SETTING_KEY,
   MYTHIC_ENVIRONMENTAL_AUTOMATION_ENABLED_SETTING_KEY,
   MYTHIC_FEAR_AUTOMATION_ENABLED_SETTING_KEY,
+  MYTHIC_ALLOW_PLAYER_BLAST_KILL_TEMPLATE_PLACEMENT_SETTING_KEY,
   MYTHIC_ACTOR_PARTIAL_TEMPLATES,
   MYTHIC_ITEM_PARTIAL_TEMPLATES,
   MYTHIC_EDUCATION_DEFAULT_ICON,
@@ -109,7 +110,8 @@ import {
   mythicApplyWoundDamage as mythicApplyWoundDamageImpl,
   mythicRollEvadeIntoCover as mythicRollEvadeIntoCoverImpl,
   mythicApplyGrenadeBlastDamage as mythicApplyGrenadeBlastDamageImpl,
-  mythicApplyGrenadeKillDamage as mythicApplyGrenadeKillDamageImpl
+  mythicApplyGrenadeKillDamage as mythicApplyGrenadeKillDamageImpl,
+  mythicApplyBlastKillRangedDamage as mythicApplyBlastKillRangedDamageImpl
 } from "../core/chat-combat.mjs";
 
 import {
@@ -449,6 +451,10 @@ export async function mythicApplyGrenadeBlastDamage(...args) {
 
 export async function mythicApplyGrenadeKillDamage(...args) {
   return mythicApplyGrenadeKillDamageImpl(...args);
+}
+
+export async function mythicApplyBlastKillRangedDamage(...args) {
+  return mythicApplyBlastKillRangedDamageImpl(...args);
 }
 
 export async function mythicRollVehicleSplatterEvasion(...args) {
@@ -1211,6 +1217,15 @@ export function registerAllHooks() {
       config: true,
       type: Boolean,
       default: false
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_ALLOW_PLAYER_BLAST_KILL_TEMPLATE_PLACEMENT_SETTING_KEY, {
+      name: "Allow players to place Blast/Kill templates for their own attacks",
+      hint: "If enabled, players may place Blast/Kill radius templates for their own ranged-weapon attack cards. GMs can always place templates.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true
     });
 
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY, {
@@ -2187,6 +2202,7 @@ export function registerAllHooks() {
     mythicRollEvadeIntoCover,
     mythicApplyGrenadeBlastDamage,
     mythicApplyGrenadeKillDamage,
+    mythicApplyBlastKillRangedDamage,
     mythicRollVehicleSplatterEvasion,
     mythicRollVehicleSplatterFollowup,
     mythicApplyVehicleSplatterDamage,

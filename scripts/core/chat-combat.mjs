@@ -270,7 +270,27 @@ function resolveIncomingDamageAgainstDefenses(targetActor, incoming = {}) {
     bodyPierce = 0;
   }
 
-  const drKey = String(incoming.hitLoc?.drKey ?? incoming.drKey ?? "").trim();
+  const resolveLowestArmorDrKey = (actor) => {
+    const armor = actor?.system?.combat?.dr?.armor ?? {};
+    const keys = ["head", "chest", "lArm", "rArm", "lLeg", "rLeg"];
+    let bestKey = "";
+    let bestVal = Number.POSITIVE_INFINITY;
+    for (const key of keys) {
+      const value = toNonNegativeWhole(armor?.[key], 0);
+      if (value < bestVal) {
+        bestVal = value;
+        bestKey = key;
+      }
+    }
+    return bestKey;
+  };
+  const radiusUsesLowestArmor = Boolean(
+    incoming?.radiusUsesLowestArmor ??
+      incoming?.hitLoc?.radiusUsesLowestArmor,
+  );
+  const drKey = radiusUsesLowestArmor
+    ? resolveLowestArmorDrKey(targetActor)
+    : String(incoming.hitLoc?.drKey ?? incoming.drKey ?? "").trim();
   const armorValue = (ignoresShields || !drKey)
     ? 0
     : toNonNegativeWhole(targetActor.system?.combat?.dr?.armor?.[drKey], 0);
@@ -303,6 +323,7 @@ function resolveIncomingDamageAgainstDefenses(targetActor, incoming = {}) {
     shieldsRemaining,
     bodyDamageBeforeDR,
     bodyPierce,
+    drKey,
     effectiveDR,
     woundDamage
   };
@@ -740,10 +761,14 @@ export async function mythicCreateAttackDamagePreview(messageId, attackData, opt
   const pierceValue = Number(inst?.damagePierce ?? incoming.damagePierce ?? 0);
 
   const rows = targetEntries.map(({ token, actor }) => {
+    const radiusUsesLowestArmor = Boolean(
+      inst?.radiusUsesLowestArmor ?? incoming.radiusUsesLowestArmor,
+    );
     const resolved = resolveIncomingDamageAgainstDefenses(actor, {
       damageTotal: damageValue,
       damagePierce: pierceValue,
       drKey: String(inst?.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""),
+      radiusUsesLowestArmor,
       ignoresShields: Boolean(inst?.ignoresShields ?? incoming.ignoresShields),
       appliesShieldPierce: Boolean(inst?.appliesShieldPierce ?? incoming.appliesShieldPierce),
       explosiveShieldPierce: Boolean(inst?.explosiveShieldPierce ?? incoming.explosiveShieldPierce),
@@ -757,9 +782,12 @@ export async function mythicCreateAttackDamagePreview(messageId, attackData, opt
     const sceneId = String(attackData.sceneId ?? canvas?.scene?.id ?? "");
     const targetLabel = token?.name ?? actor?.name ?? "Target";
     const locLabel = String(inst?.hitLoc?.subZone ?? incoming.hitLoc?.subZone ?? "Unknown Location");
+    const locLine = radiusUsesLowestArmor
+      ? ""
+      : `Loc: <strong>${esc(locLabel)}</strong><br>`;
     return `<div class="mythic-evasion-target">
       <strong>${esc(targetLabel)}</strong><br>
-      Loc: <strong>${esc(locLabel)}</strong><br>
+      ${locLine}
       Base Damage: <strong>${esc(String(damageValue))}</strong>, Pierce <strong>${esc(String(pierceValue))}</strong><br>
       Effective DR: <strong>${esc(String(resolved.effectiveDR))}</strong><br>
       Shield Damage: <strong>${esc(String(resolved.shieldDamageApplied))}</strong> (${esc(String(resolved.shieldsCurrent))} -> ${esc(String(resolved.shieldsRemaining))})<br>
@@ -770,7 +798,7 @@ export async function mythicCreateAttackDamagePreview(messageId, attackData, opt
         data-scene-id="${esc(sceneId)}"
         data-damage="${esc(String(damageValue))}"
         data-pierce="${esc(String(pierceValue))}"
-        data-dr-key="${esc(String(inst?.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""))}"
+        data-dr-key="${esc(String(resolved?.drKey ?? inst?.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""))}"
         data-hit-zone="${esc(String(inst?.hitLoc?.zone ?? incoming.hitLoc?.zone ?? ""))}"
         data-hit-subzone="${esc(String(inst?.hitLoc?.subZone ?? incoming.hitLoc?.subZone ?? ""))}"
         data-ignore-shields="${(inst?.ignoresShields ?? incoming.ignoresShields) ? "true" : "false"}"
@@ -782,6 +810,7 @@ export async function mythicCreateAttackDamagePreview(messageId, attackData, opt
         data-kinetic="${(inst?.isKinetic ?? incoming.isKinetic) ? "true" : "false"}"
         data-hardlight="${(inst?.isHardlight ?? incoming.isHardlight) ? "true" : "false"}"
         data-special-damage="${(inst?.hasSpecialDamage ?? incoming.hasSpecialDamage) ? "true" : "false"}"
+        data-radius-lowest-armor="${radiusUsesLowestArmor ? "true" : "false"}"
       >Apply</button>
     </div>`;
   }).join("<hr class=\"mythic-card-hr\">");
@@ -1118,4 +1147,100 @@ export async function mythicApplyGrenadeBlastDamage(messageId, attackData, targe
 
 export async function mythicApplyGrenadeKillDamage(messageId, attackData, targetMode = "selected") {
   return applyCompactGrenadeDamage(messageId, attackData, targetMode, "kill");
+}
+
+function parseBaseDamageFormula(formula = "") {
+  const text = String(formula ?? "").trim();
+  const match = text.match(/^(\d+d\d+)(?:\s*([+-])\s*(\d+))?$/iu);
+  if (!match) return null;
+  const dicePart = String(match[1] ?? "").trim();
+  const sign = String(match[2] ?? "+").trim();
+  const modMagnitude = Number(match[3] ?? 0);
+  const modifier = sign === "-" ? -modMagnitude : modMagnitude;
+  return {
+    dicePart,
+    modifier: Number.isFinite(modifier) ? modifier : 0
+  };
+}
+
+export async function mythicApplyBlastKillRangedDamage(messageId, attackData, targetMode = "selected", damageKind = "blast") {
+  const targetEntries = resolveTargetEntriesForGrenadeFlow(targetMode, attackData);
+  if (!targetEntries.length) {
+    ui.notifications?.warn(`Select the tokens that will take ${damageKind} damage.`);
+    return;
+  }
+
+  const parsed = parseBaseDamageFormula(attackData?.damageFormula ?? "");
+  let damageTotal = Math.max(0, Number(attackData?.damageTotal ?? 0) || 0);
+  if (damageKind === "kill") {
+    if (parsed) {
+      const diceRoll = await new Roll(parsed.dicePart).evaluate();
+      damageTotal = Math.max(
+        0,
+        Number(diceRoll?.total ?? 0) + Number(parsed.modifier ?? 0) * 2
+      );
+    } else {
+      damageTotal = Math.max(0, damageTotal * 2);
+    }
+  } else if (damageTotal <= 0 && parsed) {
+    const blastRoll = await new Roll(attackData.damageFormula).evaluate();
+    damageTotal = Math.max(0, Number(blastRoll?.total ?? 0));
+  }
+  const damagePierce = Math.max(0, Number(attackData?.damagePierce ?? 0) || 0);
+
+  const rows = [];
+  for (const { token, actor } of targetEntries) {
+    const currentShields = toNonNegativeWhole(actor.system?.combat?.shields?.current, 0);
+    const currentWounds = toNonNegativeWhole(actor.system?.combat?.wounds?.current, 0);
+    const resolved = resolveIncomingDamageAgainstDefenses(actor, {
+      damageTotal,
+      damagePierce,
+      drKey: "chest",
+      ignoresShields: false,
+      appliesShieldPierce: Boolean(attackData?.appliesShieldPierce),
+      explosiveShieldPierce: Boolean(attackData?.explosiveShieldPierce),
+      isPenetrating: Boolean(attackData?.isPenetrating),
+      isHeadshot: false,
+      hasBlastOrKill: true,
+      isKinetic: Boolean(attackData?.isKinetic)
+    });
+
+    const nextWounds = Math.max(0, currentWounds - resolved.woundDamage);
+    await actor.update({
+      "system.combat.shields.current": resolved.shieldsRemaining,
+      "system.combat.wounds.current": nextWounds
+    });
+    await triggerBerserkerFromDamage(actor, {
+      woundDamage: resolved.woundDamage,
+      maxWounds: actor.system?.combat?.wounds?.max,
+      tokenId: token?.id ?? "",
+      sceneId: attackData?.sceneId ?? canvas?.scene?.id ?? ""
+    });
+
+    rows.push({
+      tokenName: token?.name ?? actor.name,
+      shieldDelta: Math.max(0, currentShields - resolved.shieldsRemaining),
+      woundDelta: Math.max(0, resolved.woundDamage),
+      details: `Raw ${damageTotal}, Pierce ${damagePierce}, DR ${resolved.effectiveDR}, Shields ${currentShields}->${resolved.shieldsRemaining}, Wounds ${currentWounds}->${nextWounds}`
+    });
+  }
+
+  const body = rows.map((row) => `
+    <details class="mythic-evasion-detail-row">
+      <summary><strong>${foundry.utils.escapeHTML(row.tokenName)}</strong> - ${row.shieldDelta} Shield / ${row.woundDelta} Wounds</summary>
+      <div class="mythic-evasion-roll-detail">${foundry.utils.escapeHTML(row.details)}</div>
+    </details>
+  `).join("");
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ alias: "Blast/Kill" }),
+    content: `<div class="mythic-evasion-card"><div class="mythic-evasion-header">${damageKind === "kill" ? "Kill Damage" : "Blast Damage"}</div>${body}</div>`,
+    type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+    flags: {
+      "Halo-Mythic-Foundry-Updated": {
+        blastKillRangedCompactDamage: true,
+        damageKind,
+        sourceMessageId: messageId
+      }
+    }
+  });
 }

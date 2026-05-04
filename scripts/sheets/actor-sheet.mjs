@@ -4250,6 +4250,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         String(entry?.label ?? entry?.key ?? "").trim(),
       ]).filter(([key, label]) => key && label),
     );
+    const readRadiusFromGear = (ruleKey) => {
+      const specialRuleValues =
+        gear?.weaponSpecialRuleValues &&
+        typeof gear.weaponSpecialRuleValues === "object" &&
+        !Array.isArray(gear.weaponSpecialRuleValues)
+          ? gear.weaponSpecialRuleValues
+          : {};
+      const raw = specialRuleValues?.[ruleKey];
+      const numeric = Number(String(raw ?? "").trim());
+      if (Number.isFinite(numeric) && numeric > 0) return Math.floor(numeric);
+      const rulesRaw = String(gear?.specialRules ?? "");
+      const regex =
+        ruleKey === "blast radius"
+          ? /blast\s*\((\d+)\)/iu
+          : /kill\s*(?:radius)?\s*\((\d+)\)/iu;
+      const match = rulesRaw.match(regex);
+      return match ? Math.max(0, Math.floor(Number(match[1] ?? 0))) : 0;
+    };
     const ignoredTagTokens = new Set(["u", "i", "p", "nc", "npu", "ncu"]);
     const shouldIgnoreTagKey = (rawKey) => {
       const normalized = String(rawKey ?? "")
@@ -38472,6 +38490,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         String(entry?.label ?? entry?.key ?? "").trim(),
       ]).filter(([key, label]) => key && label),
     );
+    const readRadiusFromGear = (ruleKey) => {
+      const specialRuleValues =
+        gear?.weaponSpecialRuleValues &&
+        typeof gear.weaponSpecialRuleValues === "object" &&
+        !Array.isArray(gear.weaponSpecialRuleValues)
+          ? gear.weaponSpecialRuleValues
+          : {};
+      const raw = specialRuleValues?.[ruleKey];
+      const numeric = Number(String(raw ?? "").trim());
+      if (Number.isFinite(numeric) && numeric > 0) return Math.floor(numeric);
+      const rulesRaw = String(gear?.specialRules ?? "");
+      const regex =
+        ruleKey === "blast radius"
+          ? /blast\s*\((\d+)\)/iu
+          : /kill\s*(?:radius)?\s*\((\d+)\)/iu;
+      const match = rulesRaw.match(regex);
+      return match ? Math.max(0, Math.floor(Number(match[1] ?? 0))) : 0;
+    };
 
     const badgeEntries = [];
     const seenBadges = new Set();
@@ -38515,7 +38551,26 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const key = String(rawKey ?? "").trim();
       if (!key) continue;
       const label = ruleLabelByKey.get(key.toLowerCase()) ?? key;
+      const normalizedKey = key.toLowerCase();
+      if (normalizedKey === "blast radius") {
+        const radius = readRadiusFromGear("blast radius");
+        if (radius > 0) addBadge("rule", key, `Blast (${radius})`);
+        continue;
+      }
+      if (normalizedKey === "kill radius") {
+        const radius = readRadiusFromGear("kill radius");
+        if (radius > 0) addBadge("rule", key, `Kill (${radius})`);
+        continue;
+      }
       addBadge("rule", key, label);
+    }
+    const blastRadiusForBadge = readRadiusFromGear("blast radius");
+    const killRadiusForBadge = readRadiusFromGear("kill radius");
+    if (blastRadiusForBadge > 0) {
+      addBadge("rule", "blast radius", `Blast (${blastRadiusForBadge})`);
+    }
+    if (killRadiusForBadge > 0) {
+      addBadge("rule", "kill radius", `Kill (${killRadiusForBadge})`);
     }
 
     const bracketTagPattern = /\[([A-Za-z0-9+\-]+)\]/gu;
@@ -39088,6 +39143,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       weaponOwnerActorId: weaponOwnerActor.id,
       weaponId: itemId,
       weaponName: weaponDisplayName,
+      weaponEquipmentType: String(gear?.equipmentType ?? "").trim(),
       mode: modeLabel,
       actionType,
       effectiveTarget,

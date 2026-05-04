@@ -6985,10 +6985,18 @@ export function registerMythicDocumentAndChatHooks({
       foundry.utils.setProperty(createData, skipArmorPromptFlagPath, false);
     }
 
+    const actorSourceSystem = foundry.utils.deepClone(actor.system ?? {});
+    const tokenDeltaSystem = foundry.utils.getProperty(createData, "delta.system");
     const sourceSystem =
-      foundry.utils.getProperty(createData, "delta.system") ??
-      actor.system ??
-      {};
+      tokenDeltaSystem && typeof tokenDeltaSystem === "object"
+        ? foundry.utils.mergeObject(actorSourceSystem, tokenDeltaSystem, {
+            inplace: true,
+            insertKeys: true,
+            insertValues: true,
+            overwrite: true,
+            recursive: true,
+          })
+        : actorSourceSystem;
     let tokenSystem = buildBestiaryTokenSystemWithRank(
       sourceSystem,
       targetRank,

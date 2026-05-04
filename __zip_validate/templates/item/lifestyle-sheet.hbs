@@ -1,0 +1,111 @@
+<div class="{{cssClass}} mythic-lifestyle-item-sheet mythic-upbringing-item-sheet">
+
+  <header class="item-sheet-header">
+    <img class="lifestyle-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
+    <div class="item-sheet-header-text">
+      <h2 class="item-sheet-title">{{item.name}}</h2>
+      <div class="item-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
+        <span class="item-type-badge">Lifestyle</span>
+        <span class="item-variant-count-badge">{{variantRows.length}} parent group{{#if (gt variantRows.length 1)}}s{{/if}}</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="item-sheet-body">
+
+    {{#if canEditFields}}
+    <div class="item-info-block">
+      <div class="item-info-row compact-row">
+        <label for="lifestyle-item-name">Name</label>
+        <input id="lifestyle-item-name" type="text" name="name" value="{{item.name}}" />
+      </div>
+      <div class="item-info-row compact-row upbringing-description-row">
+        <label for="lifestyle-desc">Description / Notes</label>
+        <textarea id="lifestyle-desc" name="system.description" rows="3">{{item.system.description}}</textarea>
+      </div>
+      <p class="modifier-none" style="margin:0;">Lifestyle rules are weighted parent groups. Each parent has exactly one child group with effects.</p>
+    </div>
+    {{/if}}
+
+    {{#if canEditFields}}
+    <div class="mechanics-builder-section">
+      <h3 class="mechanics-builder-title">Lifestyle Mechanics</h3>
+      <div class="mechanics-builder" id="mechanics-builder">
+        <details class="mechanics-structure-help">
+          <summary>How to build lifestyles</summary>
+          <div class="mechanics-chart">
+            <div class="chart-level">
+              <div class="chart-level-label">Parent Group (Variant)</div>
+              <div class="chart-level-desc">Has a label and weight. You must have at least 2 parent groups. Total weight should equal 10.</div>
+            </div>
+            <div class="chart-arrow">↑ Exactly one child group per parent ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Child Group</div>
+              <div class="chart-level-desc">Contains unlimited effects. No OR branches inside lifestyles.</div>
+            </div>
+            <div class="chart-arrow">↑ Optional special warfare placeholders ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Selected Warfare Characteristic</div>
+              <div class="chart-level-desc">Use SELECTED_WARFARE for the player-chosen WFM/WFR. If used, OTHER_WARFARE may be used as a second effect.</div>
+            </div>
+          </div>
+        </details>
+        <div class="tree-node-controls">
+          <button type="button" class="action-btn" id="lifestyle-add-parent-btn">+ Parent Group</button>
+          <span class="creation-path-pill">Total Weight: {{totalWeight}} / 10</span>
+          {{#unless hasValidWeightTotal}}
+            <span class="creation-path-pill warning">Adjust weights to total 10</span>
+          {{/unless}}
+        </div>
+        <div class="mechanics-tree-builder" id="lifestyle-variant-builder"></div>
+        <textarea
+          id="lifestyle-tree-editor"
+          name="mythic.lifestyleTreeEditor"
+          rows="2"
+          hidden
+          aria-hidden="true"
+        >{{lifestyleTreeEditor}}</textarea>
+      </div>
+    </div>
+    {{/if}}
+
+    <div class="modifier-groups">
+      {{#if mechanicsSentence}}
+        <div class="mechanics-sentence">
+          <span class="mechanics-sentence-label">Mechanics:</span>
+          <span class="mechanics-sentence-text">{{mechanicsSentence}}</span>
+        </div>
+      {{/if}}
+
+      <div class="lifestyle-variants">
+        {{#each variantRows}}
+          <div class="lifestyle-variant">
+            <div class="lifestyle-variant-header">
+              <span class="lifestyle-variant-range">Roll {{rangeLabel}}</span>
+              <span class="creation-path-pill">Weight {{weight}}</span>
+              <span class="lifestyle-variant-label">{{label}}</span>
+            </div>
+            {{#if modifierDisplay}}
+              <div class="lifestyle-variant-mods">{{modifierDisplay}}</div>
+            {{else}}
+              <div class="modifier-none">No effects.</div>
+            {{/if}}
+          </div>
+        {{else}}
+          <p class="modifier-none">No parent groups defined.</p>
+        {{/each}}
+      </div>
+    </div>
+
+    {{#unless canEditFields}}
+      {{#if item.system.description}}
+        <div class="item-description-display">{{item.system.description}}</div>
+      {{/if}}
+    {{/unless}}
+
+  </section>
+
+</div>

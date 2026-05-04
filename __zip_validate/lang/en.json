@@ -1,0 +1,30 @@
+{
+  "MYTHIC": {
+    "SystemName": "Mythic System Prototype"
+  },
+  "TYPES": {
+    "Actor": {
+      "character": "Character",
+      "group": "Group",
+      "vehicle": "Vehicle"
+    },
+    "Item": {
+      "gear": "Equipment",
+      "ability": "Ability",
+      "education": "Education",
+      "armorVariant": "Armor Variant",
+      "soldierType": "Soldier Type",
+      "trait": "Trait",
+      "upbringing": "Upbringing",
+      "environment": "Environment",
+      "lifestyle": "Lifestyle"
+    }
+  },
+  "MYTHIC_GROUP": {
+    "GroupType": "Group Type",
+    "Description": "Description",
+    "LinkedMembers": "Linked Members",
+    "DropActors": "Drop PC actors or vehicles here to add them to the group.",
+    "GroupStats": "Group Stats"
+  }
+}

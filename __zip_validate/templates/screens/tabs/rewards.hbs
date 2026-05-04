@@ -1,0 +1,79 @@
+<div class="mythic-rewards">
+  <div class="gm-screen-grid mythic-rewards-grid">
+    <section class="gm-panel double mythic-rewards-xp">
+      <h2>XP Rewards</h2>
+
+      <div class="mythic-rewards-body">
+        <div class="gm-tool-row mythic-rewards-controls">
+          <div class="mythic-rewards-control-block">
+            <label class="mythic-rewards-label">
+              Party Member
+              <input type="text" class="mythic-rewards-input" placeholder="Name..." data-rewards-party-name />
+            </label>
+            <button type="button" class="gm-tool-button" data-action="rewards-add-party">Add Party Member</button>
+          </div>
+
+          <div class="mythic-rewards-control-block">
+            <label class="mythic-rewards-label">
+              XP Name
+              <input type="text" class="mythic-rewards-input" placeholder="Objective, enemy, hazard..." data-rewards-xp-name />
+            </label>
+            <label class="mythic-rewards-label">
+              XP
+              <input type="number" class="mythic-rewards-input mythic-rewards-input-small" min="0" step="1" value="0" data-rewards-xp-value />
+            </label>
+            <button type="button" class="gm-tool-button" data-action="rewards-add-xp-row">Add XP Row</button>
+          </div>
+        </div>
+
+        <div class="mythic-rewards-section">
+          <div class="mythic-rewards-section-title">XP Matrix</div>
+          <div class="mythic-rewards-matrix" data-rewards-xp-matrix></div>
+        </div>
+
+        <div class="mythic-rewards-section">
+          <div class="mythic-rewards-section-title">Totals</div>
+          <div class="mythic-rewards-totals" data-rewards-xp-totals></div>
+        </div>
+
+        <div class="gm-tool-row">
+          <button type="button" class="gm-tool-button" data-action="rewards-post-xp-chat">Post XP Summary to Chat</button>
+          <button type="button" class="gm-tool-button" data-action="rewards-clear-xp">Clear XP Rewards</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="gm-panel mythic-rewards-cr">
+      <h2>cR Rewards</h2>
+
+      <div class="mythic-rewards-body">
+        <div class="gm-tool-row mythic-rewards-controls">
+          <label class="mythic-rewards-label">
+            Total cR
+            <input type="number" class="mythic-rewards-input" min="0" step="1" value="0" data-rewards-cr-total />
+          </label>
+
+          <label class="mythic-rewards-label">
+            Split Count
+            <input type="number" class="mythic-rewards-input mythic-rewards-input-small" min="0" step="1" value="0" data-rewards-cr-split-count />
+          </label>
+
+          <div class="mythic-rewards-inline-result">
+            <div class="mythic-rewards-inline-label">cR per Recipient</div>
+            <div class="mythic-rewards-inline-value" data-rewards-cr-per>0</div>
+          </div>
+        </div>
+
+        <div class="mythic-rewards-section">
+          <div class="mythic-rewards-section-title">Notes</div>
+          <textarea class="mythic-rewards-textarea" rows="4" placeholder="Optional..." data-rewards-cr-notes></textarea>
+        </div>
+
+        <div class="gm-tool-row">
+          <button type="button" class="gm-tool-button" data-action="rewards-post-cr-chat">Post cR Summary to Chat</button>
+          <button type="button" class="gm-tool-button" data-action="rewards-clear-cr">Clear cR Rewards</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

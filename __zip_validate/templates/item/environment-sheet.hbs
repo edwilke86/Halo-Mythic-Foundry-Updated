@@ -1,0 +1,106 @@
+<div class="{{cssClass}} mythic-environment-item-sheet mythic-upbringing-item-sheet">
+
+  <header class="item-sheet-header">
+    <img class="environment-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
+    <div class="item-sheet-header-text">
+      <h2 class="item-sheet-title">{{item.name}}</h2>
+      <div class="item-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
+        <span class="item-type-badge">Environment</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="item-sheet-body">
+
+    {{#if canEditFields}}
+    <div class="item-info-block">
+      <div class="item-info-row compact-row">
+        <label for="env-item-name">Name</label>
+        <input id="env-item-name" type="text" name="name" value="{{item.name}}" />
+      </div>
+      <div class="item-info-row compact-row upbringing-description-row">
+        <label for="env-desc">Description / Notes</label>
+        <textarea id="env-desc" name="system.description" rows="3">{{item.system.description}}</textarea>
+      </div>
+      <p class="modifier-none" style="margin:0;">Build mechanics as nested AND/OR groups. Each OR group is one runtime choice.</p>
+    </div>
+    {{/if}}
+
+    {{#if canEditFields}}
+    <div class="mechanics-builder-section">
+      <h3 class="mechanics-builder-title">Mechanics</h3>
+      <div class="mechanics-builder" id="mechanics-builder">
+        <details class="mechanics-structure-help">
+          <summary>How to build mechanics</summary>
+          <div class="mechanics-chart">
+            <div class="chart-level">
+              <div class="chart-level-label">Effect</div>
+              <div class="chart-level-desc">Individual modifiers (+1 STR, +2 Wounds, etc.)</div>
+            </div>
+            <div class="chart-arrow">↑ Use AND/OR ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Child Group</div>
+              <div class="chart-level-desc">Contains 1+ effects, combined by AND/OR</div>
+            </div>
+            <div class="chart-arrow">↑ Use AND/OR ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Parent Group</div>
+              <div class="chart-level-desc">Container for 1+ child groups, combined by AND/OR, separated by semicolon in the rules text</div>
+            </div>
+            <div class="chart-arrow">↑ Multiple parents (implicit AND) ↑</div>
+            <div class="chart-level">
+              <div class="chart-level-label">Root (Environment)</div>
+            </div>
+          </div>
+        </details>
+        <div class="mechanics-tree-builder" id="mechanics-tree-builder"></div>
+        <textarea
+          id="environment-mechanics-tree-editor"
+          name="mythic.mechanicsTreeEditor"
+          rows="2"
+          hidden
+          aria-hidden="true"
+        >{{mechanicsTreeEditor}}</textarea>
+      </div>
+    </div>
+    {{/if}}
+
+    <div class="modifier-groups">
+      {{#if mechanicsSentence}}
+        <div class="mechanics-sentence">
+          <span class="mechanics-sentence-label">Mechanics:</span>
+          <span class="mechanics-sentence-text">{{mechanicsSentence}}</span>
+        </div>
+      {{/if}}
+      {{#each modifierSummaryLines}}
+        <div class="modifier-group modifier-group--{{type}}">
+          <div class="modifier-group-label">{{label}}</div>
+          {{#each options}}
+            <div class="modifier-option">
+              {{#if (eq ../type "choice")}}
+                <span class="modifier-option-bullet">◆</span>
+              {{/if}}
+              <span class="modifier-option-text">{{label}}</span>
+              {{#if modifiers}}
+                <span class="modifier-stats">{{modifiers}}</span>
+              {{/if}}
+            </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="modifier-none">No characteristic modifiers defined.</p>
+      {{/each}}
+    </div>
+
+    {{#unless canEditFields}}
+      {{#if item.system.description}}
+        <div class="item-description-display">{{item.system.description}}</div>
+      {{/if}}
+    {{/unless}}
+
+  </section>
+
+</div>

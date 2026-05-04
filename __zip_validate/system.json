@@ -1,0 +1,534 @@
+{
+  "id": "Halo-Mythic-Foundry-Updated",
+  "title": "Halo Mythic Foundry Updated",
+  "description": "Community Foundry VTT system project for the Halo Mythic ruleset.",
+    "version": "0.5.0-alpha.3",
+  "license": "SEE LICENSE and LICENSE.assets",
+    "manifest": "https://raw.githubusercontent.com/edwilke86/Halo-Mythic-Foundry-Updated/main/system.json",
+  "download": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated/releases/download/v0.5.0-alpha.3/halo-mythic-foundry-updated-0.5.0-alpha.3-20260504.zip",
+  
+  "url": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated",
+  "compatibility": {
+    "minimum": 13,
+    "verified": "13.351"
+  },
+  "authors": [
+    {
+      "discord": "Neoshain",
+      "name": "Dallas Scott Wilke",
+      "url": "https://github.com/edwilke86"
+    }
+  ],
+  "grid": {
+    "units": "m",
+    "distance": 1
+  },
+  "esmodules": [
+    "system.mjs"
+  ],
+
+  "styles": [
+    "styles/system.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "documentTypes": {
+    "Actor": {
+      "character": {
+        "htmlFields": [
+          "biography.physical.generalDescription",
+          "biography.physical.definingFeatures"
+        ]
+      },
+      "bestiary": {
+        "htmlFields": [
+          "biography.physical.generalDescription"
+        ]
+      },
+      "Group": {
+        "label": "Group",
+        "htmlFields": [
+          "description"
+        ]
+      },
+      "vehicle": {
+        "label": "Vehicle",
+        "htmlFields": [
+          "notes",
+          "crew.notes",
+          "cargo.notes",
+          "modifications.notes"
+        ]
+      }
+    },
+    "Item": {
+      "gear": {},
+      "soldierType": {
+        "htmlFields": [
+          "description",
+          "notes"
+        ]
+      },
+      "trait": {
+        "htmlFields": [
+          "shortDescription",
+          "benefit",
+          "notes"
+        ]
+      },
+      "education": {
+        "htmlFields": [
+          "description"
+        ]
+      },
+      "ability": {
+        "htmlFields": [
+          "prerequisiteText",
+          "shortDescription",
+          "benefit",
+          "notes"
+        ]
+      },
+      "upbringing": {
+        "htmlFields": ["description"]
+      },
+      "environment": {
+        "htmlFields": ["description"]
+      },
+      "lifestyle": {
+        "htmlFields": ["description"]
+      }
+    }
+  },
+  "packs": [
+    {
+      "name": "educations",
+      "label": "00 Creation - Educations",
+      "path": "packs/educations",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "abilities",
+      "label": "00 Creation - Abilities",
+      "path": "packs/abilities",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "traits",
+      "label": "00 Creation - Traits",
+      "path": "packs/traits",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "upbringings",
+      "label": "00 Creation - Upbringings",
+      "path": "packs/upbringings",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "environments",
+      "label": "00 Creation - Environments",
+      "path": "packs/environments",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "lifestyles",
+      "label": "00 Creation - Lifestyles",
+      "path": "packs/lifestyles",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "soldier-types",
+      "label": "00 Creation - Soldier Types",
+      "path": "packs/soldier-types",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "ammo-types",
+      "label": "Ammo",
+      "path": "packs/ammo-types",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-equipment-human",
+      "label": "10 Equipment - Human",
+      "path": "packs/equipment-human",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-equipment-covenant",
+      "label": "10 Equipment - Covenant",
+      "path": "packs/equipment-covenant",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-equipment-banished",
+      "label": "10 Equipment - Banished",
+      "path": "packs/equipment-banished",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-equipment-forerunner",
+      "label": "10 Equipment - Forerunner",
+      "path": "packs/equipment-forerunner",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-armor-human",
+      "label": "20 Armor - Human",
+      "path": "packs/armor-human",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-armor-covenant",
+      "label": "20 Armor - Covenant",
+      "path": "packs/armor-covenant",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-armor-banished",
+      "label": "20 Armor - Banished",
+      "path": "packs/armor-banished",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-armor-forerunner",
+      "label": "20 Armor - Forerunner",
+      "path": "packs/armor-forerunner",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-human-ranged",
+      "label": "30 Weapons - Ranged - Human",
+      "path": "packs/weapons-human-ranged",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-covenant-ranged",
+      "label": "30 Weapons - Ranged - Covenant",
+      "path": "packs/weapons-covenant-ranged",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-banished-ranged",
+      "label": "30 Weapons - Ranged - Banished",
+      "path": "packs/weapons-banished-ranged",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-forerunner-ranged",
+      "label": "30 Weapons - Ranged - Forerunner",
+      "path": "packs/weapons-forerunner-ranged",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-shared-ranged",
+      "label": "30 Weapons - Ranged - Shared",
+      "path": "packs/weapons-shared-ranged",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-human-melee",
+      "label": "30 Weapons - Melee - Human",
+      "path": "packs/weapons-human-melee",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-covenant-melee",
+      "label": "30 Weapons - Melee - Covenant",
+      "path": "packs/weapons-covenant-melee",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-banished-melee",
+      "label": "30 Weapons - Melee - Banished",
+      "path": "packs/weapons-banished-melee",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-forerunner-melee",
+      "label": "30 Weapons - Melee - Forerunner",
+      "path": "packs/weapons-forerunner-melee",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-shared-melee",
+      "label": "30 Weapons - Melee - Shared",
+      "path": "packs/weapons-shared-melee",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapons-flood",
+      "label": "30 Weapons - Flood",
+      "path": "packs/weapons-flood",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-bestiary-unsc",
+      "label": "70 Bestiary - UNSC",
+      "path": "packs/bestiary-unsc",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-bestiary-covenant",
+      "label": "70 Bestiary - Covenant",
+      "path": "packs/bestiary-covenant",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-bestiary-forerunner",
+      "label": "70 Bestiary - Forerunner",
+      "path": "packs/bestiary-forerunner",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-bestiary-flood",
+      "label": "70 Bestiary - Flood",
+      "path": "packs/bestiary-flood",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-vehicles-unsc",
+      "label": "80 Vehicles - UNSC",
+      "path": "packs/vehicles-unsc",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-vehicles-covenant",
+      "label": "80 Vehicles - Covenant",
+      "path": "packs/vehicles-covenant",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-vehicles-banished",
+      "label": "80 Vehicles - Banished",
+      "path": "packs/vehicles-banished",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-vehicles-forerunner",
+      "label": "80 Vehicles - Forerunner",
+      "path": "packs/vehicles-forerunner",
+      "type": "Actor",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    }
+  ],
+  
+  "primaryTokenAttribute": { "attribute": "system.combat.wounds" },
+  "secondaryTokenAttribute": { "attribute": "system.combat.shields" },
+  "socket": true
+}

@@ -1,0 +1,172 @@
+/* Extracted from system.css: character creation path UI styles. */
+
+/* Advancements: Character Creation Path */
+.mythic-character-sheet .creation-path-card {
+  border: 1px solid rgba(122, 170, 220, 0.35);
+}
+
+.mythic-character-sheet .creation-path-grid {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.mythic-character-sheet .creation-path-grid.two-column {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mythic-character-sheet .creation-path-field {
+  background: rgba(10, 16, 28, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.mythic-character-sheet .creation-path-row > label {
+  display: block;
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.62);
+  margin: 0;
+  flex: 0 0 78px;
+}
+
+.mythic-character-sheet .creation-path-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.mythic-character-sheet .creation-dropzone {
+  min-height: 28px;
+  border: 1px dashed rgba(122, 170, 220, 0.6);
+  border-radius: 6px;
+  background: rgba(27, 42, 63, 0.45);
+  color: rgba(255, 255, 255, 0.88);
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  flex: 1 1 220px;
+  font-family: "Saira Semi Condensed", sans-serif;
+  font-size: 13px;
+}
+
+.mythic-character-sheet .creation-path-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  padding-left: 84px;
+}
+
+.mythic-character-sheet .creation-path-meta.creation-path-meta-no-indent {
+  padding-left: 0;
+}
+
+.mythic-character-sheet .creation-path-lifestyles {
+  background: rgba(10, 16, 28, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.mythic-character-sheet .creation-path-lifestyle-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.mythic-character-sheet .creation-path-lifestyle-header-row h4 {
+  margin: 0;
+  font-size: 12px;
+  font-family: Orbitron, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mythic-character-sheet .creation-lifestyle-slot {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 6px;
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mythic-character-sheet .creation-lifestyle-slot:last-child {
+  margin-bottom: 0;
+}
+
+.mythic-character-sheet .creation-path-outcome-block {
+  margin-top: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mythic-character-sheet .creation-path-outcome-block h4 {
+  margin: 0;
+  font-size: 11px;
+  font-family: Orbitron, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mythic-character-sheet .creation-path-outcome-pending {
+  margin-top: 6px;
+  display: grid;
+  gap: 2px;
+}
+
+.mythic-character-sheet .creation-path-outcome-line {
+  font-size: 11px;
+  color: rgba(255, 225, 183, 0.92);
+}
+
+.mythic-character-sheet .creation-path-outcome-line.creation-path-outcome-guard {
+  color: #ffd28a;
+  font-weight: 700;
+}
+
+.mythic-character-sheet .creation-path-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(122, 170, 220, 0.4);
+  background: rgba(57, 76, 106, 0.65);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.mythic-character-sheet .creation-path-pill.warning {
+  border-color: rgba(255, 193, 115, 0.55);
+  background: rgba(126, 73, 16, 0.55);
+  color: #ffe1b7;
+}
+
+@media (max-width: 920px) {
+  .mythic-character-sheet .creation-path-grid.two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .mythic-character-sheet .creation-path-lifestyle-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mythic-character-sheet .creation-path-meta {
+    padding-left: 0;
+  }
+
+  .mythic-character-sheet .creation-lifestyle-top-row,
+  .mythic-character-sheet .creation-lifestyle-variant-row {
+    grid-template-columns: 1fr;
+  }
+}

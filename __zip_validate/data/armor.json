@@ -1,0 +1,5357 @@
+[
+  {
+    "name": "Pre war Marine M50B Standard BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 36,
+    "weightKg": 11.9,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 19,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 4
+    }
+  },
+  {
+    "name": "Pre war Marine Vacuum BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 34,
+    "weightKg": 11.1,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "Vacuum Sealed.",
+    "description": "Vacuum Sealed.",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 16,
+      "chest": 18,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 5
+    }
+  },
+  {
+    "name": "Pre war Marine LV Lightweight BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 34,
+    "weightKg": 17.7,
+    "specialRules": "",
+    "modifiers": "Mobility-boosting Exo-lining.",
+    "description": "Mobility-boosting Exo-lining.",
+    "armorSpecialRuleKeys": [
+      "mobility-boosting-exo-lining"
+    ],
+    "protection": {
+      "head": 16,
+      "chest": 18,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 6
+    }
+  },
+  {
+    "name": "Pre war Marine EDB82 E.O.D BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 35,
+    "weightKg": 29,
+    "specialRules": "Reduces damage",
+    "modifiers": "-10 Agility. Ignores Kill Radius damage increase and ignores 10 Pierce from Explosive weaponry.",
+    "description": "-10 Agility. Ignores Kill Radius damage increase and ignores 10 Pierce from Explosive weaponry.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 19,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 7
+    }
+  },
+  {
+    "name": "Pre war Marine Medic BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 37,
+    "weightKg": 12.1,
+    "specialRules": "",
+    "modifiers": "Comes with 1 Softcase, one Medical Kit, and one Sterile Field Generator. -5 to Evasion.",
+    "description": "Comes with 1 Softcase, one Medical Kit, and one Sterile Field Generator. -5 to Evasion.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 8
+    }
+  },
+  {
+    "name": "Pre war Marine Fire Rescue BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 31.8,
+    "specialRules": "Reduces damage",
+    "modifiers": "Vacuum Sealed, Fire-Rescue, and Bulky Special Rule.",
+    "description": "Vacuum Sealed, Fire-Rescue, and Bulky Special Rule.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule",
+      "fire-rescue",
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 9
+    }
+  },
+  {
+    "name": "Pre war Marine EXO-Atmospheric BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 37,
+    "weightKg": 17.5,
+    "specialRules": "Atmospheric 120 min",
+    "modifiers": "Temperature Regulator and Vacuum Sealed (120).",
+    "description": "Temperature Regulator and Vacuum Sealed (120).",
+    "armorSpecialRuleKeys": [
+      "temperature-regulator",
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 18,
+      "chest": 19,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 10
+    }
+  },
+  {
+    "name": "Pre war Marine Police BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 33,
+    "weightKg": 5.2,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 16,
+      "chest": 18,
+      "lArm": 16,
+      "rArm": 16,
+      "lLeg": 16,
+      "rLeg": 16
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 11
+    }
+  },
+  {
+    "name": "Pre war Marine EFFU-C Cryonics BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 37,
+    "weightKg": 31.7,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "Vacuum Sealed, Cryo-Resistant, and Bulky Special Rule.",
+    "description": "Vacuum Sealed, Cryo-Resistant, and Bulky Special Rule.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule",
+      "cryo-resistant",
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 18,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 12
+    }
+  },
+  {
+    "name": "Stink Machine",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 0,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 0,
+      "chest": 0,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 13
+    }
+  },
+  {
+    "name": "Marine M52B Standard BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 11.9,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 14
+    }
+  },
+  {
+    "name": "Marine Vacuum BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 35,
+    "weightKg": 11.2,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "Vacuum Sealed: 60 minutes of Oxygen",
+    "description": "Vacuum Sealed: 60 minutes of Oxygen",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 17,
+      "chest": 19,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 15
+    }
+  },
+  {
+    "name": "Marine LV-45 Lightweight BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 35,
+    "weightKg": 17.7,
+    "specialRules": "",
+    "modifiers": "+10 to Agility. Holds its own weight.",
+    "description": "+10 to Agility. Holds its own weight.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 19,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 16
+    }
+  },
+  {
+    "name": "Marine ED4 E.O.D BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 36,
+    "weightKg": 29,
+    "specialRules": "Reduces damage",
+    "modifiers": "-10 Agility. Ignores Kill Radius damage increase and ignores 10 Pierce from Explosive weaponry.",
+    "description": "-10 Agility. Ignores Kill Radius damage increase and ignores 10 Pierce from Explosive weaponry.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 19,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 17
+    }
+  },
+  {
+    "name": "Marine M52M Medic BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 12.1,
+    "specialRules": "",
+    "modifiers": "Comes with 1 Softcase, one Medical Kit, and one Sterile Field Generator.",
+    "description": "Comes with 1 Softcase, one Medical Kit, and one Sterile Field Generator.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 18
+    }
+  },
+  {
+    "name": "Marine EUG-FFB Fire Rescue BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 31.8,
+    "specialRules": "Reduces damage",
+    "modifiers": "-20 Agility. Cannot catch fire. Vacuum Sealed: 15 minutes Oxygen. Half Damage from fire.",
+    "description": "-20 Agility. Cannot catch fire. Vacuum Sealed: 15 minutes Oxygen. Half Damage from fire.",
+    "armorSpecialRuleKeys": [
+      "fire-rescue",
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 19
+    }
+  },
+  {
+    "name": "Marine CBE Cross-Branch BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 12,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 20
+    }
+  },
+  {
+    "name": "Marine EXO-Atmospheric BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 17.5,
+    "specialRules": "Atmospheric 120 min",
+    "modifiers": "Keeps the internal of the suit at a constant 72 degrees if possible. Has enough Oxygen to last 120 Minutes.",
+    "description": "Keeps the internal of the suit at a constant 72 degrees if possible. Has enough Oxygen to last 120 Minutes.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 21
+    }
+  },
+  {
+    "name": "Marine Military Police BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 34,
+    "weightKg": 5.2,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 18,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 22
+    }
+  },
+  {
+    "name": "Marine LR-Sniper BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 36,
+    "weightKg": 12.2,
+    "specialRules": "Spotting System",
+    "modifiers": "Has a specialized built-in Spotting System for Snipers. User gains +10 when taking Aim Actions against Targets beyond 500 Meters.",
+    "description": "Has a specialized built-in Spotting System for Snipers. User gains +10 when taking Aim Actions against Targets beyond 500 Meters.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 19,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 23
+    }
+  },
+  {
+    "name": "Marine Multilayer Heavy BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 41,
+    "weightKg": 24.9,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 24,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 24
+    }
+  },
+  {
+    "name": "Marine EFFU-FC Cryonics BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 31.7,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "Vacuum Sealed, Cryo-Resistant, and Bulky Special Rule.",
+    "description": "Vacuum Sealed, Cryo-Resistant, and Bulky Special Rule.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule",
+      "cryo-resistant",
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 25
+    }
+  },
+  {
+    "name": "Post-War M53 Standard BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 12.2,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 27
+    }
+  },
+  {
+    "name": "Post-War Vacuum BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 11.7,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "Vacuum Sealed: 60 minutes of Oxygen",
+    "description": "Vacuum Sealed",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 18,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 28
+    }
+  },
+  {
+    "name": "Post-War LV-50 Lightweight BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 17.1,
+    "specialRules": "",
+    "modifiers": "+10 to Agility. Holds its own weight.",
+    "description": "Mobility-boosting Exo-lining",
+    "armorSpecialRuleKeys": [
+      "mobility-boosting-exo-lining"
+    ],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 29
+    }
+  },
+  {
+    "name": "Post-War EDE1 E.O.D BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 37,
+    "weightKg": 29,
+    "specialRules": "Reduces damage",
+    "modifiers": "-10 Agility. Ignores Kill Radius damage increase and ignores 10 Pierce from Explosive weaponry.",
+    "description": "-10 Agility. Ignores Kill Radius damage increase and ignores 10 Pierce from Explosive weaponry.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 19,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 30
+    }
+  },
+  {
+    "name": "Post-War M53M1 BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 16.1,
+    "specialRules": "",
+    "modifiers": "Comes with 1 Softcase, one Medical Kit, and one Sterile Field Generator.",
+    "description": "Comes with 1 Softcase, one Medical Kit, and one Sterile Field Generator.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 21,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 31
+    }
+  },
+  {
+    "name": "Post-War Fire Rescue  BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 31.8,
+    "specialRules": "Reduces damage",
+    "modifiers": "-20 Agility. Cannot catch fire. Vacuum Sealed: 15 minutes Oxygen. Half Damage from fire.",
+    "description": "Vacuum Sealed, Fire-Rescue, and Bulky Special Rule.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule",
+      "fire-rescue",
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 32
+    }
+  },
+  {
+    "name": "Post-War CBE Cross-Branch BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 12.7,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 21,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 33
+    }
+  },
+  {
+    "name": "Post-War EXO-Atmospheric BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 18.1,
+    "specialRules": "Atmospheric 120 min",
+    "modifiers": "Keeps the internal of the suit at a constant 72 degrees if possible. Has enough Oxygen to last 120 Minutes.",
+    "description": "Temperature Regulator and Vacuum Sealed (120).",
+    "armorSpecialRuleKeys": [
+      "temperature-regulator",
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 34
+    }
+  },
+  {
+    "name": "Post-War Officer’s Upgraded BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 11.8,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 35
+    }
+  },
+  {
+    "name": "Post-War Communications BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 12.1,
+    "specialRules": "Radio Backpack/Translator",
+    "modifiers": "Built in Radio Backpack with Covenant Translation Software",
+    "description": "Built in Radio Backpack with Covenant Translation Software",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 36
+    }
+  },
+  {
+    "name": "Post-War Military Police Battle BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 36,
+    "weightKg": 5.2,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 18,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 37
+    }
+  },
+  {
+    "name": "Post-War LR-Sniper BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 37,
+    "weightKg": 12.2,
+    "specialRules": "Spotting System",
+    "modifiers": "Has a specialized built-in Spotting System for Snipers. User gains +10 when taking Aim Actions against Targets beyond 500 Meters.",
+    "description": "Built-in Spotting System. User gains +10 when taking Aim Actions against Targets beyond 500 Meters.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 19,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 38
+    }
+  },
+  {
+    "name": "Post-War Multilayer Heavy Armor BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 43,
+    "weightKg": 12.2,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Bulky Special Rule and gives a -10 Penalty to Evasion Tests.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule"
+    ],
+    "protection": {
+      "head": 22,
+      "chest": 25,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 39
+    }
+  },
+  {
+    "name": "Post-War EFFU-FRC Cryonics BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 31.7,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "Vacuum Sealed, Cryo-Resistant, and Bulky Special Rule.",
+    "description": "Vacuum Sealed, Cryo-Resistant, and Bulky Special Rule.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule",
+      "cryo-resistant",
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 40
+    }
+  },
+  {
+    "name": "Post-War SECOPS Armor BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 12.2,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "Only available to ONI and ONI-funded personnel.",
+    "description": "",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 22,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 41
+    }
+  },
+  {
+    "name": "Police Standard BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 33,
+    "weightKg": 7.7,
+    "specialRules": "",
+    "modifiers": "-5 Penalty to Evasion. No Police and Civilian upcharge.",
+    "description": "-5 Penalty to Evasion. No Police and Civilian upcharge.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 18,
+      "lArm": 16,
+      "rArm": 16,
+      "lLeg": 16,
+      "rLeg": 16
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 43
+    }
+  },
+  {
+    "name": "Police Riot supression BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 11,
+    "specialRules": "Reduces damage",
+    "modifiers": "-10 Penalty to Evasion. Ignores half of Base Damage from melee Attacks. No Police and Civilian upcharge.",
+    "description": "-10 Penalty to Evasion. Ignores half of Base Damage from melee Attacks. No Police and Civilian upcharge.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 44
+    }
+  },
+  {
+    "name": "Police Rapid responce Armour",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 37,
+    "weightKg": 8.4,
+    "specialRules": "",
+    "modifiers": "-5 Penalty to Evasion. No Police and Civilian upcharge.",
+    "description": "-5 Penalty to Evasion. No Police and Civilian upcharge.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 19,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 45
+    }
+  },
+  {
+    "name": "ODST Standard BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 26,
+    "specialRules": "ODST BDU",
+    "modifiers": "",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 47
+    }
+  },
+  {
+    "name": "ODST TAC BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 37,
+    "weightKg": 28,
+    "specialRules": "ODST BDU",
+    "modifiers": "Vacuum Sealed Speccial Rule.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "vacuum-sealed",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 19,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 48
+    }
+  },
+  {
+    "name": "ODST Sharpshooter BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 27,
+    "specialRules": "ODST BDU",
+    "modifiers": "Infrared Goggles",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Built-in Infrared Goggles.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 21,
+      "chest": 19,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 49
+    }
+  },
+  {
+    "name": "ODST ONI S-1 Recon BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 37,
+    "weightKg": 18,
+    "specialRules": "ODST BDU",
+    "modifiers": "This suit gives the User a +10 Bonus to Camouflage Tests.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. S-1 Recon Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 19,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 50
+    }
+  },
+  {
+    "name": "ODST Personal protection BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 43,
+    "weightKg": 31,
+    "specialRules": "ODST BDU",
+    "modifiers": "-5 Penalty to Reflex Tests and a -10 Penalty to the Character’s Agility. Ignores Kill Radius damage increase and ignores 10 Pierce from Explosive weaponry.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule.-5 Penalty to Reaction Tests and -10 Penalty to Character’s Agility when worn. Ignores Kill Radius and ignores 10 Pierce from Explosives.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 21,
+      "chest": 22,
+      "lArm": 22,
+      "rArm": 22,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 51
+    }
+  },
+  {
+    "name": "ODST UVH-BA Recon BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 26,
+    "specialRules": "ODST BDU",
+    "modifiers": "This system gives the Character a +5 Bonus to Agility.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. UVH-BA Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "uvh-ba",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 52
+    }
+  },
+  {
+    "name": "ODST Nightfall BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 28,
+    "specialRules": "ODST BDU",
+    "modifiers": "Allow the Character to take only 1/4th of all Falling Damage.\nVacuum specical rule.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Freefall Assistance Microskeleton Special Rule.",
+    "armorSpecialRuleKeys": [
+      "freefall-assistance-microskeleton",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 20,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 53
+    }
+  },
+  {
+    "name": "ODST Heavy BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 49,
+    "weightKg": 45,
+    "specialRules": "ODST BDU",
+    "modifiers": "This Armor is heavy, giving a -10 Penalty to the Character’s Agility, and -10 to any Reaction Test.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Bulky Special Rule.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 24,
+      "chest": 26,
+      "lArm": 24,
+      "rArm": 24,
+      "lLeg": 25,
+      "rLeg": 25
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 54
+    }
+  },
+  {
+    "name": "ODST Demolitions BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 30,
+    "specialRules": "ODST BDU",
+    "modifiers": "This Armor is bulky, giving a -5 Penalty to Reflex Tests and a -10 Penalty to the Character’s Agility. Halves all Damage and Pierce from weapons with Blast and/or Kill",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Demolitions, Bulky Special Rule.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule",
+      "demolitions",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 55
+    }
+  },
+  {
+    "name": "ODST Comms BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 28,
+    "specialRules": "ODST BDU",
+    "modifiers": "The ODST’s armor acts as a transmission booster",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Communications unit Special Rule.",
+    "armorSpecialRuleKeys": [
+      "communications-unit",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 56
+    }
+  },
+  {
+    "name": "ODST SPI BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 37,
+    "weightKg": 29,
+    "armorWeightProfile": "semi-powered",
+    "isPoweredArmor": true,
+    "specialRules": "ODST BDU",
+    "modifiers": "This gives the Character a +40 Bonus to Camouflage.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Photo-Reactive Panels (40) Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "photo-reactive-panels",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 57
+    }
+  },
+  {
+    "name": "ODST Medical BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 27,
+    "specialRules": "ODST BDU",
+    "modifiers": "A Medical extension to the ODST Rucksack that can hold up to two Medical Kits, 10 Biofoam Canisters, and 10 sets of medication of the Player’s choice. Adds on to the M/LBE Hard Case Armored Backpack that comes with ODST BDU.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Rucksack Medical Extension Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "rucksack-medical-extension",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 21,
+      "chest": 20,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 58
+    }
+  },
+  {
+    "name": "ODST Hellbringer BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 34,
+    "specialRules": "ODST BDU",
+    "modifiers": "A Medical extension to the ODST Rucksack that can hold up to two Medical Kits, 10 Biofoam Canisters, and 10 sets of medication of the Player’s choice. Fire-resistant.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Rucksack Medical Extension, Fire-Rescue, and Bulky Special Rule.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule",
+      "fire-rescue",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "rucksack-medical-extension",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 22,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 59
+    }
+  },
+  {
+    "name": "ODST Cryotrooper BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 34,
+    "specialRules": "ODST BDU",
+    "modifiers": "A Medical extension to the ODST Rucksack that can hold up to two Medical Kits, 10 Biofoam Canisters, and 10 sets of medication of the Player’s choice. Cryo-Resistant",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Rucksack Medical Extension, Fire-Rescue, and Bulky Special Rule.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule",
+      "cryo-resistant",
+      "fire-rescue",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "rucksack-medical-extension",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 22,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 60
+    }
+  },
+  {
+    "name": "ODST Space-Assault BDU",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 26,
+    "specialRules": "ODST BDU",
+    "modifiers": "IGNORES RADIATION EFFECTS AND HALVES THE EFFECTS OF EMP SPECIAL RULE. VACUUM SEALED SPECIAL RULE.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "vacuum-sealed",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 61
+    }
+  },
+  {
+    "name": "ODST Black Body Suit",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 33,
+    "weightKg": 12,
+    "specialRules": "ODST BDU",
+    "modifiers": "A pitch-black suit that reflects no lighting. Paneling can be altered to partially take hues of the User’s surroundings. This gives the User a +10 Bonus to Camouflage when in the dark and low-light.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Hybrid Black-Surface Paneling, Biofoam Injection Port Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 16,
+      "chest": 16,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 62
+    }
+  },
+  {
+    "name": "UA Personal Protective Equipment",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 41,
+    "weightKg": 12,
+    "specialRules": "ODST BDU",
+    "modifiers": "Reduces Damage from Cauterize Special Rule Weapons by 2.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. Hybrid Black-Surface Paneling, Biofoam Injection Port Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 21,
+      "chest": 22,
+      "lArm": 21,
+      "rArm": 21,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 63
+    }
+  },
+  {
+    "name": "Mark I Semi-Powered Infiltration Armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 57,
+    "armorWeightProfile": "semi-powered",
+    "isPoweredArmor": true,
+    "specialRules": "Limited Availability",
+    "modifiers": "This gives the Character a +40 Bonus to Camouflage.",
+    "description": "VISR, Liquid Nanocrystals, Temperature Regulator, Rucksack, Thermal Cooling, Photo-Reactive Panels(40), VR/Oxygen Recycler, and Biofoam Injector Port. Built-in Tactile Bracers and Rift-Class Gauntlets.",
+    "armorSpecialRuleKeys": [
+      "biofoam-injector-port",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "photo-reactive-panels",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 65
+    }
+  },
+  {
+    "name": "Mark II Semi-Powered Infiltration Armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 58,
+    "armorWeightProfile": "semi-powered",
+    "isPoweredArmor": true,
+    "specialRules": "Limited Availability",
+    "modifiers": "This gives the Character a +50 Bonus to Camouflage.",
+    "description": "VISR, Liquid Nanocrystals, Temperature Regulator, Rucksack, Thermal Cooling, Photo-Reactive Panels(50), VR/Oxygen Recycler, and Biofoam Injector Port. Built-in Tactile Bracers and Rift-Class Gauntlets.",
+    "armorSpecialRuleKeys": [
+      "biofoam-injector-port",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "photo-reactive-panels",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 66
+    }
+  },
+  {
+    "name": "Headhunter Variant Mark II Semi-Powered Infiltration Armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 61,
+    "specialRules": "Limited Availability",
+    "modifiers": "This gives the Character a +50 Bonus to Camouflage.",
+    "description": "VISR, Liquid Nanocrystals, Temperature Regulator, Rucksack, Thermal Cooling, Photo-Reactive Panels(50), VR/Oxygen Recycler, and Biofoam Injector Port. Built-in Tactile Bracers and Rift-Class Gauntlets.",
+    "armorSpecialRuleKeys": [
+      "biofoam-injector-port",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "photo-reactive-panels",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "armorWeightProfile": "semi-powered",
+    "isPoweredArmor": true,
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 75,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 67
+    }
+  },
+  {
+    "name": "Mjolnir Materials Prototype Mark 1 Exoskeleton",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 45,
+    "weightKg": 1900,
+    "specialRules": "",
+    "modifiers": "Extremely limited availability",
+    "description": "This armor stacks on whatever is worn. The suit is able to be run at user’s Half Move. Suit gives +2 Mythic Strength. Must be recharged after every 100 Turns taken with this armor.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 25,
+      "lArm": 22,
+      "rArm": 22,
+      "lLeg": 23,
+      "rLeg": 23
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 1,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 69
+    }
+  },
+  {
+    "name": "Mjolnir Materials Prototype Mark 2 Exoskeleton",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 47,
+    "weightKg": 1600,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "This armor stacks on whatever is worn. The suit is able to be run at user’s Full Move. Suit gives +2 Mythic Strength. Must be recharged after every 250 Turns taken with this armor.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 22,
+      "chest": 26,
+      "lArm": 23,
+      "rArm": 23,
+      "lLeg": 23,
+      "rLeg": 23
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 1,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 70
+    }
+  },
+  {
+    "name": "Mjolnir Materials Prototype Mark 3 Exoskeleton",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 48,
+    "weightKg": 1300,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "This armor stacks on whatever is worn. The suit is able to be run at user’s Full Move. Suit gives +3 Mythic Strength. Must be recharged after every 500 Turns taken with this armor.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 23,
+      "chest": 27,
+      "lArm": 23,
+      "rArm": 23,
+      "lLeg": 23,
+      "rLeg": 23
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 5,
+    "tou": 0,
+    "agi": 10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 1,
+    "tou": 0,
+    "agi": 1
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 71
+    }
+  },
+  {
+    "name": "Mjolnir mark IV powered assault armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 50,
+    "weightKg": 453,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Temperature Regulator: Protects the user from extreme temperatures by increasing or reducing the internal temperature of the suit by 30 degrees Celsius., \n\nOnboard Computer: An onboard computer that allowed information trading amongst the battlefield at high speeds. Allows for Smart and Dumb AI to be stored and have access to the Armor’s systems. Allows the AI to boost the Mjolnir’s Mythic Agility by +2 for three Rounds. This feature has a Recharge of 10 minutes., \n\nLiquid Nanocrystals: Offers protection from attacks that lower armor or attack unarmored locations. Any Attacks that reduce Armor or attack unarmored locations count as having 17 Armor., \n\nVacuum Regulator and Oxygen Recycler: Allows the user to be in a vacuum and without oxygen for extended periods of time and is able to recycle oxygen as the user breathes. Has enough Oxygen to last 120 Minutes., \n\nReactive Metal Liquid Crystals: This offers the Spartans the Strength and Agility multipliers given by the suit. Reduces 15D10 from the amount of Falling Damage Roll the Character will take. If a Character were to take 10D10 Falling Damage, then no Damage would be rolled., \n\nHeads-up Display: Allows the users to see important battle statistics and information on the allies and enemies nearby. Includes the Motion Tracker radar., \n\nVISR: Equips the Character with VISR and Motion Tracker. Able to communicate with UEG, CAA, and UNSC infrastructures and communication options., \n\nBiofoam Injector Port: The suit allows for the insertion of Biofoam using Biofoam Injection Modules. These Modules are ports in the armor that a Biofoam canister can attach to so the Character may apply Biofoam., \n\nEVA System: Thrusters that allow the User to control their movements in zero gravity. Allows the User to turn 360 degrees in zero gravity in a Full Action. This removes any basic Penalties given from zero gravity scenarios. Has a Full Move speed of 12 Meters. Has magnified Boots for improved movement and the capability of walking on metallic surfaces., \n\nGEN I Variants: Mjolnir armor have specialized variants that can be chosen from. These variants can augment Special Abilities, Characteristics, and even Skills, while some can come with Equipment and Attachments.",
+    "armorSpecialRuleKeys": [
+      "biofoam-injector-port",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "temperature-regulator",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 25,
+      "chest": 26,
+      "lArm": 25,
+      "rArm": 25,
+      "lLeg": 25,
+      "rLeg": 25
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 10,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 2,
+    "tou": 0,
+    "agi": 2
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 73
+    }
+  },
+  {
+    "name": "Mjolnir mark V powered assault armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 52,
+    "weightKg": 321,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Temperature Regulator: Protects the user from extreme temperatures by increasing or reducing the internal temperature of the suit by 30 degrees Celsius., \n\nOnboard Computer: An onboard computer that allowed information trading amongst the battlefield at high speeds. Allows for Smart and Dumb AI to be stored and have access to the Armor’s systems. Allows the AI to boost the Mjolnir’s Mythic Agility by +2 for three Rounds. This feature has a Recharge of 10 minutes., \n\nLiquid Nanocrystals: Offers protection from attacks that lower armor or attack unarmored locations. Any Attacks that reduce Armor or attack unarmored locations count as having 17 Armor., \n\nVacuum Regulator and Oxygen Recycler: Allows the user to be in a vacuum and without oxygen for extended periods of time and is able to recycle oxygen as the user breathes. Has enough Oxygen to last 120 Minutes., \n\nReactive Metal Liquid Crystals: This offers the Spartans the Strength and Agility multipliers given by the suit. Reduces 15D10 from the amount of Falling Damage Roll the Character will take. If a Character were to take 10D10 Falling Damage, then no Damage would be rolled., \n\nHeads-up Display: Allows the users to see important battle statistics and information on the allies and enemies nearby. Includes the Motion Tracker radar., \n\nVISR: Equips the Character with VISR and Motion Tracker. Able to communicate with UEG, CAA, and UNSC infrastructures and communication options., \n\nBiofoam Injector Port: The suit allows for the insertion of Biofoam using Biofoam Injection Modules. These Modules are ports in the armor that a Biofoam canister can attach to so the Character may apply Biofoam., \n\nEVA System: Thrusters that allow the User to control their movements in zero gravity. Allows the User to turn 360 degrees in zero gravity in a Full Action. This removes any basic Penalties given from zero gravity scenarios. Has a Full Move speed of 12 Meters. Has magnified Boots for improved movement and the capability of walking on metallic surfaces., \n\nGEN I Variants: Mjolnir armor have specialized variants that can be chosen from. These variants can augment Special Abilities, Characteristics, and even Skills, while some can come with Equipment and Attachments., \n\nSelf-Destruct: The armor is able to have its Self-Destruct activated when the user is confirmed to be deceased. Anything within Blast (10) is instantly killed with no possibility of survival unless a Luck point is burnt. Everything within a Blast (30) radius takes 4D10 + 12 Damage with a Pierce of 40.",
+    "armorSpecialRuleKeys": [
+      "biofoam-injector-port",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "temperature-regulator",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 26,
+      "chest": 27,
+      "lArm": 26,
+      "rArm": 26,
+      "lLeg": 26,
+      "rLeg": 26
+    },
+    "shields": {
+      "integrity": 125,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 15,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 2,
+    "tou": 0,
+    "agi": 2
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 74
+    }
+  },
+  {
+    "name": "Mjolnir mark VI powered assault armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 53,
+    "weightKg": 220,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Temperature Regulator: Protects the user from extreme temperatures by increasing or reducing the internal temperature of the suit by 30 degrees Celsius., \n\nOnboard Computer: Allows for Smart and Dumb AI to be stored and have access to the Armor’s systems. Allows the AI to boost the Mjolnir’s Mythic Agility by +2 for three Rounds. This feature has a Recharge of 8 minutes., \n\nLiquid Nanocrystals: Offers protection from attacks that lower armor or attack unarmored locations. Any Attacks that reduce Armor or attack unarmored locations count as having 17 Armor., \n\nVacuum Regulator and Oxygen Recycler: Allows the user to be in a vacuum and without oxygen for extended periods of time and can recycle oxygen as the user breathes. Has enough Oxygen to last 120 Minutes., \n\nReactive Metal Liquid Crystals: This offers the Spartans the Strength and Agility multipliers given by the suit. Reduces 20D10 from the amount of Falling Damage Roll the Character will take. If a Character were to take 10D10 Falling Damage, then no Damage would be rolled., \n\nHeads-up Display: Allows the users to see important battle statistics and information on the allies and enemies nearby. Includes the Motion Tracker radar., \n\nVISR: Equips the Character with VISR and Motion Tracker. Able to communicate with UEG, CAA, and UNSC infrastructures and communication options., \n\nBiofoam Injector Port: The suit allows for the insertion of Biofoam using Biofoam Injection Modules. These Modules are ports in the armor that a Biofoam canister can attach to so the Character may apply Biofoam., \n\nBiofoam Auto-Injector: The suit will automatically apply Biofoam as a Free Action. Has 5 uses and counts as having an Intellect Modifier of 5 for application. Each Biofoam use can be recharged with a Biofoam canister as a Full Action., \n\nEVA System: Thrusters that allow the User to control their movements in zero gravity. Allows the User to turn 360 degrees in zero gravity in a Full Action. This removes any basic Penalties given from zero gravity scenarios. Has a Full Move speed of 12 Meters. Has magnified Boots for improved movement and the capability of walking on metallic surfaces., \n\nImproved Motion Tracker: An upgraded Motion Tracker that doubles the distance of the Radar. Includes a Thermal Sensor for finding hidden targets, giving a +20 Bonus to Opposed Tests involving an Opponent’s Camouflage., \n\nGEN I Variants: Mjolnir armor have specialized variants that can be chosen from. These variants can augment Special Abilities, Characteristics, and even Skills, while some can come with Equipment and Attachments., \n\nSelf-Destruct: The armor is able to have its Self-Destruct activated when the user is confirmed to be deceased. Anything within Blast (10) is instantly killed with no possibility of survival unless a Luck point is burnt. Everything within a Blast (30) radius takes 4D10 + 12 Damage with a Pierce of 40.",
+    "armorSpecialRuleKeys": [
+      "biofoam-injector-port",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "temperature-regulator",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 27,
+      "chest": 28,
+      "lArm": 26,
+      "rArm": 26,
+      "lLeg": 26,
+      "rLeg": 26
+    },
+    "shields": {
+      "integrity": 125,
+      "delay": 2,
+      "rechargeRate": 50
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 20,
+    "tou": 0,
+    "agi": 10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 2,
+    "tou": 0,
+    "agi": 2
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 75
+    }
+  },
+  {
+    "name": "Mjolnir mark VII powered assault armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 53,
+    "weightKg": 220,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Temperature Regulator: Protects the user from extreme temperatures by increasing or reducing the internal temperature of the suit by 30 degrees Celsius., \n\nOnboard Computer: An onboard computer that allowed information trading amongst the battlefield at high speeds. Allows for Smart and Dumb AI to be stored and have access to the Armor’s systems. Allows the AI to boost the Mjolnir’s Mythic Agility by +2 for three Rounds. This feature has a Recharge of 7 minutes., \n\nLiquid Nanocrystals: Offers protection from attacks that lower armor or attack unarmored locations. Any Attacks that reduce Armor or attack unarmored locations count as having 17 Armor., \n\nVacuum Regulator and Oxygen Recycler: Allows the user to be in a vacuum and without oxygen for extended periods of time and is able to recycle oxygen as the user breathes. Has enough Oxygen to last 120 Minutes., \n\nReactive Metal Liquid Crystals: This offers the Spartans the Strength and Agility multipliers given by the suit. Reduces 25D10 from the amount of Falling Damage Roll the Character will take. If a Character were to take 15D10 Falling Damage, then no Damage would be rolled., \n\nHeads-up Display: Allows the users to see important battle statistics and information on the allies and enemies nearby. Includes the Motion Tracker radar., \n\nVISR: Equips the Character with VISR and Motion Tracker. Able to communicate with UEG, CAA, and UNSC infrastructures and communication options., \n\nBiofoam Injector Port: The suit allows for the insertion of Biofoam using Biofoam Injection Modules. These Modules are ports in the armor that a Biofoam canister can attach to so the Character may apply Biofoam., \n\nBiofoam Auto-Injector: The suit will automatically apply Biofoam as a Free Action. Has 5 uses and counts as having an Intellect Modifier of 5 for application. Each Biofoam use can be recharged with a Biofoam canister as a Full Action., \n\nEVA System: Thrusters that allow the User to control their movements in zero gravity. Allows the User to turn 360 degrees in zero gravity in a Full Action. This removes any basic Penalties given from zero gravity scenarios. Has a Full Move speed of 12 Meters. Has magnified Boots for improved movement and the capability of walking on metallic surfaces., \n\nImproved Motion Tracker: An upgraded Motion Tracker that doubles the distance of the Radar. Includes a Thermal Sensor for finding hidden targets, giving a +20 Bonus to Opposed Tests involving an Opponent’s Camouflage., \n\nNano Technology: When the suit is damaged, the suit will automatically begin a repair process. The suit will heal 1 point of damage against it or the user, once per day. The suit can do this 10 times before needing recharged between missions., \n\nGEN I and II Variants: Mjolnir armor have specialized variants that can be chosen from. These variants can augment Special Abilities, Characteristics, and even Skills, while some can come with Equipment and Attachments., \n\nSelf-Destruct: The Armor is able to Self-Destruct and can only be activated by another Character if the user inside is confirmed to be deceased. Anything within Blast (20) is instantly killed unless a Luck is burnt. Everything within Blast (40) takes 5D10 +12 Damage with a Pierce of 35.",
+    "armorSpecialRuleKeys": [
+      "biofoam-injector-port",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "temperature-regulator",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 27,
+      "chest": 27,
+      "lArm": 26,
+      "rArm": 26,
+      "lLeg": 26,
+      "rLeg": 26
+    },
+    "shields": {
+      "integrity": 150,
+      "delay": 2,
+      "rechargeRate": 50
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 15,
+    "tou": 0,
+    "agi": 10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 3,
+    "tou": 0,
+    "agi": 2
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 76
+    }
+  },
+  {
+    "name": "Mjolnir gen II mark I powered assault armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 51,
+    "weightKg": 200,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Temperature Regulator: Protects the user from extreme temperatures by increasing or reducing the internal temperature of the suit by 30 degrees Celsius., \n\nOnboard Computer: An onboard computer that allowed information trading amongst the battlefield at high speeds. Allows for Smart and Dumb AI to be stored and have access to the Armor’s systems. Allows the AI to boost the Mjolnir’s Mythic Agility by +2 for three Rounds. This feature has a Recharge of 7 minutes., \n\nLiquid Nanocrystals: Offers protection from attacks that lower armor or attack unarmored locations. Any Attacks that reduce Armor or attack unarmored locations count as having 18 Armor., \n\nVacuum Regulator and Oxygen Recycler: Allows the user to be in a vacuum and without oxygen for extended periods of time and is able to recycle oxygen as the user breathes. Has enough Oxygen to last 120 Minutes., \n\nReactive Metal Liquid Crystals: This offers the Spartans the Strength and Agility multipliers given by the suit. Reduces 30D10 from the amount of Falling Damage Roll the Character will take. If a Character were to take 25D10 Falling Damage, then no Damage would be rolled., \n\nHeads-up Display: Allows the users to see important battle statistics and information on the allies and enemies nearby. Includes the Motion Tracker radar., \n\nVISR: Equips the Character with VISR and Motion Tracker. Able to communicate with UEG, CAA, and UNSC infrastructures and communication options., \n\nBiofoam Injector Port: The suit allows for the insertion of Biofoam using Biofoam Injection Modules. These Modules are ports in the armor that a Biofoam canister can attach to so the Character may apply Biofoam., \n\nBiofoam Auto-Injector: The suit will automatically apply Biofoam as a Free Action. Has 5 uses and counts as having an Intellect Modifier of 5 for application. Each Biofoam use can be recharged with a Biofoam canister as a Full Action., \n\nEVA System: Thrusters that allow the User to control their movements in zero gravity. Allows the User to turn 360 degrees in zero gravity in a Full Action. This removes any basic Penalties given from zero gravity scenarios. Has a Full Move speed of 16 Meters. Has magnified Boots for improved movement and the capability of walking on metallic surfaces., \n\nImproved Motion Tracker: An upgraded Motion Tracker that doubles the distance of the Radar. Includes a Thermal Sensor for finding hidden targets, giving a +20 Bonus to Opposed Tests involving an Opponent’s Camouflage., \n\nNano Technology: When the suit is damaged, the suit will automatically begin a repair process. The suit will heal 1 point of damage against it or the user, once per day. The suit can do this 10 times before needing recharged between missions., \n\nGEN I and II Variants: Mjolnir armor have specialized variants that can be chosen from. These variants can augment Special Abilities, Characteristics, and even Skills, while some can come with Equipment and Attachments., \n\nSelf-Destruct: The Armor is able to Self-Destruct and can only be activated by another Character if the user inside is confirmed to be deceased. Anything within Blast (20) is instantly killed unless a Luck is burnt. Everything within Blast (40) takes 6D10 +15 Damage with a Pierce of 35., \n\nSPARTAN ABILITIES: \nThruster Pack: The Mjolnir Generation II suits have a built-in Thrust package. Doubles the user’s Half Move for a single Half Action.  This takes four Half Actions to recharge., \n\nGround Pound: Using the thrusters to force the Spartan downward, Ground Pound causes a Blast (4) of the Spartan’s Punch Melee Attack, giving the attack a Pierce of the Spartan’s total Strength Modifier and Mythic Strength., \n\nSpartan Charge Thrust Package: Modifying the Thrusters, the Character may double the damage made with Charge Attacks. The Character must be Running in order to use this., \n\nHover Stabilization: The suit will allow the user to Hover in the air for 2 Half Actions, as long as the Character is not in a free fall. The Hover Stabilization must then charge for 1 Half Action before being used again., \n\nSprint: Using the Mjolnir suit’s Overclocking system, the user’s movement is increased, allowing a character to gain +2 Mythic Agility for two Rounds. If used twice within five Rounds, the user takes a level of Fatigue.",
+    "armorSpecialRuleKeys": [
+      "biofoam-injector-port",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "temperature-regulator",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 25,
+      "chest": 27,
+      "lArm": 25,
+      "rArm": 25,
+      "lLeg": 25,
+      "rLeg": 25
+    },
+    "shields": {
+      "integrity": 150,
+      "delay": 2,
+      "rechargeRate": 50
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 20,
+    "tou": 0,
+    "agi": 15,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 4,
+    "tou": 0,
+    "agi": 4
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 77
+    }
+  },
+  {
+    "name": "Mjolnir gen III mark I powered assault armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 53,
+    "weightKg": 200,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Temperature Regulator: Protects the user from extreme temperatures by increasing or reducing the internal temperature of the suit by 30 degrees Celsius., \n\nOnboard Computer: An onboard computer that allowed information trading amongst the battlefield at high speeds. Allows for Smart and Dumb AI to be stored and have access to the Armor’s systems. Allows the AI to boost the Mjolnir’s Mythic Agility by +2 for three Rounds. This feature has a Recharge of 7 minutes., \n\nLiquid Nanocrystals: Offers protection from attacks that lower armor or attack unarmored locations. Any Attacks that reduce Armor or attack unarmored locations count as having 18 Armor., \n\nVacuum Regulator and Oxygen Recycler: Allows the user to be in a vacuum and without oxygen for extended periods of time and is able to recycle oxygen as the user breathes. Has enough Oxygen to last 120 Minutes., \n\nReactive Metal Liquid Crystals: This offers the Spartans the Strength and Agility multipliers given by the suit. Reduces 30D10 from the amount of Falling Damage Roll the Character will take. If a Character were to take 25D10 Falling Damage, then no Damage would be rolled., \n\nHeads-up Display: Allows the users to see important battle statistics and information on the allies and enemies nearby. Includes the Motion Tracker radar., \n\nVISR: Equips the Character with VISR and Motion Tracker. Able to communicate with UEG, CAA, and UNSC infrastructures and communication options., \n\nBiofoam Injector Port: The suit allows for the insertion of Biofoam using Biofoam Injection Modules. These Modules are ports in the armor that a Biofoam canister can attach to so the Character may apply Biofoam., \n\nBiofoam Auto-Injector: The suit will automatically apply Biofoam as a Free Action. Has 5 uses and counts as having an Intellect Modifier of 5 for application. Each Biofoam use can be recharged with a Biofoam canister as a Full Action., \n\nEVA System: Thrusters that allow the User to control their movements in zero gravity. Allows the User to turn 360 degrees in zero gravity in a Full Action. This removes any basic Penalties given from zero gravity scenarios. Has a Full Move speed of 16 Meters. Has magnified Boots for improved movement and the capability of walking on metallic surfaces., \n\nImproved Motion Tracker: An upgraded Motion Tracker that doubles the distance of the Radar. Includes a Thermal Sensor for finding hidden targets, giving a +20 Bonus to Opposed Tests involving an Opponent’s Camouflage., \n\nNano Technology: When the suit is damaged, the suit will automatically begin a repair process. The suit will heal 1 point of damage against it or the user, once per day. The suit can do this 10 times before needing recharged between missions., \n\nGEN I and II Variants: Mjolnir armor have specialized variants that can be chosen from. These variants can augment Special Abilities, Characteristics, and even Skills, while some can come with Equipment and Attachments., \n\nSelf-Destruct: The Armor is able to Self-Destruct and can only be activated by another Character if the user inside is confirmed to be deceased. Anything within Blast (20) is instantly killed unless a Luck is burnt. Everything within Blast (40) takes 6D10 +15 Damage with a Pierce of 35., \n\nSystem Peril Distributed Reflex (SPDR): An automated AI assistance and containment system built into all GEN III Mjolnir Armor. When an AI is placed into the Mjolnir Suit, it will be healed 1D10 Damage once an hour. The Mjolnir User may also use the SPDR to contain and imprison AI Characters. Imprisoned AI cannot make any type of Cyber Attack attempt or any other type of Action until released., \n\nSPARTAN ABILITIES:\n\nThruster Pack: The Mjolnir Generation III suits have a built-in Thrust package. Doubles the user’s Half Move for a single Half Action.  This takes four Half Actions to recharge.\n\nGround Pound: Using the thrusters to force the Spartan downward, Ground Pound causes a Blast (4) of the Spartan’s Punch Melee Attack, giving the attack a Pierce of the Spartan’s total Strength Modifier and Mythic Strength., \n\nSpartan Charge Thrust Package: Modifying the Thrusters, the Character may double the damage made with Charge Attacks. The Character must be Running in order to use this.\n\nHover Stabilization: The suit will allow the user to Hover in the air for 2 Half Actions, as long as the Character is not in a free fall. The Hover Stabilization must then charge for 1 Half Action before being used again.\n\nSprint: Using the Mjolnir suit’s Overclocking system, the user’s movement is increased, allowing a character to gain +2 Mythic Agility for two Rounds. If used twice within five Rounds, the user takes a level of Fatigue.",
+    "armorSpecialRuleKeys": [
+      "biofoam-injector-port",
+      "kevlar-undersuit-liquid-nanocrystal",
+      "temperature-regulator",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 27,
+      "chest": 27,
+      "lArm": 26,
+      "rArm": 26,
+      "lLeg": 27,
+      "rLeg": 27
+    },
+    "shields": {
+      "integrity": 175,
+      "delay": 2,
+      "rechargeRate": 50
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 20,
+    "tou": 0,
+    "agi": 15,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 3,
+    "tou": 0,
+    "agi": 3
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 78
+    }
+  },
+  {
+    "name": "Sangheili Minor Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 42,
+    "weightKg": 22.5,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 22,
+      "lArm": 21,
+      "rArm": 21,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 100,
+      "delay": 3,
+      "rechargeRate": 50
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 80
+    }
+  },
+  {
+    "name": "Sangheili Major Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 44,
+    "weightKg": 23.3,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 23,
+      "lArm": 22,
+      "rArm": 22,
+      "lLeg": 22,
+      "rLeg": 22
+    },
+    "shields": {
+      "integrity": 125,
+      "delay": 3,
+      "rechargeRate": 50
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 81
+    }
+  },
+  {
+    "name": "Sangheili Ultra Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 44,
+    "weightKg": 24.1,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 23,
+      "lArm": 22,
+      "rArm": 22,
+      "lLeg": 22,
+      "rLeg": 22
+    },
+    "shields": {
+      "integrity": 150,
+      "delay": 3,
+      "rechargeRate": 50
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 82
+    }
+  },
+  {
+    "name": "Sangheili Honor Guard Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 48,
+    "weightKg": 26.7,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 23,
+      "chest": 25,
+      "lArm": 24,
+      "rArm": 24,
+      "lLeg": 24,
+      "rLeg": 24
+    },
+    "shields": {
+      "integrity": 175,
+      "delay": 4,
+      "rechargeRate": 75
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 83
+    }
+  },
+  {
+    "name": "Sangheili Infiltration Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 20.4,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "T-3 Active Camo",
+    "modifiers": "",
+    "description": "Built-in T-3 Active Camouflage Armor Ability. Shield Delay +1 while cloak is active",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 90,
+      "delay": 3,
+      "rechargeRate": 30
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 84
+    }
+  },
+  {
+    "name": "Sangheili Field Marshal Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 42,
+    "weightKg": 22.7,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 23,
+      "lArm": 21,
+      "rArm": 21,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 175,
+      "delay": 4,
+      "rechargeRate": 50
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 85
+    }
+  },
+  {
+    "name": "Sangheili Kaidon",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 50,
+    "weightKg": 31.9,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "Limited Availability",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 24,
+      "chest": 26,
+      "lArm": 24,
+      "rArm": 24,
+      "lLeg": 26,
+      "rLeg": 26
+    },
+    "shields": {
+      "integrity": 175,
+      "delay": 3,
+      "rechargeRate": 50
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 86
+    }
+  },
+  {
+    "name": "Unggoy Minor Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 9,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 88
+    }
+  },
+  {
+    "name": "Unggoy Major Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 10,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 89
+    }
+  },
+  {
+    "name": "Unggoy Ultra Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 11,
+    "specialRules": "",
+    "modifiers": "-5 Agility when worn.",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 22,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 90
+    }
+  },
+  {
+    "name": "Unggoy Heavy Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 46,
+    "weightKg": 14,
+    "specialRules": "",
+    "modifiers": "-5 Agility when worn.",
+    "description": "-5 Agility when worn.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 22,
+      "chest": 25,
+      "lArm": 23,
+      "rArm": 23,
+      "lLeg": 22,
+      "rLeg": 22
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 91
+    }
+  },
+  {
+    "name": "Unggoy Mule Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 20,
+    "specialRules": "",
+    "modifiers": "Has a magnetic weapon rack fixated to the back of the Harness. Holds up to 4 weapons, including Heavy Weapons.",
+    "description": "Has a magnetic weapon rack fixated to the back of the Harness. Holds up to 4 weapons, including Heavy Weapons.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 92
+    }
+  },
+  {
+    "name": "Unggoy Mobility Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 35,
+    "weightKg": 18,
+    "specialRules": "",
+    "modifiers": "Micro-mobility Exosuit, gives +10 to Agility.",
+    "description": "Micro-mobility Exosuit, gives +10 to Agility.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 20,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 93
+    }
+  },
+  {
+    "name": "Unggoy Imperial Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 41,
+    "weightKg": 13,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 25,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 94
+    }
+  },
+  {
+    "name": "Unggoy Suicide Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 42,
+    "weightKg": 10,
+    "specialRules": "Covenant charge",
+    "modifiers": "A built-in Covenant Charge that detonates when in radius of another explosive or triggered by the wearer. 40 Break points, will explode when at 0 Break Points.",
+    "description": "A built-in Covenant Charge that detonates when in radius of another explosive or triggered by the wearer. 40 Break points, will explode when at 0 Break Points.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 21,
+      "lArm": 21,
+      "rArm": 21,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 95
+    }
+  },
+  {
+    "name": "Unggoy Shielded Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 12,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 21,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 75,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 96
+    }
+  },
+  {
+    "name": "Unggoy Spec-Ops Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 35,
+    "weightKg": 12,
+    "specialRules": "T-3 Active Camo",
+    "modifiers": "Built-in T-3 Active Camouflage Armor Ability.",
+    "description": "Built-in T-3 Active Camouflage Armor Ability.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 18,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 97
+    }
+  },
+  {
+    "name": "Unggoy Deacon Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 34,
+    "weightKg": 6.4,
+    "specialRules": "Limited Availability",
+    "modifiers": "",
+    "description": "A Holy variant for Deacons only. The Harness has an enclosed heavy helmet with a built-in projector that displays a Covenant holy symbol above their head. Has a tunic over the Harness.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 22,
+      "chest": 18,
+      "lArm": 14,
+      "rArm": 14,
+      "lLeg": 14,
+      "rLeg": 14
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 98
+    }
+  },
+  {
+    "name": "Yanme'e Minor Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 28,
+    "weightKg": 7,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 13,
+      "chest": 15,
+      "lArm": 15,
+      "rArm": 15,
+      "lLeg": 14,
+      "rLeg": 14
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 100
+    }
+  },
+  {
+    "name": "Yanme'e Major Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 29,
+    "weightKg": 8,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 13,
+      "chest": 16,
+      "lArm": 15,
+      "rArm": 15,
+      "lLeg": 15,
+      "rLeg": 15
+    },
+    "shields": {
+      "integrity": 50,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 101
+    }
+  },
+  {
+    "name": "Yanme'e Ultra Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 31,
+    "weightKg": 9,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 14,
+      "chest": 17,
+      "lArm": 15,
+      "rArm": 15,
+      "lLeg": 16,
+      "rLeg": 16
+    },
+    "shields": {
+      "integrity": 75,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 102
+    }
+  },
+  {
+    "name": "Yanme'e Captain Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 31,
+    "weightKg": 10,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 14,
+      "chest": 17,
+      "lArm": 16,
+      "rArm": 16,
+      "lLeg": 16,
+      "rLeg": 16
+    },
+    "shields": {
+      "integrity": 100,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 103
+    }
+  },
+  {
+    "name": "Yanme'e Captain Major Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 32,
+    "weightKg": 10,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 15,
+      "chest": 17,
+      "lArm": 16,
+      "rArm": 16,
+      "lLeg": 16,
+      "rLeg": 16
+    },
+    "shields": {
+      "integrity": 125,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 104
+    }
+  },
+  {
+    "name": "Kig-Yar Minor Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 11,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 106
+    }
+  },
+  {
+    "name": "Kig-Yar Sniper Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 9,
+    "specialRules": "",
+    "modifiers": "The Sniper Combat Harness counts as having VISR.",
+    "description": "The Sniper Combat Harness counts as having VISR.",
+    "armorSpecialRuleKeys": [
+      "visr"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 107
+    }
+  },
+  {
+    "name": "Kig-Yar Major Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 13,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 108
+    }
+  },
+  {
+    "name": "Kig-Yar Zealot Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 43,
+    "weightKg": 12,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 23,
+      "chest": 22,
+      "lArm": 21,
+      "rArm": 21,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 109
+    }
+  },
+  {
+    "name": "Kig-Yar Murmillo Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 43,
+    "weightKg": 11,
+    "specialRules": "Tac Headpiece",
+    "modifiers": "Built-in Kig-Yar Tactical Headpiece.",
+    "description": "Built-in Kig-Yar Tactical Headpiece.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 22,
+      "lArm": 22,
+      "rArm": 22,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 110
+    }
+  },
+  {
+    "name": "Kig-Yar Commando Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 42,
+    "weightKg": 13,
+    "specialRules": "Hologram",
+    "modifiers": "Built-in Hologram Armor Permutation.",
+    "description": "Built-in Hologram Armor Permutation.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 21,
+      "lArm": 21,
+      "rArm": 21,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 111
+    }
+  },
+  {
+    "name": "Kig-Yar Spec-Ops Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 13,
+    "specialRules": "T-3 Active Camo",
+    "modifiers": "Built-in T-3 Active Camouflage Armor Ability.",
+    "description": "Built-in T-3 Active Camouflage Armor Ability.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 112
+    }
+  },
+  {
+    "name": "Kig-Yar Champion Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 47,
+    "weightKg": 16,
+    "specialRules": "Limited Availability",
+    "modifiers": "-20 Penalty to Agility when Worn.",
+    "description": "-15 Penalty to Agility when Worn.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 24,
+      "chest": 24,
+      "lArm": 23,
+      "rArm": 23,
+      "lLeg": 23,
+      "rLeg": 23
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -15,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 113
+    }
+  },
+  {
+    "name": "Pre-Schism Jiralhanae Minor Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 32,
+    "weightKg": 20,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 15,
+      "chest": 17,
+      "lArm": 16,
+      "rArm": 16,
+      "lLeg": 16,
+      "rLeg": 16
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 115
+    }
+  },
+  {
+    "name": "Pre-Schism Jiralhanae Major Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 33,
+    "weightKg": 24,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 15,
+      "chest": 18,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 16,
+      "rLeg": 16
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 116
+    }
+  },
+  {
+    "name": "Pre-Schism Jiralhanae Ultra Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 35,
+    "weightKg": 27,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 18,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 117
+    }
+  },
+  {
+    "name": "Pre-Schism Jiralhanae Captain Major Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 36,
+    "weightKg": 29,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 18,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 118
+    }
+  },
+  {
+    "name": "Pre-Schism Jiralhanae Captain Ultra Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 31,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 119
+    }
+  },
+  {
+    "name": "Pre-Schism Jiralhanae Stalker Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 33,
+    "weightKg": 50,
+    "specialRules": "T-3 Active Camo",
+    "modifiers": "",
+    "description": "Built-in T-3 Active Camouflage Armor Ability.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 16,
+      "chest": 17,
+      "lArm": 16,
+      "rArm": 16,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 120
+    }
+  },
+  {
+    "name": "Pre-Schism Jiralhanae Chieftain Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 33,
+    "specialRules": "Limited Availability",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 22,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 121
+    }
+  },
+  {
+    "name": "Schism Jiralhanae Minor Armor",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 32,
+    "weightKg": 70,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 15,
+      "chest": 17,
+      "lArm": 16,
+      "rArm": 16,
+      "lLeg": 16,
+      "rLeg": 16
+    },
+    "shields": {
+      "integrity": 50,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 123
+    }
+  },
+  {
+    "name": "Schism Jiralhanae Major Armor",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 33,
+    "weightKg": 80,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "-10 Penalty to Agility when worn.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 15,
+      "chest": 18,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 16,
+      "rLeg": 16
+    },
+    "shields": {
+      "integrity": 75,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 124
+    }
+  },
+  {
+    "name": "Schism Jiralhanae Captain Major Armor",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 95,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 120,
+      "delay": 3,
+      "rechargeRate": 20
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 125
+    }
+  },
+  {
+    "name": "Schism Jiralhanae Captain Ultra Armor",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 100,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 125,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 126
+    }
+  },
+  {
+    "name": "Schism Jiralhanae Honor Guard Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 105,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 21,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 125,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 127
+    }
+  },
+  {
+    "name": "Schism Jiralhanae Stalker Armor",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 35,
+    "weightKg": 85,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "T-3 Active Camo",
+    "modifiers": "",
+    "description": "Built-in T-3 Active Camouflage Armor Ability. Shield Delay +1 while cloak is active",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 18,
+      "lArm": 17,
+      "rArm": 17,
+      "lLeg": 18,
+      "rLeg": 18
+    },
+    "shields": {
+      "integrity": 50,
+      "delay": 3,
+      "rechargeRate": 20
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 128
+    }
+  },
+  {
+    "name": "Schism Jiralhanae Chieftain Armor",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 45,
+    "weightKg": 110,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "Limited Availability",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 25,
+      "lArm": 22,
+      "rArm": 22,
+      "lLeg": 22,
+      "rLeg": 22
+    },
+    "shields": {
+      "integrity": 125,
+      "delay": 3,
+      "rechargeRate": 25
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 129
+    }
+  },
+  {
+    "name": "Schism Jiralhanae War Chieftain Armor",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 46,
+    "weightKg": 115,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "Limited Availability",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 22,
+      "chest": 27,
+      "lArm": 22,
+      "rArm": 22,
+      "lLeg": 22,
+      "rLeg": 22
+    },
+    "shields": {
+      "integrity": 175,
+      "delay": 3,
+      "rechargeRate": 50
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 130
+    }
+  },
+  {
+    "name": "Mgalekgolo Standard Armour",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 85,
+    "weightKg": 1200,
+    "specialRules": "",
+    "modifiers": "Bunker down, Exposed locations",
+    "description": "Bunker Down:\nAs a Half Action, the Mgalekgolo gives up their Reaction and bunkers down for an Extended Action that can be held as long as the Mgalekgolo needs. Coming out of Bunker Down also takes a Half Action. Bunker Down removes a Character’s ability to attack the Exposed Locations within the Armor unless they are firing at the Mgalekgolo’s backside. The Hunter may only move their Half Action in movement and cannot take any Agility Modifiers or Abilities that would allow them to move faster. The Mgalekgolo may still make attacks but can only turn 90 degrees per Turn. The Mgalekgolo may take a Full Action to Charge Attack out of Bunker Down or use a single Melee Attack to come out of Bunker Down that ignores the turn limitations. This Attack may also be used with Decapitating Strike or Guillotine Strike.\n\nExposed Locations\nMgalekgolo Armor has several exposed locations that offer half Armor for protection. These Locations are the Mgalekgolo’s back Torso, neck, and all limb joints. To Hit an Exposed Location, the Opponents must make a Called Shot against these locations at a -40 Penalty. If the Attack is unsuccessful but would have still hit without the Called Shot Penalty, the Attack will still strike the Armor. Successfully striking the Exposed Locations reduce the Armor by half for the Attack.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 40,
+      "chest": 50,
+      "lArm": 40,
+      "rArm": 40,
+      "lLeg": 40,
+      "rLeg": 40
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 132
+    }
+  },
+  {
+    "name": "Mgalekgolo Ironclad Armour",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 102,
+    "weightKg": 2400,
+    "specialRules": "",
+    "modifiers": "Bunker down, Exposed locations",
+    "description": "-5 Agility when worn. \n\n\"Bunker Down:\nAs a Half Action, the Mgalekgolo gives up their Reaction and bunkers down for an Extended Action that can be held as long as the Mgalekgolo needs. Coming out of Bunker Down also takes a Half Action. Bunker Down removes a Character’s ability to attack the Exposed Locations within the Armor unless they are firing at the Mgalekgolo’s backside. The Hunter may only move their Half Action in movement and cannot take any Agility Modifiers or Abilities that would allow them to move faster. The Mgalekgolo may still make attacks but can only turn 90 degrees per Turn. The Mgalekgolo may take a Full Action to Charge Attack out of Bunker Down or use a single Melee Attack to come out of Bunker Down that ignores the turn limitations. This Attack may also be used with Decapitating Strike or Guillotine Strike.\n\nExposed Locations\nMgalekgolo Armor has several exposed locations that offer half Armor for protection. These Locations are the Mgalekgolo’s back Torso, neck, and all limb joints. To Hit an Exposed Location, the Opponents must make a Called Shot against these locations at a -40 Penalty. If the Attack is unsuccessful but would have still hit without the Called Shot Penalty, the Attack will still strike the Armor. Successfully striking the Exposed Locations reduce the Armor by half for the Attack.\"",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 50,
+      "chest": 60,
+      "lArm": 45,
+      "rArm": 45,
+      "lLeg": 50,
+      "rLeg": 50
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 133
+    }
+  },
+  {
+    "name": "Mgalekgolo Ultra Armor",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 102,
+    "weightKg": 2900,
+    "specialRules": "",
+    "modifiers": "Bunker down, Exposed locations",
+    "description": "Glows, easily spotted in Low-Light and Darkness.\n\n\"Bunker Down:\nAs a Half Action, the Mgalekgolo gives up their Reaction and bunkers down for an Extended Action that can be held as long as the Mgalekgolo needs. Coming out of Bunker Down also takes a Half Action. Bunker Down removes a Character’s ability to attack the Exposed Locations within the Armor unless they are firing at the Mgalekgolo’s backside. The Hunter may only move their Half Action in movement and cannot take any Agility Modifiers or Abilities that would allow them to move faster. The Mgalekgolo may still make attacks but can only turn 90 degrees per Turn. The Mgalekgolo may take a Full Action to Charge Attack out of Bunker Down or use a single Melee Attack to come out of Bunker Down that ignores the turn limitations. This Attack may also be used with Decapitating Strike or Guillotine Strike.\n\nExposed Locations\nMgalekgolo Armor has several exposed locations that offer half Armor for protection. These Locations are the Mgalekgolo’s back Torso, neck, and all limb joints. To Hit an Exposed Location, the Opponents must make a Called Shot against these locations at a -40 Penalty. If the Attack is unsuccessful but would have still hit without the Called Shot Penalty, the Attack will still strike the Armor. Successfully striking the Exposed Locations reduce the Armor by half for the Attack.\"",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 55,
+      "chest": 55,
+      "lArm": 45,
+      "rArm": 45,
+      "lLeg": 50,
+      "rLeg": 50
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 134
+    }
+  },
+  {
+    "name": "Mgalekgolo Banished Captain Armor",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 115,
+    "weightKg": 4000,
+    "specialRules": "",
+    "modifiers": "Bunker down, Exposed locations",
+    "description": "-10 Agility when worn.\n\n\"Bunker Down:\nAs a Half Action, the Mgalekgolo gives up their Reaction and bunkers down for an Extended Action that can be held as long as the Mgalekgolo needs. Coming out of Bunker Down also takes a Half Action. Bunker Down removes a Character’s ability to attack the Exposed Locations within the Armor unless they are firing at the Mgalekgolo’s backside. The Hunter may only move their Half Action in movement and cannot take any Agility Modifiers or Abilities that would allow them to move faster. The Mgalekgolo may still make attacks but can only turn 90 degrees per Turn. The Mgalekgolo may take a Full Action to Charge Attack out of Bunker Down or use a single Melee Attack to come out of Bunker Down that ignores the turn limitations. This Attack may also be used with Decapitating Strike or Guillotine Strike.\n\nExposed Locations\nMgalekgolo Armor has several exposed locations that offer half Armor for protection. These Locations are the Mgalekgolo’s back Torso, neck, and all limb joints. To Hit an Exposed Location, the Opponents must make a Called Shot against these locations at a -40 Penalty. If the Attack is unsuccessful but would have still hit without the Called Shot Penalty, the Attack will still strike the Armor. Successfully striking the Exposed Locations reduce the Armor by half for the Attack.\"",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 60,
+      "chest": 65,
+      "lArm": 50,
+      "rArm": 50,
+      "lLeg": 55,
+      "rLeg": 55
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },"characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 135
+    }
+  },
+  {
+    "name": "San’Shyuum Combat Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 10,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 18,
+      "chest": 20,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 137
+    }
+  },
+  {
+    "name": "San’Shyuum Prophet Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 40,
+    "weightKg": 19,
+    "armorWeightProfile": "powered",
+    "isPoweredArmor": true,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "-10 Penalty to Agility when worn.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 20,
+      "rLeg": 20
+    },
+    "shields": {
+      "integrity": 175,
+      "delay": 4,
+      "rechargeRate": 50
+    },"characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 138
+    }
+  },
+  {
+    "name": "Sangheili Vacuum Suit",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 30,
+    "weightKg": 3,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "",
+    "description": "Can stack with Combat Harness and Armor. Has 60 minutes of breathable air and Thrusters to give +10 when Maneuvering in Space.",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 1,
+      "chest": 0,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 140
+    }
+  },
+  {
+    "name": "Unggoy Vacuum Suit",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 30,
+    "weightKg": 1,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "",
+    "description": "Can stack with Combat Harness and Armor. Has 60 minutes of breathable air and Thrusters to give +10 when Maneuvering in Space.",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 1,
+      "chest": 0,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 141
+    }
+  },
+  {
+    "name": "Jiralhanae Vacuum Suit",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 30,
+    "weightKg": 4,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "",
+    "description": "Can stack with Combat Harness and Armor. Has 60 minutes of breathable air and Thrusters to give +10 when Maneuvering in Space.",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 1,
+      "chest": 0,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 142
+    }
+  },
+  {
+    "name": "Kig-Yar Vacuum Suit",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 30,
+    "weightKg": 2,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "",
+    "description": "Can stack with Combat Harness and Armor. Has 60 minutes of breathable air and Thrusters to give +10 when Maneuvering in Space.",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 1,
+      "chest": 0,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 143
+    }
+  },
+  {
+    "name": "Yanme’e Vacuum Suit",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 30,
+    "weightKg": 2,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "",
+    "description": "Can stack with Combat Harness and Armor. Has 60 minutes of breathable air and Thrusters to give +10 when Maneuvering in Space.",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 1,
+      "chest": 0,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 144
+    }
+  },
+  {
+    "name": "Mgalekgolo Vacuum Suit",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 30,
+    "weightKg": 6,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "",
+    "description": "Can stack with Combat Harness and Armor. Has 60 minutes of breathable air and Thrusters to give +10 when Maneuvering in Space.",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 1,
+      "chest": 0,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 145
+    }
+  },
+  {
+    "name": "Huragok Vacuum Suit",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 30,
+    "weightKg": 2,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "",
+    "description": "Can stack with Combat Harness and Armor. Has 60 minutes of breathable air and Thrusters to give +10 when Maneuvering in Space.",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 1,
+      "chest": 0,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 146
+    }
+  },
+  {
+    "name": "San’Shyuum Vacuum Suit",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 30,
+    "weightKg": 3,
+    "specialRules": "Vacuum Sealed 60 min",
+    "modifiers": "",
+    "description": "Can stack with Combat Harness and Armor. Has 60 minutes of breathable air and Thrusters to give +10 when Maneuvering in Space.",
+    "armorSpecialRuleKeys": [
+      "vacuum-sealed"
+    ],
+    "protection": {
+      "head": 1,
+      "chest": 0,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 147
+    }
+  },
+  {
+    "name": "Huragok Protective Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 34,
+    "weightKg": 12,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 24,
+      "lArm": 12,
+      "rArm": 12,
+      "lLeg": 12,
+      "rLeg": 12
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 149
+    }
+  },
+  {
+    "name": "Huragok Heavy Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 24,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 24,
+      "chest": 26,
+      "lArm": 14,
+      "rArm": 14,
+      "lLeg": 14,
+      "rLeg": 14
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 150
+    }
+  },
+  {
+    "name": "Huragok Slave Explosive Harness",
+    "faction": "COVENANT",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 22,
+    "weightKg": 9,
+    "specialRules": "Covenant charge",
+    "modifiers": "",
+    "description": "When the Slave Explosive Harness takes 50 Damage in a single Attack, or when the Huragok dies, it explodes, dealing the damage of a Covenant Charge. The Slave Explosive Harness can also be remote detonated by whoever is commanding the Huragok.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 24,
+      "lArm": 0,
+      "rArm": 0,
+      "lLeg": 0,
+      "rLeg": 0
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 151
+    }
+  },
+  {
+    "name": "Banished Light Harness",
+    "faction": "BANISHED",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 34,
+    "weightKg": 8,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Armor weight increased +5 kg per Size Increment from Normal.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 17,
+      "chest": 18,
+      "lArm": 16,
+      "rArm": 16,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 153
+    }
+  },
+  {
+    "name": "Banished Medium Harness",
+    "faction": "BANISHED",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 38,
+    "weightKg": 14,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Armor weight increased +8 kg per Size Increment from Normal.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 19,
+      "chest": 20,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 154
+    }
+  },
+  {
+    "name": "Banished Heavy Harness",
+    "faction": "BANISHED",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 41,
+    "weightKg": 26,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Armor weight increased +12 kg per Size Increment from Normal. -10 Penalty to Agility.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 20,
+      "chest": 22,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 155
+    }
+  },
+  {
+    "name": "Banished Super Heavy Harness",
+    "faction": "BANISHED",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 43,
+    "weightKg": 35,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "Armor weight increased +15 kg per Size Increment from Normal. -20 Penalty to Agility.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 21,
+      "chest": 24,
+      "lArm": 20,
+      "rArm": 20,
+      "lLeg": 21,
+      "rLeg": 21
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 156
+    }
+  },
+  {
+    "name": "Soldier Standard",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 55,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "The standard variant of the Promethean Soldier.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 25,
+      "chest": 35,
+      "lArm": 25,
+      "rArm": 25,
+      "lLeg": 25,
+      "rLeg": 25
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 158
+    }
+  },
+  {
+    "name": "Soldier Officer",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 57,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 27,
+      "chest": 37,
+      "lArm": 25,
+      "rArm": 25,
+      "lLeg": 26,
+      "rLeg": 26
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 159
+    }
+  },
+  {
+    "name": "Soldier Enforcer",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 57,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 26,
+      "chest": 35,
+      "lArm": 26,
+      "rArm": 26,
+      "lLeg": 27,
+      "rLeg": 27
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 160
+    }
+  },
+  {
+    "name": "Soldier Captain",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 59,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 28,
+      "chest": 37,
+      "lArm": 26,
+      "rArm": 26,
+      "lLeg": 27,
+      "rLeg": 27
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 161
+    }
+  },
+  {
+    "name": "Soldier Commando",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 55,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "+5 Wounds to the Soldier",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 25,
+      "chest": 35,
+      "lArm": 25,
+      "rArm": 25,
+      "lLeg": 25,
+      "rLeg": 25
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 162
+    }
+  },
+  {
+    "name": "Soldier Sniper",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 48,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "+10 Agility",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 22,
+      "chest": 30,
+      "lArm": 22,
+      "rArm": 22,
+      "lLeg": 22,
+      "rLeg": 22
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 163
+    }
+  },
+  {
+    "name": "Soldier Guard",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 58,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "+5 Wounds to the Soldier",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 27,
+      "chest": 36,
+      "lArm": 26,
+      "rArm": 26,
+      "lLeg": 27,
+      "rLeg": 27
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 164
+    }
+  },
+  {
+    "name": "Knight Standard",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 72,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "The standard variant of the Promethean Knight.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 40,
+      "chest": 45,
+      "lArm": 30,
+      "rArm": 30,
+      "lLeg": 30,
+      "rLeg": 30
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 166
+    }
+  },
+  {
+    "name": "Knight Lancer",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 67,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "+2 Mythic Agility",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 38,
+      "chest": 40,
+      "lArm": 28,
+      "rArm": 28,
+      "lLeg": 28,
+      "rLeg": 28
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 167
+    }
+  },
+  {
+    "name": "Knight Battlewagon",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 88,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "-10 Agility",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 46,
+      "chest": 55,
+      "lArm": 40,
+      "rArm": 40,
+      "lLeg": 35,
+      "rLeg": 35
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 168
+    }
+  },
+  {
+    "name": "Knight Noble Commander",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 81,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "-5 Agility",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 42,
+      "chest": 50,
+      "lArm": 35,
+      "rArm": 35,
+      "lLeg": 35,
+      "rLeg": 35
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 169
+    }
+  },
+  {
+    "name": "Knight Commander",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 83,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 42,
+      "chest": 48,
+      "lArm": 42,
+      "rArm": 42,
+      "lLeg": 35,
+      "rLeg": 35
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 170
+    }
+  },
+  {
+    "name": "Knight Excavator",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 77,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "+10 Wounds to the Knight",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 40,
+      "chest": 45,
+      "lArm": 30,
+      "rArm": 30,
+      "lLeg": 40,
+      "rLeg": 40
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 171
+    }
+  },
+  {
+    "name": "Knight Luminary",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 82,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "+10 Wounds to the Knight",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 50,
+      "chest": 55,
+      "lArm": 30,
+      "rArm": 30,
+      "lLeg": 30,
+      "rLeg": 30
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 172
+    }
+  },
+  {
+    "name": "Cavalier Warden",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 65,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "",
+    "description": "The standard variant of the Promethean Cavalier.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 40,
+      "chest": 30,
+      "lArm": 30,
+      "rArm": 30,
+      "lLeg": 30,
+      "rLeg": 30
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 174
+    }
+  },
+  {
+    "name": "Cavalier Steward",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 78,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "Doubles weight, very heavy, very wide.",
+    "description": "A very bulky, heavy, and wide body. Doubles weight. -20 Agility, -2 Mythic Agility, +3 Mythic Strength.",
+    "armorSpecialRuleKeys": [
+      "bulky-special-rule"
+    ],
+    "protection": {
+      "head": 42,
+      "chest": 45,
+      "lArm": 35,
+      "rArm": 35,
+      "lLeg": 35,
+      "rLeg": 35
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 175
+    }
+  },
+  {
+    "name": "Cavalier Marshal",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 60,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "Sleek, fast, half weight",
+    "description": "Sleek, fast body. Halves weight. +20 Agility, -10 Strength, +2 Mythic Agility, -2 Mythic Toughness.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 35,
+      "chest": 35,
+      "lArm": 25,
+      "rArm": 25,
+      "lLeg": 25,
+      "rLeg": 25
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 176
+    }
+  },
+  {
+    "name": "Cavalier Guardian",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 67,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "Adds +5 Wounds",
+    "description": "+5 Wounds to the Cavalier.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 40,
+      "chest": 30,
+      "lArm": 35,
+      "rArm": 35,
+      "lLeg": 30,
+      "rLeg": 30
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 177
+    }
+  },
+  {
+    "name": "Cavalier Stanchion",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 85,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "Size increase to Immense, 16 Meters tall, Triples weight, extra-10 Armor Penalty at weak point",
+    "description": "Increases the Character’s Size to Immense, at 16 Meters tall. Triples weight. -30 Agility, -2 Mythic Agility, +2 Mythic Strength, -2 Mythic Toughness, +10 Toughness, +10 Strength.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 50,
+      "chest": 55,
+      "lArm": 30,
+      "rArm": 30,
+      "lLeg": 35,
+      "rLeg": 35
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 178
+    }
+  },
+  {
+    "name": "Cavalier Stalwart",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 90,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "Extra -5 Armor Penalty at weak point.",
+    "description": "",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 45,
+      "chest": 45,
+      "lArm": 45,
+      "rArm": 45,
+      "lLeg": 45,
+      "rLeg": 45
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 179
+    }
+  },
+  {
+    "name": "Cavalier Director",
+    "faction": "FORERUNNER",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 65,
+    "weightKg": 0,
+    "specialRules": "",
+    "modifiers": "Very ornate with many moving pieces. All Leadership and Charisma Tests at +20 Bonus.",
+    "description": "Very ornate, with many moving pieces. All Leadership and Charisma Skill Tests are at a +20 Bonus.",
+    "armorSpecialRuleKeys": [],
+    "protection": {
+      "head": 40,
+      "chest": 30,
+      "lArm": 30,
+      "rArm": 30,
+      "lLeg": 30,
+      "rLeg": 30
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 180
+    }
+  },
+  {
+    "name": "Lightweight Helldiver Armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 36,
+    "weightKg": 18,
+    "specialRules": "ODST BDU",
+    "modifiers": "Gives the User +5 to Agility when worn.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule. S-1 Recon Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 19,
+      "chest": 19,
+      "lArm": 18,
+      "rArm": 18,
+      "lLeg": 17,
+      "rLeg": 17
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": 5,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 499
+    }
+  },
+  {
+    "name": "Medium Helldiver Armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 39,
+    "weightKg": 26,
+    "specialRules": "ODST BDU",
+    "modifiers": "ALL Helldiver Armor holds 4 Stims and 4 Grenades unless specified otherwise.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 20,
+      "chest": 21,
+      "lArm": 19,
+      "rArm": 19,
+      "lLeg": 19,
+      "rLeg": 19
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 500
+    }
+  },
+  {
+    "name": "Heavy Helldiver Armor",
+    "faction": "UNSC",
+    "source": "mythic",
+    "category": "Armor",
+    "costCr": 45,
+    "weightKg": 31,
+    "specialRules": "ODST BDU",
+    "modifiers": "-5 Penalty to Reaction Tests and a -10 Penalty to the Character’s Agility.",
+    "description": "VISR, Kevlar Undersuit, Temperature Regulator, VR/Oxygen Recycler, Rucksack, Thermal Cooling, and Timeline Special Rule.-5 Penalty to Reaction Tests and -10 Penalty to Character’s Agility when worn. Ignores Kill Radius and ignores 10 Pierce from Explosives.",
+    "armorSpecialRuleKeys": [
+      "kevlar-undersuit-liquid-nanocrystal",
+      "rucksack",
+      "temperature-regulator",
+      "thermal-cooling",
+      "timeline-special-rule",
+      "visr",
+      "vr-oxygen-recycler"
+    ],
+    "protection": {
+      "head": 22,
+      "chest": 24,
+      "lArm": 22,
+      "rArm": 22,
+      "lLeg": 23,
+      "rLeg": 23
+    },
+    "shields": {
+      "integrity": 0,
+      "delay": 0,
+      "rechargeRate": 0
+    },"characteristicMods": {
+  "base": {
+    "str": 0,
+    "tou": 0,
+    "agi": -10,
+    "wfm": 0,
+    "wfr": 0,
+    "int": 0,
+    "per": 0,
+    "crg": 0,
+    "cha": 0,
+    "ldr": 0
+  },
+  "mythic": {
+    "str": 0,
+    "tou": 0,
+    "agi": 0
+  }
+},
+    "sourceReference": {
+      "table": "Mythic Dev Sheet - Armor.csv",
+      "rowNumber": 501
+    }
+  }
+]

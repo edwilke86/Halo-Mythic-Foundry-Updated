@@ -1,0 +1,135 @@
+<article class="mythic-ready-weapon-card vehicle-summary-weapon-card vehicle-weapon-card{{#unless canAttack}} is-disabled{{/unless}}{{#if isExpanded}} is-expanded{{/if}}">
+  <div class="vehicle-weapon-strip-row vehicle-weapon-strip-primary">
+    <div class="vehicle-weapon-strip-ident">
+      <span class="vehicle-weapon-slot-badge">{{slotCode}}</span>
+      <div class="vehicle-weapon-strip-title-block">
+        <div class="vehicle-weapon-strip-title-row">
+          <div class="vehicle-weapon-strip-title" title="{{name}}">{{name}}</div>
+          {{#if canOpenItemSheet}}
+          <button type="button" class="action-btn gear-open-btn vehicle-weapon-strip-edit-btn" data-item-id="{{id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
+          {{/if}}
+          {{#if hasTrainingWarning}}<span class="vehicle-weapon-strip-warning" title="{{trainingWarningText}}">!</span>{{/if}}
+        </div>
+        <div class="vehicle-weapon-strip-controller" title="{{controllingUserLabel}}">{{controllingUserLabel}}</div>
+        {{#if locationLabel}}<div class="vehicle-weapon-strip-controller" title="Mount location">Mount: {{locationLabel}}</div>{{/if}}
+      </div>
+    </div>
+
+    <div class="vehicle-weapon-strip-mode" title="{{selectedFireModeLabel}}">{{fireModeSummary}}</div>
+
+    <div class="vehicle-weapon-strip-attacks">
+      {{#if hasChargeModeSelected}}
+        <button
+          type="button"
+          class="action-btn weapon-charge-btn vehicle-weapon-strip-attack-btn"
+          data-item-id="{{id}}"
+          data-vehicle-emplacement-id="{{emplacementId}}"
+          {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+          {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
+          title="Charge {{chargeLevel}}/{{chargeMaxLevel}}"
+          {{#unless canAttack}}disabled{{/unless}}>Charge {{chargeLevel}}/{{chargeMaxLevel}}</button>
+      {{/if}}
+      {{#each collapsedActionButtons as |button|}}
+        <button
+          type="button"
+          class="action-btn weapon-attack-btn vehicle-weapon-strip-attack-btn{{#if button.cssClass}} {{button.cssClass}}{{/if}}"
+          data-item-id="{{../id}}"
+          data-vehicle-emplacement-id="{{../emplacementId}}"
+          {{#if ../vehicleActorId}}data-vehicle-actor-id="{{../vehicleActorId}}"{{/if}}
+          {{#if ../vehicleUuid}}data-vehicle-uuid="{{../vehicleUuid}}"{{/if}}
+          data-action="{{button.action}}"
+          {{#if button.grenadeAction}}data-grenade-action="{{button.grenadeAction}}"{{/if}}
+          title="{{button.title}}"
+          {{#unless ../canAttack}}disabled{{/unless}}{{#if ../requiresChargeBeforeFire}} disabled{{/if}}>{{button.label}}</button>
+      {{/each}}
+      {{#if showReloadButton}}
+        <button
+          type="button"
+          class="action-btn weapon-reload-btn vehicle-weapon-strip-attack-btn vehicle-weapon-strip-reload-btn"
+          data-item-id="{{id}}"
+          data-vehicle-emplacement-id="{{emplacementId}}"
+          {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+          {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
+          title="Reload"
+          {{#if controlsDisabled}}disabled{{/if}}>Reload</button>
+      {{/if}}
+    </div>
+
+    <button
+      type="button"
+      class="vehicle-overview-toggle vehicle-weapon-strip-expand-btn"
+      data-target-path="{{togglePath}}"
+      {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+      {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
+      aria-expanded="{{#if isExpanded}}true{{else}}false{{/if}}"
+      title="{{#if isExpanded}}Collapse details{{else}}Expand details{{/if}}">{{#if isExpanded}}-{{else}}+{{/if}}</button>
+  </div>
+
+  <div class="vehicle-weapon-strip-row vehicle-weapon-strip-secondary">
+    <div class="vehicle-weapon-strip-info" title="Range">{{rangeSummary}}</div>
+
+    <div class="vehicle-weapon-strip-info vehicle-weapon-strip-ammo" title="{{ammoSummaryTitle}}">Ammo {{loadedAmmoDisplay}} &middot; {{remainingMagazineSummary}}</div>
+
+    <label class="vehicle-weapon-strip-field" title="To Hit Modifier">
+      <span>HIT</span>
+      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}} {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}} data-field="toHitModifier" value="{{toHitModifier}}" {{#if controlsDisabled}}disabled{{/if}} />
+    </label>
+
+    <label class="vehicle-weapon-strip-field" title="Damage Modifier">
+      <span>DMG</span>
+      <input type="number" step="1" class="weapon-state-input vehicle-weapon-strip-number" data-item-id="{{id}}" data-vehicle-emplacement-id="{{emplacementId}}" {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}} {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}} data-field="damageModifier" value="{{damageModifier}}" {{#if controlsDisabled}}disabled{{/if}} />
+    </label>
+
+    {{#if showNeuralLinkToggle}}
+      <div class="vehicle-weapon-strip-nl vehicle-weapon-strip-nl-inline">
+        <label class="vehicle-weapon-strip-nl-toggle" title="Use Neural Link">
+          <span>Neural Link</span>
+          <input
+            type="checkbox"
+            class="vehicle-weapon-neural-link-toggle"
+            data-emplacement-id="{{emplacementId}}"
+            {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}}
+            {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}}
+            {{#if neuralLinkToggleDisabled}}disabled{{/if}}
+            {{#if useNeuralLink}}checked{{/if}} />
+        </label>
+        {{#if showNeuralLinkOperatorSelect}}
+          <select class="vehicle-weapon-neural-link-operator vehicle-weapon-strip-select" data-emplacement-id="{{emplacementId}}" {{#if vehicleActorId}}data-vehicle-actor-id="{{vehicleActorId}}"{{/if}} {{#if vehicleUuid}}data-vehicle-uuid="{{vehicleUuid}}"{{/if}} title="Neural Link operator">
+            {{#each neuralLinkOperatorOptions as |option|}}
+              <option value="{{option.value}}" {{#if option.isSelected}}selected{{/if}}>{{option.label}}</option>
+            {{/each}}
+          </select>
+        {{/if}}
+      </div>
+    {{/if}}
+  </div>
+
+  {{#if isExpanded}}
+    <div class="vehicle-weapon-strip-expanded">
+      {{#if hasTrainingWarning}}
+        <div class="vehicle-weapon-strip-expanded-note vehicle-weapon-strip-expanded-note-warning">{{trainingWarningText}}</div>
+      {{/if}}
+      {{#if disableReason}}
+        <div class="vehicle-weapon-strip-expanded-note">{{disableReason}}</div>
+      {{/if}}
+
+      <div class="vehicle-weapon-strip-expanded-summary">
+        <span><strong>{{displayWeaponClass}}</strong></span>
+        {{#if isMelee}}
+          <span><strong>Reach:</strong> {{reach}} m</span>
+        {{else}}
+          <span><strong>Range:</strong> {{rangeClose}} - {{rangeMax}} m</span>
+        {{/if}}
+        <span><strong>Damage:</strong> {{damageDiceLabel}} + {{displayDamageBase}}</span>
+        <span><strong>Pierce:</strong> {{displayDamagePierce}}</span>
+        {{#if currentAttackName}}<span><strong>Attack:</strong> {{currentAttackName}}</span>{{/if}}
+      </div>
+
+      {{#if hasSpecialRulesText}}
+        <div class="vehicle-weapon-strip-expanded-rules">
+          <strong>Rules:</strong> {{specialRulesText}}
+        </div>
+      {{/if}}
+    </div>
+  {{/if}}
+</article>

@@ -1,0 +1,100 @@
+<section class="mythic-cheat-sheet">
+
+  <header class="gm-screen-header">
+    <h1>CHEAT SHEET</h1>
+    <p>Quick references, generators, and table tools.</p>
+  </header>
+
+  <nav class="gm-screen-tabs">
+    <button type="button" class="active" data-tab="combat-modifiers">Combat & Modifiers</button>
+    <button type="button" data-tab="environmental-effects">Environmental Effects</button>
+    <button type="button" data-tab="firing-types">Firing Types</button>
+    <button type="button" data-tab="hacking">Hacking</button>
+    <button type="button" data-tab="lighting-perception">Lighting & Perception</button>
+    <button type="button" data-tab="melee-combat">Melee Combat</button>
+    <button type="button" data-tab="movement">Movement</button>
+    <button type="button" data-tab="special-damage">Special Damage</button>
+    <button type="button" data-tab="special-rules">Special Rules</button>
+    <button type="button" data-tab="vehicles">Vehicles</button>
+
+    <button
+      type="button"
+      data-tab="generators"
+      class="{{#unless isGM}}disabled-tab{{/unless}}"
+      {{#unless isGM}}disabled{{/unless}}>
+      Generators
+    </button>
+
+    <button
+      type="button"
+      data-tab="rewards"
+      class="{{#unless isGM}}disabled-tab{{/unless}}"
+      {{#unless isGM}}disabled{{/unless}}>
+      Rewards
+    </button>
+
+    <button type="button" data-tab="custom-manager">Custom +</button>
+    <span data-custom-tab-buttons></span>
+  </nav>
+
+  <main class="gm-screen-content">
+
+    <section class="gm-tab-content active" data-tab-content="combat-modifiers">
+      {{> cheatCombatModifiers}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="environmental-effects">
+      {{> cheatEnvironmentalEffects}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="firing-types">
+      {{> cheatFiringTypes}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="hacking">
+      {{> cheatHacking}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="lighting-perception">
+      {{> cheatLightingPerception}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="melee-combat">
+      {{> cheatMeleeCombat}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="movement">
+      {{> cheatMovement}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="special-damage">
+      {{> cheatSpecialDamage}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="special-rules">
+      {{> cheatSpecialRules}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="vehicles">
+      {{> cheatVehicles}}
+    </section>
+
+    {{#if isGM}}
+    <section class="gm-tab-content" data-tab-content="generators">
+      {{> cheatGenerators}}
+    </section>
+
+    <section class="gm-tab-content" data-tab-content="rewards">
+      {{> cheatRewards}}
+    </section>
+    {{/if}}
+
+    <section class="gm-tab-content" data-tab-content="custom-manager">
+      <div data-custom-tab-manager></div>
+    </section>
+
+    <div data-custom-tab-sections></div>
+
+  </main>
+
+</section>

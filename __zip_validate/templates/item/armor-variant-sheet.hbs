@@ -1,0 +1,98 @@
+<div class="{{cssClass}} mythic-ability-item-sheet mythic-armor-variant-item-sheet">
+
+  <header class="ability-sheet-header">
+    <img class="ability-sheet-icon" src="{{item.img}}" title="{{#if editable}}Click to change icon{{else}}{{item.name}}{{/if}}" alt="{{item.name}}" />
+    <div class="ability-sheet-header-text">
+      <h2 class="ability-sheet-title">{{item.name}}</h2>
+      <div class="ability-sheet-meta">
+        {{#if editable}}
+          <button type="button" class="action-btn mythic-toggle-edit-btn">{{#if canEditFields}}Lock{{else}}Edit{{/if}}</button>
+        {{/if}}
+        <span class="ability-action-badge">Generation: <strong>{{variant.generation}}</strong></span>
+        <span class="ability-page-badge">Family: mjolnir-only by default</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="ability-sheet-body">
+    <div class="ability-info-row">
+      <label for="armor-variant-name">Name</label>
+      <input id="armor-variant-name" type="text" name="name" value="{{item.name}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-variant-generation">Generation</label>
+        <select id="armor-variant-generation" name="system.generation" {{#unless canEditFields}}disabled{{/unless}}>
+          {{selectOptions generationOptions selected=variant.generation}}
+        </select>
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-variant-families">Compatible Families</label>
+        <input id="armor-variant-families" type="text" name="mythic.compatibleFamilies" value="{{compatibleFamiliesDisplay}}" placeholder="mjolnir" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-variant-tags">Tags</label>
+        <input id="armor-variant-tags" type="text" name="mythic.tags" value="{{tagsDisplay}}" placeholder="commando, stealth" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-info-row">
+      <label for="armor-variant-short">Short Description</label>
+      <input id="armor-variant-short" type="text" name="system.shortDescription" value="{{variant.shortDescription}}" {{#unless canEditFields}}disabled{{/unless}} />
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-var-head">Head DR Mod</label>
+        <input id="armor-var-head" type="number" step="1" name="system.modifiers.protection.head" value="{{variant.modifiers.protection.head}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-var-arms">Arms DR Mod</label>
+        <input id="armor-var-arms" type="number" step="1" name="system.modifiers.protection.arms" value="{{variant.modifiers.protection.arms}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-var-chest">Chest DR Mod</label>
+        <input id="armor-var-chest" type="number" step="1" name="system.modifiers.protection.chest" value="{{variant.modifiers.protection.chest}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-var-legs">Legs DR Mod</label>
+        <input id="armor-var-legs" type="number" step="1" name="system.modifiers.protection.legs" value="{{variant.modifiers.protection.legs}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-var-shield">Shield Integrity Mod</label>
+        <input id="armor-var-shield" type="number" step="1" name="system.modifiers.shields.integrity" value="{{variant.modifiers.shields.integrity}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-var-delay">Shield Delay Mod</label>
+        <input id="armor-var-delay" type="number" step="1" name="system.modifiers.shields.delay" value="{{variant.modifiers.shields.delay}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+    </div>
+
+    <div class="ability-grid-3">
+      <div class="ability-info-row ability-col">
+        <label for="armor-var-recharge">Recharge Rate Mod</label>
+        <input id="armor-var-recharge" type="number" step="1" name="system.modifiers.shields.rechargeRate" value="{{variant.modifiers.shields.rechargeRate}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col">
+        <label for="armor-var-weight">Weight Mod (kg)</label>
+        <input id="armor-var-weight" type="number" step="0.1" name="system.modifiers.weightKg" value="{{variant.modifiers.weightKg}}" {{#unless canEditFields}}disabled{{/unless}} />
+      </div>
+      <div class="ability-info-row ability-col"></div>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="armor-var-description">Description</label>
+      <textarea id="armor-var-description" name="system.description" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{variant.description}}</textarea>
+    </div>
+
+    <div class="ability-info-row ability-notes-row">
+      <label for="armor-var-notes">Notes</label>
+      <textarea id="armor-var-notes" name="system.notes" rows="4" {{#unless canEditFields}}disabled{{/unless}}>{{variant.notes}}</textarea>
+    </div>
+  </section>
+
+</div>

@@ -1,0 +1,500 @@
+[
+    {
+        "name":  "12.7x40mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.02,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "10x25mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.015,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "5x23mm",
+        "costPer100":  5,
+        "weightPerRoundKg":  0.005,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "8x27mm",
+        "costPer100":  5,
+        "weightPerRoundKg":  0.015,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "10x31mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.015,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "9.9x56mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.025,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "12x41mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.02,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "Narq Dart",
+        "costPer100":  15,
+        "weightPerRoundKg":  0.15,
+        "specialAmmoCategory":  "No Special Ammo"
+    },
+    {
+        "name":  "9.5x40mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.01,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "8.35x56mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.025,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "7.62x51mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.025,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "9.3x55mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.025,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "6.5x55mm",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.025,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "12.7x99mm",
+        "costPer100":  20,
+        "weightPerRoundKg":  0.095,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "14.5x114mm",
+        "costPer100":  20,
+        "weightPerRoundKg":  0.23,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "8 Gauge Shell",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.05,
+        "specialAmmoCategory":  "Shotgun"
+    },
+    {
+        "name":  "10 Gauge Shell",
+        "costPer100":  10,
+        "weightPerRoundKg":  0.05,
+        "specialAmmoCategory":  "Shotgun"
+    },
+    {
+        "name":  "12 Gauge Shell",
+        "costPer100":  5,
+        "weightPerRoundKg":  0.05,
+        "specialAmmoCategory":  "Shotgun"
+    },
+    {
+        "name":  "20 Gauge Shell",
+        "costPer100":  5,
+        "weightPerRoundKg":  0.05,
+        "specialAmmoCategory":  "Shotgun"
+    },
+    {
+        "name":  "M19 102mm Rocket",
+        "costPer100":  340,
+        "weightPerRoundKg":  23,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "50x137mm HEMP Rocket",
+        "costPer100":  370,
+        "weightPerRoundKg":  1,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "M18 100mm Missile",
+        "costPer100":  380,
+        "weightPerRoundKg":  5,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "M19-B 102mm Missile",
+        "costPer100":  320,
+        "weightPerRoundKg":  5,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "9X-G HEAB Gyroc",
+        "costPer100":  235,
+        "weightPerRoundKg":  1,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "M9030 12cm Grenade",
+        "costPer100":  340,
+        "weightPerRoundKg":  24.6,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "ASGM-4 Missile",
+        "costPer100":  375,
+        "weightPerRoundKg":  150,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "65mm Rocket",
+        "costPer100":  315,
+        "weightPerRoundKg":  2.5,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "40mm Grenade",
+        "costPer100":  255,
+        "weightPerRoundKg":  0.25,
+        "specialAmmoCategory":  "40mm Grenades"
+    },
+    {
+        "name":  "60mm Grenade",
+        "costPer100":  290,
+        "weightPerRoundKg":  2.1,
+        "specialAmmoCategory":  "40mm Grenades"
+    },
+    {
+        "name":  "120mm Grenade",
+        "costPer100":  350,
+        "weightPerRoundKg":  24.6,
+        "specialAmmoCategory":  "40mm Grenades"
+    },
+    {
+        "name":  "Argent V Missile",
+        "costPer100":  315,
+        "weightPerRoundKg":  400,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "M19 102mm Missile",
+        "costPer100":  340,
+        "weightPerRoundKg":  5,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "M19B 119mm Missile",
+        "costPer100":  495,
+        "weightPerRoundKg":  5,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "ANVIL-II ASM",
+        "costPer100":  305,
+        "weightPerRoundKg":  257,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "ANVIL-IV ASM",
+        "costPer100":  320,
+        "weightPerRoundKg":  257,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "90mm Medusa",
+        "costPer100":  245,
+        "weightPerRoundKg":  500,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "ASGM-10 Missile",
+        "costPer100":  320,
+        "weightPerRoundKg":  250,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "Lancet Micro Missile",
+        "costPer100":  225,
+        "weightPerRoundKg":  1,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "Scorpion Missile",
+        "costPer100":  535,
+        "weightPerRoundKg":  674,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "Pheonix Missile",
+        "costPer100":  850,
+        "weightPerRoundKg":  674,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "Shockwave Missile",
+        "costPer100":  315,
+        "weightPerRoundKg":  250,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "60mm Mortar Shell",
+        "costPer100":  300,
+        "weightPerRoundKg":  2.1,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "82mm Mortar Shell",
+        "costPer100":  355,
+        "weightPerRoundKg":  4.7,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "112mm Mortar Shell",
+        "costPer100":  455,
+        "weightPerRoundKg":  23,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "4x63mm Gauss Slug",
+        "costPer100":  405,
+        "weightPerRoundKg":  0.12,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "178mm Rocket",
+        "costPer100":  390,
+        "weightPerRoundKg":  48.5,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "102mm Rocket",
+        "costPer100":  325,
+        "weightPerRoundKg":  23,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "M23 35mm Rocket",
+        "costPer100":  260,
+        "weightPerRoundKg":  0.25,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "150mm APBC Shell",
+        "costPer100":  835,
+        "weightPerRoundKg":  43.5,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "120mm APBC Shell",
+        "costPer100":  840,
+        "weightPerRoundKg":  24.5,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "105mm APBC Shell",
+        "costPer100":  720,
+        "weightPerRoundKg":  18,
+        "specialAmmoCategory":  "Missiles, Rockets \u0026 Cannon Shells"
+    },
+    {
+        "name":  "90mm APBC Shell",
+        "costPer100":  640,
+        "weightPerRoundKg":  10.7,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "VacEM Shell",
+        "costPer100":  725,
+        "weightPerRoundKg":  10.7,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "175x800mm",
+        "costPer100":  855,
+        "weightPerRoundKg":  65,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "152x400mm",
+        "costPer100":  675,
+        "weightPerRoundKg":  43.5,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "120x570mm",
+        "costPer100":  130,
+        "weightPerRoundKg":  24.5,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "110x550mm",
+        "costPer100":  125,
+        "weightPerRoundKg":  23,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "70x438mm",
+        "costPer100":  90,
+        "weightPerRoundKg":  4.7,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "50x419mm",
+        "costPer100":  70,
+        "weightPerRoundKg":  3,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "40x365mm",
+        "costPer100":  60,
+        "weightPerRoundKg":  2.1,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "40x521mm",
+        "costPer100":  70,
+        "weightPerRoundKg":  2.1,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "40x300mm",
+        "costPer100":  55,
+        "weightPerRoundKg":  2.1,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "35x227mm",
+        "costPer100":  45,
+        "weightPerRoundKg":  0.86,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "30x189mm",
+        "costPer100":  40,
+        "weightPerRoundKg":  0.7,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "30x173mm",
+        "costPer100":  35,
+        "weightPerRoundKg":  0.7,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "20x102mm",
+        "costPer100":  25,
+        "weightPerRoundKg":  0.26,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "20x97mm",
+        "costPer100":  20,
+        "weightPerRoundKg":  0.26,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "5.4mm Slug",
+        "costPer100":  30,
+        "weightPerRoundKg":  0.12,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "16x65mm Slug",
+        "costPer100":  425,
+        "weightPerRoundKg":  0.035,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "25x130mm Slug",
+        "costPer100":  595,
+        "weightPerRoundKg":  0.47,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "30mm ELA",
+        "costPer100":  450,
+        "weightPerRoundKg":  0.7,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "105mm ELA",
+        "costPer100":  620,
+        "weightPerRoundKg":  18,
+        "specialAmmoCategory":  "Standard"
+    },
+    {
+        "name":  "10x90mm Slug",
+        "costPer100":  360,
+        "weightPerRoundKg":  0.12,
+        "specialAmmoCategory":  "Limited Standard"
+    },
+    {
+        "name":  "90mm Slug",
+        "costPer100":  790,
+        "weightPerRoundKg":  10.7,
+        "specialAmmoCategory":  "Limited Standard"
+    },
+    {
+        "name":  "15cm HRG",
+        "costPer100":  825,
+        "weightPerRoundKg":  43.5,
+        "specialAmmoCategory":  "Limited Standard"
+    },
+    {
+        "name":  "200mm ELA",
+        "costPer100":  825,
+        "weightPerRoundKg":  65,
+        "specialAmmoCategory":  "Limited Standard"
+    },
+    {
+        "name":  "35cm HRG",
+        "costPer100":  7500,
+        "weightPerRoundKg":  458,
+        "specialAmmoCategory":  "Limited Standard"
+    },
+    {
+        "name":  "Ionized Particles",
+        "costPer100":  10,
+        "weightPerRoundKg":  1.5,
+        "specialAmmoCategory":  "No Special Ammo"
+    },
+    {
+        "name":  "UNSC Battery Cell",
+        "costPer100":  10,
+        "weightPerRoundKg":  1.5,
+        "specialAmmoCategory":  "No Special Ammo"
+    },
+    {
+        "name":  "Grindell Battery",
+        "costPer100":  8,
+        "weightPerRoundKg":  1.33,
+        "specialAmmoCategory":  "No Special Ammo"
+    },
+    {
+        "name":  "ChemSpray Tank",
+        "costPer100":  15,
+        "weightPerRoundKg":  1.5,
+        "specialAmmoCategory":  "Flamethrower or Cryosprayer"
+    },
+    {
+        "name":  "Heavy Tank",
+        "costPer100":  25,
+        "weightPerRoundKg":  3,
+        "specialAmmoCategory":  "Flamethrower or Cryosprayer"
+    },
+    {
+        "name":  "Cryoshell",
+        "costPer100":  45,
+        "weightPerRoundKg":  10.7,
+        "specialAmmoCategory":  "Standard"
+    }
+]

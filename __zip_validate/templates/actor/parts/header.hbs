@@ -1,0 +1,98 @@
+<header class="mythic-sticky-header panel mythic-sheet-header-surface">
+  <div class="mythic-header-grid">
+    <div class="mythic-header-portrait-wrap">
+      {{#if mythicBerserker.active}}
+        <div class="mythic-berserker-badge">Berserking</div>
+      {{/if}}
+      <div class="mythic-sheet-portrait-surface mythic-header-portrait-surface">
+        <img src="{{actor.img}}" alt="{{actor.name}}" title="{{actor.name}}" class="profile-img mythic-sheet-portrait-image mythic-header-portrait-image" data-edit="img" />
+      </div>
+      {{> "systems/Halo-Mythic-Foundry-Updated/templates/actor/parts/sheet-appearance-banner.hbs"}}
+    </div>
+
+    <section class="mythic-header-column left">
+      <div class="mythic-header-row">
+        <label>Name</label>
+        <input name="name" type="text" value="{{actor.name}}" />
+      </div>
+      <div class="mythic-header-row">
+        <label>Faction</label>
+        {{#if mythicHeader.locks.faction}}
+          <input type="hidden" name="system.header.faction" value="{{mythicHeader.values.faction}}" />
+          <input type="text" value="{{mythicHeader.values.faction}}" readonly class="mythic-header-locked" />
+        {{else}}
+          <select name="system.header.faction">
+            <option value=""{{#unless mythicHeader.values.faction}} selected{{/unless}}></option>
+            {{selectOptions mythicFactionSelectOptions selected=mythicHeader.values.faction}}
+          </select>
+        {{/if}}
+      </div>
+      <div class="mythic-header-row">
+        <label>Sol. Type</label>
+        <input name="system.header.soldierType" type="text" value="{{mythicHeader.values.soldierType}}" {{#if mythicHeader.locks.soldierType}}readonly class="mythic-header-locked"{{/if}} />
+      </div>
+      <div class="mythic-header-row">
+        <label>Rank</label>
+        <input name="system.header.rank" type="text" value="{{mythicHeader.values.rank}}" {{#if mythicHeader.locks.rank}}readonly class="mythic-header-locked"{{/if}} />
+      </div>
+      <div class="mythic-header-row">
+        <label>Size</label>
+        {{#if mythicHeader.locks.buildSize}}
+          <input type="hidden" name="system.header.buildSize" value="{{mythicHeader.values.buildSize}}" />
+          <input type="text" value="{{mythicHeader.values.buildSize}}" readonly class="mythic-header-locked" />
+        {{else}}
+          <select name="system.header.buildSize">
+            <option value=""{{#unless mythicHeader.values.buildSize}} selected{{/unless}}></option>
+            {{selectOptions mythicHeader.sizeOptions selected=mythicHeader.values.buildSize}}
+          </select>
+        {{/if}}
+      </div>
+      {{#if mythicHeader.smartAi.enabled}}
+        <div class="mythic-header-row mythic-header-core-identity-row">
+          <label>{{mythicHeader.smartAi.coreIdentityLabel}}</label>
+          <div class="mythic-core-identity-block" title="Cognitive Pattern: The architectural framework governing how a Smart AI processes information, prioritizes decision pathways, and develops emergent decision heuristics.">
+            <div class="mythic-core-identity-title">{{mythicHeader.smartAi.cognitivePattern}}</div>
+            <div class="mythic-core-identity-meta">UNSC SMART AI <span class="mythic-core-identity-status">{{mythicHeader.smartAi.status}}</span></div>
+          </div>
+          <input type="hidden" name="system.header.specialisation" value="{{mythicHeader.values.specialisation}}" />
+        </div>
+      {{else}}
+        <div class="mythic-header-row">
+          <label>SPEC.</label>
+          <input name="system.header.specialisation" type="text" value="{{mythicHeader.values.specialisation}}" {{#if mythicHeader.locks.specialisation}}readonly class="mythic-header-locked"{{/if}} />
+        </div>
+      {{/if}}
+    </section>
+
+    <section class="mythic-header-center">
+      <img src="{{mythicLogo}}" alt="Faction Logo" class="mythic-faction-logo" />
+    </section>
+
+    <section class="mythic-header-column right">
+      <div class="mythic-header-row">
+        <label>Player</label>
+        <input name="system.header.playerName" type="text" value="{{mythicHeader.values.playerName}}" {{#if mythicHeader.locks.playerName}}readonly class="mythic-header-locked"{{/if}} />
+      </div>
+      <div class="mythic-header-row">
+        <label>Race</label>
+        <input name="system.header.race" type="text" value="{{mythicHeader.values.race}}" {{#if mythicHeader.locks.race}}readonly class="mythic-header-locked"{{/if}} />
+      </div>
+      <div class="mythic-header-row">
+        <label>Upbringing</label>
+        <input name="system.header.upbringing" type="text" value="{{mythicHeader.values.upbringing}}" {{#if mythicHeader.locks.upbringing}}readonly class="mythic-header-locked"{{/if}} />
+      </div>
+      <div class="mythic-header-row">
+        <label>ENV.</label>
+        <input name="system.header.environment" type="text" value="{{mythicHeader.values.environment}}" {{#if mythicHeader.locks.environment}}readonly class="mythic-header-locked"{{/if}} />
+      </div>
+      <div class="mythic-header-row">
+        <label>Lifestyle</label>
+        <input name="system.header.lifestyle" type="text" value="{{mythicHeader.values.lifestyle}}" {{#if mythicHeader.locks.lifestyle}}readonly class="mythic-header-locked"{{/if}} />
+      </div>
+      <div class="mythic-header-row">
+        <label>Gender</label>
+        <input name="system.header.gender" type="text" value="{{mythicHeader.values.gender}}" {{#if mythicHeader.locks.gender}}readonly class="mythic-header-locked"{{/if}} />
+      </div>
+    </section>
+  </div>
+</header>

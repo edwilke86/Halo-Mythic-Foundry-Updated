@@ -1,0 +1,315 @@
+[
+  {
+    "key": "bloodloss",
+    "name": "Bloodloss",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Increases incoming damage from any source by (X).",
+    "mechanicalText": "Bloodloss increases the amount of Damage the Character takes, from any source, by (X).",
+    "durationText": "Lasts until the Character is given an Extended Medical Test.",
+    "stackingText": "If a Character gains two of the same Special Damage Effect, duration increases based on (X), but penalties do not increase.",
+    "sourceText": "Bloodloss increases the amount of Damage the Character takes, from any source, by (X). Bloodloss lasts until the Character is given an Extended Medical Test."
+  },
+  {
+    "key": "bone-broken",
+    "name": "Bone Broken",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Broken bones are either Fractured or Shattered.",
+    "mechanicalText": "A Fractured Limb can still be used but gives 1 level of Fatigue for each Round it is used. A Shattered Limb can still be used but gives 1 level of Fatigue and 1 Wound for each Round it is used.",
+    "durationText": "Persists until healed by appropriate treatment.",
+    "sourceText": "A Broken bone has two types of severity, Fracture and Shatter. A Fractured Limb can still be used but will give 1 level of Fatigue for each Round it is used. A Shattered Limb can still be used but will give 1 level of Fatigue and 1 Wound for each Round it is used."
+  },
+  {
+    "key": "choking",
+    "name": "Choking",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "The Character can no longer breathe.",
+    "mechanicalText": "The Character will die after as many Turns as the Character can hold their breath.",
+    "durationText": "Until breathing is restored or the Character dies.",
+    "sourceText": "The Character can no longer breathe and will die after as many Turns as the Character can hold their breath."
+  },
+  {
+    "key": "concussed",
+    "name": "Concussed",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Cannot take Actions or Reactions for (X) Half Actions.",
+    "mechanicalText": "Reduced by the Character's Toughness Modifier to a minimum of 1. Concussed characters are not Helpless or Unaware. Another character can reduce the stun with a Full Action Intellect, Charisma, or Leadership Test by Degrees of Success.",
+    "durationText": "(X) Half Actions, reduced by Toughness Modifier.",
+    "sourceText": "Concussed characters can't take Actions or Reactions for (X) Half Actions, reduced by the Character's Toughness Modifier, to a minimum of 1. Concussed characters are not Helpless or Unaware. Concussed Characters can have their Stun reduced by another Character making an Intellect, Charisma, or Leadership Test. The Half Actions the Character is Concussed are reduced by the Degrees of Success gained on the Test. This is a Full Action."
+  },
+  {
+    "key": "drop",
+    "name": "Drop",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Drops what is held in hand.",
+    "mechanicalText": "If accompanied by (X), the Character cannot pick up or hold objects with that hand for (X) Rounds. [TH] and [HW] weapons may be retained with Strength Tests under listed modifiers.",
+    "durationText": "Instant or (X) Rounds depending on result.",
+    "sourceText": "The Character drops what is in their hand. If Drop is accompanied by (X), that will signify that the Character can't pick up or hold objects with that hand for (X) Rounds. If a Character was holding a [TH] Weapon with both Hands, the Character may make a Strength Test to keep holding the weapon with the other hand. If the Character is holding a [HW] Weapon with both Hands, the Character may make a -20 Strength Test to keep holding the weapon with the other hand."
+  },
+  {
+    "key": "flinch",
+    "name": "Flinch",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Attacks with the affected limb suffer -30 To Hit.",
+    "mechanicalText": "A Character with Flinch will swing their body causing Attacks with that limb to have a -30 Penalty To Hit for (X) Half Actions.",
+    "durationText": "(X) Half Actions.",
+    "sourceText": "A Character with Flinch will swing their body that causes their Attacks with that limb to have a -30 Penalty To Hit for (X) Half Actions."
+  },
+  {
+    "key": "gasping",
+    "name": "Gasping",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "-20 to Physical and Warfare Characteristic Tests.",
+    "mechanicalText": "Includes Skills and Attacks.",
+    "durationText": "(X) Rounds and lasts until the end of the Character's Turn.",
+    "sourceText": "The Character takes a -20 Penalty to any Physical and Warfare Characteristic Tests, including Skills and Attacks. Gasping Lasts for (X) Rounds and lasts until the end of the Character's Turn."
+  },
+  {
+    "key": "instant-death",
+    "name": "Instant Death",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Kills the Character regardless of circumstance.",
+    "mechanicalText": "Burning a point of Luck allows survival without further wound reduction beyond the attack damage.",
+    "durationText": "Immediate.",
+    "sourceText": "Instant Death will kill the Character regardless of any circumstances. Burning a point of Luck will allow the Character to survive without a reduction in Wounds beyond the Damage taken from the Attack."
+  },
+  {
+    "key": "knockdown",
+    "name": "Knockdown",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Moves Standing to Crouching or Crouching to Prone.",
+    "mechanicalText": "Knockdown Prone can move Standing directly to Prone. If accompanied by (X), the Character cannot Stand Up or go from Prone to Crouching for (X) Rounds.",
+    "durationText": "Immediate or (X) Rounds.",
+    "sourceText": "A Character that has been hit with Knockdown will be moved from Standing to Crouching, and from Crouching to Prone. Knockdown can also allow a Character to go from Standing to Prone if specified as Knockdown Prone. If Knockdown is accompanied by (X), that will signify that the Character is unable to Stand Up or go from Prone to Crouching for (X) Rounds."
+  },
+  {
+    "key": "looming-death",
+    "name": "Looming Death",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "The Character will die within (X) Rounds regardless of Wounds.",
+    "mechanicalText": "Time until death is increased by Toughness Modifier and Mythic Toughness. Can be stopped by applying Biofoam or Sealant Mesh to the struck Location.",
+    "durationText": "(X) Rounds adjusted by Toughness and Mythic Toughness.",
+    "sourceText": "Looming Death means the Character will die, regardless of Wounds, within (X) Rounds, which is increased by the Character's Toughness Modifier and Mythic Toughness. Looming Death can be stopped by having Biofoam or Sealant Mesh applied to the Location struck."
+  },
+  {
+    "key": "lost",
+    "name": "Lost",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Cannot tell orientation, location, or allies from enemies.",
+    "mechanicalText": "Lasts for (X) Half Actions, reduced by half the Character's Toughness Modifier to a minimum of 1. Another character can reduce Lost with Intellect, Charisma, or Leadership tests.",
+    "durationText": "(X) Half Actions to a minimum of 1; ends at end of turn.",
+    "sourceText": "A Character who has suffered Lost will not be able to tell what direction they are facing, where they are, or tell allies from enemies. Lost lasts for (X) Half Actions, reduced by Half the Character's Toughness Modifier, to a minimum of 1, and ends at the end of the Character's Turn. Lost Characters can have their Lost reduced by another Character by making an Intellect, Charisma, or Leadership Test. The Rounds are reduced by 1 if Successful, and an extra +1 for every 2 Degrees of Success."
+  },
+  {
+    "key": "paralyzed",
+    "name": "Paralyzed",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "The struck limb or covered locations cannot be used.",
+    "mechanicalText": "The struck Body Location is unusable for (X) Rounds and the GM should consider all Body Locations under the Paralyzed location as Paralyzed as well.",
+    "durationText": "(X) Rounds, wearing off at the beginning of the Character's Turn after the Rounds are up.",
+    "sourceText": "The Character's Limb that was struck is Paralyzed and can't be used for (X) Rounds. The Character's Body Locations struck are considered a Useless and unusable until it wears off at the beginning of the Character's Turn after the Rounds are up. The GM should consider all Body Locations under the Paralyzed location as Paralyzed, as well."
+  },
+  {
+    "key": "shellshock",
+    "name": "Shellshock",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "-20 to all Actions and impaired memory.",
+    "durationText": "(X) Rounds and ends at the end of the Character's Turn.",
+    "sourceText": "Shellshock gives the Character a -20 Penalty to all Actions. The Character will also struggle to remember their name or other simple pieces of information. Shellshock lasts for (X) Rounds and ends at the end of the Character's Turn."
+  },
+  {
+    "key": "slowed",
+    "name": "Slowed",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Movement, jump, leap, climbing, and swimming are halved.",
+    "durationText": "(X) Rounds.",
+    "sourceText": "A Character suffering from Slowed reduces their Movement Speeds, Jump and Leap Distances, Climbing, and Swimming Speeds by half. Slowed lasts (X) Rounds."
+  },
+  {
+    "key": "tattered",
+    "name": "Tattered",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Movement, Melee, and Heavy Weapon use cause Fatigue.",
+    "mechanicalText": "The Character takes a level of Fatigue for each Half Action they perform any Movement, use a Melee Weapon, or use a Heavy Weapon.",
+    "durationText": "(X) Half Actions.",
+    "sourceText": "A Character struck with Tattered take a level of Fatigue for each Half Action they perform any Movement, use a Melee Weapon, or use a Heavy Weapon. Tattered lasts for (X) Half Actions."
+  },
+  {
+    "key": "tinnitus",
+    "name": "Tinnitus",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "-20 to Hearing-based Perception Tests.",
+    "durationText": "(X) Rounds until end of Character's Turn.",
+    "sourceText": "The Character has a -20 Penalty to Hearing-based Perception Tests. Tinnitus lasts for (X) Rounds, until the end of the Character's Turn."
+  },
+  {
+    "key": "vision-loss",
+    "name": "Vision Loss",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "-20 to Sight-based Perception Tests.",
+    "durationText": "(X) Rounds until end of Character's Turn.",
+    "sourceText": "Vision Loss gives a -20 Penalty to all Sight-based Perception Tests. Vision Loss lasts for (X) Rounds and lasts until the end of the Character's Turn."
+  },
+  {
+    "key": "weakened",
+    "name": "Weakened",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Melee Attacks are reduced by half.",
+    "durationText": "(X) Rounds and wears off at the beginning of the Character's Turn after the Rounds are up.",
+    "sourceText": "A Character hit by Weakened has the amount of their Melee Attacks reduced by half. This lasts for (X) Rounds and wears off at the beginning of the Character's Turn after the Rounds are up."
+  },
+  {
+    "key": "whiplash",
+    "name": "Whiplash",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Reactions, including Evasions, are at a -30 Penalty.",
+    "durationText": "(X) Rounds and lasts until the end of the Character's Turn.",
+    "sourceText": "The Character is partially stunned and has difficulty reacting. Reactions, including Evasions, are at a -30 Penalty. Whiplash lasts for (X) Rounds and lasts until the end of the Character's Turn."
+  },
+  {
+    "key": "winded",
+    "name": "Winded",
+    "domain": "medical",
+    "category": "special-damage-effect",
+    "sourcePage": 43,
+    "summaryText": "Turns are reduced to only being able to take a Half Action.",
+    "durationText": "(X) Rounds.",
+    "sourceText": "Characters struck by Winded will have their Turns reduced to only being able to take a Half Action. This lasts for as (X) Rounds."
+  },
+  {
+    "key": "blinded",
+    "name": "Blinded",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "Automatically fails sight-based Perception and Warfare Range; -40 to Warfare Melee.",
+    "sourceText": "A Blind character automatically fails any sight-based Perception and Warfare Range. The Character gains a -40 Penalty to Warfare Melee."
+  },
+  {
+    "key": "damaged-limbs",
+    "name": "Damaged Limbs",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "Broken, Useless, and Lost tiers for damaged limbs.",
+    "sourceText": "There are three tiers of Damaged Limbs, Broken, Useless, and Lost. Broken Limbs cause Penalties to Actions. Broken Limbs gain the Bone Broken Fatigue with use from Special Damage Effects. Useless Limbs cause further Penalties to a Broken Hand. Lost Limbs are removed from the Character's body."
+  },
+  {
+    "key": "deafened",
+    "name": "Deafened",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "Cannot hear well enough to communicate; all hearing-based Perception Tests automatically fail.",
+    "sourceText": "The Character is unable to hear in a way that allows them to properly communicate with speech. All hearing-based Perception Tests automatically fail."
+  },
+  {
+    "key": "dehydration",
+    "name": "Dehydration",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "After two days with no hydration, daily Fatigue and temporary -10 to Strength, Toughness, Agility, and Intellect; death if Toughness drops under 0.",
+    "sourceText": "Dehydration is the lack of proper hydration for the Character. The less the Character has had to drink, the quicker it sets in. For every day the character has had nothing to drink after two initial days of no hydration, the Character gains a point of Fatigue and temporarily loses -10 Strength, Toughness, Agility, and Intellect. If Toughness drops under 0, the Character dies."
+  },
+  {
+    "key": "holding-breath",
+    "name": "Holding Breath",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "A Character can hold their breath for Toughness Modifier x2 Turns.",
+    "sourceText": "A Character can hold their breath for their Toughness Modifier, multiplied by 2, in Turns. When the Character is still holding their breath after the listed Turns, see Suffocation."
+  },
+  {
+    "key": "hunger-and-starvation",
+    "name": "Hunger and Starvation",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "Begins after 3 days without eating; daily temporary loss of Strength, Toughness, and Agility plus Fatigue until death at Toughness 0.",
+    "sourceText": "Starvation begins after 3 days of not eating. Every day after, the Character temporarily loses 5 Points of Strength, Toughness, and Agility, and gains Fatigue. Once Toughness reaches 0, the Character dies."
+  },
+  {
+    "key": "impaled",
+    "name": "Impaled",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "Moving with an impaled object deals halved weapon damage ignoring Armor and without Pierce.",
+    "sourceText": "When weapons or any object has been impaled through a Character, they will first take the initial Damage that weapon would give. If the Object is not removed, whenever the Character moves in a Round, the impaled object deals its Damage to the Character, ignoring Armor and without Pierce. This Damage is halved. Removing Impaled Objects takes a Reaction for any weapon smaller than a Gravity Hammer in comparison. Anything large will take a Full Action."
+  },
+  {
+    "key": "sleep-deprivation",
+    "name": "Sleep Deprivation",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "After two days, temporary loss of 5 Agility and Perception; after five days, Fatigue every 12 hours still awake.",
+    "sourceText": "After two days of no sleep, the Character temporarily loses 5 Agility and Perception until they receive a minimum of 7 hours' rest. After 5 Days awake, the Character begins to take 1 level of Fatigue for every 12 hours still awake. These are recovered when rested."
+  },
+  {
+    "key": "stunned",
+    "name": "Stunned",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "Cannot make Reactions, Movement limited to Half Move, Attacks at -20 To Hit, and cannot Swim, Climb, Evade, Jump, or Leap.",
+    "sourceText": "Stunned Characters can't make Reactions, all Movement Actions are limited to Half Move Actions, and Attacks are at a -20 Penalty To Hit. The Character can't Swim, Climb, Evade, Jump, Leap, etc."
+  },
+  {
+    "key": "suffocation",
+    "name": "Suffocation",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "After breath runs out, Toughness Tests each Turn or Unconsciousness; while unconscious and still unable to breathe, take 1D10 Damage ignoring DR per Turn.",
+    "sourceText": "After the listed number of Turns, each Turn the Character holds their breath must come with a Toughness Test. If successful, the Character gains 1 level of Fatigue and stays conscious. If failed, the Character goes Unconscious. If the Character still can't breathe while Unconscious, they will take 1D10 Damage, ignoring Damage Resistance, per Turn."
+  },
+  {
+    "key": "unconsciousness",
+    "name": "Unconsciousness",
+    "domain": "medical",
+    "category": "medical-effect",
+    "sourcePage": 44,
+    "summaryText": "Occurs when Fatigue reaches Toughness Modifier; lasts 10 minutes reduced by Toughness and Mythic Toughness, plus 1 minute per Wound taken.",
+    "sourceText": "Unconsciousness is only temporary. A character loses Consciousness when they reach their Toughness Modifier in levels of fatigue. A Character is unconscious for 10 Minutes, reduced by their Toughness Modifier and Mythic Toughness, to a minimum of 1. The amount of time Unconscious is increased by 1 Minute for every Wound the Character has taken. An unconscious character is Unaware and Helpless. An Unconscious Character can only awaken when their Fatigue is lower than their Toughness Modifier in levels of Fatigue."
+  }
+]

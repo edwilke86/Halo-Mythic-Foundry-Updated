@@ -1,0 +1,86 @@
+<section class="special-rules-layout generators-layout">
+
+  <aside class="gm-panel special-rules-list-panel generators-list-panel">
+    <h2>Generators</h2>
+
+    <div class="special-rules-search-wrap">
+      <input
+        type="search"
+        class="special-rules-search generators-search"
+        placeholder="Search generators..."
+        data-generator-search
+      />
+    </div>
+
+    <div class="generators-category-list">
+      {{#each generatorCategories as |category|}}
+        <button
+          type="button"
+          class="generator-category-button"
+          data-generator-category="{{category}}"
+        >
+          {{category}}
+        </button>
+      {{/each}}
+    </div>
+
+    <div class="special-rules-list generators-list">
+      {{#each generators as |generator|}}
+        <button
+          type="button"
+          class="special-rule-list-item generator-list-item"
+          data-generator-id="{{generator.id}}"
+          data-generator-category="{{generator.category}}"
+        >
+          <strong>{{generator.name}}</strong>
+        </button>
+      {{/each}}
+    </div>
+  </aside>
+
+  <section class="gm-panel special-rules-detail-panel generators-detail-panel" data-generator-detail>
+    {{#with selectedGenerator}}
+      <h2>{{name}}</h2>
+
+      <div class="special-rule-detail generator-detail">
+        <div class="generator-detail-header">
+          <p class="generator-meta">
+                <span class="generator-type">{{category}}</span>
+                <span class="generator-source">{{source}}</span>
+            </p>
+        </div>
+
+        {{#if description}}
+          <p class="generator-description">{{description}}</p>
+        {{/if}}
+
+        <button
+          type="button"
+          class="gm-tool-button generator-roll-button"
+          data-action="roll-generator"
+          data-generator-id="{{id}}"
+        >
+          Roll {{roll}}
+        </button>
+
+        <table class="gm-ref-table">
+          <thead>
+            <tr>
+              <th>Roll</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each rows as |row|}}
+              <tr>
+                <td>{{row.range}}</td>
+                <td>{{row.result}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    {{/with}}
+  </section>
+
+</section>

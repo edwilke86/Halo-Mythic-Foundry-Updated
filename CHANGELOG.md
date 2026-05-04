@@ -4,6 +4,12 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
+## [0.5.0-alpha.4] - 2026-05-04
+
+### Fixed (0.5.0-alpha.4)
+
+- Corrected release packaging metadata and manifest download targeting to resolve hosted installer/update failures on Forge.
+
 ## [0.5.0-alpha.3] - 2026-05-04
 
 ### Changed (0.5.0-alpha.3)

@@ -2,10 +2,10 @@
   "id": "Halo-Mythic-Foundry-Updated",
   "title": "Halo Mythic Foundry Updated",
   "description": "Community Foundry VTT system project for the Halo Mythic ruleset.",
-    "version": "0.5.0-alpha.3",
+    "version": "0.5.0-alpha.4",
   "license": "SEE LICENSE and LICENSE.assets",
     "manifest": "https://raw.githubusercontent.com/edwilke86/Halo-Mythic-Foundry-Updated/main/system.json",
-  "download": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated/releases/download/0.5.0-alpha.3/halo-mythic-foundry-updated-0.5.0-alpha.3-20260504.zip",
+  "download": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated/releases/download/0.5.0-alpha.4/halo-mythic-foundry-updated-0.5.0-alpha.4-20260504.zip",
   
   "url": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated",
   "compatibility": {

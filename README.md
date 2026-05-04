@@ -12,9 +12,9 @@ This project is actively in development and currently targets Foundry v13.
 
 ## Alpha Readiness
 
-Current build target: `0.5.0-alpha.3` (current feature alpha)
+Current build target: `0.5.0-alpha.4` (current feature alpha)
 
-Latest published release: `0.5.0-alpha.3` (2026-05-04)
+Latest published release: `0.5.0-alpha.4` (2026-05-04)
 
 Known alpha limitations:
 
@@ -46,7 +46,7 @@ Where to report:
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.5.0-alpha.3` (or latest published build in use)
+1. Build/version: `0.5.0-alpha.4` (or latest published build in use)
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -65,8 +65,8 @@ Format:
 
 Current working version:
 
-- Development target: `0.5.0-alpha.3`
-- Latest published: `0.5.0-alpha.3`
+- Development target: `0.5.0-alpha.4`
+- Latest published: `0.5.0-alpha.4`
 
 Rules used:
 

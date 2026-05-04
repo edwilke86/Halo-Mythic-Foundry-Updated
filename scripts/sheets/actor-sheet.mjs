@@ -38834,6 +38834,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           : row.isSuccess
             ? "success"
             : "failure";
+        const rowHasSpecialDamage = row.isSuccess
+          ? Boolean(row.damageInstances?.some((entry) => entry?.hasSpecialDamage))
+          : Boolean(row.wouldDamage?.some((entry) => entry?.hasSpecialDamage));
+        const verdictSpecialMarker = rowHasSpecialDamage ? " *" : "";
         const ammoBadgeHtml = buildRowAmmoBadgeHtml(row.ammoRounds);
         const ammoRuleBadgeHtml = buildRowAmmoRuleBadgeHtml(row.ammoRounds);
 
@@ -38944,12 +38948,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
                   rowTargetMode,
                   esc,
                 );
-                const wouldTitle =
-                  would?.rollTooltip ||
-                  esc(
-                    `Would deal: ${would.damageTotal} [${would.damageFormula}]`,
-                  );
-                return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Would hit ${locHtml} for <span class="mythic-roll-inline" title="${wouldTitle}">${would.damageTotal}</span> [${esc(would.damageFormula)}], Pierce ${would.damagePierce}</div>`;
+                return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; ${locHtml}</div>`;
               })()
             : "";
 
@@ -38969,7 +38968,29 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             })()
           : "";
 
-        const attackDetailsContent = `${grenadeThrowDetail}${calledShotDetail}${grenadeMissDetail}${missDetail}${successDetail}`;
+        const rowTargetMode = String(
+          row.targetMode ?? finalTargetMode ?? "character",
+        );
+        const rowLocHtml = _buildHitLocHtml(row.hitLoc, rowTargetMode, esc);
+        const primaryPreviewEntry = row.isSuccess
+          ? row.damageInstances?.[0]
+          : row.wouldDamage?.[0];
+        const previewFormula = String(
+          primaryPreviewEntry?.damageFormula ?? damageFormula ?? "",
+        ).trim();
+        const previewPierce = Number(primaryPreviewEntry?.damagePierce ?? 0);
+        const previewRollTitle =
+          primaryPreviewEntry?.rollTooltip ||
+          esc(
+            `Damage roll: ${Number(primaryPreviewEntry?.damageTotal ?? 0)} [${previewFormula}]`,
+          );
+        const previewDamageLine = primaryPreviewEntry
+          ? `<span class="mythic-roll-inline" title="${previewRollTitle}">${Number(primaryPreviewEntry?.damageTotal ?? 0)}</span>`
+          : "0";
+        const overrideBtnHtml = `<button type="button" class="action-btn mythic-row-override-btn" data-attack-index="${esc(row.index)}">Override</button>`;
+        const previewLine = `<div class="mythic-attack-subline mythic-attack-preview-line">${previewDamageLine}${previewFormula ? ` (${esc(previewFormula)})` : ""}, Pierce ${previewPierce} ${overrideBtnHtml}</div>`;
+        const locLine = `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; ${rowLocHtml}</div>`;
+        const attackDetailsContent = `${grenadeThrowDetail}${calledShotDetail}${grenadeMissDetail}${locLine}${previewLine}`;
 
         return `<div class="mythic-attack-line" data-attack-index="${esc(row.index)}">
         <details class="mythic-attack-entry ${row.isSuccess ? "is-hit" : "is-miss"}" data-attack-index="${esc(row.index)}">
@@ -38977,7 +38998,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             <span class="mythic-attack-main">
               <span class="mythic-attack-index">A${row.index}</span>
               ${rollHtml}
-              <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span>
+              <span class="mythic-attack-verdict ${verdictClass}">${verdict}${verdictSpecialMarker}</span>
               ${ammoBadgeHtml}${ammoRuleBadgeHtml}
             </span>
             <span class="mythic-attack-actions" data-attack-index="${esc(row.index)}"></span>
@@ -41263,6 +41284,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           : row.isSuccess
             ? "success"
             : "failure";
+        const rowHasSpecialDamage = row.isSuccess
+          ? Boolean(row.damageInstances?.some((entry) => entry?.hasSpecialDamage))
+          : Boolean(row.wouldDamage?.some((entry) => entry?.hasSpecialDamage));
+        const verdictSpecialMarker = rowHasSpecialDamage ? " *" : "";
         const calledShotDetail = row.calledShotInfo
           ? (() => {
               const info = row.calledShotInfo;
@@ -41278,17 +41303,39 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
               return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Called Shot declared: <strong>${esc(info.targetLabel)}</strong>${penaltyText}.</div>`;
             })()
           : "";
+        const rowLocHtml = _buildHitLocHtml(
+          row.hitLoc,
+          String(row.targetMode ?? "character"),
+          esc,
+        );
+        const previewEntry = row.isSuccess
+          ? row.damageInstances?.[0]
+          : row.wouldDamage?.[0];
+        const previewFormula = String(
+          previewEntry?.damageFormula ?? damageFormulaDisplay ?? "",
+        ).trim();
+        const previewPierce = Number(previewEntry?.damagePierce ?? 0);
+        const previewRollTitle =
+          previewEntry?.rollTooltip ||
+          esc(
+            `Damage roll: ${Number(previewEntry?.damageTotal ?? 0)} [${previewFormula}]`,
+          );
+        const previewDamageLine = previewEntry
+          ? `<span class="mythic-roll-inline" title="${previewRollTitle}">${Number(previewEntry?.damageTotal ?? 0)}</span>`
+          : "0";
+        const locLine = `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; ${rowLocHtml}</div>`;
+        const previewLine = `<div class="mythic-attack-subline mythic-attack-preview-line">${previewDamageLine}${previewFormula ? ` (${esc(previewFormula)})` : ""}, Pierce ${previewPierce} <button type="button" class="action-btn mythic-row-override-btn" data-attack-index="${esc(row.index)}">Override</button></div>`;
         return `<div class="mythic-attack-line" data-attack-index="${esc(row.index)}">
         <details class="mythic-attack-entry ${row.isSuccess ? "is-hit" : "is-miss"}" data-attack-index="${esc(row.index)}">
           <summary class="mythic-attack-summary">
             <span class="mythic-attack-main">
               <span class="mythic-attack-index">A${row.index}</span>
               <span class="mythic-attack-roll"><span class="mythic-roll-inline" title="${row.attackRollTooltip}">${row.rawRoll}</span></span>
-              <span class="mythic-attack-verdict ${verdictClass}">${verdict}</span>
+              <span class="mythic-attack-verdict ${verdictClass}">${verdict}${verdictSpecialMarker}</span>
             </span>
             <span class="mythic-attack-actions" data-attack-index="${esc(row.index)}"></span>
           </summary>
-          <div class="mythic-attack-details" data-attack-index="${esc(row.index)}">${calledShotDetail}</div>
+          <div class="mythic-attack-details" data-attack-index="${esc(row.index)}">${locLine}${previewLine}${calledShotDetail}</div>
         </details>
       </div>`;
       })
@@ -41393,6 +41440,21 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       linkedWeapons: 1,
       skipEvasion: false,
       evasionRows,
+      attackRows: attackRows.map((row) => ({
+        index: row.index,
+        rawRoll: row.rawRoll,
+        effectiveTarget: row.effectiveTarget,
+        dosValue: row.dosValue,
+        isCritFail: row.isCritFail,
+        isSuccess: row.isSuccess,
+        hitLoc: row.hitLoc ? foundry.utils.deepClone(row.hitLoc) : null,
+        damageInstances: Array.isArray(row.damageInstances)
+          ? row.damageInstances.map((entry) => foundry.utils.deepClone(entry))
+          : [],
+        wouldDamage: Array.isArray(row.wouldDamage)
+          ? row.wouldDamage.map((entry) => foundry.utils.deepClone(entry))
+          : []
+      })),
       targetTokenId: targetToken?.id ?? null,
       targetActorId: targetToken?.actor?.id ?? null,
       targetTokenIds,

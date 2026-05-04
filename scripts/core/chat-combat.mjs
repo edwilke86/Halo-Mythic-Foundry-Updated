@@ -308,7 +308,15 @@ function resolveIncomingDamageAgainstDefenses(targetActor, incoming = {}) {
   };
 }
 
-export async function mythicRollEvasion(messageId, targetMode, attackData) {
+async function consumeReactionCount(actor, amount = 1) {
+  const delta = Math.max(0, Math.floor(Number(amount ?? 0)));
+  if (!actor || delta <= 0 || !isActorActivelyInCombat(actor)) return;
+  const freshActor = game.actors?.get?.(String(actor.id ?? "")) ?? actor;
+  const current = Math.max(0, Math.floor(Number(freshActor.system?.combat?.reactions?.count ?? 0)));
+  await freshActor.update({ "system.combat.reactions.count": current + delta });
+}
+
+export async function mythicRollEvasion(messageId, targetMode, attackData, options = {}) {
   const atkTargetMode = String(attackData?.targetMode ?? "character");
   if (atkTargetMode === "vehicle" || atkTargetMode === "walker") {
     console.warn("[mythic-system] mythicRollEvasion: vehicle/walker targets are resolved manually. Skipping.");
@@ -355,10 +363,11 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
   }
 
   const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
-  const attackDOS = Number(attackData.dosValue ?? 0);
-  const evasionRows = Array.isArray(attackData.evasionRows) && attackData.evasionRows.length
-    ? attackData.evasionRows
-    : (attackData.isSuccess ? [{
+  const fallbackAttackDOS = Number(attackData.dosValue ?? 0);
+  const evasionRows = filterIncomingRowsByAttackIndex(
+    Array.isArray(attackData.evasionRows) && attackData.evasionRows.length
+      ? attackData.evasionRows
+      : (attackData.isSuccess ? [{
       attackIndex: 1,
       repeatCount: 1,
       damageTotal: Number(attackData.damageTotal ?? 0),
@@ -373,7 +382,9 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
       ignoresShields: Boolean(attackData.ignoresShields),
       appliesShieldPierce: Boolean(attackData.appliesShieldPierce),
       explosiveShieldPierce: Boolean(attackData.explosiveShieldPierce)
-    }] : []);
+    }] : []),
+    options.attackIndex ?? null,
+  );
 
   if (!evasionRows.length) {
     ui.notifications.warn("No successful attack rows to evade.");
@@ -425,9 +436,15 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
     let reactionCount = tracksReactions
       ? Math.max(0, Math.floor(Number(targetActor.system?.combat?.reactions?.count ?? 0)))
       : 0;
+    let consumedReactions = 0;
 
     for (let i = 0; i < evasionRows.length; i += 1) {
       const incoming = evasionRows[i];
+      const attackDOS = Number.isFinite(Number(incoming?.attackDosValue))
+        ? Number(incoming.attackDosValue)
+        : Number.isFinite(Number(incoming?.dosValue))
+          ? Number(incoming.dosValue)
+        : fallbackAttackDOS;
       const skillsNorm = normalizeSkillsData(targetActor.system?.skills);
       const evasionSkill = skillsNorm.base?.evasion ?? {};
       const tierBonus = getSkillTierBonus(evasionSkill.tier ?? "untrained", evasionSkill.category ?? "basic");
@@ -506,11 +523,11 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
         : [];
       const applyButtonsHtml = applyInstances.map((inst, instIdx) => {
         const btnClass = (inst.appliesShieldPierce ?? false)
-          ? "action-btn mythic-apply-dmg-btn is-shield-pierce-active"
-          : "action-btn mythic-apply-dmg-btn";
-        const label = applyInstances.length > 1 ? `Apply Hit ${instIdx + 1} (${inst.damageTotal})` : "Apply";
+          ? "action-btn mythic-show-dmg-results-btn is-shield-pierce-active"
+          : "action-btn mythic-show-dmg-results-btn";
+        const label = "See Damage Results";
         const specialAmmoSymbols = resolveAppliedHitSpecialAmmoSymbols(inst, incoming, attackData);
-        return `<button type="button" class="${btnClass}" data-actor-id="${esc(targetActor.id)}" data-token-id="${esc(targetToken?.id ?? "")}" data-scene-id="${esc(attackData.sceneId ?? canvas?.scene?.id ?? "")}" data-damage="${esc(String(inst.damageTotal ?? 0))}" data-pierce="${esc(String(inst.damagePierce ?? 0))}" data-dr-key="${esc(String(inst.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""))}" data-hit-zone="${esc(String(inst.hitLoc?.zone ?? incoming.hitLoc?.zone ?? ""))}" data-hit-subzone="${esc(String(inst.hitLoc?.subZone ?? incoming.hitLoc?.subZone ?? ""))}" data-ignore-shields="${(inst.ignoresShields ?? false) ? "true" : "false"}" data-shield-pierce="${(inst.appliesShieldPierce ?? false) ? "true" : "false"}" data-explosive-shield="${(inst.explosiveShieldPierce ?? false) ? "true" : "false"}" data-penetrating="${(inst.isPenetrating ?? false) ? "true" : "false"}" data-headshot="${(inst.isHeadshot ?? false) ? "true" : "false"}" data-blast-kill="${(inst.hasBlastOrKill ?? false) ? "true" : "false"}" data-kinetic="${(inst.isKinetic ?? false) ? "true" : "false"}" data-hardlight="${(inst.isHardlight ?? false) ? "true" : "false"}" data-special-damage="${(inst.hasSpecialDamage ?? false) ? "true" : "false"}" data-special-ammo-symbols="${esc(specialAmmoSymbols.join("|"))}">${esc(label)}</button>`;
+        return `<button type="button" class="${btnClass}" data-attack-index="${esc(String(incoming.attackIndex ?? 1))}" data-actor-id="${esc(targetActor.id)}" data-token-id="${esc(targetToken?.id ?? "")}" data-scene-id="${esc(attackData.sceneId ?? canvas?.scene?.id ?? "")}" data-damage="${esc(String(inst.damageTotal ?? 0))}" data-pierce="${esc(String(inst.damagePierce ?? 0))}" data-dr-key="${esc(String(inst.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""))}" data-hit-zone="${esc(String(inst.hitLoc?.zone ?? incoming.hitLoc?.zone ?? ""))}" data-hit-subzone="${esc(String(inst.hitLoc?.subZone ?? incoming.hitLoc?.subZone ?? ""))}" data-ignore-shields="${(inst.ignoresShields ?? false) ? "true" : "false"}" data-shield-pierce="${(inst.appliesShieldPierce ?? false) ? "true" : "false"}" data-explosive-shield="${(inst.explosiveShieldPierce ?? false) ? "true" : "false"}" data-penetrating="${(inst.isPenetrating ?? false) ? "true" : "false"}" data-headshot="${(inst.isHeadshot ?? false) ? "true" : "false"}" data-blast-kill="${(inst.hasBlastOrKill ?? false) ? "true" : "false"}" data-kinetic="${(inst.isKinetic ?? false) ? "true" : "false"}" data-hardlight="${(inst.isHardlight ?? false) ? "true" : "false"}" data-special-damage="${(inst.hasSpecialDamage ?? false) ? "true" : "false"}" data-special-ammo-symbols="${esc(specialAmmoSymbols.join("|"))}">${esc(label)}</button>`;
       }).join("");
       const line = `<div class="${lineClass}">
         <details class="mythic-evasion-detail-row">
@@ -536,11 +553,14 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
         isEvaded
       });
 
-      if (tracksReactions) reactionCount += 1;
+      if (tracksReactions) {
+        reactionCount += 1;
+        consumedReactions += 1;
+      }
     }
 
-    if (tracksReactions) {
-      await targetActor.update({ "system.combat.reactions.count": reactionCount });
+    if (tracksReactions && consumedReactions > 0) {
+      await consumeReactionCount(targetActor, consumedReactions);
     }
     sections.push(`<div class="mythic-evasion-target"><strong>${esc(targetDisplayName)}</strong>${rows.join("")}</div><hr class="mythic-card-hr">`);
   }
@@ -568,49 +588,48 @@ export async function mythicRollEvasion(messageId, targetMode, attackData) {
   });
 }
 
-export async function mythicApplyDirectAttackDamage(messageId, targetMode, attackData) {
-  const atkTargetMode = String(attackData?.targetMode ?? "character");
-  if (atkTargetMode === "vehicle" || atkTargetMode === "walker") {
-    console.warn("[mythic-system] mythicApplyDirectAttackDamage: vehicle/walker targets are resolved manually. Skipping.");
-    return;
-  }
+function resolveTargetEntriesFromAttackData(targetMode, attackData = {}) {
   let targetEntries = [];
-
   if (targetMode === "selected") {
     targetEntries = (canvas.tokens?.controlled ?? [])
       .map((token) => ({ token, actor: token?.actor }))
       .filter((entry) => entry.actor);
-  } else {
-    const scene = game.scenes.get(attackData.sceneId ?? "") ?? canvas.scene;
-    const tokenIds = Array.isArray(attackData.targetTokenIds) && attackData.targetTokenIds.length
-      ? attackData.targetTokenIds
-      : [attackData.targetTokenId].filter(Boolean);
-    if (tokenIds.length) {
-      targetEntries = tokenIds
-        .map((tokenId) => {
-          const token = scene?.tokens?.get(String(tokenId ?? "")) ?? null;
-          return token?.actor ? { token, actor: token.actor } : null;
-        })
-        .filter(Boolean);
-    }
-    if (!targetEntries.length && attackData.targetActorId) {
-      const scene2 = game.scenes.get(attackData.sceneId ?? "") ?? canvas.scene;
-      const token = scene2?.tokens?.get(attackData.targetTokenId ?? "");
-      if (token?.actor) targetEntries = [{ token, actor: token.actor }];
-    }
-    if (!targetEntries.length) {
-      targetEntries = [...(game.user.targets ?? [])]
-        .map((token) => ({ token, actor: token?.actor }))
-        .filter((entry) => entry.actor);
-    }
+    return targetEntries;
   }
 
+  const scene = game.scenes.get(attackData.sceneId ?? "") ?? canvas.scene;
+  const tokenIds = Array.isArray(attackData.targetTokenIds) && attackData.targetTokenIds.length
+    ? attackData.targetTokenIds
+    : [attackData.targetTokenId].filter(Boolean);
+  if (tokenIds.length) {
+    targetEntries = tokenIds
+      .map((tokenId) => {
+        const token = scene?.tokens?.get(String(tokenId ?? "")) ?? null;
+        return token?.actor ? { token, actor: token.actor } : null;
+      })
+      .filter(Boolean);
+  }
+  if (!targetEntries.length && attackData.targetActorId) {
+    const scene2 = game.scenes.get(attackData.sceneId ?? "") ?? canvas.scene;
+    const token = scene2?.tokens?.get(attackData.targetTokenId ?? "");
+    if (token?.actor) targetEntries = [{ token, actor: token.actor }];
+  }
   if (!targetEntries.length) {
-    ui.notifications.warn("No target found. Have the attacker target a token, or select one as GM.");
-    return;
+    targetEntries = [...(game.user.targets ?? [])]
+      .map((token) => ({ token, actor: token?.actor }))
+      .filter((entry) => entry.actor);
   }
+  return targetEntries;
+}
 
-  const incomingRows = Array.isArray(attackData.evasionRows) && attackData.evasionRows.length
+function filterIncomingRowsByAttackIndex(rows = [], attackIndex = null) {
+  if (!Number.isFinite(Number(attackIndex))) return rows;
+  const indexValue = Number(attackIndex);
+  return rows.filter((row) => Number(row?.attackIndex ?? 0) === indexValue);
+}
+
+function buildIncomingRowsFromAttackData(attackData = {}) {
+  return Array.isArray(attackData.evasionRows) && attackData.evasionRows.length
     ? attackData.evasionRows
     : (attackData.isSuccess ? [{
       attackIndex: 1,
@@ -628,6 +647,25 @@ export async function mythicApplyDirectAttackDamage(messageId, targetMode, attac
       explosiveShieldPierce: Boolean(attackData.explosiveShieldPierce),
       ignoresShields: Boolean(attackData.ignoresShields)
     }] : []);
+}
+
+export async function mythicApplyDirectAttackDamage(messageId, targetMode, attackData, options = {}) {
+  const atkTargetMode = String(attackData?.targetMode ?? "character");
+  if (atkTargetMode === "vehicle" || atkTargetMode === "walker") {
+    console.warn("[mythic-system] mythicApplyDirectAttackDamage: vehicle/walker targets are resolved manually. Skipping.");
+    return;
+  }
+  const targetEntries = resolveTargetEntriesFromAttackData(targetMode, attackData);
+
+  if (!targetEntries.length) {
+    ui.notifications.warn("No target found. Have the attacker target a token, or select one as GM.");
+    return;
+  }
+
+  const incomingRows = filterIncomingRowsByAttackIndex(
+    buildIncomingRowsFromAttackData(attackData),
+    options.attackIndex ?? null,
+  );
 
   if (!incomingRows.length) {
     ui.notifications.warn("No successful attack rows to apply.");
@@ -675,6 +713,96 @@ export async function mythicApplyDirectAttackDamage(messageId, targetMode, attac
   }
 
   ui.notifications.info(`Applied auto-hit damage ${applications} time${applications === 1 ? "" : "s"}.`);
+}
+
+export async function mythicCreateAttackDamagePreview(messageId, attackData, options = {}) {
+  const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
+  const targetEntries = resolveTargetEntriesFromAttackData("targeted", attackData);
+  if (!targetEntries.length) {
+    ui.notifications.warn("No targeted token found for this attack.");
+    return;
+  }
+
+  const attackIndex = Number(options.attackIndex ?? 0);
+  const incomingRows = filterIncomingRowsByAttackIndex(
+    buildIncomingRowsFromAttackData(attackData),
+    attackIndex,
+  );
+  if (!incomingRows.length) {
+    ui.notifications.warn("No matching attack row for damage preview.");
+    return;
+  }
+  const incoming = incomingRows[0];
+  const inst = Array.isArray(incoming.damageInstances) && incoming.damageInstances.length
+    ? incoming.damageInstances[0]
+    : incoming;
+  const damageValue = Number(inst?.damageTotal ?? incoming.damageTotal ?? 0);
+  const pierceValue = Number(inst?.damagePierce ?? incoming.damagePierce ?? 0);
+
+  const rows = targetEntries.map(({ token, actor }) => {
+    const resolved = resolveIncomingDamageAgainstDefenses(actor, {
+      damageTotal: damageValue,
+      damagePierce: pierceValue,
+      drKey: String(inst?.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""),
+      ignoresShields: Boolean(inst?.ignoresShields ?? incoming.ignoresShields),
+      appliesShieldPierce: Boolean(inst?.appliesShieldPierce ?? incoming.appliesShieldPierce),
+      explosiveShieldPierce: Boolean(inst?.explosiveShieldPierce ?? incoming.explosiveShieldPierce),
+      isPenetrating: Boolean(inst?.isPenetrating ?? incoming.isPenetrating),
+      isHeadshot: Boolean(inst?.isHeadshot ?? incoming.isHeadshot),
+      hasBlastOrKill: Boolean(inst?.hasBlastOrKill ?? incoming.hasBlastOrKill),
+      isKinetic: Boolean(inst?.isKinetic ?? incoming.isKinetic)
+    });
+    const actorId = String(actor?.id ?? "");
+    const tokenId = String(token?.id ?? "");
+    const sceneId = String(attackData.sceneId ?? canvas?.scene?.id ?? "");
+    const targetLabel = token?.name ?? actor?.name ?? "Target";
+    const locLabel = String(inst?.hitLoc?.subZone ?? incoming.hitLoc?.subZone ?? "Unknown Location");
+    return `<div class="mythic-evasion-target">
+      <strong>${esc(targetLabel)}</strong><br>
+      Loc: <strong>${esc(locLabel)}</strong><br>
+      Base Damage: <strong>${esc(String(damageValue))}</strong>, Pierce <strong>${esc(String(pierceValue))}</strong><br>
+      Effective DR: <strong>${esc(String(resolved.effectiveDR))}</strong><br>
+      Shield Damage: <strong>${esc(String(resolved.shieldDamageApplied))}</strong> (${esc(String(resolved.shieldsCurrent))} -> ${esc(String(resolved.shieldsRemaining))})<br>
+      Wound Damage: <strong>${esc(String(resolved.woundDamage))}</strong><br>
+      <button type="button" class="action-btn mythic-apply-preview-dmg-btn"
+        data-actor-id="${esc(actorId)}"
+        data-token-id="${esc(tokenId)}"
+        data-scene-id="${esc(sceneId)}"
+        data-damage="${esc(String(damageValue))}"
+        data-pierce="${esc(String(pierceValue))}"
+        data-dr-key="${esc(String(inst?.hitLoc?.drKey ?? incoming.hitLoc?.drKey ?? ""))}"
+        data-hit-zone="${esc(String(inst?.hitLoc?.zone ?? incoming.hitLoc?.zone ?? ""))}"
+        data-hit-subzone="${esc(String(inst?.hitLoc?.subZone ?? incoming.hitLoc?.subZone ?? ""))}"
+        data-ignore-shields="${(inst?.ignoresShields ?? incoming.ignoresShields) ? "true" : "false"}"
+        data-shield-pierce="${(inst?.appliesShieldPierce ?? incoming.appliesShieldPierce) ? "true" : "false"}"
+        data-explosive-shield="${(inst?.explosiveShieldPierce ?? incoming.explosiveShieldPierce) ? "true" : "false"}"
+        data-penetrating="${(inst?.isPenetrating ?? incoming.isPenetrating) ? "true" : "false"}"
+        data-headshot="${(inst?.isHeadshot ?? incoming.isHeadshot) ? "true" : "false"}"
+        data-blast-kill="${(inst?.hasBlastOrKill ?? incoming.hasBlastOrKill) ? "true" : "false"}"
+        data-kinetic="${(inst?.isKinetic ?? incoming.isKinetic) ? "true" : "false"}"
+        data-hardlight="${(inst?.isHardlight ?? incoming.isHardlight) ? "true" : "false"}"
+        data-special-damage="${(inst?.hasSpecialDamage ?? incoming.hasSpecialDamage) ? "true" : "false"}"
+      >Apply</button>
+    </div>`;
+  }).join("<hr class=\"mythic-card-hr\">");
+
+  const content = `<div class="mythic-evasion-card">
+    <div class="mythic-evasion-header">Damage Preview: ${esc(attackData?.weaponName ?? "Attack")} (A${esc(String(attackIndex))})</div>
+    ${rows}
+  </div>`;
+
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker(),
+    content,
+    type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+    flags: {
+      "Halo-Mythic-Foundry-Updated": {
+        attackDamagePreview: true,
+        sourceMessageId: messageId,
+        attackIndex
+      }
+    }
+  });
 }
 
 export async function mythicApplyWoundDamage(actorId, damage, tokenId = null, sceneId = null, options = {}) {
@@ -888,7 +1016,7 @@ export async function mythicRollEvadeIntoCover(messageId, attackData, targetMode
     });
 
     if (tracksReactions) {
-      await actor.update({ "system.combat.reactions.count": currentReactions + 1 });
+      await consumeReactionCount(actor, 1);
     }
   }
 

@@ -274,6 +274,58 @@
   margin: 2px 0;
 }
 
+.mythic-attack-entry > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.mythic-attack-entry > summary::marker,
+.mythic-attack-entry > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mythic-attack-summary::before {
+  content: "+";
+  display: inline-block;
+  min-width: 10px;
+  color: #9ab9dd;
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.mythic-attack-entry[open] > .mythic-attack-summary::before {
+  content: "-";
+}
+
+.mythic-attack-main {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.mythic-attack-index {
+  font-size: 0.72rem;
+}
+
+.mythic-attack-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mythic-attack-actions .action-btn,
+.mythic-attack-preview-line .action-btn {
+  min-height: 20px;
+  padding: 1px 6px;
+  font-size: 0.68rem;
+}
+
 .mythic-attack-mainline {
   display: flex;
   flex-wrap: wrap;
@@ -285,6 +337,12 @@
   margin-left: 12px;
   font-size: 0.8rem;
   line-height: 1.3;
+}
+
+.mythic-attack-preview-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .mythic-attack-formula-note {

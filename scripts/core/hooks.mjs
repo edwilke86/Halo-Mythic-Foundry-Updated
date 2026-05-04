@@ -105,6 +105,7 @@ import {
 import {
   mythicRollEvasion as mythicRollEvasionImpl,
   mythicApplyDirectAttackDamage as mythicApplyDirectAttackDamageImpl,
+  mythicCreateAttackDamagePreview as mythicCreateAttackDamagePreviewImpl,
   mythicApplyWoundDamage as mythicApplyWoundDamageImpl,
   mythicRollEvadeIntoCover as mythicRollEvadeIntoCoverImpl,
   mythicApplyGrenadeBlastDamage as mythicApplyGrenadeBlastDamageImpl,
@@ -428,6 +429,10 @@ export async function mythicRollEvasion(...args) {
 
 export async function mythicApplyDirectAttackDamage(...args) {
   return mythicApplyDirectAttackDamageImpl(...args);
+}
+
+export async function mythicCreateAttackDamagePreview(...args) {
+  return mythicCreateAttackDamagePreviewImpl(...args);
 }
 
 export async function mythicApplyWoundDamage(...args) {
@@ -2177,6 +2182,7 @@ export function registerAllHooks() {
   registerMythicDocumentAndChatHooks({
     mythicRollEvasion,
     mythicApplyDirectAttackDamage,
+    mythicCreateAttackDamagePreview,
     mythicApplyWoundDamage,
     mythicRollEvadeIntoCover,
     mythicApplyGrenadeBlastDamage,

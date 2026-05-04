@@ -15,6 +15,14 @@ import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
 import { mythicApplyWoundDamage } from "./chat-combat.mjs";
 
 const SYSTEM_ID = "Halo-Mythic-Foundry-Updated";
+
+async function consumeReactionCount(actor, amount = 1) {
+  const delta = Math.max(0, Math.floor(Number(amount ?? 0)));
+  if (!actor || delta <= 0 || !isActorActivelyInCombat(actor)) return;
+  const freshActor = game.actors?.get?.(String(actor.id ?? "")) ?? actor;
+  const current = Math.max(0, Math.floor(Number(freshActor.system?.combat?.reactions?.count ?? 0)));
+  await freshActor.update({ "system.combat.reactions.count": current + delta });
+}
 const ARMOR_KEYS = Object.freeze([
   Object.freeze({ key: "head", label: "Head" }),
   Object.freeze({ key: "chest", label: "Chest" }),
@@ -359,7 +367,7 @@ export async function mythicRollVehicleSplatterEvasion(messageId, splatterData =
     rolls.push(roll);
     const dosValue = computeAttackDOS(targetNumber, Number(roll.total ?? 0));
     if (tracksReactions) {
-      await targetActor.update({ "system.combat.reactions.count": reactionCount + 1 });
+      await consumeReactionCount(targetActor, 1);
     }
     rows.push({
       target,

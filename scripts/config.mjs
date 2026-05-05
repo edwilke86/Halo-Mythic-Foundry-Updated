@@ -545,6 +545,7 @@ export const MYTHIC_FEAR_AUTOMATION_ENABLED_SETTING_KEY = "fearAutomationEnabled
 export const MYTHIC_ALLOW_PLAYER_BLAST_KILL_TEMPLATE_PLACEMENT_SETTING_KEY = "allowPlayerBlastKillTemplatePlacement";
 export const MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY = "bestiaryDifficultyMode";
 export const MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY = "bestiaryGlobalRank";
+export const MYTHIC_BESTIARY_ARMOR_AUTOMATION_ENABLED_SETTING_KEY = "bestiaryArmorAutomationEnabled";
 export const MYTHIC_FLOOD_CONTAMINATION_LEVEL_SETTING_KEY = "floodContaminationLevel";
 export const MYTHIC_FLOOD_CONTAMINATION_HUD_ENABLED_SETTING_KEY = "floodContaminationHudEnabled";
 export const MYTHIC_FLOOD_JUGGERNAUT_ACTIVE_SETTING_KEY = "floodJuggernautActive";

@@ -44,6 +44,7 @@ import {
   MYTHIC_GOOD_FORTUNE_MODE_SETTING_KEY,
   MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY,
   MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY,
+  MYTHIC_BESTIARY_ARMOR_AUTOMATION_ENABLED_SETTING_KEY,
   MYTHIC_BESTIARY_DIFFICULTY_MODE_CHOICES,
   MYTHIC_BESTIARY_DIFFICULTY_MODES,
   MYTHIC_BESTIARY_RANK_CHOICES,
@@ -1341,6 +1342,15 @@ export function registerAllHooks() {
       type: String,
       choices: MYTHIC_BESTIARY_RANK_CHOICES,
       default: "1"
+    });
+
+    game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_BESTIARY_ARMOR_AUTOMATION_ENABLED_SETTING_KEY, {
+      name: "Bestiary Armor Auto-Apply on Token Drop",
+      hint: "If enabled, dropped Bestiary tokens use the armor preset workflow. Disable to handle Bestiary armor fully manually.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true
     });
 
     game.settings.register("Halo-Mythic-Foundry-Updated", MYTHIC_FLOOD_CONTAMINATION_HUD_ENABLED_SETTING_KEY, {

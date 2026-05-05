@@ -5,6 +5,7 @@ import {
 } from "../config/bestiary-armor-catalog.mjs";
 
 const SESSION_PRESET_MEMORY = new Map();
+const NO_ARMOR_PRESET_ID = "__none__";
 
 const FAMILY_NAME_INFERENCE = Object.freeze([
   { test: /smart\s*ai|civilian|sharquoi|yonhet/iu, family: "none" },
@@ -256,6 +257,40 @@ function applyArmorPresetToSystemData(systemData, context) {
   return nextSystem;
 }
 
+function clearArmorPresetFromSystemData(systemData) {
+  const nextSystem = foundry.utils.deepClone(systemData ?? {});
+  const priorDelta = foundry.utils.getProperty(nextSystem, "bestiary.armorProfile.modifierDelta") ?? { misc: {}, mythic: {} };
+  const miscPath = "bestiary.miscCharacteristics";
+  const mythicPath = "bestiary.mythicMisc";
+
+  for (const key of ["str", "tou", "agi"]) {
+    const baseMisc = Number(foundry.utils.getProperty(nextSystem, `${miscPath}.${key}`) ?? 0) || 0;
+    const oldMisc = Number(priorDelta?.misc?.[key] ?? 0) || 0;
+    foundry.utils.setProperty(nextSystem, `${miscPath}.${key}`, baseMisc - oldMisc);
+
+    const baseMythic = Number(foundry.utils.getProperty(nextSystem, `${mythicPath}.${key}`) ?? 0) || 0;
+    const oldMythic = Number(priorDelta?.mythic?.[key] ?? 0) || 0;
+    foundry.utils.setProperty(nextSystem, `${mythicPath}.${key}`, baseMythic - oldMythic);
+  }
+
+  for (const location of ["head", "chest", "lArm", "rArm", "lLeg", "rLeg"]) {
+    foundry.utils.setProperty(nextSystem, `combat.dr.armor.${location}`, 0);
+  }
+  foundry.utils.setProperty(nextSystem, "combat.shields.integrity", 0);
+  foundry.utils.setProperty(nextSystem, "combat.shields.rechargeDelay", 0);
+  foundry.utils.setProperty(nextSystem, "combat.shields.rechargeRate", 0);
+  foundry.utils.setProperty(nextSystem, "combat.shields.current", 0);
+
+  const profile = mergeArmorProfileUpdates(nextSystem?.bestiary?.armorProfile ?? {}, {
+    appliedPresetId: NO_ARMOR_PRESET_ID,
+    appliedPresetLabel: "None",
+    modifierDelta: { misc: {}, mythic: {} }
+  });
+  foundry.utils.setProperty(nextSystem, "bestiary.armorProfile", profile);
+
+  return nextSystem;
+}
+
 async function promptArmorPresetSelection(actorName, familyData, presets, defaultPresetId = "") {
   const esc = foundry.utils.escapeHTML;
   const optionsHtml = presets.map((presetOption) => {
@@ -267,6 +302,7 @@ async function promptArmorPresetSelection(actorName, familyData, presets, defaul
       </label>
     `;
   }).join("");
+  const noneSelectedAttr = defaultPresetId ? "" : ' checked="checked"';
 
   const result = await foundry.applications.api.DialogV2.wait({
     classes: ["mythic-system", "mythic-armor-preset-window"],
@@ -278,7 +314,13 @@ async function promptArmorPresetSelection(actorName, familyData, presets, defaul
           <strong>${esc(actorName)}</strong>
           <span>${esc(String(familyData?.label ?? "Armor"))}</span>
         </div>
-        <div class="mythic-armor-preset-options">${optionsHtml}</div>
+        <div class="mythic-armor-preset-options">
+          <label class="mythic-armor-preset-option">
+            <input type="radio" name="armorPreset" value=""${noneSelectedAttr}>
+            <span>None</span>
+          </label>
+          ${optionsHtml}
+        </div>
       </form>
     `,
     buttons: [
@@ -307,8 +349,9 @@ async function promptArmorPresetSelection(actorName, familyData, presets, defaul
     modal: true
   });
 
-  if (!result || result.cancelled) return null;
-  return String(result.presetId ?? "").trim() || null;
+  if (!result || result.cancelled) return NO_ARMOR_PRESET_ID;
+  const presetId = String(result.presetId ?? "").trim();
+  return presetId || NO_ARMOR_PRESET_ID;
 }
 
 export function getArmorFamily(actorLike) {
@@ -363,6 +406,9 @@ export async function promptForPresetIfNeeded(actorLike, options = {}) {
     presets,
     defaultPresetId
   );
+  if (selectedPresetId === NO_ARMOR_PRESET_ID) {
+    return { source: "none", noArmor: true };
+  }
   if (!selectedPresetId) return null;
   const selectedPreset = family.presets?.[selectedPresetId];
   if (!selectedPreset) return null;
@@ -411,6 +457,9 @@ export function applyDeterministicBestiaryArmorForSpawn(actorLike, baseSystemDat
   if (!presets.length) return foundry.utils.deepClone(baseSystemData ?? {});
 
   const preferredPresetId = String(options.preferredPresetId ?? "").trim();
+  if (preferredPresetId === NO_ARMOR_PRESET_ID) {
+    return foundry.utils.deepClone(baseSystemData ?? {});
+  }
   const defaultPresetId = String(options.defaultPresetId ?? "").trim();
   const profile = readActorArmorProfile(actorLike);
   const chosenPresetId = [
@@ -440,6 +489,12 @@ export function applyDeterministicBestiaryArmorForSpawn(actorLike, baseSystemDat
 export async function prepareBestiaryArmorSystemForSpawn(actorLike, baseSystemData, options = {}) {
   const selected = await promptForPresetIfNeeded(actorLike, options);
   if (!selected) return { system: foundry.utils.deepClone(baseSystemData ?? {}), selectedPreset: null };
+  if (selected.noArmor) {
+    return {
+      system: clearArmorPresetFromSystemData(baseSystemData),
+      selectedPreset: null
+    };
+  }
 
   let nextSystem = applyArmorPreset(baseSystemData, selected);
   nextSystem = initializeShieldStateIfNeeded(nextSystem, selected);

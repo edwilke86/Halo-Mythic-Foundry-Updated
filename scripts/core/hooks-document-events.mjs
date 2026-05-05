@@ -4,6 +4,7 @@ import {
   MYTHIC_DEFAULT_VEHICLE_ICON,
   MYTHIC_BESTIARY_DIFFICULTY_MODE_SETTING_KEY,
   MYTHIC_BESTIARY_GLOBAL_RANK_SETTING_KEY,
+  MYTHIC_BESTIARY_ARMOR_AUTOMATION_ENABLED_SETTING_KEY,
   MYTHIC_BESTIARY_DIFFICULTY_MODES,
   MYTHIC_ALLOW_PLAYER_BLAST_KILL_TEMPLATE_PLACEMENT_SETTING_KEY,
   MYTHIC_EDUCATION_DEFAULT_ICON,
@@ -6723,7 +6724,16 @@ export function registerMythicDocumentAndChatHooks({
       foundry.utils.getProperty(createData, skipArmorPromptFlagPath),
     );
     const availableArmorPresets = getBestiaryArmorAvailablePresets(actor);
-    const canPromptArmor = game.user?.isGM && availableArmorPresets.length > 1;
+    const bestiaryArmorAutomationEnabled = Boolean(
+      game.settings.get(
+        "Halo-Mythic-Foundry-Updated",
+        MYTHIC_BESTIARY_ARMOR_AUTOMATION_ENABLED_SETTING_KEY,
+      ),
+    );
+    const canPromptArmor =
+      bestiaryArmorAutomationEnabled &&
+      game.user?.isGM &&
+      availableArmorPresets.length > 1;
     let targetRank = getBestiaryRankValue(
       foundry.utils.getProperty(actor, "system.bestiary.rank") ?? 1,
     );
@@ -7040,9 +7050,11 @@ export function registerMythicDocumentAndChatHooks({
         "delta.system.bestiary.armorProfile.appliedPresetId",
       ) ?? "",
     ).trim();
-    tokenSystem = applyDeterministicBestiaryArmorForSpawn(actor, tokenSystem, {
-      preferredPresetId: preferredArmorPresetId,
-    });
+    if (bestiaryArmorAutomationEnabled) {
+      tokenSystem = applyDeterministicBestiaryArmorForSpawn(actor, tokenSystem, {
+        preferredPresetId: preferredArmorPresetId,
+      });
+    }
     const normalizedTokenSystem = normalizeBestiarySystemData(tokenSystem);
     const tokenDefaults = getMythicTokenDefaultsForCharacter(
       normalizedTokenSystem,

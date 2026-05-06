@@ -4,12 +4,6 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
-## [0.5.0-alpha.5] - 2026-05-06
-
-### Fixed (0.5.0-alpha.5)
-
-- Fixed turn-economy reaction tracking so active bestiary combatants now reset reactions at the start of their turns, matching character behavior.
-
 ## [0.5.0-alpha.4] - 2026-05-04
 
 ### Fixed (0.5.0-alpha.4)

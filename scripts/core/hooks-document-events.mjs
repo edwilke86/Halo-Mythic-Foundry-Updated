@@ -7107,8 +7107,10 @@ export function registerMythicDocumentAndChatHooks({
     if (!("turn" in changed) && !("round" in changed)) return;
     if (!game.user.isGM) return;
     const actor = combat.combatant?.actor;
-    if (actor) {
+    if (actor?.type === "character") {
       await applyCombatTurnStart(actor, combat);
+    }
+    if (actor) {
       await advanceFarSightForCombatTurn(actor, combat);
     }
     await processVehicleDoomCountdowns(combat, changed);

@@ -1,4 +1,22 @@
-import { normalizeCharacterSystemData } from "../data/normalization.mjs";
+import {
+  normalizeBestiarySystemData,
+  normalizeCharacterSystemData
+} from "../data/normalization.mjs";
+
+const TURN_ECONOMY_SUPPORTED_ACTOR_TYPES = new Set(["character", "bestiary"]);
+
+function isTurnEconomySupportedActor(actor) {
+  const actorType = String(actor?.type ?? "").trim().toLowerCase();
+  return TURN_ECONOMY_SUPPORTED_ACTOR_TYPES.has(actorType);
+}
+
+function normalizeTurnEconomyActorSystemData(actor) {
+  if (!isTurnEconomySupportedActor(actor)) return null;
+  if (String(actor.type ?? "").trim().toLowerCase() === "bestiary") {
+    return normalizeBestiarySystemData(actor.system ?? {});
+  }
+  return normalizeCharacterSystemData(actor.system ?? {});
+}
 
 function getCombatContext(combat = game.combat) {
   return {
@@ -105,9 +123,10 @@ async function postMedicalExpiryChat(actor, expiredEffects = [], { triggerLabel 
 }
 
 export function buildCombatTurnStartUpdateData(actor, combat = game.combat) {
-  if (!actor || actor.type !== "character") return null;
+  if (!isTurnEconomySupportedActor(actor)) return null;
   if (!isActorActivelyInCombat(actor, combat)) return null;
-  const normalized = normalizeCharacterSystemData(actor.system ?? {});
+  const normalized = normalizeTurnEconomyActorSystemData(actor);
+  if (!normalized) return null;
   const context = getCombatContext(combat);
   const { nextEffects, expiredEffects } = advanceTrackedEffects(normalized?.medical?.activeEffects, { rounds: 1 });
   return {
@@ -139,12 +158,13 @@ export async function consumeActorHalfActions(actor, {
   source = "manual",
   combat = game.combat
 } = {}) {
-  if (!actor || actor.type !== "character") return;
+  if (!isTurnEconomySupportedActor(actor)) return;
   const cost = Math.max(0, Math.floor(Number(halfActions ?? 0)));
   if (cost <= 0) return;
   if (!isActorActivelyInCombat(actor, combat)) return;
 
-  const normalized = normalizeCharacterSystemData(actor.system ?? {});
+  const normalized = normalizeTurnEconomyActorSystemData(actor);
+  if (!normalized) return;
   const context = getCombatContext(combat);
   const currentState = cloneActionEconomyState(normalized?.combat?.actionEconomy ?? {});
   const { nextEffects, expiredEffects } = advanceTrackedEffects(normalized?.medical?.activeEffects, { halfActions: cost });

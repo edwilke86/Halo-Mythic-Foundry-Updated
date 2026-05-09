@@ -3,6 +3,7 @@ import {
   resetItemStorageUnitsToAuto,
   setItemStorageUnitsManual
 } from "../mechanics/storage.mjs";
+import { openMythicWeaponWorkbench } from "../ui/weapon-workbench.mjs";
 
 function bindTabGroup(sheet, root, group, initialTab) {
   const tabNav = root?.querySelector(`.gear-item-tabs-nav[data-group='${group}']`);
@@ -19,6 +20,17 @@ function bindTabGroup(sheet, root, group, initialTab) {
   });
   tabs.bind(root);
   sheet._restoreTabScrollPosition();
+}
+
+function bindWeaponWorkbenchButtons(sheet, root, context) {
+  root?.querySelectorAll(".weapon-workbench-open-btn").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (!context?.isRangedWeaponItem && !context?.isMeleeWeaponItem) return;
+      if (!sheet?.item) return;
+      openMythicWeaponWorkbench(sheet.item);
+    });
+  });
 }
 
 async function bindBuiltInItemHandlers(sheet, root, context) {
@@ -456,6 +468,7 @@ export async function runMythicItemSheetRender(sheet, context) {
   bindTabGroup(sheet, root, "melee-tabs", "general");
   bindTabGroup(sheet, root, "ranged-tabs", "general");
   bindTabGroup(sheet, root, "explosives-tabs", "general");
+  bindWeaponWorkbenchButtons(sheet, root, context);
 
   if (!sheet.isEditable) return;
 

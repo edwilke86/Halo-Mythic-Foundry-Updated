@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "source": "mythic",
+  "sourceCategoryLabel": "Covenant Weapon Patterns — Primary Systems",
+  "patterns": [
+    {
+      "id": "assault-pattern",
+      "name": "Assault Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 2,
+      "effects": {
+        "rules": [
+          "The weapon gains +5 Damage, -8 Pierce."
+        ]
+      }
+    },
+    {
+      "id": "guard-pattern",
+      "name": "Guard Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 2,
+      "effects": {
+        "rules": [
+          "An energy bayonet is added to the weapon. The blade is a Covenant Energy Dagger with +1 reach."
+        ]
+      }
+    },
+    {
+      "id": "heavy-pattern",
+      "name": "Heavy Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 2,
+      "effects": {
+        "rules": [
+          "The weapon gains the Dice Minimum (3) Special Rule."
+        ]
+      }
+    },
+    {
+      "id": "marauder-pattern",
+      "name": "Marauder Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 2,
+      "effects": {
+        "rules": [
+          "Can only be used with Needle-based weaponry.",
+          "Reduces the needle(X) of a weapon by 1, minimum of 1."
+        ]
+      }
+    },
+    {
+      "id": "officer-pattern",
+      "name": "Officer Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 3,
+      "effects": {
+        "rules": [
+          "The weapon gains +1D10 Damage, -5 Pierce."
+        ]
+      }
+    },
+    {
+      "id": "ranger-pattern",
+      "name": "Ranger Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 3,
+      "effects": {
+        "rules": [
+          "The weapon gains -4 Damage, +12 Pierce."
+        ]
+      }
+    },
+    {
+      "id": "stalker-pattern",
+      "name": "Stalker Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 2,
+      "effects": {
+        "rules": [
+          "Reduces the Damage and Pierce by 3.",
+          "Allows the weapon to be fired without affecting Active Camo."
+        ]
+      }
+    },
+    {
+      "id": "support-pattern",
+      "name": "Support Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 2,
+      "effects": {
+        "rules": [
+          "The weapon loses all Kill and doubles its Blast."
+        ]
+      }
+    },
+    {
+      "id": "tracker-pattern",
+      "name": "Tracker Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "The weapon gains the Homing Special Rule but is at a -10 Penalty To Hit."
+        ]
+      }
+    },
+    {
+      "id": "accord-pattern",
+      "name": "Accord Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "primary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "The weapon gains the ability to use human attachments with a top Rail installed."
+        ]
+      }
+    }
+  ]
+}
+

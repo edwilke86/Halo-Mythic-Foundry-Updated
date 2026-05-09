@@ -1,0 +1,474 @@
+{
+  "schemaVersion": 1,
+  "source": "mythic",
+  "sourceCategoryLabel": "Weapon Conversion Modifications",
+  "conversions": [
+    {
+      "id": "belt-fed-conversion",
+      "name": "Belt-Fed Conversion",
+      "description": "Fictional belt-feed conversion rule.",
+      "category": "weaponMod",
+      "modGroup": "conversion",
+      "mount": "ammunitionAndFiring",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["weaponsUsingShellOrBulletAmmunition"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "percentBaseWeaponWeight",
+      "weightPercent": 25,
+      "creditCost": 60,
+      "costMode": "fixed",
+      "effects": {
+        "rules": [
+          "Magazine value becomes that of the belt being used.",
+          "Reload becomes 15."
+        ],
+        "variantOption": {
+          "id": "belt-fed-conversion-standard-magazines",
+          "name": "Belt-Fed Conversion with Standard Magazine Compatibility",
+          "weightMode": "percentBaseWeaponWeight",
+          "weightPercent": 50,
+          "creditCost": 100,
+          "costMode": "fixed",
+          "rules": [
+            "Magazine value becomes that of the belt being used.",
+            "Reload becomes 15.",
+            "Weapon may still use standard magazines."
+          ]
+        }
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "notes": "Fictional RPG conversion rule only.",
+      "rulesSummary": "Belt-feed conversion; reload becomes 15; optional variant retains standard magazine use."
+    },
+    {
+      "id": "collapsible-folding-stock",
+      "name": "Collapsible/Folding Stock",
+      "description": "Fictional concealment category rule.",
+      "category": "weaponMod",
+      "modGroup": "stock",
+      "mount": "stock",
+      "modType": "stock",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["weaponsWithStock"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "weightPercent": 0,
+      "creditCost": 15,
+      "costMode": "fixed",
+      "effects": {
+        "rules": [
+          "Allows HW weapons to be concealed as TH weapons.",
+          "Allows TH weapons to be concealed as OH weapons.",
+          "Allows OH weapons to be concealed as DW weapons.",
+          "Gives DW weapons an extra +10 to Camouflage and Concealing."
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "notes": "Fictional concealment category rule only.",
+      "rulesSummary": "Improves concealment categories and grants a Camouflage/Concealing bonus for DW weapons."
+    },
+    {
+      "id": "flared-magwell",
+      "name": "Flared Magwell",
+      "description": "Fictional reload-speed modification.",
+      "category": "weaponMod",
+      "modGroup": "conversion",
+      "mount": "unspecified",
+      "modType": "modification",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["rifle", "carbine", "pistol", "smg", "machineGun", "sniperRifle"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": ["singleLoading"],
+      "minimumYear": 0,
+      "fixedWeight": 0.2,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 33,
+      "costMode": "fixed",
+      "effects": {
+        "rules": [
+          "Reduces base Reload by 1."
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "notes": "Cannot be used with Single Loading weapons.",
+      "rulesSummary": "Reload -1; forbidden on Single Loading weapons."
+    },
+    {
+      "id": "heavy-stock",
+      "name": "Heavy Stock",
+      "description": "Fictional aim/movement rule modification.",
+      "category": "weaponMod",
+      "modGroup": "stock",
+      "mount": "stock",
+      "modType": "stock",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["rifle", "carbine", "smg", "machineGun", "pistolWithStockAdapter"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 1.9,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 20,
+      "costMode": "fixed",
+      "effects": {
+        "rules": [
+          "Reduces the meters a player can move before an Aim Action is lost by 2 meters.",
+          "Doubles the meters an enemy must move before the user loses Aim Action benefits."
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "notes": "Fictional aim/movement rule only.",
+      "rulesSummary": "Adjusts Aim Action loss thresholds for self/enemy movement."
+    },
+    {
+      "id": "jet-stabilizers",
+      "name": "Jet Stabilizers",
+      "description": "Fictional To Hit modifier.",
+      "category": "weaponMod",
+      "modGroup": "conversion",
+      "mount": "barrel",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 1,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 45,
+      "costMode": "fixed",
+      "effects": {
+        "toHitModifier": 5,
+        "rules": [
+          "Applies a +5 To Hit modifier."
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "notes": "Fictional RPG stat modifier only.",
+      "rulesSummary": "+5 To Hit."
+    },
+    {
+      "id": "kinetic-bolt-modification",
+      "name": "Kinetic Bolt Modification",
+      "description": "Fictional special rule conversion.",
+      "category": "weaponMod",
+      "modGroup": "conversion",
+      "mount": "barrel",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["weaponsUsingStandardBulletAmmunition"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.2,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 0,
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 5,
+      "effects": {
+        "rules": [
+          "Adds the Kinetic Special Rule.",
+          "Does not gain the usual +1D10 Damage against targets without Energy Shields.",
+          "Instead gains +1D10 Damage against Vehicles.",
+          "Allows the weapon to deal normal Damage to Vehicles that do not have the Heavy Plating Special Rule."
+        ]
+      },
+      "incompatibilityTags": ["incompat-kinetic-vs-plasma-adapter"],
+      "blocksMounts": [],
+      "notes": "Fictional hardlight/projectile rule only.",
+      "rulesSummary": "Adds Kinetic; shifts bonus damage interaction to Vehicles; cost is weapon cost ×5."
+    },
+    {
+      "id": "light-stock",
+      "name": "Light Stock",
+      "description": "Fictional aim/movement and weight rule modification.",
+      "category": "weaponMod",
+      "modGroup": "stock",
+      "mount": "stock",
+      "modType": "stock",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["rifle", "carbine", "smg", "machineGun", "pistolWithStockAdapter"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "calculated",
+      "weightPercent": 0,
+      "creditCost": 25,
+      "costMode": "fixed",
+      "effects": {
+        "rules": [
+          "Character may move up to their Full Action and still keep Aim Action active.",
+          "Reduces the meters an enemy must move before the user loses Aim Action benefits by 2 meters, minimum 1.",
+          "Reduces weapon weight by 0.1 kg if the weapon already had a stock.",
+          "Adds 0.2 kg if the weapon did not have a stock."
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "notes": "Fictional aim/movement and weight rule only.",
+      "rulesSummary": "Adjusts Aim Action movement thresholds and applies calculated weight adjustments."
+    },
+    {
+      "id": "lightweight-weaponry-kit",
+      "name": "Lightweight Weaponry Kit",
+      "description": "Fictional durability/weight modifier.",
+      "category": "weaponMod",
+      "modGroup": "conversion",
+      "mount": "all",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "weightPercent": 0,
+      "creditCost": 20,
+      "costMode": "fixed",
+      "effects": {
+        "rules": [
+          "Halves weapon weight.",
+          "Halves weapon Breakpoints."
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "notes": "Fictional durability/weight modifier only.",
+      "rulesSummary": "Weapon weight and Breakpoints are halved."
+    },
+    {
+      "id": "micro-stock",
+      "name": "Micro Stock",
+      "description": "Fictional compact stock rule.",
+      "category": "weaponMod",
+      "modGroup": "stock",
+      "mount": "stock",
+      "modType": "stock",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["rifle", "carbine", "smg", "machineGun", "pistolWithStockAdapter"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "percentBaseWeaponWeight",
+      "weightPercent": -15,
+      "creditCost": 20,
+      "costMode": "fixed",
+      "effects": {
+        "toHitModifier": -10,
+        "rules": [
+          "Reduces weapon weight by 15%, figured before any other modifications that modify weapon weight.",
+          "Allows HW weapons to be concealed as TH weapons.",
+          "Allows TH weapons to be concealed as OH weapons.",
+          "Allows OH weapons to be concealed as DW weapons.",
+          "Gives DW weapons an extra +10 to Camouflage and Concealing.",
+          "Character may move up to their Full Action and still keep Aim Action active.",
+          "Applies a -10 To Hit modifier."
+        ]
+      },
+      "incompatibilityTags": ["incompat-micro-stock-vs-bullet-loop"],
+      "blocksMounts": [],
+      "notes": "Bullet Loop cannot be used with Micro Stock.",
+      "rulesSummary": "Weight -15% (pre-mod), concealment improvements, Aim retention, -10 To Hit; incompatible with Bullet Loop."
+    },
+    {
+      "id": "pistol-stock-adapter",
+      "name": "Pistol Stock Adapter",
+      "description": "Fictional adapter enabling stock installation options.",
+      "category": "weaponMod",
+      "modGroup": "stock",
+      "mount": "stock",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["pistol"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.3,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 5,
+      "costMode": "fixed",
+      "effects": {
+        "rules": [
+          "Allows installation of Heavy Stock or Light Stock on a Pistol.",
+          "Does not include a stock.",
+          "Causes DW weapons to be concealed as OH weapons.",
+          "Causes OH weapons to be concealed as TH weapons."
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "notes": "Fictional adapter/mod compatibility rule only.",
+      "rulesSummary": "Enables Heavy/Light Stock on pistols; adjusts concealment category."
+    },
+    {
+      "id": "plasma-adapter-modification",
+      "name": "Plasma Adapter Modification",
+      "description": "Fictional projectile-effect conversion.",
+      "category": "weaponMod",
+      "modGroup": "conversion",
+      "mount": "barrel",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["weaponsUsingStandardBulletAmmunition"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.3,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 0,
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 5,
+      "effects": {
+        "rules": [
+          "Adds the Cauterize Special Rule."
+        ]
+      },
+      "incompatibilityTags": ["incompat-kinetic-vs-plasma-adapter"],
+      "blocksMounts": [],
+      "notes": "Cannot be used with Kinetic Bolt Modification.",
+      "rulesSummary": "Adds Cauterize; cost is weapon cost ×5; incompatible with Kinetic Bolt Modification."
+    },
+    {
+      "id": "shotgun-automatic-conversion",
+      "name": "Shotgun Automatic Conversion",
+      "description": "Fictional rate-of-fire conversion for shotguns.",
+      "category": "weaponMod",
+      "modGroup": "conversion",
+      "mount": "ammunitionAndFiring",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["shotgun"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.1,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 0,
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 2,
+      "effects": {
+        "rules": [
+          "Converts Pump Action rate of fire to Auto (X).",
+          "X equals original Pump Action value multiplied by 2, then +1.",
+          "Example: Pump Action (2) becomes Auto (5).",
+          "Weapon gains general Rifle Reload Time instead of Pump Action reload timing.",
+          "Replaces shotgun ammo feed with a Magazine of the same base ammunition count."
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "notes": "Fictional rate-of-fire conversion rule only.",
+      "rulesSummary": "Pump Action -> Auto(X) conversion; X=(pump×2)+1; switches to rifle reload timing; magazine feed of base count."
+    },
+    {
+      "id": "weapon-camouflage",
+      "name": "Weapon Camouflage",
+      "description": "Fictional camouflage rule for hiding a weapon.",
+      "category": "weaponMod",
+      "modGroup": "misc",
+      "mount": "all",
+      "modType": "misc",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "weightPercent": 0,
+      "creditCost": 15,
+      "costMode": "fixed",
+      "effects": {
+        "rules": [
+          "Gives +20 Camouflage when attempting to hide the weapon.",
+          "Can be traded in without cost between missions.",
+          "When used alongside a user wearing a Ghillie Suit, Heavy and Two-Handed weapons are hidden alongside them."
+        ]
+      },
+      "incompatibilityTags": ["incompat-weapon-camo-vs-weapon-ghillie"],
+      "blocksMounts": [],
+      "notes": "Does not stack with Weapon Ghillie Cover bonuses.",
+      "rulesSummary": "+20 Camouflage for hiding weapon; tradeable between missions; does not stack with Weapon Ghillie Cover."
+    },
+    {
+      "id": "weapon-ghillie-cover",
+      "name": "Weapon Ghillie Cover",
+      "description": "Fictional camouflage cover for a weapon.",
+      "category": "weaponMod",
+      "modGroup": "misc",
+      "mount": "upper",
+      "modType": "misc",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "requiredWeaponTags": [],
+      "forbiddenWeaponTags": [],
+      "minimumYear": 0,
+      "fixedWeight": 1.1,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 20,
+      "costMode": "fixed",
+      "effects": {
+        "rules": [
+          "Gives +20 Camouflage for hiding the weapon in proper camouflage/background.",
+          "Opponent trying to spot it has -20 penalty in proper camouflage/background."
+        ]
+      },
+      "incompatibilityTags": ["incompat-weapon-camo-vs-weapon-ghillie"],
+      "blocksMounts": [],
+      "notes": "Does not stack with Weapon Camouflage bonuses.",
+      "rulesSummary": "+20 Camouflage in proper background; opponent -20 to spot in proper background; does not stack with Weapon Camouflage."
+    }
+  ]
+}
+

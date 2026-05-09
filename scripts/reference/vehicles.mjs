@@ -50,12 +50,10 @@ const MYTHIC_VEHICLE_WEAPON_SOURCE_COLLECTIONS = Object.freeze([
   "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
-  "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-melee",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-melee",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee",
-  "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-flood"
 ]);
 

@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "source": "mythic",
+  "sourceCategoryLabel": "Covenant Weapon Patterns — Tactical Systems",
+  "patterns": [
+    {
+      "id": "assault-pattern",
+      "name": "Assault Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 16,
+      "effects": {
+        "rules": [
+          "The weapon gains a +5 Bonus To Hit when in Close Range."
+        ]
+      }
+    },
+    {
+      "id": "guard-pattern",
+      "name": "Guard Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 60,
+      "effects": {
+        "rules": [
+          "Any weapon that has the Homing Special Rule or the Vehicle Lock Special Rule gains an extra +5 To Hit."
+        ]
+      }
+    },
+    {
+      "id": "heavy-pattern",
+      "name": "Heavy Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 42,
+      "effects": {
+        "rules": [
+          "The weapon's scope gains Thermal Imaging Special Rule and can automatically mark weak spots on known vehicles, reducing the Penalty to hit sublocations by 5."
+        ]
+      }
+    },
+    {
+      "id": "marauder-pattern",
+      "name": "Marauder Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "notApplicable",
+      "effects": {
+        "rules": [
+          "The weapon gains a 1x Ironsight and loses its Smartlink scope."
+        ]
+      }
+    },
+    {
+      "id": "officer-pattern",
+      "name": "Officer Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 28,
+      "effects": {
+        "rules": [
+          "Gives other characters a +10 for firing at targets hit with this weapon in Combined Actions."
+        ]
+      }
+    },
+    {
+      "id": "ranger-pattern",
+      "name": "Ranger Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 56,
+      "effects": {
+        "rules": [
+          "The weapon gains a +5 Bonus To Hit when using its optics in Optimal Range or Long Range."
+        ]
+      }
+    },
+    {
+      "id": "stalker-pattern",
+      "name": "Stalker Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 70,
+      "effects": {
+        "rules": [
+          "The weapon gains a holographic display which can automatically scan and track targets.",
+          "The module can track targets for up to 4 Rounds after the character is no longer within the user's sight.",
+          "This includes cloaked and hidden targets."
+        ]
+      }
+    },
+    {
+      "id": "support-pattern",
+      "name": "Support Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 80,
+      "effects": {
+        "rules": [
+          "So long as the weapon is pointed towards the target and a spotter has a SmartLink capable designator pointed at the target, a target indicator can be streamed into a linked device.",
+          "This gives a +40 to Indirect fire and allows the weapon to be fired remotely using Smartlink."
+        ]
+      }
+    },
+    {
+      "id": "tracker-pattern",
+      "name": "Tracker Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 48,
+      "effects": {
+        "rules": [
+          "The weapon is fitted with a holographic display which displays the radius of its effective blast and kill.",
+          "Explosives fired by the weapon reduce their scatter by 1 degree of failure to a minimum of 1."
+        ]
+      }
+    },
+    {
+      "id": "accord-pattern",
+      "name": "Accord Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "tactical",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 25,
+      "effects": {
+        "rules": [
+          "The weapon can take Human Conversion Modifications."
+        ]
+      }
+    }
+  ]
+}
+

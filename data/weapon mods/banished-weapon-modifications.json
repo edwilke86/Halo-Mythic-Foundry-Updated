@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "source": "mythic",
+  "sourceCategoryLabel": "Banished Weapon Modifications",
+  "modifications": [
+    {
+      "id": "armored-ranged",
+      "name": "Armored (Ranged)",
+      "sourcePage": 213,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "ranged",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 100,
+      "effects": {
+        "rules": [
+          "When used as a melee weapon, the weapon deals an extra +8 Damage.",
+          "Doubles the weapon's weight and doubles the weapon's Breakpoints."
+        ]
+      }
+    },
+    {
+      "id": "charged-ranged",
+      "name": "Charged (Ranged)",
+      "sourcePage": 213,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "ranged",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "calculated",
+      "creditCost": 0,
+      "effects": {
+        "rules": [
+          "The weapon's Base Damage is increased by 50% of the original Base Damage, but the Rate of Fire is halved.",
+          "Price is 20 cR for every Rate of Fire reduced.",
+          "If the weapon's Rate of Fire can't be halved, no Rate of Fire changes are made, but an extra 200 cR is added to the price.",
+          "Semi Auto (1) will become Auto (1)."
+        ]
+      }
+    },
+    {
+      "id": "explosive-ranged",
+      "name": "Explosive (Ranged)",
+      "sourcePage": 213,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "ranged",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 50,
+      "effects": {
+        "rules": [
+          "The weapon's ammunition is modified to explode on impact with Blast (1).",
+          "This modification only works on non-explosive weaponry.",
+          "Damage/Pierce change: -4 Damage and -4 Pierce."
+        ]
+      }
+    },
+    {
+      "id": "gravitational-grip-ranged",
+      "name": "Gravitational Grip (Ranged)",
+      "sourcePage": 213,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "ranged",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 20,
+      "effects": {
+        "rules": [
+          "The weapon's grip has a gravitational field that holds it tightly to the user's hand.",
+          "The weapon can't be Disarmed unless the weapon takes 50 Breakpoints of Damage."
+        ]
+      }
+    },
+    {
+      "id": "rapid-ranged",
+      "name": "Rapid (Ranged)",
+      "sourcePage": 213,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "ranged",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "calculated",
+      "creditCost": 0,
+      "effects": {
+        "rules": [
+          "The weapon's Rate of Fire is increased by 50% of its original Rate of Fire. Example: Auto (4) becomes Auto (6).",
+          "If 50% is not enough to increase the Rate of Fire by 1, it increases the Rate of Fire by 1.",
+          "This gives the weapon a -15 To Hit.",
+          "Price is +10 cR for every +1 added to the Rate of Fire."
+        ]
+      }
+    },
+
+    {
+      "id": "burning-melee",
+      "name": "Burning (Melee)",
+      "sourcePage": 214,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "melee",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 200,
+      "effects": {
+        "rules": [
+          "The hammer's blade is removed, but the weapon is given 4 Plasma Blades.",
+          "This gives the weapon +12 to Pierce and +4 KG to the weapon's weight.",
+          "Cauterize Special Rule.",
+          "Damage/Pierce change: -3 Damage and +12 Pierce."
+        ]
+      }
+    },
+    {
+      "id": "electrified-melee",
+      "name": "Electrified (Melee)",
+      "sourcePage": 214,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "melee",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 70,
+      "effects": {
+        "rules": [
+          "Electrified (1D5) Special Rule that can only stun up to 3 Half Actions."
+        ]
+      }
+    },
+    {
+      "id": "extended-melee",
+      "name": "Extended (Melee)",
+      "sourcePage": 214,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "melee",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 80,
+      "effects": {
+        "rules": [
+          "Extends Melee Reach by +1 meter.",
+          "Increases the weapon's weight by 25%."
+        ]
+      }
+    },
+    {
+      "id": "guard-melee",
+      "name": "Guard (Melee)",
+      "sourcePage": 214,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "melee",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 90,
+      "effects": {
+        "rules": [
+          "The weapon is outfitted with a protective hand guard.",
+          "This gives the character's hand holding the weapon a +5 Bonus to Armor.",
+          "This hand guard also gives the character a +10 Bonus to defending against being Disarmed."
+        ]
+      }
+    },
+    {
+      "id": "weighted-melee",
+      "name": "Weighted (Melee)",
+      "sourcePage": 214,
+      "category": "weaponMod",
+      "modGroup": "banishedWeaponModification",
+      "modType": "modification",
+      "mount": "alteration",
+      "modificationCategory": "melee",
+      "faction": "BANISHED",
+      "armorySelection": "BANISHED",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "calculated",
+      "creditCost": 0,
+      "effects": {
+        "rules": [
+          "Increases the weapon's weight by 50%.",
+          "The price of this modification is the price of the weapon it is being applied to.",
+          "Damage change: +1D10 Damage."
+        ]
+      }
+    }
+  ]
+}
+

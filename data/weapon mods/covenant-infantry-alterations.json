@@ -1,0 +1,613 @@
+{
+  "schemaVersion": 1,
+  "source": "mythic",
+  "sourceCategoryLabel": "Covenant Infantry Alterations",
+  "alterations": [
+    {
+      "id": "automatic-upgrade-infantry",
+      "name": "Automatic Upgrade (Infantry)",
+      "sourcePage": 199,
+      "minimumYear": 2554,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "infantry",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "Any non-Automatic Semi-Automatic weapon is modified to become Fully Automatic, replacing Semi-Auto(X) with Auto (X).",
+          "If a weapon already has an Automatic firing mode, it can't receive this Modification.",
+          "To figure the weapon's new Rate of Fire, multiply Semi-Auto (X) by 2, then add +1. Example: Semi-Auto (3) becomes Auto (7).",
+          "The cost of this modification is the weapon's cost."
+        ]
+      }
+    },
+    {
+      "id": "blood-of-suban-infantry",
+      "name": "Blood of Suban (Infantry)",
+      "sourcePage": 199,
+      "minimumYear": 2554,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "infantry",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 70,
+      "effects": {
+        "rules": [
+          "Any Covenant Carbine rifle can be modified to replace their 8.7x60mm CRP Round with a Subanese Blamite Crystal shard.",
+          "This upgrade gives the weapon the Needle (5) Special Rule.",
+          "The weapon must be reloaded with Needle Rifle Blamite Crystals and no longer works with the 8.7x60mm Rounds."
+        ]
+      }
+    },
+    {
+      "id": "urs-gift-infantry",
+      "name": "Urs' Gift (Infantry)",
+      "sourcePage": 199,
+      "minimumYear": 2554,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "infantry",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "calculated",
+      "creditCost": 0,
+      "effects": {
+        "rules": [
+          "The weapon's Rate of Fire is increased by 50% of its original Rate of Fire.",
+          "If the weapon has Auto (6), it is increased to Auto (9).",
+          "If 50% is not enough to increase the Rate of Fire by 1, it increases the Rate of Fire by 1.",
+          "Price is +20 cR for every +1 added to the Rate of Fire."
+        ]
+      }
+    },
+    {
+      "id": "radiance-infantry",
+      "name": "Radiance (Infantry)",
+      "sourcePage": 199,
+      "minimumYear": 2554,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "infantry",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 2,
+      "effects": {
+        "rules": [
+          "Explosive Launcher weaponry are compatible with the Radiance Modification.",
+          "This Modification increases the distance in which Blast and Kill radius reach.",
+          "For every 4 meters the weapon's Blast reaches, it gains an extra +1 meter to that range.",
+          "For every 3 meters the weapon's Kill reaches, it gains an extra +1 meter to that range.",
+          "If either Blast or Kill are below the number needed to be increased by Radiance, they are increased by 1 meter.",
+          "The price of this modification is the weapon's original cost, multiplied by 2."
+        ]
+      }
+    },
+    {
+      "id": "twin-attendants-infantry",
+      "name": "Twin Attendants (Infantry)",
+      "sourcePage": 199,
+      "minimumYear": 2554,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "infantry",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 2,
+      "effects": {
+        "rules": [
+          "Any Plasma-based weapon can gain the Twin Attendants modification.",
+          "This modification is highly unstable, but for every shot the weapon would make, it makes two instead.",
+          "Each shot made takes double the magazine cost. Each shot fired needs to be Evaded separately.",
+          "After every Round, the weapon gains a 2% chance of overheating for every shot taken that turn.",
+          "If the weapon overheats, it gains the Overheat (X) Special Rule where (X) is how many shots were fired that Round.",
+          "The price of this modification is the weapon's original cost multiplied by 2."
+        ]
+      }
+    },
+    {
+      "id": "slumber-infantry",
+      "name": "Slumber (Infantry)",
+      "sourcePage": 199,
+      "minimumYear": 2554,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "infantry",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "calculated",
+      "creditCost": 0,
+      "effects": {
+        "rules": [
+          "Any Plasma-based weapon can gain the Slumber modification.",
+          "The weapon is fitted with fission-induced plasma cyclers.",
+          "On impact, Slumber Plasma reaches near-critical plasma fission causing a blast of energy.",
+          "Each time a character is struck with this, they are pushed back 1 meter.",
+          "The weapon's Pierce is reduced by 1/4th of its original Pierce.",
+          "The price of this modification is the weapon's Rate of Fire multiplied by 10."
+        ]
+      }
+    },
+    {
+      "id": "jiralhanae-bayonet-infantry",
+      "name": "Jiralhanae Bayonet (Infantry)",
+      "sourcePage": 199,
+      "minimumYear": 2554,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "infantry",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 1.4,
+      "weightMode": "fixed",
+      "costMode": "fixed",
+      "creditCost": 28,
+      "effects": {
+        "rules": [
+          "Adds a Jiralhanae Combat Knife as a bayonet to the weapon.",
+          "This modification is not illegal within the Covenant, but is looked down upon by all races except Jiralhanae.",
+          "The Jiralhanae will also look down on Sangheili characters who use it, dropping the Disposition of these characters towards the user by two.",
+          "Weighs 1.4 kg."
+        ]
+      }
+    },
+    {
+      "id": "custom-smartlink-scope-scope-upgrade",
+      "name": "Custom Smartlink Scope (Scope Upgrade)",
+      "sourcePage": 199,
+      "minimumYear": 2554,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "scopeUpgrade",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "calculated",
+      "creditCost": 0,
+      "effects": {
+        "rules": [
+          "A Smartlink-capable scope can be added to Covenant ranged weapons.",
+          "This scope can have up to two magnifications that can be switched as a Reaction, or as a Half Action to not receive a Reaction Penalty.",
+          "The price of the scope is the magnification in cR multiplied by 2. Magnification can't surpass 12x.",
+          "The scope upgrade installs it into the weapon and replaces any existing scope; it does not add a physical scope.",
+          "If purchasing a dual-magnification scope, the price is the highest magnification plus half (rounding up) of the lower magnification, multiplied by 2.",
+          "Example: A 4x/10x scope costs 24 cR (10 + 2, multiplied by 2)."
+        ]
+      }
+    },
+
+    {
+      "id": "unstable-energy-blade",
+      "name": "Unstable (Energy Blade)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "energyBlade",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 125,
+      "effects": {
+        "rules": [
+          "The energy blade's color changes to a purple, red, or white.",
+          "The weapon rolls Special Damage on a 9 or 10.",
+          "An Unstable blade can't cloak with the character using it."
+        ]
+      }
+    },
+    {
+      "id": "incursion-energy-blade",
+      "name": "Incursion (Energy Blade)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "energyBlade",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 150,
+      "effects": {
+        "rules": [
+          "The energy blade's length is increased, giving the weapon +1 meter to Melee Reach."
+        ]
+      }
+    },
+    {
+      "id": "refraction-energy-blade",
+      "name": "Refraction (Energy Blade)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "energyBlade",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 100,
+      "effects": {
+        "rules": [
+          "The weapon is outfitted with a protective hand guard.",
+          "This gives the character's hand holding the weapon a +5 Bonus to Armor.",
+          "This hand guard also gives the character a +10 Bonus to defending against being Disarmed."
+        ]
+      }
+    },
+    {
+      "id": "devotion-energy-blade",
+      "name": "Devotion (Energy Blade)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "energyBlade",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 175,
+      "effects": {
+        "rules": [
+          "The energy blade glows incredibly bright and has a less stable magnetic-field generator, causing the blade to warp and send out arcs of plasma when the weapon is used in an Attack.",
+          "Other characters within a meter of the target must make an Evasion Roll or also be damaged by the energy blade's plasma arcs.",
+          "This splash damage does not figure in the energy blade's Pierce when damaging the other characters.",
+          "This modification also gives others a +10 to Visual Perception Tests to spot the weapon."
+        ]
+      }
+    },
+    {
+      "id": "weightless-energy-blade",
+      "name": "Weightless (Energy Blade)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "energyBlade",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 50,
+      "effects": {
+        "rules": [
+          "The weapon is made 25% lighter.",
+          "Due to the lighter-weight modification, the weapon also glows dully and deals less Pierce overall (-4 Pierce)."
+        ]
+      }
+    },
+    {
+      "id": "blind-energy-blade",
+      "name": "Blind (Energy Blade)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "energyBlade",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 400,
+      "effects": {
+        "rules": [
+          "The weapon is made 25% heavier and is made nearly invisible to the naked eye unless you are up close to it.",
+          "This gives characters a -30 Penalty to Visual Perception Tests to spot the weapon.",
+          "The weapon is given a -10 Penalty to Parrying and a -10 Penalty to being Parried."
+        ]
+      }
+    },
+    {
+      "id": "night-energy-blade",
+      "name": "Night (Energy Blade)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "energyBlade",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 400,
+      "effects": {
+        "rules": [
+          "The weapon is built with an Active Camo cloaking system and counts as the character using it when held.",
+          "The weapon and the user are both cloaked when activated."
+        ]
+      }
+    },
+    {
+      "id": "fireblade-energy-blade",
+      "name": "Fireblade (Energy Blade)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "energyBlade",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 100,
+      "effects": {
+        "rules": [
+          "Serrated edges are added to the middle of each side of the energy sword.",
+          "These are designed to allow the weapon to catch and parry, giving a +10 Bonus to Parrying."
+        ]
+      }
+    },
+
+    {
+      "id": "crushing-gravity-hammer",
+      "name": "Crushing (Gravity Hammer)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "gravityHammer",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 100,
+      "effects": {
+        "rules": [
+          "The large blade of the Gravity Hammer is removed and replaced with powerful thrusters.",
+          "When the hammer's Gravity effect is activated, the hammer gains a +10 Bonus to Base Damage to that Attack."
+        ]
+      }
+    },
+    {
+      "id": "power-gravity-hammer",
+      "name": "Power (Gravity Hammer)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "gravityHammer",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 12,
+      "weightMode": "fixed",
+      "costMode": "fixed",
+      "creditCost": 200,
+      "effects": {
+        "rules": [
+          "The hammer is larger and bulkier. The hammer weighs an extra 12 KG and is given a +1 meter to Melee Reach.",
+          "The weapon also gains Gravity (5) instead of Gravity (4)."
+        ]
+      }
+    },
+    {
+      "id": "edge-gravity-hammer",
+      "name": "Edge (Gravity Hammer)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "gravityHammer",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 3,
+      "weightMode": "fixed",
+      "costMode": "fixed",
+      "creditCost": 200,
+      "effects": {
+        "rules": [
+          "The blade on the Gravity Hammer is increased in size, similar to a Battle Axe.",
+          "This gives the blade of the weapon -3 to Damage and +10 to Pierce.",
+          "This increases the weight of the hammer by 3 KG."
+        ]
+      }
+    },
+    {
+      "id": "respite-gravity-hammer",
+      "name": "Respite (Gravity Hammer)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "gravityHammer",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 100,
+      "effects": {
+        "rules": [
+          "The hammer is given a longer handle. This gives the weapon a +1 meter to Melee Reach."
+        ]
+      }
+    },
+    {
+      "id": "guard-gravity-hammer",
+      "name": "Guard (Gravity Hammer)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "gravityHammer",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 100,
+      "effects": {
+        "rules": [
+          "The weapon is outfitted with a protective hand guard.",
+          "This gives the character's hand holding the weapon a +5 Bonus to Armor.",
+          "This hand guard also gives the character a +10 Bonus to defending against being Disarmed."
+        ]
+      }
+    },
+    {
+      "id": "lightweight-gravity-hammer",
+      "name": "Lightweight (Gravity Hammer)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "gravityHammer",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": -17,
+      "weightMode": "fixed",
+      "costMode": "fixed",
+      "creditCost": 150,
+      "effects": {
+        "rules": [
+          "The hammer's length is reduced, reducing the weight of the hammer by 17 KG.",
+          "This also reduces the weapon's Melee Reach by -1 meter."
+        ]
+      }
+    },
+    {
+      "id": "volatile-gravity-hammer",
+      "name": "Volatile (Gravity Hammer)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "gravityHammer",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 300,
+      "effects": {
+        "rules": [
+          "The hammer's Gravity Special Rule no longer hits as a radius, but instead strikes as if it were a Flame (2D10) effect.",
+          "The Flame (2D10) effect reaches out to 8 meters long and 2 meters wide when activated."
+        ]
+      }
+    },
+    {
+      "id": "fate-gravity-hammer",
+      "name": "Fate (Gravity Hammer)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "gravityHammer",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "fixed",
+      "creditCost": 400,
+      "effects": {
+        "rules": [
+          "The hammer loses the Gravity Special Rule and is replaced with the Gravimetric (10) Special Rule."
+        ]
+      }
+    },
+    {
+      "id": "burning-gravity-hammer",
+      "name": "Burning (Gravity Hammer)",
+      "sourcePage": 200,
+      "minimumYear": 0,
+      "category": "weaponMod",
+      "modGroup": "covenantAlteration",
+      "modType": "alteration",
+      "mount": "alteration",
+      "alterationCategory": "gravityHammer",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 4,
+      "weightMode": "fixed",
+      "costMode": "fixed",
+      "creditCost": 350,
+      "effects": {
+        "rules": [
+          "The hammer's blade is removed, but the weapon is given 4 plasma blades.",
+          "This gives the hammer +12 to Pierce and +4 KG to the hammer's weight.",
+          "Cauterize Special Rule."
+        ]
+      }
+    }
+  ]
+}
+

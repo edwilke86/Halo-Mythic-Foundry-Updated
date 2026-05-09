@@ -4,6 +4,19 @@ All notable user-facing changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows SemVer pre-release versioning.
 
+## [0.5.0-alpha.5] - 2026-05-09
+
+### Added (0.5.0-alpha.5)
+
+- Added weapon modification workflow foundations, including definition loaders, normalization support, compendium refresh paths, and the weapon workbench UI surface.
+- Added weapon modification data and system packs for optics, rails, barrels, weapon conversions, Covenant weapon patterns, Covenant infantry alterations, and Banished weapon modifications.
+- Added a GM repair macro for managed character-builder actors with stale final characteristics or wound maximums.
+
+### Changed (0.5.0-alpha.5)
+
+- Expanded item and actor sheet handling so weapon modification data can be surfaced and managed without breaking existing equipment bindings.
+- Improved final-characteristic and wounds normalization paths used by managed character actors and related combat resource displays.
+
 ## [0.5.0-alpha.4] - 2026-05-04
 
 ### Fixed (0.5.0-alpha.4)

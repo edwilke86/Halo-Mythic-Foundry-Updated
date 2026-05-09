@@ -103,6 +103,7 @@
               {{#if item.storageWarningText}}<span class="mythic-storage-warning-badge" title="{{item.storageWarningText}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
               <span class="mythic-equipment-actions-inline">
                 {{#if item.isStorageContainer}}<button type="button" class="action-btn container-open-btn" data-item-id="{{item.id}}" title="Open container" aria-label="Open container"><i class="fas fa-box-open"></i></button>{{/if}}
+                <button type="button" class="action-btn weapon-workbench-open-btn" data-item-id="{{item.id}}" title="Workbench" aria-label="Workbench"><i class="fas fa-screwdriver-wrench"></i></button>
                 <button type="button" class="action-btn gear-open-btn" data-item-id="{{item.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
                 <button type="button" class="action-btn gear-remove-btn mythic-row-remove" data-item-id="{{item.id}}" data-item-ids="{{item.stackItemIds}}" title="Remove item" aria-label="Remove item"><i class="fas fa-trash"></i></button>
               </span>

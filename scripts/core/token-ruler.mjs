@@ -1,4 +1,5 @@
 import { computeCharacterDerivedValues } from "../mechanics/derived.mjs";
+import { prepareCharacterSystemForNormalization } from "../mechanics/final-characteristics.mjs";
 
 export const MYTHIC_TOKEN_RULER_COLORS = Object.freeze({
   half: 0x1fa34a,
@@ -13,7 +14,12 @@ export function getMythicMovementThresholds(token) {
   if (!actor || (actor.type !== "character" && actor.type !== "bestiary")) return null;
 
   const scope = "Halo-Mythic-Foundry-Updated";
-  const source = foundry.utils.deepClone(actor.system ?? {});
+  const source =
+    actor.type === "character"
+      ? prepareCharacterSystemForNormalization(actor, actor.system ?? {}, {
+          traceLabel: "token ruler prepare movement",
+        }).systemData
+      : foundry.utils.deepClone(actor.system ?? {});
   source.flags ??= {};
 
   const currentScopeFlags = (source.flags?.[scope] && typeof source.flags[scope] === "object")

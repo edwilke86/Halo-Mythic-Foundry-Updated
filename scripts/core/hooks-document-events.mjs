@@ -40,6 +40,14 @@ import {
 import { isGoodFortuneModeEnabled } from "../mechanics/derived.mjs";
 import { getActorEquippedGearMythicCharacteristicModifiers } from "../mechanics/mythic-characteristics.mjs";
 import {
+  normalizeActorCharacterSystemData,
+  prepareCharacterSystemForNormalization,
+} from "../mechanics/final-characteristics.mjs";
+import {
+  resolveActorWoundsMaximum,
+  traceWounds,
+} from "../mechanics/wounds.mjs";
+import {
   computeAttackDOS,
   resolveHitLocationForMode,
 } from "../mechanics/combat.mjs";
@@ -89,6 +97,12 @@ const MYTHIC_GRENADE_MARKER_ANIMATION_STATE_KEY =
 const MYTHIC_GRENADE_MARKER_TEXTURE_SRC =
   "systems/Halo-Mythic-Foundry-Updated/assets/icons/convergence-target.png";
 const MYTHIC_PENDING_GRENADE_EVENT_MESSAGE_IDS = new Set();
+const MYTHIC_CHARACTERISTIC_NORMALIZATION_TRACE = false;
+const MYTHIC_CHARACTERISTIC_NORMALIZATION_TRACE_TERMS = Object.freeze([
+  "bursorkar",
+  "mgalekgolo",
+  "magalekgolo",
+]);
 const MYTHIC_VEHICLE_DOOMED_PERSISTENT_RESET = Object.freeze({
   onFire: false,
   flameRating: 0,
@@ -116,89 +130,43 @@ async function deleteBerserkerAutoEffects(item) {
   await item.deleteEmbeddedDocuments("ActiveEffect", effectIds);
 }
 
-function normalizeWoundsFormulaComparisonValue(value) {
-  if (Array.isArray(value)) {
-    return value.map((entry) => normalizeWoundsFormulaComparisonValue(entry));
-  }
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
-        .map(([key, entryValue]) => [
-          key,
-          normalizeWoundsFormulaComparisonValue(entryValue),
-        ]),
-    );
-  }
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed === "") return "";
-    const numeric = Number(trimmed);
-    return Number.isFinite(numeric) ? numeric : trimmed;
-  }
-  return value;
+function hasUpdatePath(updateData, path) {
+  if (!updateData || !path) return false;
+  return (
+    Object.prototype.hasOwnProperty.call(updateData, path) ||
+    foundry.utils.hasProperty(updateData, path)
+  );
 }
 
-function hasMeaningfulWoundsFormulaChange(
-  changesSystem = {},
-  actorSystem = {},
-) {
-  const formulaPaths = [
-    "characteristics",
-    "mythic",
-    "equipment.equipped",
-    "advancements",
-    "charBuilder",
-    "customOutliers",
-  ];
-  return formulaPaths.some((path) => {
-    if (!foundry.utils.hasProperty(changesSystem ?? {}, path)) return false;
-    const submittedValue = normalizeWoundsFormulaComparisonValue(
-      foundry.utils.getProperty(changesSystem, path),
-    );
-    const currentValue = normalizeWoundsFormulaComparisonValue(
-      foundry.utils.getProperty(actorSystem ?? {}, path),
-    );
-    return JSON.stringify(submittedValue) !== JSON.stringify(currentValue);
-  });
+function getUpdatePath(updateData, path, fallback = undefined) {
+  if (!updateData || !path) return fallback;
+  if (Object.prototype.hasOwnProperty.call(updateData, path)) {
+    return updateData[path];
+  }
+  if (foundry.utils.hasProperty(updateData, path)) {
+    return foundry.utils.getProperty(updateData, path);
+  }
+  return fallback;
 }
 
-function preserveHigherExistingWoundsMaximum(
-  normalizedSystem = {},
-  sourceSystem = {},
-  changesSystem = {},
-  actorSystem = {},
-) {
-  const derivedMax = toNonNegativeWhole(
-    normalizedSystem?.combat?.wounds?.max,
-    0,
-  );
-  const sourceMax = toNonNegativeWhole(sourceSystem?.combat?.wounds?.max, 0);
-  if (sourceMax <= derivedMax) return normalizedSystem;
-
-  const affectsWoundsFormula = hasMeaningfulWoundsFormulaChange(
-    changesSystem,
-    actorSystem,
-  );
-  if (affectsWoundsFormula) return normalizedSystem;
-
-  const current = Math.min(
-    toNonNegativeWhole(normalizedSystem?.combat?.wounds?.current, 0),
-    sourceMax,
-  );
-  foundry.utils.setProperty(normalizedSystem, "combat.wounds.max", sourceMax);
-  foundry.utils.setProperty(normalizedSystem, "combat.wounds.current", current);
-  foundry.utils.setProperty(
-    normalizedSystem,
-    "combat.woundsBar.value",
-    current,
-  );
-  foundry.utils.setProperty(
-    normalizedSystem,
-    "combat.woundsBar.max",
-    sourceMax,
-  );
-  return normalizedSystem;
+function traceCharacteristicNormalization(actor, data = {}) {
+  try {
+    if (!MYTHIC_CHARACTERISTIC_NORMALIZATION_TRACE) return;
+    const lower = String(actor?.name ?? "").toLowerCase();
+    const shouldTrace = MYTHIC_CHARACTERISTIC_NORMALIZATION_TRACE_TERMS.some(
+      (term) => lower.includes(term),
+    );
+    if (!shouldTrace) return;
+    const payload = globalThis.foundry?.utils?.deepClone
+      ? foundry.utils.deepClone(data)
+      : data;
+    console.warn("[MYTHIC CHARACTERISTIC NORMALIZATION TRACE]", {
+      actor: actor?.name ?? "",
+      ...payload,
+    });
+  } catch (_err) {
+    // never block gameplay on temporary trace logging
+  }
 }
 
 function isEnergyCellAmmoMode(ammoMode = "") {
@@ -1385,7 +1353,9 @@ function getNormalizedEquipmentClassification(itemOrPayload = {}) {
 function readRadiusValueFromPayload(itemOrPayload = {}, key = "blast radius") {
   const payload =
     itemOrPayload && typeof itemOrPayload === "object" ? itemOrPayload : {};
-  const numericDirect = Number(payload?.[key === "blast radius" ? "blastRadius" : "killRadius"] ?? NaN);
+  const numericDirect = Number(
+    payload?.[key === "blast radius" ? "blastRadius" : "killRadius"] ?? NaN,
+  );
   if (Number.isFinite(numericDirect) && numericDirect > 0) {
     return Math.floor(numericDirect);
   }
@@ -1413,9 +1383,7 @@ function readRadiusValueFromPayload(itemOrPayload = {}, key = "blast radius") {
     }
   }
   const rulesText = String(
-    payload?.specialRules ??
-      sourceItem?.system?.specialRules ??
-      "",
+    payload?.specialRules ?? sourceItem?.system?.specialRules ?? "",
   );
   const regex =
     key === "blast radius"
@@ -1437,7 +1405,10 @@ function isBlastKillRangedWeapon(itemOrPayload = {}) {
   const classification = getNormalizedEquipmentClassification(itemOrPayload);
   if (!classification) return false;
   if (classification === "explosives-and-grenades") return false;
-  if (classification !== "ranged-weapon" && classification !== "ranged weapon") {
+  if (
+    classification !== "ranged-weapon" &&
+    classification !== "ranged weapon"
+  ) {
     return false;
   }
   return getBlastRadius(itemOrPayload) > 0 || getKillRadius(itemOrPayload) > 0;
@@ -1499,7 +1470,10 @@ async function createBlastKillRadiusTemplates({
   }
   if (!templateData.length) return { count: 0, templateIds: [] };
   try {
-    const created = await scene.createEmbeddedDocuments("MeasuredTemplate", templateData);
+    const created = await scene.createEmbeddedDocuments(
+      "MeasuredTemplate",
+      templateData,
+    );
     const templateIds = Array.isArray(created)
       ? normalizeGrenadeExplosionTemplateIds(created.map((entry) => entry?.id))
       : [];
@@ -1539,7 +1513,11 @@ function promptBlastKillTemplateCenterPoint() {
       try {
         if (typeof canvas?.canvasCoordinatesFromClient === "function") {
           const p = canvas.canvasCoordinatesFromClient({ x, y });
-          if (p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y))) {
+          if (
+            p &&
+            Number.isFinite(Number(p.x)) &&
+            Number.isFinite(Number(p.y))
+          ) {
             return { x: Math.round(Number(p.x)), y: Math.round(Number(p.y)) };
           }
         }
@@ -1580,7 +1558,9 @@ function promptBlastKillTemplateCenterPoint() {
     appView.addEventListener("pointerdown", onPointerDown, true);
     appView.addEventListener("contextmenu", onContextMenu, true);
     window.addEventListener("keydown", onKeyDown, true);
-    ui.notifications?.info("Click a point to place Blast/Kill templates. Right-click or Esc to cancel.");
+    ui.notifications?.info(
+      "Click a point to place Blast/Kill templates. Right-click or Esc to cancel.",
+    );
   });
 }
 
@@ -6056,7 +6036,11 @@ export function registerMythicDocumentAndChatHooks({
           );
         }
 
-        const normalized = normalizeCharacterSystemData(actor.system ?? {});
+        const normalized = normalizeActorCharacterSystemData(
+          actor,
+          actor.system ?? {},
+          { traceLabel: "createActor token defaults" },
+        );
         const tokenDefaults = getMythicTokenDefaultsForCharacter(normalized);
         foundry.utils.setProperty(
           updates,
@@ -6227,7 +6211,37 @@ export function registerMythicDocumentAndChatHooks({
   });
 
   Hooks.on("preUpdateActor", (actor, changes) => {
-    if (actor.type === "character" && changes.system !== undefined) {
+    const touchesCharacterSystem =
+      changes.system !== undefined ||
+      Object.keys(changes ?? {}).some((key) =>
+        String(key).startsWith("system."),
+      );
+    if (actor.type === "character") {
+      traceWounds("preUpdate raw changes", actor, {
+        changes,
+        changeKeys: Object.keys(changes ?? {}),
+        nestedWounds: changes.system?.combat?.wounds,
+        nestedWoundsBar: changes.system?.combat?.woundsBar,
+        literalWoundsCurrent: changes?.["system.combat.wounds.current"],
+        literalWoundsBarValue: changes?.["system.combat.woundsBar.value"],
+        touchesCharacterSystem,
+      });
+    }
+    if (actor.type === "character" && touchesCharacterSystem) {
+      const hadNestedSystemChanges =
+        changes.system && typeof changes.system === "object";
+      if (!changes.system || typeof changes.system !== "object") {
+        changes.system = {};
+      }
+      for (const key of Object.keys(changes ?? {})) {
+        if (!key.startsWith("system.")) continue;
+        foundry.utils.setProperty(
+          changes.system,
+          key.slice("system.".length),
+          changes[key],
+        );
+      }
+
       const preserveNumericCombatPath = (path) => {
         if (!foundry.utils.hasProperty(changes.system, path)) return;
         const nextValue = foundry.utils.getProperty(changes.system, path);
@@ -6249,10 +6263,75 @@ export function registerMythicDocumentAndChatHooks({
       preserveNumericCombatPath("combat.wounds.current");
       preserveNumericCombatPath("combat.shields.current");
 
+      const collectSystemPaths = (value, prefix = "", paths = new Set()) => {
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+          if (prefix) paths.add(prefix);
+          return paths;
+        }
+        const entries = Object.entries(value);
+        if (!entries.length) {
+          if (prefix) paths.add(prefix);
+          return paths;
+        }
+        for (const [key, entry] of entries) {
+          const nextPath = prefix ? `${prefix}.${key}` : key;
+          collectSystemPaths(entry, nextPath, paths);
+        }
+        return paths;
+      };
+      const incomingSystemPaths = new Set();
+      for (const key of Object.keys(changes ?? {})) {
+        if (key.startsWith("system.")) incomingSystemPaths.add(key.slice(7));
+      }
+      if (changes.system && typeof changes.system === "object") {
+        for (const path of collectSystemPaths(changes.system)) {
+          incomingSystemPaths.add(path);
+        }
+      }
+      const equipmentHousekeepingPrefixes = [
+        "equipment.independentAmmo",
+        "equipment.energyCells",
+        "equipment.ballisticContainers",
+        "equipment.weaponState",
+      ];
+      const isEquipmentHousekeepingPath = (path) =>
+        equipmentHousekeepingPrefixes.some(
+          (prefix) => path === prefix || path.startsWith(`${prefix}.`),
+        );
+      const isEquipmentOnlyAmmoOnly =
+        incomingSystemPaths.size > 0 &&
+        Array.from(incomingSystemPaths).every(isEquipmentHousekeepingPath);
+      const hasNonSystemChanges = Object.keys(changes ?? {}).some(
+        (key) => key !== "system" && !String(key).startsWith("system."),
+      );
+      if (isEquipmentOnlyAmmoOnly && !hasNonSystemChanges) {
+        if (!hadNestedSystemChanges) delete changes.system;
+        traceWounds("preUpdate equipment housekeeping fast path", actor, {
+          incomingSystemPaths: Array.from(incomingSystemPaths).sort(),
+          skipped: "equipment housekeeping does not affect derived formulas",
+        });
+        return;
+      }
+      const hasIncomingSystemPath = (path) => {
+        const fullPath = `system.${path}`;
+        return (
+          hasUpdatePath(changes, fullPath) ||
+          hasUpdatePath(changes.system, path)
+        );
+      };
+      const getIncomingSystemPath = (path, fallback = undefined) => {
+        const fullPath = `system.${path}`;
+        if (hasUpdatePath(changes, fullPath)) {
+          return getUpdatePath(changes, fullPath, fallback);
+        }
+        return getUpdatePath(changes.system, path, fallback);
+      };
+
       const replacementPaths = [
         "equipment.independentAmmo",
         "equipment.energyCells",
         "equipment.ballisticContainers",
+        "equipment.weaponState",
       ];
       const preservedUpdates = new Map();
       for (const path of replacementPaths) {
@@ -6275,7 +6354,7 @@ export function registerMythicDocumentAndChatHooks({
         }
       }
 
-      const nextSystem = foundry.utils.mergeObject(
+      let nextSystem = foundry.utils.mergeObject(
         foundry.utils.deepClone(actor.system ?? {}),
         changesSystemWithoutAmmo,
         {
@@ -6301,15 +6380,162 @@ export function registerMythicDocumentAndChatHooks({
       if (isHuragokCharacterSystem(nextSystem)) {
         foundry.utils.setProperty(nextSystem, "mythic.flyCombatActive", true);
       }
-      changes.system = preserveHigherExistingWoundsMaximum(
-        normalizeCharacterSystemData(nextSystem),
-        nextSystem,
-        changesSystemWithoutAmmo,
-        actor.system ?? {},
+
+      const beforeFinalCharacteristics = foundry.utils.deepClone(
+        nextSystem?.characteristics ?? {},
       );
+      const preparedSystem = prepareCharacterSystemForNormalization(
+        actor,
+        nextSystem,
+        { traceLabel: "preUpdate prepare before normalization" },
+      );
+      nextSystem = preparedSystem.systemData;
+      const finalCharacteristics = preparedSystem.finalCharacteristics;
+      traceCharacteristicNormalization(actor, {
+        beforeCharacteristics: beforeFinalCharacteristics,
+        finalCharacteristics: finalCharacteristics?.characteristics,
+        source: finalCharacteristics?.source,
+        applied: preparedSystem.applied,
+        afterCharacteristics: nextSystem?.characteristics,
+      });
+
+      const hasIncomingWoundsCurrent = hasIncomingSystemPath(
+        "combat.wounds.current",
+      );
+      const hasIncomingWoundsMax = hasIncomingSystemPath("combat.wounds.max");
+      const hasIncomingWoundsBarValue = hasIncomingSystemPath(
+        "combat.woundsBar.value",
+      );
+      const hasIncomingWoundsBarMax = hasIncomingSystemPath(
+        "combat.woundsBar.max",
+      );
+      const actorWoundsCurrent = toNonNegativeWhole(
+        actor.system?.combat?.wounds?.current,
+        0,
+      );
+      const actorWoundsBarValue = toNonNegativeWhole(
+        actor.system?.combat?.woundsBar?.value,
+        actorWoundsCurrent,
+      );
+      const incomingWoundsCurrent = hasIncomingWoundsCurrent
+        ? toNonNegativeWhole(
+            getIncomingSystemPath("combat.wounds.current"),
+            actorWoundsCurrent,
+          )
+        : null;
+      const incomingWoundsBarValue = hasIncomingWoundsBarValue
+        ? toNonNegativeWhole(
+            getIncomingSystemPath("combat.woundsBar.value"),
+            actorWoundsBarValue,
+          )
+        : null;
+      const intendedWoundsCurrent =
+        incomingWoundsCurrent ??
+        incomingWoundsBarValue ??
+        actorWoundsCurrent;
+      const intendedWoundsBarValue =
+        incomingWoundsBarValue ?? intendedWoundsCurrent;
+
+      const canonicalWounds = resolveActorWoundsMaximum(actor, nextSystem);
+      traceWounds("preUpdate before normalization", actor, {
+        incomingChanges: changes,
+        actorWounds: actor.system?.combat?.wounds,
+        actorWoundsBar: actor.system?.combat?.woundsBar,
+        nextSystemWounds: nextSystem?.combat?.wounds,
+        nextSystemWoundsBar: nextSystem?.combat?.woundsBar,
+        nextSystemCharacteristics: nextSystem?.characteristics,
+        nextSystemMythic: nextSystem?.mythic,
+        hasIncomingWoundsCurrent,
+        hasIncomingWoundsMax,
+        hasIncomingWoundsBarValue,
+        hasIncomingWoundsBarMax,
+        isEquipmentOnlyAmmoOnly,
+        incomingSystemPaths: Array.from(incomingSystemPaths).sort(),
+        intendedWoundsCurrent,
+        intendedWoundsBarValue,
+        helperOutputUsingActorAndNextSystem: canonicalWounds,
+      });
+      const normalized = normalizeCharacterSystemData(nextSystem);
+      traceWounds(
+        "preUpdate after normalization before canonical correction",
+        actor,
+        {
+          normalizedWounds: normalized?.combat?.wounds,
+          normalizedWoundsBar: normalized?.combat?.woundsBar,
+          normalizedCharacteristics: normalized?.characteristics,
+          normalizedMythic: normalized?.mythic,
+        },
+      );
+      const canonicalMax = toNonNegativeWhole(
+        canonicalWounds?.finalWoundsMaximum,
+        0,
+      );
+      let clampedWoundsCurrent = intendedWoundsCurrent;
+      if (canonicalMax > 0) {
+        clampedWoundsCurrent = Math.min(intendedWoundsCurrent, canonicalMax);
+      }
+      if (canonicalMax > 0) {
+        normalized.combat ??= {};
+        normalized.combat.wounds ??= {};
+        normalized.combat.woundsBar ??= {};
+        normalized.combat.wounds.max = canonicalMax;
+        normalized.combat.wounds.current = clampedWoundsCurrent;
+        normalized.combat.woundsBar.max = canonicalMax;
+        normalized.combat.woundsBar.value = clampedWoundsCurrent;
+      }
+      traceWounds("preUpdate after canonical wounds correction", actor, {
+        helperFinalWoundsMaximum: canonicalWounds?.finalWoundsMaximum,
+        helperBreakdown: canonicalWounds,
+        intendedWoundsCurrent,
+        intendedWoundsBarValue,
+        clampedWoundsCurrent,
+        finalWounds: normalized?.combat?.wounds,
+        finalWoundsBar: normalized?.combat?.woundsBar,
+        outgoingChangesAfterCanonicalCorrection: normalized,
+      });
+
+      changes.system = normalized;
 
       for (const [path, value] of preservedUpdates.entries()) {
         foundry.utils.setProperty(changes.system, path, value);
+      }
+
+      if (canonicalMax > 0) {
+        foundry.utils.setProperty(
+          changes.system,
+          "combat.wounds.current",
+          clampedWoundsCurrent,
+        );
+        foundry.utils.setProperty(
+          changes.system,
+          "combat.wounds.max",
+          canonicalMax,
+        );
+        foundry.utils.setProperty(
+          changes.system,
+          "combat.woundsBar.value",
+          clampedWoundsCurrent,
+        );
+        foundry.utils.setProperty(
+          changes.system,
+          "combat.woundsBar.max",
+          canonicalMax,
+        );
+        const forcedWoundsPaths = {
+          "system.combat.wounds.current": clampedWoundsCurrent,
+          "system.combat.wounds.max": canonicalMax,
+          "system.combat.woundsBar.value": clampedWoundsCurrent,
+          "system.combat.woundsBar.max": canonicalMax,
+        };
+        for (const [path, value] of Object.entries(forcedWoundsPaths)) {
+          if (Object.prototype.hasOwnProperty.call(changes, path)) {
+            changes[path] = value;
+          }
+          const systemPath = path.slice("system.".length);
+          if (Object.prototype.hasOwnProperty.call(changes.system, systemPath)) {
+            changes.system[systemPath] = value;
+          }
+        }
       }
 
       const tokenDefaults = getMythicTokenDefaultsForCharacter(changes.system);
@@ -6328,6 +6554,23 @@ export function registerMythicDocumentAndChatHooks({
         "prototypeToken.displayBars",
         tokenDefaults.displayBars,
       );
+      traceWounds("preUpdate outgoing changes.system", actor, {
+        finalOutgoingWounds: changes.system?.combat?.wounds,
+        finalOutgoingWoundsBar: changes.system?.combat?.woundsBar,
+        finalOutgoingChangesSystem: changes.system,
+        tokenDefaults,
+      });
+      traceWounds("preUpdate FINAL outgoing changes", actor, {
+        changes,
+        finalOutgoingWounds: changes.system?.combat?.wounds,
+        finalOutgoingWoundsBar: changes.system?.combat?.woundsBar,
+        hasIncomingWoundsCurrent,
+        hasIncomingWoundsMax,
+        hasIncomingWoundsBarValue,
+        hasIncomingWoundsBarMax,
+        isEquipmentOnlyAmmoOnly,
+        incomingSystemPaths: Array.from(incomingSystemPaths).sort(),
+      });
     }
 
     if (actor.type === "bestiary" && changes.system !== undefined) {
@@ -6688,7 +6931,11 @@ export function registerMythicDocumentAndChatHooks({
     if (!actor) return;
 
     if (actor.type === "character") {
-      const systemData = normalizeCharacterSystemData(actor.system ?? {});
+      const systemData = normalizeActorCharacterSystemData(
+        actor,
+        actor.system ?? {},
+        { traceLabel: "preCreateToken token defaults" },
+      );
       const tokenDefaults = getMythicTokenDefaultsForCharacter(systemData);
       foundry.utils.setProperty(
         createData,
@@ -6996,7 +7243,10 @@ export function registerMythicDocumentAndChatHooks({
     }
 
     const actorSourceSystem = foundry.utils.deepClone(actor.system ?? {});
-    const tokenDeltaSystem = foundry.utils.getProperty(createData, "delta.system");
+    const tokenDeltaSystem = foundry.utils.getProperty(
+      createData,
+      "delta.system",
+    );
     const sourceSystem =
       tokenDeltaSystem && typeof tokenDeltaSystem === "object"
         ? foundry.utils.mergeObject(actorSourceSystem, tokenDeltaSystem, {
@@ -7051,9 +7301,13 @@ export function registerMythicDocumentAndChatHooks({
       ) ?? "",
     ).trim();
     if (bestiaryArmorAutomationEnabled) {
-      tokenSystem = applyDeterministicBestiaryArmorForSpawn(actor, tokenSystem, {
-        preferredPresetId: preferredArmorPresetId,
-      });
+      tokenSystem = applyDeterministicBestiaryArmorForSpawn(
+        actor,
+        tokenSystem,
+        {
+          preferredPresetId: preferredArmorPresetId,
+        },
+      );
     }
     const normalizedTokenSystem = normalizeBestiarySystemData(tokenSystem);
     const tokenDefaults = getMythicTokenDefaultsForCharacter(
@@ -7189,6 +7443,32 @@ export function registerMythicDocumentAndChatHooks({
         ? (overrides[String(Number(attackIndex) || 0)] ?? null)
         : null;
     };
+    const getOverrideDamageInstance = (override, hitIndex) => {
+      const instances = Array.isArray(override?.damageInstances)
+        ? override.damageInstances
+        : [];
+      const entry =
+        instances.find(
+          (inst) => Number(inst?.hitIndex ?? 0) === Number(hitIndex ?? 0),
+        ) ??
+        instances[Number(hitIndex ?? 1) - 1] ??
+        null;
+      return entry && typeof entry === "object" ? entry : null;
+    };
+    const applyOverrideToPayload = (payload, override, hitIndex = 1) => {
+      if (!payload || !override) return payload;
+      const hitOverride = getOverrideDamageInstance(override, hitIndex);
+      const sourceOverride = hitOverride ?? override;
+      if (Number.isFinite(Number(sourceOverride.damage)))
+        payload.damageTotal = Number(sourceOverride.damage);
+      if (Number.isFinite(Number(sourceOverride.pierce)))
+        payload.damagePierce = Number(sourceOverride.pierce);
+      if (Number.isFinite(Number(override.dos)))
+        payload.dosValue = Number(override.dos);
+      if (typeof sourceOverride.specialDamageApplies === "boolean")
+        payload.hasSpecialDamage = sourceOverride.specialDamageApplies;
+      return payload;
+    };
     const getEffectiveAttackIndexPayload = (attackIndex) => {
       const indexValue = Number(attackIndex ?? 0);
       if (!Number.isFinite(indexValue) || indexValue <= 0) return null;
@@ -7219,20 +7499,29 @@ export function registerMythicDocumentAndChatHooks({
               attackRow?.wouldDamage?.[0]?.hasSpecialDamage,
             ),
           };
-      if (!override) return base;
-      if (Number.isFinite(Number(override.damage))) {
-        base.damageTotal = Number(override.damage);
+      return override ? applyOverrideToPayload(base, override, 1) : base;
+    };
+    const getEffectiveAttackIndexPayloads = (attackIndex) => {
+      const indexValue = Number(attackIndex ?? 0);
+      if (!Number.isFinite(indexValue) || indexValue <= 0) return [];
+      const rows = Array.isArray(attackData?.evasionRows)
+        ? attackData.evasionRows.filter(
+            (row) => Number(row?.attackIndex ?? 0) === indexValue,
+          )
+        : [];
+      if (!rows.length) {
+        const fallback = getEffectiveAttackIndexPayload(indexValue);
+        return fallback ? [fallback] : [];
       }
-      if (Number.isFinite(Number(override.pierce))) {
-        base.damagePierce = Number(override.pierce);
-      }
-      if (Number.isFinite(Number(override.dos))) {
-        base.dosValue = Number(override.dos);
-      }
-      if (typeof override.specialDamageApplies === "boolean") {
-        base.hasSpecialDamage = override.specialDamageApplies;
-      }
-      return base;
+
+      const override = getOverrideForAttackIndex(indexValue);
+      const cloned = rows.map((row) => foundry.utils.deepClone(row));
+      if (!override) return cloned;
+
+      cloned.forEach((row, index) =>
+        applyOverrideToPayload(row, override, index + 1),
+      );
+      return cloned;
     };
     const isGrenadeExplosionMessage =
       Boolean(
@@ -7272,16 +7561,6 @@ export function registerMythicDocumentAndChatHooks({
           ) ?? null
         );
       };
-      const resolveBasePreviewEntry = (row) => {
-        if (!row || typeof row !== "object") return null;
-        const successEntry = Array.isArray(row.damageInstances)
-          ? row.damageInstances[0]
-          : null;
-        const failEntry = Array.isArray(row.wouldDamage)
-          ? row.wouldDamage[0]
-          : null;
-        return successEntry ?? failEntry ?? null;
-      };
       const replaceOverrideDisplayForRow = (attackIndex) => {
         const override = getOverrideForAttackIndex(attackIndex);
         if (!override) return;
@@ -7290,16 +7569,6 @@ export function registerMythicDocumentAndChatHooks({
         );
         if (!rowRoot) return;
         const rowData = findAttackRowByIndex(attackIndex);
-        const previewEntry = resolveBasePreviewEntry(rowData);
-        const previewFormula = String(
-          previewEntry?.damageFormula ?? attackData?.damageFormula ?? "",
-        ).trim();
-        const damageValue = Number.isFinite(Number(override.damage))
-          ? Number(override.damage)
-          : Number(previewEntry?.damageTotal ?? 0);
-        const pierceValue = Number.isFinite(Number(override.pierce))
-          ? Number(override.pierce)
-          : Number(previewEntry?.damagePierce ?? 0);
         const dosValue = Number.isFinite(Number(override.dos))
           ? Number(override.dos)
           : Number(rowData?.dosValue ?? attackData?.dosValue ?? 0);
@@ -7311,19 +7580,31 @@ export function registerMythicDocumentAndChatHooks({
           verdictEl.classList.add(dosValue >= 0 ? "success" : "failure");
         }
 
-        const previewLine = rowRoot.querySelector(
-          ".mythic-attack-preview-line",
-        );
-        if (previewLine) {
-          const rollInline = previewLine.querySelector(".mythic-roll-inline");
-          if (rollInline) {
-            rollInline.textContent = String(damageValue);
-          }
-          const overrideBtn = previewLine.querySelector(
-            ".mythic-row-override-btn",
+        const effectiveRows = getEffectiveAttackIndexPayloads(attackIndex);
+        const hitLines = rowRoot.querySelectorAll(".mythic-attack-hit-line");
+        hitLines.forEach((line) => {
+          const hitIndex = Number(line.getAttribute("data-hit-index") ?? 0);
+          const effective = effectiveRows[hitIndex - 1] ?? null;
+          if (!effective) return;
+          const rollInline = line.querySelector(".mythic-roll-inline");
+          if (rollInline)
+            rollInline.textContent = String(effective.damageTotal ?? 0);
+          const pierceEl = line.querySelector(".mythic-attack-hit-pierce");
+          if (pierceEl)
+            pierceEl.textContent = String(effective.damagePierce ?? 0);
+          if (!line.textContent.includes("*")) line.append(" *");
+        });
+        if (!hitLines.length) {
+          const previewLine = rowRoot.querySelector(
+            ".mythic-attack-preview-line",
           );
-          const overrideBtnHtml = overrideBtn ? overrideBtn.outerHTML : "";
-          previewLine.innerHTML = `<span class="mythic-roll-inline">${escHtml(String(damageValue))}</span>${previewFormula ? ` (${escHtml(previewFormula)})` : ""}, Pierce ${escHtml(String(pierceValue))} * ${overrideBtnHtml}`;
+          const effective = effectiveRows[0] ?? null;
+          if (previewLine && effective) {
+            const rollInline = previewLine.querySelector(".mythic-roll-inline");
+            if (rollInline)
+              rollInline.textContent = String(effective.damageTotal ?? 0);
+            previewLine.innerHTML = `<span class="mythic-roll-inline">${escHtml(String(effective.damageTotal ?? 0))}</span>, Pierce ${escHtml(String(effective.damagePierce ?? 0))} *`;
+          }
         }
       };
       cardEl
@@ -7343,21 +7624,22 @@ export function registerMythicDocumentAndChatHooks({
             actionRoot.getAttribute("data-attack-index") ?? 0,
           );
           if (!Number.isFinite(attackIndex) || attackIndex <= 0) return;
-          const rowPayload = getEffectiveAttackIndexPayload(attackIndex);
+          const rowPayloads = getEffectiveAttackIndexPayloads(attackIndex);
+          const rowPayload = rowPayloads[0] ?? null;
           const canUseButtons = canUsePerAttackPlayerButtons;
           const hideRowDamageButton = isBlastKillRangedAttackMessage;
           actionRoot.innerHTML = `
-            <button type="button" class="action-btn mythic-row-ev-btn" data-attack-index="${attackIndex}" title="Roll Evasion for Targeted Token" aria-label="Roll Evasion for Targeted Token" ${canUseButtons && rowPayload ? "" : "disabled"}>E</button>
-            ${hideRowDamageButton ? "" : `<button type="button" class="action-btn mythic-row-dmg-btn" data-attack-index="${attackIndex}" title="Preview Damage for Targeted Token" aria-label="Preview Damage for Targeted Token" ${canUseButtons && rowPayload ? "" : "disabled"}>D</button>`} `;
+             <button type="button" class="action-btn mythic-row-ev-btn" data-attack-index="${attackIndex}" title="Roll Evasion for Targeted Token" aria-label="Roll Evasion for Targeted Token" ${canUseButtons && rowPayload ? "" : "disabled"}>E</button>
+             ${hideRowDamageButton ? "" : `<button type="button" class="action-btn mythic-row-dmg-btn" data-attack-index="${attackIndex}" title="Preview Damage for Targeted Token" aria-label="Preview Damage for Targeted Token" ${canUseButtons && rowPayload ? "" : "disabled"}>D</button>`} `;
           const evBtn = actionRoot.querySelector(".mythic-row-ev-btn");
           const dmgBtn = actionRoot.querySelector(".mythic-row-dmg-btn");
           evBtn?.addEventListener("click", async () => {
-            if (!rowPayload) return;
+            if (!rowPayloads.length) return;
             if (!canUseButtons) return;
             if (typeof mythicRollEvasion !== "function") return;
             const scopedAttackData = {
               ...attackData,
-              evasionRows: [rowPayload],
+              evasionRows: rowPayloads,
               dosValue: Number(
                 rowPayload?.dosValue ?? attackData?.dosValue ?? 0,
               ),
@@ -7367,12 +7649,12 @@ export function registerMythicDocumentAndChatHooks({
             });
           });
           dmgBtn?.addEventListener("click", async () => {
-            if (!rowPayload) return;
+            if (!rowPayloads.length) return;
             if (!canUseButtons) return;
             if (typeof mythicCreateAttackDamagePreview !== "function") return;
             const scopedAttackData = {
               ...attackData,
-              evasionRows: [rowPayload],
+              evasionRows: rowPayloads,
             };
             await mythicCreateAttackDamagePreview(
               message.id,
@@ -7391,30 +7673,55 @@ export function registerMythicDocumentAndChatHooks({
                 btn.getAttribute("data-attack-index") ?? 0,
               );
               if (!Number.isFinite(attackIndex) || attackIndex <= 0) return;
-              const rowPayload = getEffectiveAttackIndexPayload(attackIndex);
-              if (!rowPayload) return;
+              const rowPayloads = getEffectiveAttackIndexPayloads(attackIndex);
+              const rowPayload = rowPayloads[0] ?? null;
+              if (!rowPayloads.length || !rowPayload) return;
               const currentOverride =
                 getOverrideForAttackIndex(attackIndex) ?? {};
+              const hitFieldRows = rowPayloads
+                .map((payload, index) => {
+                  const hitIndex = index + 1;
+                  const hitOverride = getOverrideDamageInstance(
+                    currentOverride,
+                    hitIndex,
+                  );
+                  const damageValue = Number(
+                    hitOverride?.damage ?? payload.damageTotal ?? 0,
+                  );
+                  const pierceValue = Number(
+                    hitOverride?.pierce ?? payload.damagePierce ?? 0,
+                  );
+                  const specialChecked = Boolean(
+                    hitOverride?.specialDamageApplies ??
+                    payload.hasSpecialDamage,
+                  );
+                  return `
+                    <fieldset class="mythic-row-override-hit">
+                      <legend>Hit ${escHtml(hitIndex)}</legend>
+                      <div class="form-group">
+                        <label for="mythic-row-override-damage-${hitIndex}">Damage</label>
+                        <input id="mythic-row-override-damage-${hitIndex}" type="number" step="1" value="${escHtml(damageValue)}" />
+                      </div>
+                      <div class="form-group">
+                        <label for="mythic-row-override-pierce-${hitIndex}">Pierce</label>
+                        <input id="mythic-row-override-pierce-${hitIndex}" type="number" step="1" value="${escHtml(pierceValue)}" />
+                      </div>
+                      <div class="form-group">
+                        <label><input id="mythic-row-override-special-${hitIndex}" type="checkbox" ${specialChecked ? "checked" : ""}> Special Damage Applies</label>
+                      </div>
+                    </fieldset>`;
+                })
+                .join("");
               const overrideResult =
                 await foundry.applications.api.DialogV2.wait({
                   window: { title: `Manual Override (A${attackIndex})` },
                   content: `
                 <form>
                   <div class="form-group">
-                    <label for="mythic-row-override-damage">Damage</label>
-                    <input id="mythic-row-override-damage" type="number" step="1" value="${Number(currentOverride.damage ?? rowPayload.damageTotal ?? 0)}" />
-                  </div>
-                  <div class="form-group">
-                    <label for="mythic-row-override-pierce">Pierce</label>
-                    <input id="mythic-row-override-pierce" type="number" step="1" value="${Number(currentOverride.pierce ?? rowPayload.damagePierce ?? 0)}" />
-                  </div>
-                  <div class="form-group">
                     <label for="mythic-row-override-dos">DOS / DOF</label>
-                    <input id="mythic-row-override-dos" type="number" step="0.1" value="${Number(currentOverride.dos ?? rowPayload.dosValue ?? attackData?.dosValue ?? 0)}" />
+                    <input id="mythic-row-override-dos" type="number" step="0.1" value="${escHtml(Number(currentOverride.dos ?? rowPayload.dosValue ?? attackData?.dosValue ?? 0))}" />
                   </div>
-                  <div class="form-group">
-                    <label><input id="mythic-row-override-special" type="checkbox" ${Boolean(currentOverride.specialDamageApplies ?? rowPayload.hasSpecialDamage) ? "checked" : ""}> Special Damage Applies</label>
-                  </div>
+                  ${hitFieldRows}
                 </form>
               `,
                   buttons: [
@@ -7422,18 +7729,6 @@ export function registerMythicDocumentAndChatHooks({
                       action: "apply",
                       label: "Apply",
                       callback: () => ({
-                        damage: Number(
-                          document.getElementById("mythic-row-override-damage")
-                            ?.value ??
-                            rowPayload.damageTotal ??
-                            0,
-                        ),
-                        pierce: Number(
-                          document.getElementById("mythic-row-override-pierce")
-                            ?.value ??
-                            rowPayload.damagePierce ??
-                            0,
-                        ),
                         dos: Number(
                           document.getElementById("mythic-row-override-dos")
                             ?.value ??
@@ -7441,10 +7736,31 @@ export function registerMythicDocumentAndChatHooks({
                             attackData?.dosValue ??
                             0,
                         ),
-                        specialDamageApplies: Boolean(
-                          document.getElementById("mythic-row-override-special")
-                            ?.checked,
-                        ),
+                        damageInstances: rowPayloads.map((payload, index) => {
+                          const hitIndex = index + 1;
+                          return {
+                            hitIndex,
+                            damage: Number(
+                              document.getElementById(
+                                `mythic-row-override-damage-${hitIndex}`,
+                              )?.value ??
+                                payload.damageTotal ??
+                                0,
+                            ),
+                            pierce: Number(
+                              document.getElementById(
+                                `mythic-row-override-pierce-${hitIndex}`,
+                              )?.value ??
+                                payload.damagePierce ??
+                                0,
+                            ),
+                            specialDamageApplies: Boolean(
+                              document.getElementById(
+                                `mythic-row-override-special-${hitIndex}`,
+                              )?.checked,
+                            ),
+                          };
+                        }),
                       }),
                     },
                     { action: "cancel", label: "Cancel", callback: () => null },
@@ -7464,18 +7780,26 @@ export function registerMythicDocumentAndChatHooks({
                 delete current[key];
               } else {
                 current[key] = {
-                  damage: Number.isFinite(Number(overrideResult.damage))
-                    ? Number(overrideResult.damage)
-                    : Number(rowPayload.damageTotal ?? 0),
-                  pierce: Number.isFinite(Number(overrideResult.pierce))
-                    ? Number(overrideResult.pierce)
-                    : Number(rowPayload.damagePierce ?? 0),
                   dos: Number.isFinite(Number(overrideResult.dos))
                     ? Number(overrideResult.dos)
                     : Number(rowPayload.dosValue ?? attackData?.dosValue ?? 0),
-                  specialDamageApplies: Boolean(
-                    overrideResult.specialDamageApplies,
-                  ),
+                  damageInstances: (Array.isArray(
+                    overrideResult.damageInstances,
+                  )
+                    ? overrideResult.damageInstances
+                    : []
+                  ).map((entry, index) => ({
+                    hitIndex: Number.isFinite(Number(entry?.hitIndex))
+                      ? Number(entry.hitIndex)
+                      : index + 1,
+                    damage: Number.isFinite(Number(entry?.damage))
+                      ? Number(entry.damage)
+                      : Number(rowPayloads[index]?.damageTotal ?? 0),
+                    pierce: Number.isFinite(Number(entry?.pierce))
+                      ? Number(entry.pierce)
+                      : Number(rowPayloads[index]?.damagePierce ?? 0),
+                    specialDamageApplies: Boolean(entry?.specialDamageApplies),
+                  })),
                 };
               }
               await message.setFlag(
@@ -7494,9 +7818,14 @@ export function registerMythicDocumentAndChatHooks({
 
     if (attackData && isBlastKillRangedAttackMessage) {
       const msgId = String(message.id ?? "").trim();
-      const sceneId = String(attackData?.sceneId ?? canvas?.scene?.id ?? "").trim();
+      const sceneId = String(
+        attackData?.sceneId ?? canvas?.scene?.id ?? "",
+      ).trim();
       const controlsFlag =
-        message.getFlag("Halo-Mythic-Foundry-Updated", "blastKillRangedControls") ?? {};
+        message.getFlag(
+          "Halo-Mythic-Foundry-Updated",
+          "blastKillRangedControls",
+        ) ?? {};
       const templateIds = normalizeGrenadeExplosionTemplateIds(
         controlsFlag?.templateIds ?? [],
       );
@@ -7512,7 +7841,7 @@ export function registerMythicDocumentAndChatHooks({
       panel.classList.add("mythic-gm-attack-panel");
       panel.innerHTML = `
         <div class="mythic-gm-panel-title">Blast/Kill Controls</div>
-        ${(blastRadius > 0 || killRadius > 0) ? '<button type="button" class="action-btn mythic-bk-drop-templates-btn">Drop Radius Templates</button>' : ""}
+        ${blastRadius > 0 || killRadius > 0 ? '<button type="button" class="action-btn mythic-bk-drop-templates-btn">Drop Radius Templates</button>' : ""}
         ${blastRadius > 0 ? '<button type="button" class="action-btn mythic-bk-blast-damage-btn">Blast Damage</button>' : ""}
         ${killRadius > 0 ? '<button type="button" class="action-btn mythic-bk-kill-damage-btn">Kill Damage</button>' : ""}
         ${templateIds.length > 0 ? '<button type="button" class="action-btn mythic-bk-clear-templates-btn">Clear Templates</button>' : ""}
@@ -7522,16 +7851,23 @@ export function registerMythicDocumentAndChatHooks({
         .querySelector(".mythic-bk-drop-templates-btn")
         ?.addEventListener("click", async () => {
           if (!canPlaceTemplates) {
-            ui.notifications?.warn("Only the GM may place these templates with current settings.");
+            ui.notifications?.warn(
+              "Only the GM may place these templates with current settings.",
+            );
             return;
           }
-          if (!canvas?.scene || sceneId !== String(canvas.scene.id ?? "").trim()) {
-            ui.notifications?.warn("Open the source scene to place templates for this attack.");
+          if (
+            !canvas?.scene ||
+            sceneId !== String(canvas.scene.id ?? "").trim()
+          ) {
+            ui.notifications?.warn(
+              "Open the source scene to place templates for this attack.",
+            );
             return;
           }
           const canCreate = Boolean(
             canvas?.scene?.canUserModify?.(game.user, "create") ??
-              game.user.isGM,
+            game.user.isGM,
           );
           if (!canCreate) {
             ui.notifications?.warn(
@@ -7553,13 +7889,19 @@ export function registerMythicDocumentAndChatHooks({
             ui.notifications?.warn("No radius templates were created.");
             return;
           }
-          await message.setFlag("Halo-Mythic-Foundry-Updated", "blastKillRangedControls", {
-            templateIds: normalizeGrenadeExplosionTemplateIds([
-              ...templateIds,
-              ...(Array.isArray(created?.templateIds) ? created.templateIds : []),
-            ]),
-            sceneId,
-          });
+          await message.setFlag(
+            "Halo-Mythic-Foundry-Updated",
+            "blastKillRangedControls",
+            {
+              templateIds: normalizeGrenadeExplosionTemplateIds([
+                ...templateIds,
+                ...(Array.isArray(created?.templateIds)
+                  ? created.templateIds
+                  : []),
+              ]),
+              sceneId,
+            },
+          );
           await message.render(true);
         });
 
@@ -7567,11 +7909,14 @@ export function registerMythicDocumentAndChatHooks({
         .querySelector(".mythic-bk-blast-damage-btn")
         ?.addEventListener("click", async () => {
           if (typeof mythicCreateAttackDamagePreview !== "function") return;
-          const scopedPreviewData = buildRadiusDamagePreviewAttackData(attackData, {
-            damageTotal: Number(attackData?.damageTotal ?? 0),
-            damagePierce: Number(attackData?.damagePierce ?? 0),
-            label: "Blast",
-          });
+          const scopedPreviewData = buildRadiusDamagePreviewAttackData(
+            attackData,
+            {
+              damageTotal: Number(attackData?.damageTotal ?? 0),
+              damagePierce: Number(attackData?.damagePierce ?? 0),
+              label: "Blast",
+            },
+          );
           await mythicCreateAttackDamagePreview(msgId, scopedPreviewData, {
             attackIndex: 1,
           });
@@ -7580,11 +7925,14 @@ export function registerMythicDocumentAndChatHooks({
         .querySelector(".mythic-bk-kill-damage-btn")
         ?.addEventListener("click", async () => {
           if (typeof mythicCreateAttackDamagePreview !== "function") return;
-          const scopedPreviewData = buildRadiusDamagePreviewAttackData(attackData, {
-            damageTotal: computeKillRadiusPreviewDamageTotal(attackData),
-            damagePierce: Number(attackData?.damagePierce ?? 0),
-            label: "Kill",
-          });
+          const scopedPreviewData = buildRadiusDamagePreviewAttackData(
+            attackData,
+            {
+              damageTotal: computeKillRadiusPreviewDamageTotal(attackData),
+              damagePierce: Number(attackData?.damagePierce ?? 0),
+              label: "Kill",
+            },
+          );
           await mythicCreateAttackDamagePreview(msgId, scopedPreviewData, {
             attackIndex: 1,
           });
@@ -7597,9 +7945,15 @@ export function registerMythicDocumentAndChatHooks({
           const docs = Array.from(targetScene.templates ?? []);
           const owned = docs
             .filter((doc) => {
-              const flag = doc?.getFlag?.("Halo-Mythic-Foundry-Updated", "blastKillFlow");
+              const flag = doc?.getFlag?.(
+                "Halo-Mythic-Foundry-Updated",
+                "blastKillFlow",
+              );
               const sourceId = String(
-                doc?.getFlag?.("Halo-Mythic-Foundry-Updated", "sourceChatMessageId") ?? "",
+                doc?.getFlag?.(
+                  "Halo-Mythic-Foundry-Updated",
+                  "sourceChatMessageId",
+                ) ?? "",
               ).trim();
               return flag === true && sourceId === msgId;
             })
@@ -7607,7 +7961,10 @@ export function registerMythicDocumentAndChatHooks({
             .filter(Boolean);
           if (!owned.length) return;
           try {
-            await targetScene.deleteEmbeddedDocuments("MeasuredTemplate", owned);
+            await targetScene.deleteEmbeddedDocuments(
+              "MeasuredTemplate",
+              owned,
+            );
           } catch (_error) {
             return;
           }
@@ -7805,15 +8162,18 @@ export function registerMythicDocumentAndChatHooks({
         .querySelector(".mythic-blast-damage-btn")
         ?.addEventListener("click", async () => {
           if (typeof mythicCreateAttackDamagePreview !== "function") return;
-          const scopedPreviewData = buildRadiusDamagePreviewAttackData(attackData, {
-            damageTotal: Number(
-              attackData?.grenadeBlastDamage ?? attackData?.damageTotal ?? 0,
-            ),
-            damagePierce: Number(
-              attackData?.grenadeBlastPierce ?? attackData?.damagePierce ?? 0,
-            ),
-            label: "Blast",
-          });
+          const scopedPreviewData = buildRadiusDamagePreviewAttackData(
+            attackData,
+            {
+              damageTotal: Number(
+                attackData?.grenadeBlastDamage ?? attackData?.damageTotal ?? 0,
+              ),
+              damagePierce: Number(
+                attackData?.grenadeBlastPierce ?? attackData?.damagePierce ?? 0,
+              ),
+              label: "Blast",
+            },
+          );
           await mythicCreateAttackDamagePreview(msgId, scopedPreviewData, {
             attackIndex: 1,
           });
@@ -7822,16 +8182,23 @@ export function registerMythicDocumentAndChatHooks({
         .querySelector(".mythic-kill-damage-btn")
         ?.addEventListener("click", async () => {
           if (typeof mythicCreateAttackDamagePreview !== "function") return;
-          const scopedPreviewData = buildRadiusDamagePreviewAttackData(attackData, {
-            damageTotal: Number(
-              attackData?.grenadeKillDamage ??
-                (Number(attackData?.grenadeBlastDamage ?? attackData?.damageTotal ?? 0) * 2),
-            ),
-            damagePierce: Number(
-              attackData?.grenadeKillPierce ?? attackData?.damagePierce ?? 0,
-            ),
-            label: "Kill",
-          });
+          const scopedPreviewData = buildRadiusDamagePreviewAttackData(
+            attackData,
+            {
+              damageTotal: Number(
+                attackData?.grenadeKillDamage ??
+                  Number(
+                    attackData?.grenadeBlastDamage ??
+                      attackData?.damageTotal ??
+                      0,
+                  ) * 2,
+              ),
+              damagePierce: Number(
+                attackData?.grenadeKillPierce ?? attackData?.damagePierce ?? 0,
+              ),
+              label: "Kill",
+            },
+          );
           await mythicCreateAttackDamagePreview(msgId, scopedPreviewData, {
             attackIndex: 1,
           });
@@ -8391,62 +8758,114 @@ export function registerMythicDocumentAndChatHooks({
               );
               const tokenId = String(btn.dataset.tokenId ?? "");
               const actorId = String(btn.dataset.actorId ?? "");
+              const decodedInstances = (() => {
+                const raw = String(btn.dataset.damageInstances ?? "").trim();
+                if (!raw) return [];
+                try {
+                  const parsed = JSON.parse(decodeURIComponent(raw));
+                  return Array.isArray(parsed) ? parsed : [];
+                } catch (err) {
+                  console.warn(
+                    "[mythic-system] Failed to parse evasion damage instances:",
+                    err,
+                  );
+                  return [];
+                }
+              })();
+              const scopedRows = decodedInstances.length
+                ? decodedInstances.map((entry) => ({
+                    attackIndex: Number(entry?.attackIndex ?? attackIndex),
+                    damageTotal: Number(
+                      entry?.damageTotal ?? btn.dataset.damage ?? 0,
+                    ),
+                    damagePierce: Number(
+                      entry?.damagePierce ?? btn.dataset.pierce ?? 0,
+                    ),
+                    hitLoc: entry?.hitLoc
+                      ? foundry.utils.deepClone(entry.hitLoc)
+                      : {
+                          zone: String(btn.dataset.hitZone ?? "").trim(),
+                          subZone: String(btn.dataset.hitSubzone ?? "").trim(),
+                          drKey: String(btn.dataset.drKey ?? "").trim(),
+                        },
+                    hasSpecialDamage: Boolean(entry?.hasSpecialDamage),
+                    isHardlight: Boolean(entry?.isHardlight),
+                    ignoresShields: Boolean(entry?.ignoresShields),
+                    appliesShieldPierce: Boolean(entry?.appliesShieldPierce),
+                    explosiveShieldPierce: Boolean(
+                      entry?.explosiveShieldPierce,
+                    ),
+                    isPenetrating: Boolean(entry?.isPenetrating),
+                    isHeadshot: Boolean(entry?.isHeadshot),
+                    hasBlastOrKill: Boolean(entry?.hasBlastOrKill),
+                    radiusUsesLowestArmor: Boolean(
+                      entry?.radiusUsesLowestArmor,
+                    ),
+                    isKinetic: Boolean(entry?.isKinetic),
+                    specialAmmoSymbols: Array.isArray(entry?.specialAmmoSymbols)
+                      ? [...entry.specialAmmoSymbols]
+                      : [],
+                    ammoRound: entry?.ammoRound
+                      ? foundry.utils.deepClone(entry.ammoRound)
+                      : null,
+                  }))
+                : [
+                    {
+                      attackIndex,
+                      damageTotal: Number(
+                        btn.dataset.damage ?? btn.dataset.wounds ?? 0,
+                      ),
+                      damagePierce: Number(btn.dataset.pierce ?? 0),
+                      hitLoc: {
+                        zone: String(btn.dataset.hitZone ?? "").trim(),
+                        subZone: String(btn.dataset.hitSubzone ?? "").trim(),
+                        drKey: String(btn.dataset.drKey ?? "").trim(),
+                      },
+                      hasSpecialDamage:
+                        String(btn.dataset.specialDamage ?? "")
+                          .trim()
+                          .toLowerCase() === "true",
+                      isHardlight:
+                        String(btn.dataset.hardlight ?? "")
+                          .trim()
+                          .toLowerCase() === "true",
+                      ignoresShields:
+                        String(btn.dataset.ignoreShields ?? "")
+                          .trim()
+                          .toLowerCase() === "true",
+                      appliesShieldPierce:
+                        String(btn.dataset.shieldPierce ?? "")
+                          .trim()
+                          .toLowerCase() === "true",
+                      explosiveShieldPierce:
+                        String(btn.dataset.explosiveShield ?? "")
+                          .trim()
+                          .toLowerCase() === "true",
+                      isPenetrating:
+                        String(btn.dataset.penetrating ?? "")
+                          .trim()
+                          .toLowerCase() === "true",
+                      isHeadshot:
+                        String(btn.dataset.headshot ?? "")
+                          .trim()
+                          .toLowerCase() === "true",
+                      hasBlastOrKill:
+                        String(btn.dataset.blastKill ?? "")
+                          .trim()
+                          .toLowerCase() === "true",
+                      isKinetic:
+                        String(btn.dataset.kinetic ?? "")
+                          .trim()
+                          .toLowerCase() === "true",
+                    },
+                  ];
               const scopedAttackData = {
                 sceneId,
                 targetTokenId: tokenId || null,
                 targetTokenIds: tokenId ? [tokenId] : [],
                 targetActorId: actorId || null,
                 targetActorIds: actorId ? [actorId] : [],
-                evasionRows: [
-                  {
-                    attackIndex,
-                    damageTotal: Number(
-                      btn.dataset.damage ?? btn.dataset.wounds ?? 0,
-                    ),
-                    damagePierce: Number(btn.dataset.pierce ?? 0),
-                    hitLoc: {
-                      zone: String(btn.dataset.hitZone ?? "").trim(),
-                      subZone: String(btn.dataset.hitSubzone ?? "").trim(),
-                      drKey: String(btn.dataset.drKey ?? "").trim(),
-                    },
-                    hasSpecialDamage:
-                      String(btn.dataset.specialDamage ?? "")
-                        .trim()
-                        .toLowerCase() === "true",
-                    isHardlight:
-                      String(btn.dataset.hardlight ?? "")
-                        .trim()
-                        .toLowerCase() === "true",
-                    ignoresShields:
-                      String(btn.dataset.ignoreShields ?? "")
-                        .trim()
-                        .toLowerCase() === "true",
-                    appliesShieldPierce:
-                      String(btn.dataset.shieldPierce ?? "")
-                        .trim()
-                        .toLowerCase() === "true",
-                    explosiveShieldPierce:
-                      String(btn.dataset.explosiveShield ?? "")
-                        .trim()
-                        .toLowerCase() === "true",
-                    isPenetrating:
-                      String(btn.dataset.penetrating ?? "")
-                        .trim()
-                        .toLowerCase() === "true",
-                    isHeadshot:
-                      String(btn.dataset.headshot ?? "")
-                        .trim()
-                        .toLowerCase() === "true",
-                    hasBlastOrKill:
-                      String(btn.dataset.blastKill ?? "")
-                        .trim()
-                        .toLowerCase() === "true",
-                    isKinetic:
-                      String(btn.dataset.kinetic ?? "")
-                        .trim()
-                        .toLowerCase() === "true",
-                  },
-                ],
+                evasionRows: scopedRows,
               };
               await mythicCreateAttackDamagePreview(
                 message.id,
@@ -8472,6 +8891,145 @@ export function registerMythicDocumentAndChatHooks({
         }
         btn.addEventListener("click", async () => {
           if (typeof mythicApplyWoundDamage !== "function") return;
+          const previewInstances = (() => {
+            const raw = String(btn.dataset.damageInstances ?? "").trim();
+            if (!raw) return [];
+            try {
+              const parsed = JSON.parse(decodeURIComponent(raw));
+              return Array.isArray(parsed) ? parsed : [];
+            } catch (err) {
+              console.warn(
+                "[mythic-system] Failed to parse preview damage instances:",
+                err,
+              );
+              return [];
+            }
+          })();
+          if (previewInstances.length) {
+            for (const row of previewInstances) {
+              const ammoRound = row?.ammoRound ?? null;
+              await mythicApplyWoundDamage(
+                btn.dataset.actorId,
+                Number(row?.damageTotal ?? 0),
+                btn.dataset.tokenId,
+                btn.dataset.sceneId,
+                {
+                  hasSpecialDamage: Boolean(row?.hasSpecialDamage),
+                  hitLoc: row?.hitLoc
+                    ? foundry.utils.deepClone(row.hitLoc)
+                    : null,
+                  isHardlight: Boolean(row?.isHardlight),
+                  resolveHit: true,
+                  damagePierce: Number(row?.damagePierce ?? 0),
+                  drKey: String(row?.hitLoc?.drKey ?? ""),
+                  ignoresShields: Boolean(row?.ignoresShields),
+                  appliesShieldPierce: Boolean(row?.appliesShieldPierce),
+                  explosiveShieldPierce: Boolean(row?.explosiveShieldPierce),
+                  isPenetrating: Boolean(row?.isPenetrating),
+                  isHeadshot: Boolean(row?.isHeadshot),
+                  hasBlastOrKill: Boolean(row?.hasBlastOrKill),
+                  radiusUsesLowestArmor: Boolean(row?.radiusUsesLowestArmor),
+                  isKinetic: Boolean(row?.isKinetic),
+                  specialAmmoSymbols: Array.isArray(row?.specialAmmoSymbols)
+                    ? [...row.specialAmmoSymbols]
+                    : [],
+                  specialAmmoRounds: ammoRound
+                    ? [foundry.utils.deepClone(ammoRound)]
+                    : [],
+                },
+              );
+            }
+            return;
+          }
+          const sourceMessageId = String(
+            btn.dataset.sourceMessageId ?? "",
+          ).trim();
+          const attackIndex = Number(btn.dataset.attackIndex ?? 0);
+          if (
+            sourceMessageId &&
+            Number.isFinite(attackIndex) &&
+            attackIndex > 0
+          ) {
+            const sourceMsg = game.messages.get(sourceMessageId) ?? null;
+            const sourceAttackData =
+              sourceMsg?.flags?.["Halo-Mythic-Foundry-Updated"]?.attackData ??
+              null;
+            const sourceRows = Array.isArray(sourceAttackData?.evasionRows)
+              ? sourceAttackData.evasionRows.filter(
+                  (row) => Number(row?.attackIndex ?? 0) === attackIndex,
+                )
+              : [];
+            if (sourceRows.length) {
+              const sourceOverridesRaw = sourceMsg?.getFlag(
+                "Halo-Mythic-Foundry-Updated",
+                "attackRowOverrides",
+              );
+              const sourceOverride =
+                sourceOverridesRaw &&
+                typeof sourceOverridesRaw === "object" &&
+                !Array.isArray(sourceOverridesRaw)
+                  ? (sourceOverridesRaw[String(attackIndex)] ?? null)
+                  : null;
+              const effectiveSourceRows = sourceRows.map((row, index) => {
+                const cloned = foundry.utils.deepClone(row);
+                if (!sourceOverride) return cloned;
+                const hitOverrides = Array.isArray(
+                  sourceOverride?.damageInstances,
+                )
+                  ? sourceOverride.damageInstances
+                  : [];
+                const hitOverride =
+                  hitOverrides.find(
+                    (entry) => Number(entry?.hitIndex ?? 0) === index + 1,
+                  ) ??
+                  hitOverrides[index] ??
+                  sourceOverride;
+                if (Number.isFinite(Number(hitOverride?.damage)))
+                  cloned.damageTotal = Number(hitOverride.damage);
+                if (Number.isFinite(Number(hitOverride?.pierce)))
+                  cloned.damagePierce = Number(hitOverride.pierce);
+                if (typeof hitOverride?.specialDamageApplies === "boolean")
+                  cloned.hasSpecialDamage = hitOverride.specialDamageApplies;
+                return cloned;
+              });
+              for (const row of effectiveSourceRows) {
+                const ammoRound = row?.ammoRound ?? null;
+                await mythicApplyWoundDamage(
+                  btn.dataset.actorId,
+                  Number(row?.damageTotal ?? 0),
+                  btn.dataset.tokenId,
+                  btn.dataset.sceneId,
+                  {
+                    hasSpecialDamage: Boolean(row?.hasSpecialDamage),
+                    hitLoc: row?.hitLoc
+                      ? foundry.utils.deepClone(row.hitLoc)
+                      : null,
+                    isHardlight: Boolean(row?.isHardlight),
+                    resolveHit: true,
+                    damagePierce: Number(row?.damagePierce ?? 0),
+                    drKey: String(row?.hitLoc?.drKey ?? ""),
+                    ignoresShields: Boolean(row?.ignoresShields),
+                    appliesShieldPierce: Boolean(row?.appliesShieldPierce),
+                    explosiveShieldPierce: Boolean(row?.explosiveShieldPierce),
+                    isPenetrating: Boolean(row?.isPenetrating),
+                    isHeadshot: Boolean(row?.isHeadshot),
+                    hasBlastOrKill: Boolean(row?.hasBlastOrKill),
+                    radiusUsesLowestArmor: Boolean(row?.radiusUsesLowestArmor),
+                    isKinetic: Boolean(row?.isKinetic),
+                    specialAmmoSymbols: Array.isArray(row?.specialAmmoSymbols)
+                      ? [...row.specialAmmoSymbols]
+                      : [],
+                    specialAmmoRounds: ammoRound
+                      ? [foundry.utils.deepClone(ammoRound)]
+                      : [],
+                  },
+                );
+              }
+              return;
+            }
+          }
+
+          // Legacy fallback for older preview cards.
           await mythicApplyWoundDamage(
             btn.dataset.actorId,
             Number(btn.dataset.damage ?? 0),

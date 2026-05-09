@@ -1,0 +1,207 @@
+<section class="mythic-workbench">
+  <header class="mythic-workbench-header">
+    <div class="mythic-workbench-title-block">
+      <div class="mythic-workbench-title">{{title}}</div>
+      <div class="mythic-workbench-item-name">{{itemName}}</div>
+      <div class="mythic-workbench-subtitle">{{subtitle}}</div>
+    </div>
+
+    <div class="mythic-workbench-header-actions">
+      <button type="button" class="action-btn" data-action="open-item" title="Open item sheet" aria-label="Open item sheet"><i class="fas fa-arrow-up-right-from-square"></i></button>
+    </div>
+  </header>
+
+  <div class="mythic-workbench-body">
+    <aside class="mythic-workbench-panel mythic-workbench-summary">
+      <div class="mythic-workbench-panel-title">Item Summary</div>
+
+      <div class="mythic-workbench-summary-lines">
+        {{#each itemStats as |stat|}}
+          <div class="mythic-workbench-summary-row">
+            <span class="mythic-workbench-summary-label">{{stat.label}}</span>
+            <span class="mythic-workbench-summary-value">{{stat.value}}</span>
+          </div>
+        {{/each}}
+      </div>
+
+      {{#if builtInMods.length}}
+        <div class="mythic-workbench-section">
+          <div class="mythic-workbench-section-title">Built-In Systems</div>
+          <div class="mythic-workbench-mod-list">
+            {{#each builtInMods as |mod|}}
+              <div class="mythic-workbench-mod-row builtin">
+                <span class="mythic-workbench-mod-name">{{mod.name}}</span>
+                <span class="mythic-workbench-mod-meta">{{mod.mountLabel}}</span>
+                {{#if mod.requiresReplacement}}<span class="mythic-workbench-badge builtin">REQUIRES REPLACEMENT</span>{{/if}}
+                {{#if mod.removable}}<span class="mythic-workbench-badge installed">REMOVABLE</span>{{else}}<span class="mythic-workbench-badge blocked">LOCKED</span>{{/if}}
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      {{/if}}
+
+      {{#if installedMods.length}}
+        <div class="mythic-workbench-section">
+          <div class="mythic-workbench-section-title">Installed Mods</div>
+          <div class="mythic-workbench-mod-list">
+            {{#each installedMods as |mod|}}
+              <div class="mythic-workbench-mod-row" data-installed-id="{{mod.id}}">
+                <span class="mythic-workbench-mod-name">{{mod.name}}</span>
+                <span class="mythic-workbench-mod-meta">{{mod.mountLabel}}</span>
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      {{/if}}
+    </aside>
+
+    <main class="mythic-workbench-panel mythic-workbench-slots">
+      <div class="mythic-workbench-panel-title">Mod Slots</div>
+      <div class="mythic-workbench-slots-grid">
+        {{#each slots as |slot|}}
+          <div
+            class="mythic-workbench-slot-card {{#if slot.isSelected}}selected{{/if}} {{#if slot.isBlocked}}blocked{{/if}} {{#if slot.isFull}}full{{/if}}"
+            data-slot-id="{{slot.id}}"
+            data-slot-mount="{{slot.mount}}"
+            title="Click to select. Drop a mod to install."
+          >
+            <div class="mythic-workbench-slot-card-top">
+              <div class="mythic-workbench-slot-name">{{slot.label}}</div>
+              <div class="mythic-workbench-slot-capacity">{{slot.used}} / {{slot.capacity}}</div>
+            </div>
+            <div class="mythic-workbench-slot-card-bottom">
+              <span class="mythic-workbench-slot-state">
+                {{#if slot.isBlocked}}
+                  <span class="mythic-workbench-badge blocked">BLOCKED</span>
+                {{else if slot.isFull}}
+                  <span class="mythic-workbench-badge full">FULL</span>
+                {{else if (eq slot.state "builtin")}}
+                  <span class="mythic-workbench-badge builtin">BUILT-IN</span>
+                {{else if (eq slot.state "installed")}}
+                  <span class="mythic-workbench-badge installed">INSTALLED</span>
+                {{else}}
+                  <span class="mythic-workbench-badge empty">EMPTY</span>
+                {{/if}}
+              </span>
+              <span class="mythic-workbench-slot-drophint">Drop here</span>
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    </main>
+
+    <aside class="mythic-workbench-panel mythic-workbench-detail">
+      <div class="mythic-workbench-panel-title">Slot Detail</div>
+
+      {{#if selectedSlot}}
+        <div class="mythic-workbench-detail-header">
+          <div class="mythic-workbench-detail-slot">{{selectedSlot.label}}</div>
+          <div class="mythic-workbench-detail-cap">{{selectedSlot.used}} / {{selectedSlot.capacity}}</div>
+        </div>
+
+        <div class="mythic-workbench-section">
+          <div class="mythic-workbench-section-title">Installed In Slot</div>
+          {{#if slotInstalledMods.length}}
+            <div class="mythic-workbench-mod-list">
+              {{#each slotInstalledMods as |mod|}}
+                <div class="mythic-workbench-mod-row {{#if (eq ../selectedInstalledId mod.id)}}selected{{/if}}" data-installed-id="{{mod.id}}">
+                  <span class="mythic-workbench-mod-name">{{mod.name}}</span>
+                  <span class="mythic-workbench-mod-meta">{{mod.mountLabel}}</span>
+                </div>
+              {{/each}}
+            </div>
+          {{else}}
+            <div class="mythic-workbench-empty">None</div>
+          {{/if}}
+        </div>
+
+        <div class="mythic-workbench-section">
+          <div class="mythic-workbench-section-title">Available Mods</div>
+
+          <div class="mythic-workbench-search-row">
+            <input
+              type="search"
+              class="mythic-workbench-search"
+              data-role="mod-search"
+              placeholder="Search mods..."
+              value="{{modSearch}}"
+              spellcheck="false"
+            />
+          </div>
+
+          {{#if availableModsLoading}}
+            <div class="mythic-workbench-empty mythic-workbench-loading">Loading compatible mods...</div>
+          {{else if availableMods.length}}
+            <div class="mythic-workbench-mod-list-scroll" data-role="available-mods-scroll">
+              <div class="mythic-workbench-mod-list">
+                {{#each availableMods as |mod|}}
+                  <div class="mythic-workbench-mod-row {{#if mod.selected}}selected{{/if}}" data-mod-uuid="{{mod.uuid}}" data-mod-name="{{mod.name}}">
+                    <span class="mythic-workbench-mod-name">{{mod.name}}</span>
+                    <span class="mythic-workbench-mod-meta">ΔW {{mod.weightDelta}} / ΔcR {{mod.costDelta}}</span>
+                  </div>
+                {{/each}}
+              </div>
+            </div>
+          {{else}}
+            <div class="mythic-workbench-empty">No compatible mods found.</div>
+          {{/if}}
+
+          <button type="button" class="action-btn mythic-workbench-toggle-incompat" data-action="toggle-incompatible">
+            {{#if showIncompatible}}Hide Incompatible{{else}}Show Incompatible{{/if}}
+          </button>
+
+          {{#if showIncompatible}}
+            {{#if incompatibleMods.length}}
+              <div class="mythic-workbench-mod-list-scroll" data-role="incompatible-mods-scroll">
+                <div class="mythic-workbench-mod-list">
+                  {{#each incompatibleMods as |mod|}}
+                    <div class="mythic-workbench-mod-row disabled {{#if mod.selected}}selected{{/if}}" data-mod-uuid="{{mod.uuid}}" data-mod-name="{{mod.name}}">
+                      <span class="mythic-workbench-mod-name">{{mod.name}}</span>
+                      <span class="mythic-workbench-mod-meta">{{mod.reasons.[0]}}</span>
+                    </div>
+                  {{/each}}
+                </div>
+              </div>
+            {{/if}}
+          {{/if}}
+        </div>
+
+        <div class="mythic-workbench-section mythic-workbench-preview">
+          <div class="mythic-workbench-section-title">Preview</div>
+          {{#if previewChanges.length}}
+            {{#each previewChanges as |chg|}}
+              <div class="mythic-workbench-preview-row">
+                <span class="mythic-workbench-preview-key">{{chg.key}}</span>
+                <span class="mythic-workbench-preview-val {{#if (gt chg.delta 0)}}pos{{else if (lt chg.delta 0)}}neg{{/if}}">
+                  {{#if (gt chg.delta 0)}}+{{/if}}{{chg.delta}}
+                </span>
+              </div>
+            {{/each}}
+          {{else}}
+            <div class="mythic-workbench-empty">Select a mod to preview changes.</div>
+          {{/if}}
+
+          {{#if warnings.length}}
+            {{#each warnings as |w|}}
+              <div class="mythic-workbench-warning">{{w}}</div>
+            {{/each}}
+          {{/if}}
+        </div>
+      {{else}}
+        <div class="mythic-workbench-empty">Select a slot to view compatible modifications.</div>
+      {{/if}}
+    </aside>
+  </div>
+
+  <footer class="mythic-workbench-footer">
+    <div class="mythic-workbench-footer-left">
+      <button type="button" class="action-btn" data-action="remove-mod" {{#unless canRemove}}disabled{{/unless}}>Remove Mod</button>
+      <button type="button" class="action-btn" data-action="replace-mod" {{#unless canReplace}}disabled{{/unless}}>Replace Mod</button>
+      <button type="button" class="action-btn" data-action="reset-preview">Reset Preview</button>
+    </div>
+    <div class="mythic-workbench-footer-right">
+      <button type="button" class="action-btn primary" data-action="apply-mod" {{#unless canApply}}disabled{{/unless}}>Apply Mod</button>
+      <button type="button" class="action-btn" data-action="close">Close</button>
+    </div>
+  </footer>
+</section>

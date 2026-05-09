@@ -1,5 +1,5 @@
 import { normalizeStringList, normalizeLookupText } from "../utils/helpers.mjs";
-import { normalizeCharacterSystemData } from "../data/normalization.mjs";
+import { normalizeActorCharacterSystemData } from "../mechanics/final-characteristics.mjs";
 
 export const creationPathDropMethods = {
   async _onCreationDrop(event) {
@@ -112,7 +112,7 @@ export const creationPathDropMethods = {
     const kind = String(button?.dataset?.kind ?? "").trim().toLowerCase();
     const slotIndex = Number(button?.dataset?.slotIndex ?? -1);
 
-    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const systemData = normalizeActorCharacterSystemData(this.actor, this.actor.system);
     const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
     creationPath.lifestyles ??= [];
 

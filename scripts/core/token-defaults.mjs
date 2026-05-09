@@ -1,5 +1,5 @@
 import { MYTHIC_TOKEN_BAR_VISIBILITY_SETTING_KEY } from "../config.mjs";
-import { normalizeCharacterSystemData } from "../data/normalization.mjs";
+import { normalizeActorCharacterSystemData } from "../mechanics/final-characteristics.mjs";
 import { toNonNegativeWhole } from "../utils/helpers.mjs";
 
 export function getMythicTokenBarDisplayMode() {
@@ -39,7 +39,9 @@ export async function applyMythicTokenDefaultsToWorld() {
 
   const characterActors = game.actors?.filter((actor) => actor.type === "character") ?? [];
   for (const actor of characterActors) {
-    const normalized = normalizeCharacterSystemData(actor.system ?? {});
+    const normalized = normalizeActorCharacterSystemData(actor, actor.system ?? {}, {
+      traceLabel: "world token defaults actor",
+    });
     const tokenDefaults = getMythicTokenDefaultsForCharacter(normalized);
     const currentBar1 = String(actor.prototypeToken?.bar1?.attribute ?? "");
     const currentBar2 = actor.prototypeToken?.bar2?.attribute ?? null;
@@ -63,7 +65,9 @@ export async function applyMythicTokenDefaultsToWorld() {
     for (const token of scene.tokens.contents) {
       const actor = token.actor;
       if (!actor || actor.type !== "character") continue;
-      const normalized = normalizeCharacterSystemData(actor.system ?? {});
+      const normalized = normalizeActorCharacterSystemData(actor, actor.system ?? {}, {
+        traceLabel: "world token defaults token",
+      });
       const tokenDefaults = getMythicTokenDefaultsForCharacter(normalized);
       const currentBar1 = String(token.bar1?.attribute ?? "");
       const currentBar2 = token.bar2?.attribute ?? null;

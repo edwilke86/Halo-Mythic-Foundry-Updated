@@ -1,0 +1,40 @@
+[
+    {
+        "name":"2x scope",
+        "sourcePage": "144",
+        "type": "optic",
+        "magnification": 2,
+        "modular": false,
+        "weight": 0.1,
+        "cr": 4,
+        "desc": "2x scope",
+        "mount": "upper",
+        "toHit": 0
+    },
+    {
+        "name":"S-C 8x scope",
+        "sourcePage": "144",
+        "type": "sniper optic",
+        "magnification": 8,
+        "modular": false,
+        "weight": 0.4,
+        "cr": 14,
+        "desc": "8x scope",
+        "mount": "upper",
+        "toHit": 0
+    },
+    {
+        "name":"KFA-2 2x",
+        "sourcePage": "144",
+        "type": "smartlink",
+        "magnification": 2,
+        "modular": false,
+        "weight": 0.2,
+        "cr": 14,
+        "desc": "2x Smartlink-Only Scope.",
+        "mount": "any",
+        "toHitSmart": 0,
+        "toHitClose": 0
+    }
+]
+

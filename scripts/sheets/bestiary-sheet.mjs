@@ -35,7 +35,7 @@ import {
   computeFatigueState,
   getWorldGravity
 } from "../mechanics/derived.mjs";
-import { consumeActorHalfActions, isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
+import { consumeActorHalfActions, isActorActivelyInCombat, spendActorReaction } from "../mechanics/action-economy.mjs";
 import {
   parseFireModeProfile,
   getAttackIterationsForProfile,
@@ -50,6 +50,7 @@ import {
   loadMythicSpecialDamageDefinitions
 } from "../data/content-loading.mjs";
 import { openEffectReferenceDialog } from "../ui/effect-reference-dialog.mjs";
+import { openMythicWeaponWorkbench } from "../ui/weapon-workbench.mjs";
 import {
   buildInitiativeChatCard,
   buildUniversalTestChatCard
@@ -864,6 +865,17 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
         e.preventDefault();
         const id = String(b.dataset.itemId ?? "").trim();
         if (id) this.actor.items.get(id)?.sheet?.render(true);
+      });
+    });
+
+    root.querySelectorAll(".weapon-workbench-open-btn[data-item-id]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const itemId = String(event.currentTarget?.dataset?.itemId ?? "").trim();
+        if (!itemId) return;
+        const item = this.actor.items.get(itemId);
+        if (!item) return;
+        openMythicWeaponWorkbench(item);
       });
     });
 
@@ -1734,12 +1746,7 @@ export class MythicBestiarySheet extends HandlebarsApplicationMixin(ActorSheetV2
 
   async _onReactionAdd(event) {
     event.preventDefault();
-    if (!isActorActivelyInCombat(this.actor)) {
-      ui.notifications?.info("Turn economy is only tracked for active combatants.");
-      return;
-    }
-    const current = Math.max(0, Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)));
-    await this.actor.update({ "system.combat.reactions.count": current + 1 });
+    await spendActorReaction(this.actor, { notify: true });
   }
 
   async _onAdvanceHalfAction(event) {

@@ -1,6 +1,7 @@
 import { normalizeLookupText, toNonNegativeWhole } from "../utils/helpers.mjs";
 import { normalizeBestiarySystemData, normalizeCharacterSystemData } from "../data/normalization.mjs";
 import { computeCharacteristicModifiers, computeFatigueState } from "../mechanics/derived.mjs";
+import { normalizeActorCharacterSystemData } from "../mechanics/final-characteristics.mjs";
 import { loadMythicFearEffectDefinitions } from "../data/content-loading.mjs";
 import { getBerserkerState } from "../mechanics/berserker.mjs";
 import { openEffectReferenceDialog } from "../ui/effect-reference-dialog.mjs";
@@ -91,7 +92,12 @@ function canUserRunFearFlow(actor = null) {
 }
 
 function getCharacteristicScore(actor, key) {
-  const normalized = normalizeCharacterSystemData(actor?.system ?? {});
+  const normalized =
+    actor?.type === "character"
+      ? normalizeActorCharacterSystemData(actor, actor?.system ?? {}, {
+          traceLabel: "chat fear characteristic score",
+        })
+      : normalizeCharacterSystemData(actor?.system ?? {});
   return toNonNegativeWhole(normalized?.characteristics?.[key], 0);
 }
 
@@ -104,7 +110,9 @@ function getFatigueRollModifier(actor = null) {
   const actorType = String(actor?.type ?? "").trim().toLowerCase();
   const normalized = actorType === "bestiary"
     ? normalizeBestiarySystemData(actor?.system ?? {})
-    : normalizeCharacterSystemData(actor?.system ?? {});
+    : normalizeActorCharacterSystemData(actor, actor?.system ?? {}, {
+        traceLabel: "chat fear fatigue",
+      });
   const modifiers = computeCharacteristicModifiers(normalized?.characteristics ?? {});
   const fatigue = computeFatigueState(normalized, {
     preFatigueTouModifier: modifiers?.tou
@@ -277,7 +285,9 @@ function buildPtsdTrackedEffectEntry({
 }
 
 async function addPtsdEffectToActor(actor, effectEntry, sourceShockMessageId) {
-  const normalized = normalizeCharacterSystemData(actor?.system ?? {});
+  const normalized = normalizeActorCharacterSystemData(actor, actor?.system ?? {}, {
+    traceLabel: "chat fear add ptsd",
+  });
   const currentEffects = Array.isArray(normalized?.medical?.activeEffects) ? [...normalized.medical.activeEffects] : [];
   const existing = currentEffects.find((entry) => {
     const metadata = (entry?.metadata && typeof entry.metadata === "object") ? entry.metadata : {};

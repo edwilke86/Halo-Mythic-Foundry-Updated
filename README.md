@@ -6,15 +6,15 @@ This project is actively in development and currently targets Foundry v13.
 
 ## Current Status
 
-- Implemented: modular v13 system architecture, unified actor/item sheets, characteristic and combat automation foundations, fear/shock/PTSD chat workflow, tracked medical effects with structured duration controls, staged grenade throw/cook resolution, ammo split/uncarry handling, new vehicle mobility controls, outlier-aware sheet behavior, and expanded system compendium sync coverage (weapons, armor, equipment, bestiary baseline).
+- Implemented: modular v13 system architecture, unified actor/item sheets, characteristic and combat automation foundations, fear/shock/PTSD chat workflow, tracked medical effects with structured duration controls, staged grenade throw/cook resolution, ammo split/uncarry handling, new vehicle mobility controls, outlier-aware sheet behavior, weapon modification workflow foundations, and expanded system compendium sync coverage (weapons, weapon mods, armor, equipment, bestiary baseline).
 - In progress: deeper rules automation, Character Creation and Advancement parity polish, compendium/content coverage expansion, and continued vehicle/crew UX hardening.
 - Release notes and current public progress are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Alpha Readiness
 
-Current build target: `0.5.0-alpha.4` (current feature alpha)
+Current build target: `0.5.0-alpha.5` (current feature alpha)
 
-Latest published release: `0.5.0-alpha.4` (2026-05-04)
+Latest published release: `0.5.0-alpha.5` (2026-05-09)
 
 Known alpha limitations:
 
@@ -29,6 +29,7 @@ Recommended alpha test focus:
 2. Token HUD interactions, especially wounds/shields, vehicle breakpoints, and the default-HUD toggle.
 3. Vehicle mobility panel behavior for walker movement, acceleration, braking, and speed display updates.
 4. Outlier-driven character notes and related combat affordances such as Head-butt handling.
+5. Weapon modification install/remove behavior, especially optic, rail, barrel, conversion, Covenant pattern, and Banished/Covenant modification content.
 
 Alpha bug reporting focus (important):
 
@@ -46,7 +47,7 @@ Where to report:
 
 Bug report format (copy/paste):
 
-1. Build/version: `0.5.0-alpha.4` (or latest published build in use)
+1. Build/version: `0.5.0-alpha.5` (or latest published build in use)
 2. Actor type and whether newly created or existing
 3. Exact steps to reproduce
 4. Expected result
@@ -65,8 +66,8 @@ Format:
 
 Current working version:
 
-- Development target: `0.5.0-alpha.4`
-- Latest published: `0.5.0-alpha.4`
+- Development target: `0.5.0-alpha.5`
+- Latest published: `0.5.0-alpha.5`
 
 Rules used:
 
@@ -77,6 +78,12 @@ Rules used:
 ## Progress Log (Keep Updated)
 
 Use this section for short public-facing updates as development progresses.
+
+### 0.5.0-alpha.5
+
+- Added weapon modification workflow foundations, including new weapon mod definition data, compendium sync support, and the weapon workbench UI surface.
+- Added generated compendium packs for optic, rail, barrel, conversion, Covenant pattern, Covenant infantry alteration, and Banished weapon modification content.
+- Improved final-characteristic and wounds normalization paths for managed character actors, with a GM repair macro for stale character-builder actors.
 
 ### 0.5.0-alpha.1
 

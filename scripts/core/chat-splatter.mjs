@@ -1,7 +1,8 @@
 import { normalizeSkillsData } from "../data/normalization.mjs";
 import { computeCharacteristicModifiers, computeCharacterDerivedValues, computeFatigueState } from "../mechanics/derived.mjs";
+import { prepareCharacterSystemForNormalization } from "../mechanics/final-characteristics.mjs";
 import { computeAttackDOS } from "../mechanics/combat.mjs";
-import { isActorActivelyInCombat } from "../mechanics/action-economy.mjs";
+import { spendActorReaction } from "../mechanics/action-economy.mjs";
 import {
   calculateSplatterFollowupOutcome,
   calculateVehicleSplatter,
@@ -16,13 +17,6 @@ import { mythicApplyWoundDamage } from "./chat-combat.mjs";
 
 const SYSTEM_ID = "Halo-Mythic-Foundry-Updated";
 
-async function consumeReactionCount(actor, amount = 1) {
-  const delta = Math.max(0, Math.floor(Number(amount ?? 0)));
-  if (!actor || delta <= 0 || !isActorActivelyInCombat(actor)) return;
-  const freshActor = game.actors?.get?.(String(actor.id ?? "")) ?? actor;
-  const current = Math.max(0, Math.floor(Number(freshActor.system?.combat?.reactions?.count ?? 0)));
-  await freshActor.update({ "system.combat.reactions.count": current + delta });
-}
 const ARMOR_KEYS = Object.freeze([
   Object.freeze({ key: "head", label: "Head" }),
   Object.freeze({ key: "chest", label: "Chest" }),
@@ -36,9 +30,17 @@ function esc(value) {
   return foundry.utils.escapeHTML(String(value ?? ""));
 }
 
+function getPreparedActorSystem(actor) {
+  if (actor?.type !== "character") return actor?.system ?? {};
+  return prepareCharacterSystemForNormalization(actor, actor.system ?? {}, {
+    traceLabel: "chat splatter prepare actor system",
+  }).systemData;
+}
+
 function getFatigueRollModifier(actor = null) {
-  const modifiers = computeCharacteristicModifiers(actor?.system?.characteristics ?? {});
-  const fatigue = computeFatigueState(actor?.system ?? {}, {
+  const systemData = getPreparedActorSystem(actor);
+  const modifiers = computeCharacteristicModifiers(systemData?.characteristics ?? {});
+  const fatigue = computeFatigueState(systemData ?? {}, {
     preFatigueTouModifier: modifiers?.tou
   });
   return Number(fatigue?.penalty ?? 0) || 0;
@@ -59,7 +61,7 @@ function formatDegree(value = 0) {
 }
 
 function getActorCharacteristic(actor, key = "str") {
-  return toNonNegativeWhole(actor?.system?.characteristics?.[key], 0);
+  return toNonNegativeWhole(getPreparedActorSystem(actor)?.characteristics?.[key], 0);
 }
 
 function getTargetRefsFromCanvas(vehicleActorId = "") {
@@ -121,7 +123,7 @@ function canUserRollSplatterForTargets(splatterData = {}) {
 
 function getLowestDrEntry(actor) {
   const armor = actor?.system?.combat?.dr?.armor ?? {};
-  const derived = computeCharacterDerivedValues(actor?.system ?? {});
+  const derived = computeCharacterDerivedValues(getPreparedActorSystem(actor));
   const toughnessDr = Math.max(0, Number(derived?.touCombined ?? 0) || 0);
   const naturalArmorBody = Math.max(0, Number(derived?.naturalArmor?.effectiveValue ?? 0) || 0);
   const naturalArmorHead = Math.max(0, Number(derived?.naturalArmor?.headShotValue ?? derived?.naturalArmor?.effectiveValue ?? 0) || 0);
@@ -353,22 +355,24 @@ export async function mythicRollVehicleSplatterEvasion(messageId, splatterData =
     if (miscModifier === null) return;
 
     const targetActor = targetEntry.actor;
-    const skillsNorm = normalizeSkillsData(targetActor.system?.skills);
+    const targetToken = targetEntry.token ?? null;
+    const reactionSpend = await spendActorReaction(targetActor, {
+      token: targetToken,
+      combat: game.combat
+    });
+    const evadingActor = reactionSpend?.actor ?? targetActor;
+    const skillsNorm = normalizeSkillsData(evadingActor.system?.skills);
     const evasionSkill = skillsNorm.base?.evasion ?? {};
     const tierBonus = getSkillTierBonus(evasionSkill.tier ?? "untrained", evasionSkill.category ?? "basic");
-    const agility = getActorCharacteristic(targetActor, "agi");
+    const agility = getActorCharacteristic(evadingActor, "agi");
     const evasionMod = Number(evasionSkill.modifier ?? 0) || 0;
-    const tracksReactions = isActorActivelyInCombat(targetActor);
-    const reactionCount = tracksReactions ? toNonNegativeWhole(targetActor.system?.combat?.reactions?.count, 0) : 0;
+    const reactionCount = reactionSpend?.previousCount ?? 0;
     const reactionPenalty = reactionCount * -10;
-    const fatiguePenalty = getFatigueRollModifier(targetActor);
+    const fatiguePenalty = getFatigueRollModifier(evadingActor);
     const targetNumber = Math.max(0, Math.floor(agility + tierBonus + evasionMod + reactionPenalty + miscModifier + fatiguePenalty));
     const roll = await new Roll("1d100").evaluate();
     rolls.push(roll);
     const dosValue = computeAttackDOS(targetNumber, Number(roll.total ?? 0));
-    if (tracksReactions) {
-      await consumeReactionCount(targetActor, 1);
-    }
     rows.push({
       target,
       roll,

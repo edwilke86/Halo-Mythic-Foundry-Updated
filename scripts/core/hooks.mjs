@@ -23,7 +23,16 @@ import {
   MYTHIC_ARMOR_DEFINITIONS_PATH,
   MYTHIC_RANGED_WEAPON_DEFINITIONS_PATH,
   MYTHIC_MELEE_WEAPON_DEFINITIONS_PATH,
+  MYTHIC_WEAPON_OPTICS_DEFINITIONS_PATH,
+  MYTHIC_WEAPON_RAILS_DEFINITIONS_PATH,
+  MYTHIC_WEAPON_BARRELS_DEFINITIONS_PATH,
+  MYTHIC_WEAPON_CONVERSIONS_DEFINITIONS_PATH,
+  MYTHIC_COVENANT_WEAPON_PATTERNS_PRIMARY_DEFINITIONS_PATH,
+  MYTHIC_COVENANT_WEAPON_PATTERNS_SECONDARY_DEFINITIONS_PATH,
+  MYTHIC_COVENANT_WEAPON_PATTERNS_TACTICAL_DEFINITIONS_PATH,
+  MYTHIC_COVENANT_INFANTRY_ALTERATIONS_DEFINITIONS_PATH,
   MYTHIC_REFERENCE_BESTIARY_CSV,
+  MYTHIC_BANISHED_WEAPON_MODIFICATIONS_DEFINITIONS_PATH,
   MYTHIC_REFERENCE_VEHICLES_CSV,
   MYTHIC_REFERENCE_VEHICLE_WEAPON_OVERRIDES_JSON,
   MYTHIC_REFERENCE_SOLDIER_TYPES_JSON,
@@ -88,6 +97,12 @@ import {
 import {
   computeCharacteristicModifiers
 } from "../mechanics/derived.mjs";
+import {
+  normalizeActorCharacterSystemData,
+  primeCreationPathDocCaches,
+} from "../mechanics/final-characteristics.mjs";
+
+const MYTHIC_SYSTEM_DEBUG_LOGS = false;
 
 import {
   loadMythicAbilityDefinitions,
@@ -192,6 +207,15 @@ import {
   refreshTraitsCompendium,
   refreshGeneralEquipmentCompendiums,
   refreshArmorCompendiums,
+  refreshWeaponOpticsCompendium,
+  refreshWeaponRailsCompendium,
+  refreshWeaponBarrelsCompendium,
+  refreshWeaponConversionsCompendium,
+  refreshCovenantWeaponPatternsPrimaryCompendium,
+  refreshCovenantWeaponPatternsSecondaryCompendium,
+  refreshCovenantWeaponPatternsTacticalCompendium,
+  refreshCovenantInfantryAlterationsCompendium,
+  refreshBanishedWeaponModificationsCompendium,
   rebuildArmorCompendiumsFromJson,
   getArmorCompendiumDescriptor,
   organizeEquipmentCompendiumFolders,
@@ -200,7 +224,17 @@ import {
   loadReferenceSoldierTypeItems,
   loadReferenceSoldierTypeItemsFromJson,
   loadReferenceGeneralEquipmentItemsFromJson,
-  loadReferenceArmorItemsFromJson
+  loadReferenceArmorItemsFromJson,
+  loadReferenceWeaponOpticItemsFromJson,
+  loadReferenceWeaponRailItemsFromJson,
+  loadReferenceWeaponBarrelItemsFromJson,
+  loadReferenceWeaponConversionItemsFromJson,
+  previewCovenantWeaponPatternsPrimary,
+  previewCovenantWeaponPatternsSecondary,
+  previewCovenantWeaponPatternsTactical,
+  previewCovenantInfantryAlterations
+  ,
+  previewBanishedWeaponModifications
 } from "../reference/compendium-management.mjs";
 import {
   flushPendingCompendiumRefreshes,
@@ -213,6 +247,7 @@ import { MythicBestiarySheet } from "../sheets/bestiary-sheet.mjs";
 import { MythicGroupSheet } from "../sheets/group-sheet.mjs";
 import { MythicItemSheet } from "../sheets/item-sheet.mjs";
 import { MythicContainerSheet, openMythicContainerSheet } from "../sheets/container-sheet.mjs";
+import { openMythicWeaponWorkbench } from "../ui/weapon-workbench.mjs";
 import { MythicSoldierTypeSheet } from "../sheets/soldier-type-sheet.mjs";
 import { MythicEducationSheet } from "../sheets/education-sheet.mjs";
 import { MythicAbilitySheet } from "../sheets/ability-sheet.mjs";
@@ -270,7 +305,9 @@ async function clearLegacyVehicleSheetOverrides() {
     if (!sheetClass || !sheetClass.includes("MythicVehicleSheet")) continue;
     try {
       await actor.unsetFlag("core", "sheetClass");
-      console.log(`[mythic-system] Cleared legacy vehicle sheet override for actor "${actor.name}" (${actor.id})`);
+      if (MYTHIC_SYSTEM_DEBUG_LOGS) {
+        console.log(`[mythic-system] Cleared legacy vehicle sheet override for actor "${actor.name}" (${actor.id})`);
+      }
     } catch (error) {
       console.warn(`[mythic-system] Failed to clear legacy vehicle sheet override for actor "${actor?.name ?? "Unknown"}"`, error);
     }
@@ -541,6 +578,15 @@ const MYTHIC_STARTUP_COMPENDIUM_SOURCES = Object.freeze({
   ]),
   equipment: Object.freeze([MYTHIC_GENERAL_EQUIPMENT_DEFINITIONS_PATH, MYTHIC_CONTAINER_EQUIPMENT_DEFINITIONS_PATH]),
   armor: Object.freeze([MYTHIC_ARMOR_DEFINITIONS_PATH]),
+  weaponOptics: Object.freeze([MYTHIC_WEAPON_OPTICS_DEFINITIONS_PATH]),
+  weaponRails: Object.freeze([MYTHIC_WEAPON_RAILS_DEFINITIONS_PATH]),
+  weaponBarrels: Object.freeze([MYTHIC_WEAPON_BARRELS_DEFINITIONS_PATH]),
+  weaponConversions: Object.freeze([MYTHIC_WEAPON_CONVERSIONS_DEFINITIONS_PATH]),
+  covenantWeaponPatternsPrimary: Object.freeze([MYTHIC_COVENANT_WEAPON_PATTERNS_PRIMARY_DEFINITIONS_PATH]),
+  covenantWeaponPatternsSecondary: Object.freeze([MYTHIC_COVENANT_WEAPON_PATTERNS_SECONDARY_DEFINITIONS_PATH]),
+  covenantWeaponPatternsTactical: Object.freeze([MYTHIC_COVENANT_WEAPON_PATTERNS_TACTICAL_DEFINITIONS_PATH]),
+  covenantInfantryAlterations: Object.freeze([MYTHIC_COVENANT_INFANTRY_ALTERATIONS_DEFINITIONS_PATH]),
+  banishedWeaponModifications: Object.freeze([MYTHIC_BANISHED_WEAPON_MODIFICATIONS_DEFINITIONS_PATH]),
   rangedWeapons: Object.freeze([MYTHIC_RANGED_WEAPON_DEFINITIONS_PATH]),
   meleeWeapons: Object.freeze([MYTHIC_MELEE_WEAPON_DEFINITIONS_PATH]),
   vehicles: Object.freeze([MYTHIC_REFERENCE_VEHICLES_CSV, MYTHIC_REFERENCE_VEHICLE_WEAPON_OVERRIDES_JSON])
@@ -568,19 +614,26 @@ const MYTHIC_STARTUP_COMPENDIUM_COLLECTIONS = Object.freeze({
     "Halo-Mythic-Foundry-Updated.mythic-armor-banished",
     "Halo-Mythic-Foundry-Updated.mythic-armor-forerunner"
   ]),
+  weaponOptics: Object.freeze(["Halo-Mythic-Foundry-Updated.mythic-weapon-mods-optics"]),
+  weaponRails: Object.freeze(["Halo-Mythic-Foundry-Updated.mythic-weapon-mods-rails"]),
+  weaponBarrels: Object.freeze(["Halo-Mythic-Foundry-Updated.mythic-weapon-mods-barrels"]),
+  weaponConversions: Object.freeze(["Halo-Mythic-Foundry-Updated.mythic-weapon-mods-conversions"]),
+  covenantWeaponPatternsPrimary: Object.freeze(["Halo-Mythic-Foundry-Updated.mythic-covenant-weapon-patterns-primary"]),
+  covenantWeaponPatternsSecondary: Object.freeze(["Halo-Mythic-Foundry-Updated.mythic-covenant-weapon-patterns-secondary"]),
+  covenantWeaponPatternsTactical: Object.freeze(["Halo-Mythic-Foundry-Updated.mythic-covenant-weapon-patterns-tactical"]),
+  covenantInfantryAlterations: Object.freeze(["Halo-Mythic-Foundry-Updated.mythic-weapon-mods-covenant-infantry-alterations"]),
+  banishedWeaponModifications: Object.freeze(["Halo-Mythic-Foundry-Updated.mythic-weapon-mods-banished-weapon-modifications"]),
   rangedWeapons: Object.freeze([
     "Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged",
     "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
     "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
-    "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
-    "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged"
+    "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged"
   ]),
   meleeWeapons: Object.freeze([
     "Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee",
     "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-melee",
     "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-melee",
     "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee",
-    "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee",
     "Halo-Mythic-Foundry-Updated.mythic-weapons-flood"
   ]),
   vehicles: Object.freeze([
@@ -608,16 +661,23 @@ const MYTHIC_STARTUP_SEED_COLLECTIONS = Object.freeze([
   "Halo-Mythic-Foundry-Updated.mythic-armor-covenant",
   "Halo-Mythic-Foundry-Updated.mythic-armor-banished",
   "Halo-Mythic-Foundry-Updated.mythic-armor-forerunner",
+  "Halo-Mythic-Foundry-Updated.mythic-weapon-mods-optics",
+  "Halo-Mythic-Foundry-Updated.mythic-weapon-mods-rails",
+  "Halo-Mythic-Foundry-Updated.mythic-weapon-mods-barrels",
+  "Halo-Mythic-Foundry-Updated.mythic-weapon-mods-conversions",
+  "Halo-Mythic-Foundry-Updated.mythic-covenant-weapon-patterns-primary",
+  "Halo-Mythic-Foundry-Updated.mythic-covenant-weapon-patterns-secondary",
+  "Halo-Mythic-Foundry-Updated.mythic-covenant-weapon-patterns-tactical",
+  "Halo-Mythic-Foundry-Updated.mythic-weapon-mods-covenant-infantry-alterations",
+  "Halo-Mythic-Foundry-Updated.mythic-weapon-mods-banished-weapon-modifications",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
-  "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-melee",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-melee",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee",
-  "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee",
   "Halo-Mythic-Foundry-Updated.mythic-weapons-flood"
 ]);
 const MYTHIC_STARTUP_SETUP_STATE_VERSION = 1;
@@ -840,6 +900,42 @@ async function runMythicStartupCompendiumIntegrityPass(options = {}) {
         await refreshArmorCompendiums({ silent: true });
         refreshed.push(key);
         break;
+      case "weaponOptics":
+        await refreshWeaponOpticsCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "weaponRails":
+        await refreshWeaponRailsCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "weaponBarrels":
+        await refreshWeaponBarrelsCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "weaponConversions":
+        await refreshWeaponConversionsCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "covenantWeaponPatternsPrimary":
+        await refreshCovenantWeaponPatternsPrimaryCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "covenantWeaponPatternsSecondary":
+        await refreshCovenantWeaponPatternsSecondaryCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "covenantWeaponPatternsTactical":
+        await refreshCovenantWeaponPatternsTacticalCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "covenantInfantryAlterations":
+        await refreshCovenantInfantryAlterationsCompendium({ silent: true });
+        refreshed.push(key);
+        break;
+      case "banishedWeaponModifications":
+        await refreshBanishedWeaponModificationsCompendium({ silent: true });
+        refreshed.push(key);
+        break;
       case "rangedWeapons":
         await refreshRangedWeaponCompendiums({ silent: true });
         refreshed.push(key);
@@ -1010,12 +1106,16 @@ export function registerAllHooks() {
         sourceOptions: options,
         effectiveOptions
       };
-      console.log("[mythic-system] rollInitiative debug start", debugContext);
+      if (globalThis.MYTHIC_INITIATIVE_DEBUG) {
+        console.log("[mythic-system] rollInitiative debug start", debugContext);
+      }
 
       if (this.actor && ["character", "bestiary"].includes(this.actor.type)) {
         const normalizedSystem = this.actor.type === "bestiary"
           ? normalizeBestiarySystemData(this.actor.system ?? {})
-          : normalizeCharacterSystemData(this.actor.system ?? {});
+          : normalizeActorCharacterSystemData(this.actor, this.actor.system ?? {}, {
+              traceLabel: "combatant roll initiative prepare",
+            });
         const characteristics = normalizedSystem?.characteristics ?? {};
         const modifiers = computeCharacteristicModifiers(characteristics);
         const agiMod = Number(modifiers?.agi ?? 0);
@@ -1027,15 +1127,21 @@ export function registerAllHooks() {
         const initiativeValue = Math.floor(mythicAgi / 2);
         const formula = `${dicePart} + ${agiMod} + ${initiativeValue} + ${manualBonus}`;
 
-        console.log("[mythic-system] rollInitiative formula", { formula, agiMod, mythicAgi, manualBonus, dicePart });
+        if (globalThis.MYTHIC_INITIATIVE_DEBUG) {
+          console.log("[mythic-system] rollInitiative formula", { formula, agiMod, mythicAgi, manualBonus, dicePart });
+        }
 
         const result = await originalCombatantRollInitiative.call(this, { ...effectiveOptions, formula });
-        console.log("[mythic-system] rollInitiative result", result);
+        if (globalThis.MYTHIC_INITIATIVE_DEBUG) {
+          console.log("[mythic-system] rollInitiative result", result);
+        }
         return result;
       }
 
       const result = await originalCombatantRollInitiative.call(this, effectiveOptions);
-      console.log("[mythic-system] rollInitiative fallback result", result);
+      if (globalThis.MYTHIC_INITIATIVE_DEBUG) {
+        console.log("[mythic-system] rollInitiative fallback result", result);
+      }
       return result;
     };
 
@@ -1053,12 +1159,16 @@ export function registerAllHooks() {
         sourceOptions: options,
         effectiveOptions
       };
-      console.log("[mythic-system] getInitiativeRoll debug start", debugContext);
+      if (globalThis.MYTHIC_INITIATIVE_DEBUG) {
+        console.log("[mythic-system] getInitiativeRoll debug start", debugContext);
+      }
 
       if (this.actor && ["character", "bestiary"].includes(this.actor.type)) {
         const normalizedSystem = this.actor.type === "bestiary"
           ? normalizeBestiarySystemData(this.actor.system ?? {})
-          : normalizeCharacterSystemData(this.actor.system ?? {});
+          : normalizeActorCharacterSystemData(this.actor, this.actor.system ?? {}, {
+              traceLabel: "combatant get initiative prepare",
+            });
         const characteristics = normalizedSystem?.characteristics ?? {};
         const modifiers = computeCharacteristicModifiers(characteristics);
         const agiMod = Number(modifiers?.agi ?? 0);
@@ -1071,17 +1181,23 @@ export function registerAllHooks() {
         const formula = `${dicePart} + ${agiMod} + ${initiativeValue} + ${manualBonus}`;
 
         const safeFormula = String(formula);
-        console.log("[mythic-system] getInitiativeRoll override formula", { safeFormula, dirty: formula });
+        if (globalThis.MYTHIC_INITIATIVE_DEBUG) {
+          console.log("[mythic-system] getInitiativeRoll override formula", { safeFormula, dirty: formula });
+        }
 
         const rollData = this.actor?.getRollData?.() ?? {};
         const roll = new Roll(safeFormula, rollData);
-        console.log("[mythic-system] getInitiativeRoll constructed roll", roll);
+        if (MYTHIC_SYSTEM_DEBUG_LOGS) {
+          console.log("[mythic-system] getInitiativeRoll constructed roll", roll);
+        }
         return roll;
       }
 
       // Fallback to original for non-mythic actors.
       const result = originalCombatantGetInitiativeRoll.call(this, options);
-      console.log("[mythic-system] getInitiativeRoll fallback result", result);
+      if (MYTHIC_SYSTEM_DEBUG_LOGS) {
+        console.log("[mythic-system] getInitiativeRoll fallback result", result);
+      }
       return result;
     };
 
@@ -1553,7 +1669,9 @@ export function registerAllHooks() {
   });
 
   Hooks.once("ready", async () => {
-    console.log("[mythic-system] Ready");
+    if (MYTHIC_SYSTEM_DEBUG_LOGS) {
+      console.log("[mythic-system] Ready");
+    }
     registerVehicleBreakpointPermissionSocket();
     await maybeShowAlphaPlaytestNotice();
 
@@ -1682,6 +1800,15 @@ export function registerAllHooks() {
     game.mythic.refreshTraitsCompendium = refreshTraitsCompendium;
     game.mythic.refreshGeneralEquipmentCompendiums = refreshGeneralEquipmentCompendiums;
     game.mythic.refreshArmorCompendiums = refreshArmorCompendiums;
+    game.mythic.refreshWeaponOpticsCompendium = refreshWeaponOpticsCompendium;
+    game.mythic.refreshWeaponRailsCompendium = refreshWeaponRailsCompendium;
+    game.mythic.refreshWeaponBarrelsCompendium = refreshWeaponBarrelsCompendium;
+    game.mythic.refreshWeaponConversionsCompendium = refreshWeaponConversionsCompendium;
+    game.mythic.refreshCovenantWeaponPatternsPrimaryCompendium = refreshCovenantWeaponPatternsPrimaryCompendium;
+    game.mythic.refreshCovenantWeaponPatternsSecondaryCompendium = refreshCovenantWeaponPatternsSecondaryCompendium;
+    game.mythic.refreshCovenantWeaponPatternsTacticalCompendium = refreshCovenantWeaponPatternsTacticalCompendium;
+    game.mythic.refreshCovenantInfantryAlterationsCompendium = refreshCovenantInfantryAlterationsCompendium;
+    game.mythic.refreshBanishedWeaponModificationsCompendium = refreshBanishedWeaponModificationsCompendium;
     game.mythic.rebuildArmorCompendiumsFromJson = rebuildArmorCompendiumsFromJson;
     game.mythic.refreshBestiaryCompendiums = refreshBestiaryCompendiums;
     game.mythic.previewVehicleCompendiums = previewVehicleCompendiums;
@@ -1713,6 +1840,7 @@ export function registerAllHooks() {
       itemIsStoredInQuickdrawContainer,
       exportMagazineSequence
     };
+    game.mythic.openWeaponWorkbench = openMythicWeaponWorkbench;
     game.mythic.previewReferenceWeapons = async () => {
       const rows = await loadReferenceWeaponItems();
       return {
@@ -1740,6 +1868,53 @@ export function registerAllHooks() {
         }, {})
       };
     };
+    game.mythic.previewWeaponOptics = async () => {
+      const rows = await loadReferenceWeaponOpticItemsFromJson();
+      return {
+        total: rows.length,
+        smartlink: rows.filter((entry) => entry.system?.weaponMod?.smartlink === true).length,
+        sniperOptics: rows.filter((entry) => entry.system?.weaponMod?.type === "sniperOptic").length
+      };
+    };
+    game.mythic.previewWeaponRails = async () => {
+      const rows = await loadReferenceWeaponRailItemsFromJson();
+      return {
+        total: rows.length,
+        universal: rows.filter((entry) => entry.system?.weaponMod?.universal === true).length,
+        byRailType: rows.reduce((acc, entry) => {
+          const railType = String(entry?.system?.weaponMod?.railType ?? "Unknown").trim() || "Unknown";
+          acc[railType] = (acc[railType] ?? 0) + 1;
+          return acc;
+        }, {})
+      };
+    };
+    game.mythic.previewWeaponBarrels = async () => {
+      const rows = await loadReferenceWeaponBarrelItemsFromJson();
+      return {
+        total: rows.length,
+        byType: rows.reduce((acc, entry) => {
+          const modType = String(entry?.system?.weaponMod?.modType ?? "Unknown").trim() || "Unknown";
+          acc[modType] = (acc[modType] ?? 0) + 1;
+          return acc;
+        }, {})
+      };
+    };
+    game.mythic.previewWeaponConversions = async () => {
+      const rows = await loadReferenceWeaponConversionItemsFromJson();
+      return {
+        total: rows.length,
+        byGroup: rows.reduce((acc, entry) => {
+          const group = String(entry?.system?.weaponMod?.modGroup ?? "Unknown").trim() || "Unknown";
+          acc[group] = (acc[group] ?? 0) + 1;
+          return acc;
+        }, {})
+      };
+    };
+    game.mythic.previewCovenantWeaponPatternsPrimary = previewCovenantWeaponPatternsPrimary;
+    game.mythic.previewCovenantWeaponPatternsSecondary = previewCovenantWeaponPatternsSecondary;
+    game.mythic.previewCovenantWeaponPatternsTactical = previewCovenantWeaponPatternsTactical;
+    game.mythic.previewCovenantInfantryAlterations = previewCovenantInfantryAlterations;
+    game.mythic.previewBanishedWeaponModifications = previewBanishedWeaponModifications;
     if (game.user?.isGM && !startupInitializationFailed) {
       try {
         updateStartupProgress(86, "Preparing reference packs...");
@@ -1787,6 +1962,36 @@ export function registerAllHooks() {
           }));
       };
 
+      const buildWeaponOpticSeedItems = async () => {
+        const rows = await loadReferenceWeaponOpticItemsFromJson();
+        return rows.map((entry) => ({
+          name: String(entry.name ?? "Weapon Optic"),
+          type: "gear",
+          img: String(entry.img ?? MYTHIC_ABILITY_DEFAULT_ICON),
+          system: foundry.utils.deepClone(entry.system ?? {})
+        }));
+      };
+
+      const buildWeaponRailSeedItems = async () => {
+        const rows = await loadReferenceWeaponRailItemsFromJson();
+        return rows.map((entry) => ({
+          name: String(entry.name ?? "Weapon Rail"),
+          type: "gear",
+          img: String(entry.img ?? MYTHIC_ABILITY_DEFAULT_ICON),
+          system: foundry.utils.deepClone(entry.system ?? {})
+        }));
+      };
+
+      const buildWeaponBarrelSeedItems = async () => {
+        const rows = await loadReferenceWeaponBarrelItemsFromJson();
+        return rows.map((entry) => ({
+          name: String(entry.name ?? "Weapon Barrel"),
+          type: "gear",
+          img: String(entry.img ?? MYTHIC_ABILITY_DEFAULT_ICON),
+          system: foundry.utils.deepClone(entry.system ?? {})
+        }));
+      };
+
       const seedCompendiumIfEmpty = async ({ collection, label, buildItems }) => {
         const pack = game.packs.get(collection);
         if (!pack) return;
@@ -1808,7 +2013,9 @@ export function registerAllHooks() {
           }
           await Item.createDocuments(itemsToCreate, { pack: pack.collection });
           seeded = true;
-          console.log(`[mythic-system] Seeded ${itemsToCreate.length} ${label} into compendium.`);
+          if (MYTHIC_SYSTEM_DEBUG_LOGS) {
+            console.log(`[mythic-system] Seeded ${itemsToCreate.length} ${label} into compendium.`);
+          }
         } catch (error) {
           console.error(`[mythic-system] Failed seeding ${label} compendium ${collection}.`, error);
         } finally {
@@ -1865,7 +2072,9 @@ export function registerAllHooks() {
             unlockedForUpdate = true;
           }
           await Item.updateDocuments(updates, { pack: pack.collection });
-          console.log(`[mythic-system] Normalized ${updates.length} ammo compendium item(s) to ammunition.`);
+          if (MYTHIC_SYSTEM_DEBUG_LOGS) {
+            console.log(`[mythic-system] Normalized ${updates.length} ammo compendium item(s) to ammunition.`);
+          }
           void invalidateAndRerenderCompendiums([pack], { notify: false });
         } catch (error) {
           console.error("[mythic-system] Failed normalizing ammo compendium item types.", error);
@@ -2096,6 +2305,24 @@ export function registerAllHooks() {
       });
 
       await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapon-mods-optics",
+        label: "weapon optics",
+        buildItems: buildWeaponOpticSeedItems
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapon-mods-rails",
+        label: "weapon rails",
+        buildItems: buildWeaponRailSeedItems
+      });
+
+      await seedCompendiumIfEmpty({
+        collection: "Halo-Mythic-Foundry-Updated.mythic-weapon-mods-barrels",
+        label: "weapon barrels",
+        buildItems: buildWeaponBarrelSeedItems
+      });
+
+      await seedCompendiumIfEmpty({
         collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged",
         label: "human ranged weapons",
         buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged")
@@ -2120,12 +2347,6 @@ export function registerAllHooks() {
       });
 
       await seedCompendiumIfEmpty({
-        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged",
-        label: "shared ranged weapons",
-        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged")
-      });
-
-      await seedCompendiumIfEmpty({
         collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee",
         label: "human melee weapons",
         buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee")
@@ -2147,12 +2368,6 @@ export function registerAllHooks() {
         collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee",
         label: "forerunner melee weapons",
         buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee")
-      });
-
-      await seedCompendiumIfEmpty({
-        collection: "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee",
-        label: "shared melee weapons",
-        buildItems: async () => buildWeaponSeedItemsForCollection("Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee")
       });
 
       await seedCompendiumIfEmpty({
@@ -2201,6 +2416,17 @@ export function registerAllHooks() {
         console.error("[mythic-system] Failed to store startup initialization state.", error);
         mythicStartupProgress.fail({ label: "Initialization completed with issues." });
       }
+    }
+  });
+
+  Hooks.once("ready", async () => {
+    try {
+      await primeCreationPathDocCaches();
+    } catch (error) {
+      console.warn(
+        "[mythic-system] Failed to prime creation-path caches.",
+        error,
+      );
     }
   });
 

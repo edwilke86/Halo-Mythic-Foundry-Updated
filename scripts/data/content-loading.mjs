@@ -13,6 +13,15 @@ import {
   MYTHIC_GENERAL_EQUIPMENT_DEFINITIONS_PATH,
   MYTHIC_CONTAINER_EQUIPMENT_DEFINITIONS_PATH,
   MYTHIC_ARMOR_DEFINITIONS_PATH,
+  MYTHIC_WEAPON_OPTICS_DEFINITIONS_PATH,
+  MYTHIC_WEAPON_RAILS_DEFINITIONS_PATH,
+  MYTHIC_WEAPON_BARRELS_DEFINITIONS_PATH,
+  MYTHIC_WEAPON_CONVERSIONS_DEFINITIONS_PATH,
+  MYTHIC_COVENANT_WEAPON_PATTERNS_PRIMARY_DEFINITIONS_PATH,
+  MYTHIC_COVENANT_WEAPON_PATTERNS_SECONDARY_DEFINITIONS_PATH,
+  MYTHIC_COVENANT_WEAPON_PATTERNS_TACTICAL_DEFINITIONS_PATH,
+  MYTHIC_COVENANT_INFANTRY_ALTERATIONS_DEFINITIONS_PATH,
+  MYTHIC_BANISHED_WEAPON_MODIFICATIONS_DEFINITIONS_PATH,
   MYTHIC_SPECIAL_AMMO_FAMILIES,
   MYTHIC_SPECIAL_AMMO_FAMILY_DEFINITIONS,
   MYTHIC_SPECIAL_AMMO_CAP_EXEMPT_CODES
@@ -32,6 +41,15 @@ let mythicSpecialDamageDefinitionsCache = null;
 let mythicGeneralEquipmentDefinitionsCache = null;
 let mythicContainerEquipmentDefinitionsCache = null;
 let mythicArmorDefinitionsCache = null;
+let mythicWeaponOpticsDefinitionsCache = null;
+let mythicWeaponRailsDefinitionsCache = null;
+let mythicWeaponBarrelsDefinitionsCache = null;
+let mythicWeaponConversionsDefinitionsCache = null;
+let mythicCovenantWeaponPatternsPrimaryDefinitionsCache = null;
+let mythicCovenantWeaponPatternsSecondaryDefinitionsCache = null;
+let mythicCovenantWeaponPatternsTacticalDefinitionsCache = null;
+let mythicCovenantInfantryAlterationsDefinitionsCache = null;
+let mythicBanishedWeaponModificationsDefinitionsCache = null;
 const MYTHIC_AMMO_TYPES_SYSTEM_COLLECTION = "Halo-Mythic-Foundry-Updated.ammo-types";
 
 async function loadDefinitionArray(path, errorLabel) {
@@ -78,6 +96,351 @@ function normalizeMythicAmmoTypeDefinition(entry = {}, fallbackName = "") {
     weightPerRoundKg: Number.isFinite(unitWeightKg) ? Math.max(0, unitWeightKg) : 0,
     costPer100,
     specialAmmoCategory
+  };
+}
+
+function parseMythicWeaponOpticNumber(value, fallback = 0) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const text = String(value ?? "").trim();
+  if (!text) return fallback;
+  const numeric = Number(text.replace(/[^\d.-]+/gu, ""));
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function parseMythicWeaponRailNumber(value, fallback = 0) {
+  return parseMythicWeaponOpticNumber(value, fallback);
+}
+
+function parseMythicWeaponBarrelNumber(value, fallback = 0) {
+  return parseMythicWeaponOpticNumber(value, fallback);
+}
+
+function normalizeMythicWeaponOpticDefinition(entry = {}) {
+  if (!entry || typeof entry !== "object") return null;
+  const name = String(entry.name ?? "").trim();
+  const id = String(entry.id ?? name.toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "")).trim();
+  if (!name || !id) return null;
+
+  const allowedTypes = new Set(["optic", "sniperOptic", "smartlink", "hybrid"]);
+  const type = allowedTypes.has(String(entry.type ?? "").trim()) ? String(entry.type).trim() : "optic";
+  const mounts = Array.isArray(entry.mounts)
+    ? entry.mounts.map((mount) => String(mount ?? "").trim()).filter(Boolean)
+    : [];
+  const magnifications = Array.isArray(entry.magnifications)
+    ? entry.magnifications
+        .map((value) => parseMythicWeaponOpticNumber(value, 0))
+        .filter((value) => Number.isFinite(value) && value > 0)
+    : [];
+  const builtInEnhancement = entry.builtInEnhancement && typeof entry.builtInEnhancement === "object"
+    ? {
+        key: String(entry.builtInEnhancement.key ?? "").trim(),
+        toggleable: entry.builtInEnhancement.toggleable === true,
+        includedInBaseWeightAndCost: entry.builtInEnhancement.includedInBaseWeightAndCost !== false
+      }
+    : null;
+
+  return {
+    id,
+    name,
+    source: String(entry.source ?? "mythic").trim().toLowerCase() || "mythic",
+    sourcePage: Math.max(0, Math.floor(parseMythicWeaponOpticNumber(entry.sourcePage, 0))),
+    category: String(entry.category ?? "Weapon Optic").trim() || "Weapon Optic",
+    description: String(entry.description ?? "").trim(),
+    weightKg: Math.max(0, parseMythicWeaponOpticNumber(entry.weightKg, 0)),
+    costCr: Math.max(0, Math.floor(parseMythicWeaponOpticNumber(entry.costCr, 0))),
+    universal: entry.universal === true,
+    type,
+    mounts: mounts.length ? mounts : ["upper"],
+    railSlots: Math.max(0, Math.floor(parseMythicWeaponOpticNumber(entry.railSlots, type === "sniperOptic" ? 2 : 1))),
+    magnifications,
+    modular: entry.modular === true || magnifications.length > 1,
+    smartlink: entry.smartlink === true,
+    smartlinkRequired: entry.smartlinkRequired === true,
+    modeRequirements: entry.modeRequirements && typeof entry.modeRequirements === "object" && !Array.isArray(entry.modeRequirements)
+      ? foundry.utils.deepClone(entry.modeRequirements)
+      : {},
+    toHitClose: Math.round(parseMythicWeaponOpticNumber(entry.toHitClose, 0)),
+    toHitSmart: Math.round(parseMythicWeaponOpticNumber(entry.toHitSmart, 0)),
+    rangefinderMeters: Math.max(0, Math.floor(parseMythicWeaponOpticNumber(entry.rangefinderMeters, 0))),
+    minimalRailSpace: entry.minimalRailSpace === true,
+    laserPiggybackNoAimPenalty: entry.laserPiggybackNoAimPenalty === true,
+    showsAmmo: entry.showsAmmo === true,
+    shieldIntegrityScan: entry.shieldIntegrityScan === true,
+    floodDetection: entry.floodDetection === true,
+    iffTagging: entry.iffTagging === true,
+    builtInEnhancement
+  };
+}
+
+function normalizeMythicWeaponRailDefinition(entry = {}) {
+  if (!entry || typeof entry !== "object") return null;
+  const name = String(entry.name ?? "").trim();
+  const id = String(entry.id ?? name.toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "")).trim();
+  if (!name || !id) return null;
+
+  const mounts = Array.isArray(entry.mounts)
+    ? entry.mounts
+      .map((mount) => String(mount ?? "").trim().toLowerCase())
+      .filter(Boolean)
+    : [];
+  const stacking = entry.stacking && typeof entry.stacking === "object" && !Array.isArray(entry.stacking)
+    ? foundry.utils.deepClone(entry.stacking)
+    : { allowed: false };
+  const restrictionStructured = entry.restrictionStructured && typeof entry.restrictionStructured === "object" && !Array.isArray(entry.restrictionStructured)
+    ? foundry.utils.deepClone(entry.restrictionStructured)
+    : {
+      requiredWeaponTagsAll: [],
+      requiredWeaponTagsAny: [],
+      allowedWeaponTypes: [],
+      requiredOptic: {},
+      requiredSensorsAny: [],
+      timeline: {}
+    };
+  const activation = entry.activation && typeof entry.activation === "object" && !Array.isArray(entry.activation)
+    ? foundry.utils.deepClone(entry.activation)
+    : {};
+  const conditions = entry.conditions && typeof entry.conditions === "object" && !Array.isArray(entry.conditions)
+    ? foundry.utils.deepClone(entry.conditions)
+    : {};
+  const stateTracking = entry.stateTracking && typeof entry.stateTracking === "object" && !Array.isArray(entry.stateTracking)
+    ? foundry.utils.deepClone(entry.stateTracking)
+    : {};
+  const placeholder = entry.placeholder && typeof entry.placeholder === "object" && !Array.isArray(entry.placeholder)
+    ? foundry.utils.deepClone(entry.placeholder)
+    : {};
+
+  return {
+    id,
+    name,
+    source: String(entry.source ?? "mythic").trim().toLowerCase() || "mythic",
+    sourcePage: Math.max(0, Math.floor(parseMythicWeaponRailNumber(entry.sourcePage, 0))),
+    faction: String(entry.faction ?? "UNSC").trim().toUpperCase() || "UNSC",
+    description: String(entry.description ?? "").trim(),
+    weightKg: Math.max(0, parseMythicWeaponRailNumber(entry.weightKg, 0)),
+    costCr: Math.max(0, Math.floor(parseMythicWeaponRailNumber(entry.costCr, 0))),
+    universal: entry.universal === true || entry.isUniversal === true,
+    mounts: mounts.length ? mounts : ["any"],
+    railSlotsConsumed: Math.max(0, Math.floor(parseMythicWeaponRailNumber(entry.railSlotsConsumed, 1))),
+    railSlotsGranted: Math.max(0, Math.floor(parseMythicWeaponRailNumber(entry.railSlotsGranted, 0))),
+    stacking,
+    railType: String(entry.railType ?? "Misc").trim() || "Misc",
+    restrictionRaw: String(entry.restrictionRaw ?? "").trim(),
+    restrictionStructured,
+    restrictionConflictPolicy: String(entry.restrictionConflictPolicy ?? "followProseIntent").trim() || "followProseIntent",
+    effectFamily: String(entry.effectFamily ?? "").trim(),
+    activation,
+    conditions,
+    modifiers: Array.isArray(entry.modifiers) ? foundry.utils.deepClone(entry.modifiers) : [],
+    opponentModifiers: Array.isArray(entry.opponentModifiers) ? foundry.utils.deepClone(entry.opponentModifiers) : [],
+    stateTracking,
+    variantAttackRefs: Array.isArray(entry.variantAttackRefs)
+      ? entry.variantAttackRefs.map((value) => String(value ?? "").trim()).filter(Boolean)
+      : [],
+    implementationTodos: Array.isArray(entry.implementationTodos)
+      ? entry.implementationTodos.map((value) => String(value ?? "").trim()).filter(Boolean)
+      : [],
+    placeholder
+  };
+}
+
+function normalizeMythicWeaponBarrelDefinition(entry = {}) {
+  if (!entry || typeof entry !== "object") return null;
+  const name = String(entry.name ?? "").trim();
+  const id = String(entry.id ?? name.toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "")).trim();
+  if (!name || !id) return null;
+
+  const allowedWeaponCategories = Array.isArray(entry.allowedWeaponCategories)
+    ? entry.allowedWeaponCategories.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const restrictedToTags = Array.isArray(entry.restrictedToTags)
+    ? entry.restrictedToTags.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const forbiddenWeaponCategories = Array.isArray(entry.forbiddenWeaponCategories)
+    ? entry.forbiddenWeaponCategories.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const incompatibilityTags = Array.isArray(entry.incompatibilityTags)
+    ? entry.incompatibilityTags.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const blocksMounts = Array.isArray(entry.blocksMounts)
+    ? entry.blocksMounts.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const requiresAmmoTags = Array.isArray(entry.requiresAmmoTags)
+    ? entry.requiresAmmoTags.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const forbiddenAmmoTags = Array.isArray(entry.forbiddenAmmoTags)
+    ? entry.forbiddenAmmoTags.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const builtInSubfeatures = Array.isArray(entry.builtInSubfeatures)
+    ? entry.builtInSubfeatures.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const effects = entry.effects && typeof entry.effects === "object" && !Array.isArray(entry.effects)
+    ? foundry.utils.deepClone(entry.effects)
+    : {};
+
+  const rawWeightMode = String(entry.weightMode ?? "").trim();
+  const allowedWeightModes = new Set(["fixed", "percentBaseWeaponWeight", "calculated", "none", "notApplicable"]);
+  const weightMode = allowedWeightModes.has(rawWeightMode)
+    ? rawWeightMode
+    : (Number(entry.weightPercent ?? 0) > 0 ? "percentBaseWeaponWeight" : "fixed");
+
+  return {
+    id,
+    name,
+    source: String(entry.source ?? "mythic").trim().toLowerCase() || "mythic",
+    sourcePage: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.sourcePage, 0))),
+    faction: String(entry.faction ?? "UNSC").trim().toUpperCase() || "UNSC",
+    description: String(entry.description ?? "").trim(),
+    category: "weaponMod",
+    modGroup: "barrel",
+    mount: String(entry.mount ?? "barrel").trim() || "barrel",
+    modType: String(entry.modType ?? "attachment").trim() || "attachment",
+    rarityTag: String(entry.rarityTag ?? entry.rulesTag ?? "").trim(),
+    allowedWeaponCategories,
+    restrictedToTags,
+    forbiddenWeaponCategories,
+    minimumYear: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.minimumYear, 0))),
+    fixedWeight: parseMythicWeaponBarrelNumber(entry.fixedWeight, 0),
+    weightMode,
+    weightPercent: parseMythicWeaponBarrelNumber(entry.weightPercent, 0),
+    creditCost: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.creditCost ?? entry.costCr, 0))),
+    effects,
+    incompatibilityTags,
+    blocksMounts,
+    requiresAmmoTags,
+    forbiddenAmmoTags,
+    builtInSubfeatures,
+    notes: String(entry.notes ?? "").trim(),
+    sourceText: String(entry.sourceText ?? entry.rulesSummary ?? "").trim(),
+    universal: entry.universal === true || entry.isUniversal === true,
+    restrictionRaw: String(entry.restrictionRaw ?? "").trim(),
+    restrictionStructured: entry.restrictionStructured && typeof entry.restrictionStructured === "object" && !Array.isArray(entry.restrictionStructured)
+      ? foundry.utils.deepClone(entry.restrictionStructured)
+      : {},
+    weightKg: Math.max(0, parseMythicWeaponBarrelNumber(entry.weightKg ?? entry.fixedWeight, 0)),
+    costCr: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.costCr ?? entry.creditCost, 0))),
+    placeholder: entry.placeholder && typeof entry.placeholder === "object" && !Array.isArray(entry.placeholder)
+      ? foundry.utils.deepClone(entry.placeholder)
+      : {}
+  };
+}
+
+function normalizeMythicWeaponConversionDefinition(entry = {}) {
+  if (!entry || typeof entry !== "object") return null;
+  const name = String(entry.name ?? "").trim();
+  const id = String(entry.id ?? name.toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "")).trim();
+  if (!name || !id) return null;
+
+  const allowedWeaponCategories = Array.isArray(entry.allowedWeaponCategories)
+    ? entry.allowedWeaponCategories.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const restrictedToTags = Array.isArray(entry.restrictedToTags)
+    ? entry.restrictedToTags.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const forbiddenWeaponCategories = Array.isArray(entry.forbiddenWeaponCategories)
+    ? entry.forbiddenWeaponCategories.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const requiredWeaponTags = Array.isArray(entry.requiredWeaponTags)
+    ? entry.requiredWeaponTags.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const forbiddenWeaponTags = Array.isArray(entry.forbiddenWeaponTags)
+    ? entry.forbiddenWeaponTags.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const incompatibilityTags = Array.isArray(entry.incompatibilityTags)
+    ? entry.incompatibilityTags.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const blocksMounts = Array.isArray(entry.blocksMounts)
+    ? entry.blocksMounts.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+  const effects = entry.effects && typeof entry.effects === "object" && !Array.isArray(entry.effects)
+    ? foundry.utils.deepClone(entry.effects)
+    : {};
+
+  const rawWeightMode = String(entry.weightMode ?? "").trim();
+  const allowedWeightModes = new Set(["fixed", "percentBaseWeaponWeight", "calculated", "none", "notApplicable"]);
+  const weightMode = allowedWeightModes.has(rawWeightMode)
+    ? rawWeightMode
+    : (Number(entry.weightPercent ?? 0) !== 0 ? "percentBaseWeaponWeight" : "fixed");
+
+  return {
+    id,
+    name,
+    source: String(entry.source ?? "mythic").trim().toLowerCase() || "mythic",
+    sourcePage: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.sourcePage, 0))),
+    faction: String(entry.faction ?? "UNSC").trim().toUpperCase() || "UNSC",
+    description: String(entry.description ?? "").trim(),
+    category: "weaponMod",
+    modGroup: String(entry.modGroup ?? "conversion").trim() || "conversion",
+    mount: String(entry.mount ?? "all").trim() || "all",
+    modType: String(entry.modType ?? "modification").trim() || "modification",
+    rarityTag: String(entry.rarityTag ?? entry.rulesTag ?? "").trim(),
+    allowedWeaponCategories,
+    restrictedToTags,
+    forbiddenWeaponCategories,
+    requiredWeaponTags,
+    forbiddenWeaponTags,
+    minimumYear: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.minimumYear, 0))),
+    fixedWeight: parseMythicWeaponBarrelNumber(entry.fixedWeight, 0),
+    weightMode,
+    weightPercent: parseMythicWeaponBarrelNumber(entry.weightPercent, 0),
+    creditCost: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.creditCost ?? entry.costCr, 0))),
+    costMode: String(entry.costMode ?? "").trim(),
+    costMultiplier: parseMythicWeaponBarrelNumber(entry.costMultiplier, 0),
+    effects,
+    incompatibilityTags,
+    blocksMounts,
+    notes: String(entry.notes ?? "").trim(),
+    sourceText: String(entry.sourceText ?? entry.rulesSummary ?? "").trim(),
+    rulesSummary: String(entry.rulesSummary ?? "").trim(),
+    weightKg: Math.max(0, parseMythicWeaponBarrelNumber(entry.weightKg ?? entry.fixedWeight, 0)),
+    costCr: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.costCr ?? entry.creditCost, 0))),
+    placeholder: entry.placeholder && typeof entry.placeholder === "object" && !Array.isArray(entry.placeholder)
+      ? foundry.utils.deepClone(entry.placeholder)
+      : {}
+  };
+}
+
+function normalizeMythicWeaponAmmunitionAttachmentDefinition(entry = {}) {
+  return normalizeMythicWeaponConversionDefinition(entry);
+}
+
+function normalizeMythicCovenantWeaponPatternDefinition(entry = {}, fallbackSystemType = "") {
+  if (!entry || typeof entry !== "object") return null;
+  const name = String(entry.name ?? "").trim();
+  const id = String(entry.id ?? name.toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "")).trim();
+  if (!name || !id) return null;
+
+  const effects = entry.effects && typeof entry.effects === "object" && !Array.isArray(entry.effects)
+    ? foundry.utils.deepClone(entry.effects)
+    : {};
+
+  const rawWeightMode = String(entry.weightMode ?? "").trim();
+  const allowedWeightModes = new Set(["fixed", "percentBaseWeaponWeight", "calculated", "none", "notApplicable"]);
+  const weightMode = allowedWeightModes.has(rawWeightMode) ? rawWeightMode : "notApplicable";
+
+  const systemType = String(entry.patternSystemType ?? fallbackSystemType ?? "").trim().toLowerCase();
+  const patternSystemType = ["primary", "secondary", "tactical"].includes(systemType) ? systemType : "";
+  if (!patternSystemType) return null;
+
+  return {
+    id,
+    name,
+    source: String(entry.source ?? "mythic").trim().toLowerCase() || "mythic",
+    sourcePage: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.sourcePage, 0))),
+    faction: String(entry.faction ?? entry.armorySelection ?? "COVENANT").trim().toUpperCase() || "COVENANT",
+    armorySelection: String(entry.armorySelection ?? entry.faction ?? "COVENANT").trim().toUpperCase() || "COVENANT",
+    category: "weaponMod",
+    modGroup: "covenantWeaponPattern",
+    mount: String(entry.mount ?? "patternSystem").trim() || "patternSystem",
+    modType: "pattern",
+    patternSystemType,
+    fixedWeight: parseMythicWeaponBarrelNumber(entry.fixedWeight, 0),
+    weightMode,
+    creditCost: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.creditCost ?? entry.costCr, 0))),
+    costMode: String(entry.costMode ?? "").trim(),
+    costMultiplier: parseMythicWeaponBarrelNumber(entry.costMultiplier, 0),
+    effects,
+    notes: String(entry.notes ?? "").trim(),
+    sourceText: String(entry.sourceText ?? entry.rulesSummary ?? "").trim()
   };
 }
 
@@ -674,6 +1037,323 @@ export async function loadMythicArmorDefinitions() {
   if (Array.isArray(mythicArmorDefinitionsCache)) return mythicArmorDefinitionsCache;
   mythicArmorDefinitionsCache = await loadDefinitionArray(MYTHIC_ARMOR_DEFINITIONS_PATH, "armor definitions JSON");
   return mythicArmorDefinitionsCache;
+}
+
+export async function loadMythicWeaponOpticsDefinitionsPayload() {
+  try {
+    const response = await fetch(MYTHIC_WEAPON_OPTICS_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const source = json && typeof json === "object" && !Array.isArray(json) ? json : {};
+    const opticEnhancements = source.opticEnhancements && typeof source.opticEnhancements === "object" && !Array.isArray(source.opticEnhancements)
+      ? foundry.utils.deepClone(source.opticEnhancements)
+      : {};
+    const optics = Array.isArray(source.optics)
+      ? source.optics.map((entry) => normalizeMythicWeaponOpticDefinition(entry)).filter(Boolean)
+      : [];
+    return {
+      schemaVersion: Math.max(1, Math.floor(parseMythicWeaponOpticNumber(source.schemaVersion, 1))),
+      opticEnhancements,
+      optics
+    };
+  } catch (error) {
+    console.error("[mythic-system] Failed to load weapon optics definitions JSON.", error);
+    return {
+      schemaVersion: 1,
+      opticEnhancements: {},
+      optics: []
+    };
+  }
+}
+
+export async function loadMythicWeaponOpticsDefinitions() {
+  if (Array.isArray(mythicWeaponOpticsDefinitionsCache)) return mythicWeaponOpticsDefinitionsCache;
+  const payload = await loadMythicWeaponOpticsDefinitionsPayload();
+  mythicWeaponOpticsDefinitionsCache = payload.optics;
+  return mythicWeaponOpticsDefinitionsCache;
+}
+
+export async function loadMythicWeaponRailsDefinitionsPayload() {
+  try {
+    const response = await fetch(MYTHIC_WEAPON_RAILS_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const source = json && typeof json === "object" && !Array.isArray(json) ? json : {};
+    const rails = Array.isArray(source.rails)
+      ? source.rails.map((entry) => normalizeMythicWeaponRailDefinition(entry)).filter(Boolean)
+      : [];
+    return {
+      schemaVersion: Math.max(1, Math.floor(parseMythicWeaponRailNumber(source.schemaVersion, 1))),
+      rails
+    };
+  } catch (error) {
+    console.error("[mythic-system] Failed to load weapon rails definitions JSON.", error);
+    return {
+      schemaVersion: 1,
+      rails: []
+    };
+  }
+}
+
+export async function loadMythicWeaponRailsDefinitions() {
+  if (Array.isArray(mythicWeaponRailsDefinitionsCache)) return mythicWeaponRailsDefinitionsCache;
+  const payload = await loadMythicWeaponRailsDefinitionsPayload();
+  mythicWeaponRailsDefinitionsCache = payload.rails;
+  return mythicWeaponRailsDefinitionsCache;
+}
+
+export async function loadMythicWeaponBarrelsDefinitionsPayload() {
+  try {
+    const response = await fetch(MYTHIC_WEAPON_BARRELS_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const source = json && typeof json === "object" && !Array.isArray(json) ? json : {};
+    const barrels = Array.isArray(source.barrels)
+      ? source.barrels.map((entry) => normalizeMythicWeaponBarrelDefinition(entry)).filter(Boolean)
+      : [];
+    return {
+      schemaVersion: Math.max(1, Math.floor(parseMythicWeaponBarrelNumber(source.schemaVersion, 1))),
+      barrels
+    };
+  } catch (error) {
+    console.error("[mythic-system] Failed to load weapon barrels definitions JSON.", error);
+    return {
+      schemaVersion: 1,
+      barrels: []
+    };
+  }
+}
+
+export async function loadMythicWeaponBarrelsDefinitions() {
+  if (Array.isArray(mythicWeaponBarrelsDefinitionsCache)) return mythicWeaponBarrelsDefinitionsCache;
+  const payload = await loadMythicWeaponBarrelsDefinitionsPayload();
+  mythicWeaponBarrelsDefinitionsCache = payload.barrels;
+  return mythicWeaponBarrelsDefinitionsCache;
+}
+
+export async function loadMythicWeaponConversionsDefinitionsPayload() {
+  try {
+    const response = await fetch(MYTHIC_WEAPON_CONVERSIONS_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const source = json && typeof json === "object" && !Array.isArray(json) ? json : {};
+    const conversions = Array.isArray(source.conversions)
+      ? source.conversions.map((entry) => normalizeMythicWeaponConversionDefinition(entry)).filter(Boolean)
+      : [];
+    return {
+      schemaVersion: Math.max(1, Math.floor(parseMythicWeaponBarrelNumber(source.schemaVersion, 1))),
+      conversions
+    };
+  } catch (error) {
+    console.error("[mythic-system] Failed to load weapon conversions definitions JSON.", error);
+    return {
+      schemaVersion: 1,
+      conversions: []
+    };
+  }
+}
+
+export async function loadMythicWeaponConversionsDefinitions() {
+  if (Array.isArray(mythicWeaponConversionsDefinitionsCache)) return mythicWeaponConversionsDefinitionsCache;
+  const payload = await loadMythicWeaponConversionsDefinitionsPayload();
+  mythicWeaponConversionsDefinitionsCache = payload.conversions;
+  return mythicWeaponConversionsDefinitionsCache;
+}
+
+async function loadMythicCovenantWeaponPatternsPayload(path, fallbackSystemType) {
+  try {
+    const response = await fetch(path);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const source = json && typeof json === "object" && !Array.isArray(json) ? json : {};
+    const patterns = Array.isArray(source.patterns)
+      ? source.patterns.map((entry) => normalizeMythicCovenantWeaponPatternDefinition(entry, fallbackSystemType)).filter(Boolean)
+      : [];
+    return {
+      schemaVersion: Math.max(1, Math.floor(parseMythicWeaponBarrelNumber(source.schemaVersion, 1))),
+      patterns
+    };
+  } catch (error) {
+    console.error("[mythic-system] Failed to load covenant weapon patterns definitions JSON.", error);
+    return {
+      schemaVersion: 1,
+      patterns: []
+    };
+  }
+}
+
+export async function loadMythicCovenantWeaponPatternsPrimaryDefinitionsPayload() {
+  return loadMythicCovenantWeaponPatternsPayload(MYTHIC_COVENANT_WEAPON_PATTERNS_PRIMARY_DEFINITIONS_PATH, "primary");
+}
+
+export async function loadMythicCovenantWeaponPatternsPrimaryDefinitions() {
+  if (Array.isArray(mythicCovenantWeaponPatternsPrimaryDefinitionsCache)) return mythicCovenantWeaponPatternsPrimaryDefinitionsCache;
+  const payload = await loadMythicCovenantWeaponPatternsPrimaryDefinitionsPayload();
+  mythicCovenantWeaponPatternsPrimaryDefinitionsCache = payload.patterns;
+  return mythicCovenantWeaponPatternsPrimaryDefinitionsCache;
+}
+
+export async function loadMythicCovenantWeaponPatternsSecondaryDefinitionsPayload() {
+  return loadMythicCovenantWeaponPatternsPayload(MYTHIC_COVENANT_WEAPON_PATTERNS_SECONDARY_DEFINITIONS_PATH, "secondary");
+}
+
+export async function loadMythicCovenantWeaponPatternsSecondaryDefinitions() {
+  if (Array.isArray(mythicCovenantWeaponPatternsSecondaryDefinitionsCache)) return mythicCovenantWeaponPatternsSecondaryDefinitionsCache;
+  const payload = await loadMythicCovenantWeaponPatternsSecondaryDefinitionsPayload();
+  mythicCovenantWeaponPatternsSecondaryDefinitionsCache = payload.patterns;
+  return mythicCovenantWeaponPatternsSecondaryDefinitionsCache;
+}
+
+export async function loadMythicCovenantWeaponPatternsTacticalDefinitionsPayload() {
+  return loadMythicCovenantWeaponPatternsPayload(MYTHIC_COVENANT_WEAPON_PATTERNS_TACTICAL_DEFINITIONS_PATH, "tactical");
+}
+
+export async function loadMythicCovenantWeaponPatternsTacticalDefinitions() {
+  if (Array.isArray(mythicCovenantWeaponPatternsTacticalDefinitionsCache)) return mythicCovenantWeaponPatternsTacticalDefinitionsCache;
+  const payload = await loadMythicCovenantWeaponPatternsTacticalDefinitionsPayload();
+  mythicCovenantWeaponPatternsTacticalDefinitionsCache = payload.patterns;
+  return mythicCovenantWeaponPatternsTacticalDefinitionsCache;
+}
+
+function normalizeMythicCovenantAlterationDefinition(entry = {}) {
+  if (!entry || typeof entry !== "object") return null;
+  const name = String(entry.name ?? "").trim();
+  const id = String(entry.id ?? name.toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "")).trim();
+  if (!name || !id) return null;
+
+  const effects = entry.effects && typeof entry.effects === "object" && !Array.isArray(entry.effects)
+    ? foundry.utils.deepClone(entry.effects)
+    : {};
+
+  const rawWeightMode = String(entry.weightMode ?? "").trim();
+  const allowedWeightModes = new Set(["fixed", "percentBaseWeaponWeight", "calculated", "none", "notApplicable"]);
+  const weightMode = allowedWeightModes.has(rawWeightMode) ? rawWeightMode : "notApplicable";
+
+  const category = String(entry.alterationCategory ?? "").trim();
+  const allowedCategories = new Set(["infantry", "scopeUpgrade", "energyBlade", "gravityHammer"]);
+  if (!allowedCategories.has(category)) return null;
+
+  return {
+    id,
+    name,
+    source: String(entry.source ?? "mythic").trim().toLowerCase() || "mythic",
+    sourcePage: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.sourcePage, 0))),
+    minimumYear: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.minimumYear, 0))),
+    faction: String(entry.faction ?? entry.armorySelection ?? "COVENANT").trim().toUpperCase() || "COVENANT",
+    armorySelection: String(entry.armorySelection ?? entry.faction ?? "COVENANT").trim().toUpperCase() || "COVENANT",
+    category: "weaponMod",
+    modGroup: "covenantAlteration",
+    mount: String(entry.mount ?? "alteration").trim() || "alteration",
+    modType: "alteration",
+    alterationCategory: category,
+    fixedWeight: parseMythicWeaponBarrelNumber(entry.fixedWeight, 0),
+    weightMode,
+    creditCost: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.creditCost ?? entry.costCr, 0))),
+    costMode: String(entry.costMode ?? "").trim(),
+    costMultiplier: parseMythicWeaponBarrelNumber(entry.costMultiplier, 0),
+    effects,
+    notes: String(entry.notes ?? "").trim(),
+    sourceText: String(entry.sourceText ?? entry.rulesSummary ?? "").trim()
+  };
+}
+
+export async function loadMythicCovenantInfantryAlterationsDefinitionsPayload() {
+  try {
+    const response = await fetch(MYTHIC_COVENANT_INFANTRY_ALTERATIONS_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const source = json && typeof json === "object" && !Array.isArray(json) ? json : {};
+    const alterations = Array.isArray(source.alterations)
+      ? source.alterations.map((entry) => normalizeMythicCovenantAlterationDefinition(entry)).filter(Boolean)
+      : [];
+    return {
+      schemaVersion: Math.max(1, Math.floor(parseMythicWeaponBarrelNumber(source.schemaVersion, 1))),
+      alterations
+    };
+  } catch (error) {
+    console.error("[mythic-system] Failed to load covenant infantry alterations definitions JSON.", error);
+    return {
+      schemaVersion: 1,
+      alterations: []
+    };
+  }
+}
+
+export async function loadMythicCovenantInfantryAlterationsDefinitions() {
+  if (Array.isArray(mythicCovenantInfantryAlterationsDefinitionsCache)) return mythicCovenantInfantryAlterationsDefinitionsCache;
+  const payload = await loadMythicCovenantInfantryAlterationsDefinitionsPayload();
+  mythicCovenantInfantryAlterationsDefinitionsCache = payload.alterations;
+  return mythicCovenantInfantryAlterationsDefinitionsCache;
+}
+
+function normalizeMythicBanishedWeaponModificationDefinition(entry = {}) {
+  if (!entry || typeof entry !== "object") return null;
+  const name = String(entry.name ?? "").trim();
+  const id = String(entry.id ?? name.toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "")).trim();
+  if (!name || !id) return null;
+
+  const effects = entry.effects && typeof entry.effects === "object" && !Array.isArray(entry.effects)
+    ? foundry.utils.deepClone(entry.effects)
+    : {};
+
+  const rawWeightMode = String(entry.weightMode ?? "").trim();
+  const allowedWeightModes = new Set(["fixed", "percentBaseWeaponWeight", "calculated", "none", "notApplicable"]);
+  const weightMode = allowedWeightModes.has(rawWeightMode) ? rawWeightMode : "notApplicable";
+
+  const category = String(entry.modificationCategory ?? "").trim().toLowerCase();
+  if (!["ranged", "melee"].includes(category)) return null;
+
+  return {
+    id,
+    name,
+    source: String(entry.source ?? "mythic").trim().toLowerCase() || "mythic",
+    sourcePage: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.sourcePage, 0))),
+    minimumYear: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.minimumYear, 0))),
+    faction: String(entry.faction ?? entry.armorySelection ?? "BANISHED").trim().toUpperCase() || "BANISHED",
+    armorySelection: String(entry.armorySelection ?? entry.faction ?? "BANISHED").trim().toUpperCase() || "BANISHED",
+    category: "weaponMod",
+    modGroup: "banishedWeaponModification",
+    mount: String(entry.mount ?? "alteration").trim() || "alteration",
+    modType: String(entry.modType ?? "modification").trim() || "modification",
+    modificationCategory: category,
+    fixedWeight: parseMythicWeaponBarrelNumber(entry.fixedWeight, 0),
+    weightMode,
+    creditCost: Math.max(0, Math.floor(parseMythicWeaponBarrelNumber(entry.creditCost ?? entry.costCr, 0))),
+    costMode: String(entry.costMode ?? "").trim(),
+    costMultiplier: parseMythicWeaponBarrelNumber(entry.costMultiplier, 0),
+    effects,
+    notes: String(entry.notes ?? "").trim(),
+    sourceText: String(entry.sourceText ?? entry.rulesSummary ?? "").trim()
+  };
+}
+
+export async function loadMythicBanishedWeaponModificationsDefinitionsPayload() {
+  try {
+    const response = await fetch(MYTHIC_BANISHED_WEAPON_MODIFICATIONS_DEFINITIONS_PATH);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const source = json && typeof json === "object" && !Array.isArray(json) ? json : {};
+    const modifications = Array.isArray(source.modifications)
+      ? source.modifications.map((entry) => normalizeMythicBanishedWeaponModificationDefinition(entry)).filter(Boolean)
+      : [];
+    return {
+      schemaVersion: Math.max(1, Math.floor(parseMythicWeaponBarrelNumber(source.schemaVersion, 1))),
+      modifications
+    };
+  } catch (error) {
+    console.error("[mythic-system] Failed to load Banished weapon modifications definitions JSON.", error);
+    return {
+      schemaVersion: 1,
+      modifications: []
+    };
+  }
+}
+
+export async function loadMythicBanishedWeaponModificationsDefinitions() {
+  if (Array.isArray(mythicBanishedWeaponModificationsDefinitionsCache)) return mythicBanishedWeaponModificationsDefinitionsCache;
+  const payload = await loadMythicBanishedWeaponModificationsDefinitionsPayload();
+  mythicBanishedWeaponModificationsDefinitionsCache = payload.modifications;
+  return mythicBanishedWeaponModificationsDefinitionsCache;
 }
 
 async function loadMythicAmmoTypeDefinitionsFromCompendium() {

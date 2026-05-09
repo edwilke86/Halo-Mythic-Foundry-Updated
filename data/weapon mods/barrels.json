@@ -1,0 +1,698 @@
+{
+  "schemaVersion": 1,
+  "barrels": [
+    {
+      "id": "signet-lbe-choke",
+      "name": "Signet LBE Choke",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Long-Barreled Choke for shotguns.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "choke",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["shotgun"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.6,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 40,
+      "effects": {
+        "conditionalRules": [
+          {
+            "condition": "ammoHasSpread",
+            "rule": "If shell has Spread, increase Close and Optimal range by 25%."
+          },
+          {
+            "condition": "ammoHasSlug",
+            "rule": "If shell is Slug, Close and Optimal range are reduced to 10% due to choke breakage."
+          }
+        ],
+        "specialSlugInteractionRule": "Slug shells break this choke and collapse effective close/optimal range to 10%."
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional RPG choke item.",
+      "sourceText": "Spread shell range boost; Slug shell breakage penalty.",
+      "universal": true,
+      "restrictionRaw": "Shotgun",
+      "restrictionStructured": {
+        "allowedWeaponTypes": ["Shotgun"]
+      },
+      "placeholder": {}
+    },
+    {
+      "id": "wst-choke-45",
+      "name": "WST Choke 45",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "High-precision full choke for shotguns.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "choke",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["shotgun"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.6,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 40,
+      "effects": {
+        "closeRangeMultiplier": 1.5,
+        "conditionalRules": [
+          {
+            "condition": "ammoHasSpread",
+            "rule": "Spread shells lose their +10 To Hit bonus."
+          },
+          {
+            "condition": "ammoHasSlug",
+            "rule": "Using Slug shells destroys this choke."
+          }
+        ],
+        "specialSlugInteractionRule": "Slug shells destroy this choke."
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional RPG choke item.",
+      "sourceText": "Spread shells lose +10 To Hit; Close Range +50%; Slug destroys choke.",
+      "universal": true,
+      "restrictionRaw": "Shotgun",
+      "restrictionStructured": {
+        "allowedWeaponTypes": ["Shotgun"]
+      },
+      "placeholder": {}
+    },
+    {
+      "id": "wst-reinforced-squeeze-choke",
+      "name": "WST Reinforced Squeeze Choke",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Maximized range choke with breakage tracking.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "choke",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["shotgun"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.7,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 60,
+      "effects": {
+        "closeRangeMultiplier": 1.5,
+        "optimalRangeMultiplier": 1.5,
+        "conditionalRules": [
+          {
+            "condition": "ammoHasSpread",
+            "rule": "Spread shells lose their +10 To Hit bonus."
+          },
+          {
+            "condition": "ammoHasSlug",
+            "rule": "Slug shells destroy this choke and the weapon barrel, rendering the weapon unusable by rules text."
+          },
+          {
+            "condition": "naturalToHit100",
+            "rule": "Natural To Hit rolls of 100 damage this choke; destroy after two such damage events."
+          }
+        ],
+        "specialBreakageRule": "Track natural-100 breakage counter; destroy this choke after two hits.",
+        "specialSlugInteractionRule": "Slug shells destroy both this choke and the weapon barrel."
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional RPG breakage tracking only.",
+      "sourceText": "Close and Optimal +50%; Spread loses +10 To Hit; Slug destroys barrel and choke.",
+      "universal": true,
+      "restrictionRaw": "Shotgun",
+      "restrictionStructured": {
+        "allowedWeaponTypes": ["Shotgun"]
+      },
+      "placeholder": {}
+    },
+    {
+      "id": "extended-barrel",
+      "name": "Extended Barrel",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Extended barrel modification for long-range performance.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["rifle", "pistol", "smg", "machineGun", "sniperRifle"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "calculated",
+      "weightPercent": 0,
+      "creditCost": 40,
+      "effects": {
+        "longRangeMultiplier": 1.1,
+        "pierceBonus": 2,
+        "concealmentModifier": -20,
+        "conditionalRules": [
+          {
+            "condition": "combinedWithHeavyBarrel",
+            "rule": "Weight increase becomes 30% base weapon weight when combined with Heavy Barrel."
+          },
+          {
+            "condition": "standalone",
+            "rule": "Weight increase is 15% base weapon weight when not combined with Heavy Barrel."
+          }
+        ],
+        "customRuleText": "Long Range +10%; Pierce +2; concealment penalty -20."
+      },
+      "incompatibilityTags": ["conflict-short-barrel", "conflict-sawed-off"],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Game-stat range/weight/concealment modifier only.",
+      "sourceText": "Long Range +10%, Pierce +2, weight scaling, concealment penalty.",
+      "universal": false,
+      "restrictionRaw": "Rifle, Pistol, SMG, any type of Machine Gun, Sniper Rifle",
+      "restrictionStructured": {
+        "allowedWeaponTypes": ["Rifle", "Pistol", "SMG", "Machine Gun", "Sniper Rifle"]
+      },
+      "placeholder": {}
+    },
+    {
+      "id": "muzzle-flash-suppressor",
+      "name": "Muzzle Flash Suppressor",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Reduces visible muzzle flash signature.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "muzzle",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.1,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 20,
+      "effects": {
+        "visualPerceptionModifier": -20
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional visual-signature modifier only.",
+      "sourceText": "-20 Visual Perception to observers that can see the shot.",
+      "universal": false,
+      "restrictionRaw": "None",
+      "restrictionStructured": {},
+      "placeholder": {}
+    },
+    {
+      "id": "muzzle-flash-hider",
+      "name": "Muzzle Flash Hider",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Camouflage-focused flash management.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "muzzle",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.2,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 20,
+      "effects": {
+        "investigationBonusMultiplier": 0.5,
+        "conditionalRules": [
+          {
+            "condition": "weaponIsCamouflaged",
+            "rule": "While camouflaged, halve bonuses to Investigation Tests to spot the character."
+          }
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional stealth/stat modifier only.",
+      "sourceText": "Halves investigation spotting bonuses while firing from camouflage.",
+      "universal": false,
+      "restrictionRaw": "None",
+      "restrictionStructured": {},
+      "placeholder": {}
+    },
+    {
+      "id": "heavy-barrel",
+      "name": "Heavy Barrel",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Heavier barrel for movement and kickback mitigation.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "calculated",
+      "weightPercent": 0,
+      "creditCost": 40,
+      "effects": {
+        "moveActionToHitPenaltyReduction": 10,
+        "conditionalRules": [
+          {
+            "condition": "combinedWithExtendedBarrel",
+            "rule": "Weight increase becomes 30% base weapon weight when combined with Extended Barrel."
+          },
+          {
+            "condition": "standalone",
+            "rule": "Weight increase is 15% base weapon weight when not combined with Extended Barrel."
+          }
+        ]
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Game-stat modifier only.",
+      "sourceText": "Move-action To Hit penalties reduced by 10; weight scaling rule.",
+      "universal": false,
+      "restrictionRaw": "None",
+      "restrictionStructured": {},
+      "placeholder": {}
+    },
+    {
+      "id": "misriah-864-rifled-barrel",
+      "name": "Misriah 864 Rifled Barrel",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Shotgun replacement barrel optimized for slugs.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "modification",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["shotgun"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "none",
+      "weightPercent": 0,
+      "creditCost": 50,
+      "effects": {
+        "conditionalRules": [
+          {
+            "condition": "ammoHasSlug",
+            "rule": "When using Slug ammo, increase Close Range by 25%."
+          }
+        ],
+        "specialAmmoInteractionRule": "Slug ammo gains +25% Close Range."
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional RPG replacement component.",
+      "sourceText": "Slug rounds increase Close Range by 25%.",
+      "universal": false,
+      "restrictionRaw": "Shotgun",
+      "restrictionStructured": {
+        "allowedWeaponTypes": ["Shotgun"]
+      },
+      "placeholder": {
+        "weightUnknown": true,
+        "todo": "Source lists weight as --"
+      }
+    },
+    {
+      "id": "muzzle-brake",
+      "name": "Muzzle Brake",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Recoil mitigation with visibility tradeoff.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "muzzle",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.2,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 25,
+      "effects": {
+        "strengthTestBonus": 10,
+        "conditionalRules": [
+          {
+            "condition": "weaponUnbraced",
+            "rule": "When unbraced, gain +10 Strength Tests to avoid dropping the weapon."
+          },
+          {
+            "condition": "weaponFired",
+            "rule": "Opponents who can see or hear the shot gain +10 Perception to spot the user."
+          }
+        ],
+        "customRuleText": "Perception spotlight penalty is conditional by sight/hearing."
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Abstract game modifier only.",
+      "sourceText": "Unbraced Strength aid, but opponents gain spotting bonus.",
+      "universal": false,
+      "restrictionRaw": "None",
+      "restrictionStructured": {},
+      "placeholder": {}
+    },
+    {
+      "id": "sawed-off-barrel",
+      "name": "Sawed-Off Barrel",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Extreme barrel shortening for concealment.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "modification",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "calculated",
+      "weightPercent": 0,
+      "creditCost": 0,
+      "effects": {
+        "allRangeMultiplier": 0.5,
+        "weightMultiplier": 0.5,
+        "toHitModifier": -10,
+        "concealmentModifier": 20,
+        "customRuleText": "[TH] weapons can be concealed as [OH]."
+      },
+      "incompatibilityTags": ["barrel-modification-exclusive", "conflict-short-barrel", "conflict-extended-barrel"],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional compact-configuration rule only.",
+      "sourceText": "Range and weight halved; -10 To Hit; stacks with folding stock concealment bonus.",
+      "universal": true,
+      "restrictionRaw": "None",
+      "restrictionStructured": {},
+      "placeholder": {}
+    },
+    {
+      "id": "short-barrel",
+      "name": "Short Barrel",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Shortened barrel for compact concealment profile.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "modification",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "calculated",
+      "weightPercent": 0,
+      "creditCost": 40,
+      "effects": {
+        "allRangeMultiplier": 0.75,
+        "weightMultiplier": 0.75,
+        "concealmentModifier": 20,
+        "customRuleText": "[TH] weapons can be concealed as [OH]."
+      },
+      "incompatibilityTags": ["conflict-extended-barrel", "conflict-sawed-off"],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional compact-configuration rule only.",
+      "sourceText": "Range/weight -25%; concealment bonuses for folding stock and [OH]/[DW].",
+      "universal": true,
+      "restrictionRaw": "None",
+      "restrictionStructured": {},
+      "placeholder": {}
+    },
+    {
+      "id": "socom-attachment-system",
+      "name": "SOCOM Attachment System",
+      "source": "mythic",
+      "sourcePage": 149,
+      "faction": "UNSC",
+      "description": "Integrated barrel/lower kit for pistols and SMGs.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "multi",
+      "modType": "kit",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["pistol", "smg"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "percentBaseWeaponWeight",
+      "weightPercent": 25,
+      "creditCost": 75,
+      "effects": {
+        "pierceBonus": 1,
+        "longRangeMultiplier": 1.1,
+        "visualPerceptionModifier": -20,
+        "hearingPerceptionModifier": -20,
+        "newFireMode": "auto (6)",
+        "replaceExistingAutoMode": true,
+        "customRuleText": "Pistols replace existing Auto mode; SMGs keep existing Auto mode."
+      },
+      "incompatibilityTags": ["kit-blocks-barrel-lower", "weapon-name-locked"],
+      "blocksMounts": ["barrel", "lower"],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "builtInSubfeatures": [
+        "muzzle brake",
+        "sound reducing component",
+        "VnSLS/V 6E Scope",
+        "flashlight",
+        "laser aiming module"
+      ],
+      "notes": "Fictional integrated kit; built-ins do not consume additional mounts.",
+      "sourceText": "Pierce +1, see/hear -20, long range +10%, adds Auto (6).",
+      "universal": false,
+      "restrictionRaw": "Pistol and SMG",
+      "restrictionStructured": {
+        "allowedWeaponTypes": ["Pistol", "SMG"]
+      },
+      "placeholder": {}
+    },
+    {
+      "id": "hush-socom-kit",
+      "name": "Hush SOCOM Kit",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Prebuilt MA-series rifle/carbine stealth kit.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "multi",
+      "modType": "kit",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["maSeriesRifle", "maSeriesCarbine"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "percentBaseWeaponWeight",
+      "weightPercent": 20,
+      "creditCost": 75,
+      "effects": {
+        "pierceBonus": 1,
+        "optimalRangeMultiplier": 1.15,
+        "visualPerceptionModifier": -10,
+        "hearingPerceptionModifier": -10,
+        "conditionalRules": [
+          {
+            "condition": "ammoHasHVorHYVorPlusP",
+            "rule": "Using HV, HYV, +P, or +P+ ammo inflicts 1D5 breakpoints to the weapon each shot."
+          }
+        ],
+        "specialAmmoInteractionRule": "HV/HYV/+P/+P+ ammo damages weapon breakpoints by 1D5 per shot."
+      },
+      "incompatibilityTags": ["kit-blocks-barrel-lower", "weapon-name-locked"],
+      "blocksMounts": ["barrel", "lower"],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional integrated kit with abstract breakage rule only.",
+      "sourceText": "Pierce +1, see/hear -10, Optimal +15%, ammo stress rule for HV/HYV/+P/+P+.",
+      "universal": false,
+      "restrictionRaw": "MA-series Rifles and Carbines",
+      "restrictionStructured": {
+        "allowedWeaponTypes": ["MA-series Rifle", "MA-series Carbine"]
+      },
+      "placeholder": {}
+    },
+    {
+      "id": "sound-dampener",
+      "name": "Sound Dampener",
+      "source": "mythic",
+      "sourcePage": 149,
+      "faction": "UNSC",
+      "description": "Post-war sound suppression system.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "muzzle",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["any"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 2557,
+      "fixedWeight": 0.5,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 20,
+      "effects": {
+        "hearingPerceptionModifier": -30
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Post-war fictional equipment.",
+      "sourceText": "-30 Hearing Perception to anyone who could hear the shot.",
+      "universal": false,
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "timeline": {
+          "minYear": 2557
+        }
+      },
+      "placeholder": {}
+    },
+    {
+      "id": "ss-m-49-sound-suppressor",
+      "name": "SS/M 49 Sound Suppressor",
+      "source": "mythic",
+      "sourcePage": 149,
+      "faction": "UNSC",
+      "description": "Sound suppressor tuned for HV/HYV-capable weapons.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "barrel",
+      "modType": "muzzle",
+      "rarityTag": "",
+      "allowedWeaponCategories": ["weaponsUsingHV", "weaponsUsingHYV"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0,
+      "weightMode": "percentBaseWeaponWeight",
+      "weightPercent": 25,
+      "creditCost": 15,
+      "effects": {
+        "hearingPerceptionModifier": -20,
+        "allRangeMultiplier": 1.1,
+        "pierceBonus": 1,
+        "aimActionCannotBeReduced": true,
+        "customRuleText": "Aim Action time cannot be reduced by abilities or equipment."
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": ["HV", "HYV"],
+      "forbiddenAmmoTags": [],
+      "notes": "Fictional RPG stat modifier only.",
+      "sourceText": "Hearing -20, range +10%, Pierce +1, aim-time reduction blocked.",
+      "universal": false,
+      "restrictionRaw": "Weapons using High-Velocity or Hyper-Velocity Ammo",
+      "restrictionStructured": {
+        "requiredAmmoTagsAny": ["HV", "HYV"]
+      },
+      "placeholder": {}
+    },
+    {
+      "id": "palm-shelf-pistol-grip",
+      "name": "Palm Shelf Pistol Grip",
+      "source": "mythic",
+      "sourcePage": 148,
+      "faction": "UNSC",
+      "description": "Rear brace style lower mount grip replacement.",
+      "category": "weaponMod",
+      "modGroup": "barrel",
+      "mount": "lower",
+      "modType": "rearBrace",
+      "rarityTag": "U",
+      "allowedWeaponCategories": ["rifle", "carbine", "pistol", "smg", "machineGun", "sniperRifle"],
+      "restrictedToTags": [],
+      "forbiddenWeaponCategories": [],
+      "minimumYear": 0,
+      "fixedWeight": 0.7,
+      "weightMode": "fixed",
+      "weightPercent": 0,
+      "creditCost": 35,
+      "effects": {
+        "conditionalRules": [
+          {
+            "condition": "damageTakenAfterResistanceBelow20",
+            "rule": "Allows user to keep Aim Action after taking ranged damage below 20 after resistance."
+          }
+        ],
+        "customRuleText": "Aim retention threshold rule is conditional on incoming ranged damage."
+      },
+      "incompatibilityTags": [],
+      "blocksMounts": [],
+      "requiresAmmoTags": [],
+      "forbiddenAmmoTags": [],
+      "notes": "Included from same source section; categorized as lower/rear brace.",
+      "sourceText": "Keep Aim Action after sub-20 ranged damage (post resistance).",
+      "universal": true,
+      "restrictionRaw": "Rifle, Carbine, Pistol, SMG, any type of Machine Gun, Sniper Rifle",
+      "restrictionStructured": {
+        "allowedWeaponTypes": ["Rifle", "Carbine", "Pistol", "SMG", "Machine Gun", "Sniper Rifle"]
+      },
+      "placeholder": {}
+    }
+  ]
+}

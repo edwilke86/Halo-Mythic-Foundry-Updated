@@ -2,10 +2,10 @@
   "id": "Halo-Mythic-Foundry-Updated",
   "title": "Halo Mythic Foundry Updated",
   "description": "Community Foundry VTT system project for the Halo Mythic ruleset.",
-    "version": "0.5.0-alpha.4",
+    "version": "0.5.0-alpha.5",
   "license": "SEE LICENSE and LICENSE.assets",
     "manifest": "https://raw.githubusercontent.com/edwilke86/Halo-Mythic-Foundry-Updated/main/system.json",
-  "download": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated/releases/download/0.5.0-alpha.4/halo-mythic-foundry-updated-0.5.0-alpha.4-20260504.zip",
+  "download": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated/releases/download/0.5.0-alpha.5/halo-mythic-foundry-updated-0.5.0-alpha.5-20260509.zip",
   
   "url": "https://github.com/edwilke86/Halo-Mythic-Foundry-Updated",
   "compatibility": {
@@ -299,6 +299,114 @@
       }
     },
     {
+      "name": "mythic-weapon-mods-optics",
+      "label": "50 Mods - Weapon Optics",
+      "path": "packs/weapon-mods-optics",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapon-mods-rails",
+      "label": "50 Mods - Weapon Rails",
+      "path": "packs/weapon-mods-rails",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapon-mods-barrels",
+      "label": "50 Mods - Weapon Barrels",
+      "path": "packs/weapon-mods-barrels",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapon-mods-conversions",
+      "label": "50 Mods - Weapon Conversions",
+      "path": "packs/weapon-mods-conversions",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-covenant-weapon-patterns-primary",
+      "label": "50 Mods - Covenant Weapon Patterns (Primary)",
+      "path": "packs/covenant-weapon-patterns-primary",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-covenant-weapon-patterns-secondary",
+      "label": "50 Mods - Covenant Weapon Patterns (Secondary)",
+      "path": "packs/covenant-weapon-patterns-secondary",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-covenant-weapon-patterns-tactical",
+      "label": "50 Mods - Covenant Weapon Patterns (Tactical)",
+      "path": "packs/covenant-weapon-patterns-tactical",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapon-mods-covenant-infantry-alterations",
+      "label": "50 Mods - Covenant Infantry Alterations",
+      "path": "packs/weapon-mods-covenant-infantry-alterations",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
+      "name": "mythic-weapon-mods-banished-weapon-modifications",
+      "label": "50 Mods - Banished Weapon Modifications",
+      "path": "packs/weapon-mods-banished-weapon-modifications",
+      "type": "Item",
+      "system": "Halo-Mythic-Foundry-Updated",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER",
+        "GAMEMASTER": "OWNER"
+      }
+    },
+    {
       "name": "mythic-weapons-human-ranged",
       "label": "30 Weapons - Ranged - Human",
       "path": "packs/weapons-human-ranged",
@@ -347,18 +455,6 @@
       }
     },
     {
-      "name": "mythic-weapons-shared-ranged",
-      "label": "30 Weapons - Ranged - Shared",
-      "path": "packs/weapons-shared-ranged",
-      "type": "Item",
-      "system": "Halo-Mythic-Foundry-Updated",
-      "ownership": {
-        "PLAYER": "OBSERVER",
-        "ASSISTANT": "OWNER",
-        "GAMEMASTER": "OWNER"
-      }
-    },
-    {
       "name": "mythic-weapons-human-melee",
       "label": "30 Weapons - Melee - Human",
       "path": "packs/weapons-human-melee",
@@ -398,18 +494,6 @@
       "name": "mythic-weapons-forerunner-melee",
       "label": "30 Weapons - Melee - Forerunner",
       "path": "packs/weapons-forerunner-melee",
-      "type": "Item",
-      "system": "Halo-Mythic-Foundry-Updated",
-      "ownership": {
-        "PLAYER": "OBSERVER",
-        "ASSISTANT": "OWNER",
-        "GAMEMASTER": "OWNER"
-      }
-    },
-    {
-      "name": "mythic-weapons-shared-melee",
-      "label": "30 Weapons - Melee - Shared",
-      "path": "packs/weapons-shared-melee",
       "type": "Item",
       "system": "Halo-Mythic-Foundry-Updated",
       "ownership": {

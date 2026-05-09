@@ -1,0 +1,1552 @@
+{
+  "schemaVersion": 1,
+  "rails": [
+    {
+      "id": "adaptive-distance-viewfinder",
+      "name": "Adaptive Distance Viewfinder",
+      "source": "mythic",
+      "sourcePage": 145,
+      "faction": "UNSC",
+      "description": "Optic attachment used with 5x or larger optics. Mounted under the optic and shares the same rail slots. With a Full Action it updates target distance and holdover guidance.",
+      "weightKg": 1.7,
+      "costCr": 225,
+      "universal": false,
+      "mounts": [
+        "any"
+      ],
+      "railSlotsConsumed": 0,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Aiming",
+      "restrictionRaw": "Installed Optics",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {
+          "installed": true,
+          "minimumMagnification": 5,
+          "sharesOpticRailSlots": true
+        },
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "range-penalty-aiming",
+      "activation": {
+        "fullActionRangefinder": true,
+        "halfAimOrFullAimInteraction": true
+      },
+      "conditions": {
+        "requiresAimingWorkflow": true
+      },
+      "modifiers": [
+        {
+          "when": "full-action-distance-update",
+          "longRangePenaltyMultiplier": 0.5,
+          "extremeRangePenaltyMultiplier": 0.5
+        },
+        {
+          "when": "half-or-full-aim-with-module",
+          "longRangePenaltySet": 0,
+          "extremeRangePenaltySet": -15
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "lastComputedRangeMeters": null,
+        "lastComputedAimOffset": null
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Implement shared optic-slot mounting checks against installed optic data.",
+        "Hook range penalty transforms into aim-action pipeline.",
+        "Expose range/holdover readout in attack UI."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "ammo-counter",
+      "name": "Ammo Counter",
+      "source": "mythic",
+      "sourcePage": 145,
+      "faction": "UNSC",
+      "description": "Tracks rounds in the weapon, can be manually programmed for carried magazines, and includes an electronic compass.",
+      "weightKg": 0.3,
+      "costCr": 5,
+      "universal": false,
+      "mounts": [
+        "upper",
+        "side"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Misc",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "ammo-telemetry",
+      "activation": {
+        "passive": true,
+        "manualProgrammingSupported": true
+      },
+      "conditions": {},
+      "modifiers": [],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "displayedAmmoCount": null,
+        "trackedMagazineCount": null,
+        "hasCompass": true
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Bind displayed ammo count to current magazine state.",
+        "Add optional carried-magazine tracker UI.",
+        "Expose compass utility in HUD if desired."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "angled-grip",
+      "name": "Angled Grip",
+      "source": "mythic",
+      "sourcePage": 145,
+      "faction": "UNSC",
+      "description": "Added to the bottom rail in front of the weapon. Grants +5 To Hit while standing still.",
+      "weightKg": 0.4,
+      "costCr": 15,
+      "universal": true,
+      "mounts": [
+        "lower"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Brace",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "stationary-accuracy",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "standingStill": true
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "toHit",
+          "mode": "add",
+          "value": 5,
+          "when": "standing-still"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {},
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Define standing-still detection state in turn workflow."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "ballistic-shield",
+      "name": "Ballistic Shield",
+      "source": "mythic",
+      "sourcePage": 145,
+      "faction": "UNSC",
+      "description": "Reinforced glass shield on the top rail. While using Aim Actions, grants +8 Armor to head and firing arm. Shield has 200 Breakpoints.",
+      "weightKg": 2.4,
+      "costCr": 80,
+      "universal": false,
+      "mounts": [
+        "upper"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Misc",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": [
+          "Prose-intent requires a weapon posture/use case where shoulder/head protection is physically plausible.",
+          "Smartlink scopes that avoid shouldering the weapon suppress default protection unless GM permits alternate location."
+        ]
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "aiming-shield-protection",
+      "activation": {
+        "requiresAimAction": true
+      },
+      "conditions": {
+        "requiresProtectiveFiringPosture": true,
+        "smartlinkCanSuppressDefaultBenefit": true
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "locationArmor",
+          "mode": "add",
+          "value": 8,
+          "locations": [
+            "head",
+            "firingArm"
+          ],
+          "when": "aiming"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "breakpoints": {
+          "max": 200,
+          "current": 200
+        },
+        "benefitDisabledAtZeroBreakpoints": true
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Implement location armor overlay while aiming.",
+        "Track shield breakpoint damage and disable benefit at zero.",
+        "Add posture and smartlink gating prompts for GM adjudication."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "bayonet",
+      "name": "Bayonet",
+      "source": "mythic",
+      "sourcePage": 145,
+      "faction": "UNSC",
+      "description": "Attached bayonet with UNSC Machete profile. Grants +1 melee reach and counts as Slow when used.",
+      "weightKg": 1.7,
+      "costCr": 25,
+      "universal": true,
+      "mounts": [
+        "upper",
+        "side"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Underslung",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "attached-melee-variant",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {},
+      "modifiers": [
+        {
+          "target": "variantAttack",
+          "stat": "meleeReach",
+          "mode": "add",
+          "value": 1
+        },
+        {
+          "target": "variantAttack",
+          "stat": "specialRule",
+          "mode": "append",
+          "value": "slow"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {},
+      "variantAttackRefs": [
+        "gear:melee-unsc-machete"
+      ],
+      "implementationTodos": [
+        "Resolve canonical UNSC machete attack reference if compendium ID differs.",
+        "Add attachable melee variant selection in future weapon designer flow."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "bipod",
+      "name": "Bipod",
+      "source": "mythic",
+      "sourcePage": 145,
+      "faction": "UNSC",
+      "description": "Deploy/undeploy as a Half Action. While deployed and rested on a surface, attacks count as Braced if weapon is not moved. If deployed but unrested, attacks take -5 To Hit.",
+      "weightKg": 1.4,
+      "costCr": 12,
+      "universal": true,
+      "mounts": [
+        "lower"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Heavy Brace",
+      "restrictionRaw": "[TH] and [HW]",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [
+          "TH",
+          "HW"
+        ],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "deployable-brace",
+      "activation": {
+        "deployAction": "half",
+        "undeployAction": "half"
+      },
+      "conditions": {
+        "requiresRestedSurfaceForBrace": true,
+        "requiresNoWeaponMovementForBrace": true
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "isBraced",
+          "mode": "set",
+          "value": true,
+          "when": "deployed-and-rested-and-stationary"
+        },
+        {
+          "target": "self",
+          "stat": "toHit",
+          "mode": "add",
+          "value": -5,
+          "when": "deployed-and-not-rested"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "deployed": false,
+        "rested": false
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Implement deploy state toggles.",
+        "Model rested-surface detection for brace benefit."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "bipod-foregrip",
+      "name": "Bipod Foregrip",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "When rested or hooked on a surface, weapon is considered Braced. Without brace, Full Action and Charge Action movement To Hit penalties are reduced by 5.",
+      "weightKg": 1.2,
+      "costCr": 30,
+      "universal": false,
+      "mounts": [
+        "lower"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Forward Brace",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "brace-movement-mitigation",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "restedOrHookedSurface": true
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "isBraced",
+          "mode": "set",
+          "value": true,
+          "when": "rested-or-hooked"
+        },
+        {
+          "target": "self",
+          "stat": "movementPenaltyToHit",
+          "mode": "add",
+          "value": 5,
+          "when": "not-braced-full-or-charge"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {},
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Map movement penalty categories to modifiers for full/charge actions."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "canted-irons",
+      "name": "Canted Irons",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "45-degree offset rail mount that consumes one slot and grants two canted slots (one above, one diagonal). Supports secondary optic/ironsight/module attachments.",
+      "weightKg": 0.1,
+      "costCr": 15,
+      "universal": false,
+      "mounts": [
+        "upper"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 2,
+      "stacking": {
+        "allowed": true,
+        "maxInstances": null,
+        "penaltyPerAdditionalToHit": -5,
+        "suppressAdditionalBenefits": true
+      },
+      "railType": "Misc",
+      "restrictionRaw": "Rifle, Carbine, Pistol, SMG, Machine Guns, Sniper Rifles",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [
+          "Rifle",
+          "Carbine",
+          "Pistol",
+          "SMG",
+          "Machine Gun",
+          "Sniper Rifle"
+        ],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": [
+          "Stacking adds -5 To Hit per additional canted iron.",
+          "Stacked canted irons do not stack benefits for optics, lasers, or other stat-granting attachments."
+        ]
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "rail-expander",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "secondarySightRequiresDiagonalWeaponHold": true
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "toHit",
+          "mode": "add",
+          "value": -5,
+          "when": "per-additional-stack"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "stackCount": 1,
+        "grantedCantedSlotsPerInstance": 2
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Implement canted-slot topology in future weapon designer rail model.",
+        "Enforce benefit suppression metadata when stacked."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "energy-bayonet",
+      "name": "Energy Bayonet",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "Energy blade attachment sharing Covenant Energy Dagger profile. Available only after year 2557. Grants +1 melee reach and counts as Slow when used.",
+      "weightKg": 1.1,
+      "costCr": 200,
+      "universal": false,
+      "mounts": [
+        "lower"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Underslung",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": 2557,
+          "maxYear": null
+        },
+        "notes": [
+          "Only available after year 2557."
+        ]
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "attached-melee-variant",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {},
+      "modifiers": [
+        {
+          "target": "variantAttack",
+          "stat": "meleeReach",
+          "mode": "add",
+          "value": 1
+        },
+        {
+          "target": "variantAttack",
+          "stat": "specialRule",
+          "mode": "append",
+          "value": "slow"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {},
+      "variantAttackRefs": [
+        "gear:melee-covenant-energy-dagger"
+      ],
+      "implementationTodos": [
+        "Check campaign year gating during install and item availability.",
+        "Resolve canonical energy dagger reference if source naming differs."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "flashlight",
+      "name": "Flashlight",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "Lowers Darkness penalties by 30 and Low-Light penalties by 15. If mounted on top rail, Aim Actions take -20.",
+      "weightKg": 0.1,
+      "costCr": 10,
+      "universal": true,
+      "mounts": [
+        "any"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Flashlight",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "light-penalty-reduction",
+      "activation": {
+        "passive": true,
+        "toggleable": true
+      },
+      "conditions": {
+        "topRailAimPenalty": -20
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "darknessPenalty",
+          "mode": "add",
+          "value": 30
+        },
+        {
+          "target": "self",
+          "stat": "lowLightPenalty",
+          "mode": "add",
+          "value": 15
+        },
+        {
+          "target": "self",
+          "stat": "aimActionToHit",
+          "mode": "add",
+          "value": -20,
+          "when": "mounted-top-rail"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "enabled": true
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Bind darkness and low-light penalty channels.",
+        "Respect top-rail aim penalty condition when mount is upper/top."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "handstop-foregrip",
+      "name": "Handstop Foregrip",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "When attacking without taking movement or aim actions during the turn, the first attack in the round gains +5 To Hit.",
+      "weightKg": 0.8,
+      "costCr": 30,
+      "universal": true,
+      "mounts": [
+        "lower",
+        "side"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Forward Brace",
+      "restrictionRaw": "Rifle, Carbine, Pistol, SMG, any type of Machine Gun, Sniper Rifle",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [
+          "Rifle",
+          "Carbine",
+          "Pistol",
+          "SMG",
+          "Machine Gun",
+          "Sniper Rifle"
+        ],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "first-shot-bonus",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "requiresNoMoveActionsThisTurn": true,
+        "requiresNoAimActionsThisTurn": true,
+        "firstAttackOnlyPerRound": true
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "toHit",
+          "mode": "add",
+          "value": 5,
+          "when": "first-attack-no-move-no-aim"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "firstAttackBonusSpent": false
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Add per-round first-attack consumption tracking.",
+        "Hook no-move/no-aim preconditions into turn state."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "heavy-foregrip",
+      "name": "Heavy Foregrip",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "On [HW] weapons without Move Actions, reduces To Hit penalty by 5 and prevents two-hand drop-on-fire. On non-[HW], reduces Charge/Run movement To Hit penalties by 10.",
+      "weightKg": 0.9,
+      "costCr": 45,
+      "universal": false,
+      "mounts": [
+        "lower"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Forward Brace",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "heavy-weapon-stability",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "branches": [
+          "hw-no-move",
+          "non-hw-run-or-charge"
+        ]
+      },
+      "modifiers": [
+        {
+          "when": "hw-no-move",
+          "target": "self",
+          "stat": "toHitPenalty",
+          "mode": "add",
+          "value": 5
+        },
+        {
+          "when": "hw-no-move",
+          "target": "self",
+          "stat": "preventDropOnFiring",
+          "mode": "set",
+          "value": true
+        },
+        {
+          "when": "non-hw-run-or-charge",
+          "target": "self",
+          "stat": "movementPenaltyToHit",
+          "mode": "add",
+          "value": 10
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {},
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Implement tag-branch evaluation for [HW] and non-[HW] variants.",
+        "Hook prevent-drop behavior into firing resolution."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "heavy-weapon-shield",
+      "name": "Heavy Weapon Shield",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "Large shield intended for [HW] heavy weapons. Provides +12 Armor to protected locations, has 400 Breakpoints, and suppresses Aim Action bonuses unless paired with smartlink scope.",
+      "weightKg": 9.3,
+      "costCr": 110,
+      "universal": false,
+      "mounts": [
+        "upper"
+      ],
+      "railSlotsConsumed": 2,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Misc",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [
+          "HW"
+        ],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": [
+          "Table says RESTRICT none, but prose intent targets [HW] heavy weapons.",
+          "Prone branch adds wider protection but applies -10 To Hit.",
+          "Crouch branch may extend to neck/chin at GM discretion."
+        ]
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "heavy-shield-protection",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "aimActionBonusesSuppressedUnlessSmartlink": true,
+        "postureBranches": [
+          "standing",
+          "crouching",
+          "prone"
+        ]
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "locationArmor",
+          "mode": "add",
+          "value": 12,
+          "locations": [
+            "chest",
+            "firingArm"
+          ],
+          "when": "default"
+        },
+        {
+          "target": "self",
+          "stat": "toHit",
+          "mode": "add",
+          "value": -10,
+          "when": "prone-using-heavy-weapon-shield"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "breakpoints": {
+          "max": 400,
+          "current": 400
+        },
+        "benefitDisabledAtZeroBreakpoints": true,
+        "protectedLocationsByPosture": {
+          "standing": [
+            "chest",
+            "firingArm"
+          ],
+          "crouching": [
+            "chest",
+            "firingArm",
+            "neck",
+            "chin"
+          ],
+          "prone": [
+            "head",
+            "chest",
+            "firingArm",
+            "sameSideLeg"
+          ]
+        }
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Implement posture-dependent protected location sets.",
+        "Suppress aim bonuses unless smartlink scope branch is active.",
+        "Apply prose-intent [HW] gating while preserving raw restriction text."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "horizontal-grip",
+      "name": "Horizontal Grip",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "When using Aim Actions, increases by 1 the number of attacks in a turn that can gain Aim Action benefit.",
+      "weightKg": 0.5,
+      "costCr": 20,
+      "universal": true,
+      "mounts": [
+        "lower"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Forward Brace",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "aim-benefit-extension",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "requiresAimAction": true
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "aimBenefitAttackCount",
+          "mode": "add",
+          "value": 1
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {},
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Define and apply per-turn aim-benefit attack count cap in attack workflow."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "infrared-laser-aiming-module",
+      "name": "Infrared Laser Aiming Module",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "Provides +5 To Hit when not using Aim Actions if user has VISR, Infrared, or Thermal capability. Opponents with those capabilities gain +5 Evasion against attacks from this weapon. -20 to Aim Actions if mounted top rail.",
+      "weightKg": 0.1,
+      "costCr": 15,
+      "universal": false,
+      "mounts": [
+        "any"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Aiming",
+      "restrictionRaw": "VISR, Thermal, and Infrared Equipment",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [
+          "visr",
+          "thermal",
+          "infrared"
+        ],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": [
+          "Attacker requires one listed sensor capability for own bonus.",
+          "Opponent evasion branch applies when opponent has listed sensor capability to detect laser."
+        ]
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "sensor-conditional-laser",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "requiresNoAimActionForBonus": true,
+        "topRailAimPenalty": -20
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "toHit",
+          "mode": "add",
+          "value": 5,
+          "when": "no-aim-and-has-required-sensor"
+        },
+        {
+          "target": "self",
+          "stat": "aimActionToHit",
+          "mode": "add",
+          "value": -20,
+          "when": "mounted-top-rail"
+        }
+      ],
+      "opponentModifiers": [
+        {
+          "target": "opponent",
+          "stat": "evasion",
+          "mode": "add",
+          "value": 5,
+          "when": "opponent-has-visr-thermal-or-infrared"
+        }
+      ],
+      "stateTracking": {
+        "laserDetectedByOpponent": false
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Implement attacker and defender sensor capability checks.",
+        "Model top-rail aim penalty in attachment mount resolution."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "laser-aiming-module",
+      "name": "Laser Aiming Module",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "Provides +5 To Hit when not using Aim Actions. Opponent gains +5 Evasion if they notice the laser. -20 to Aim Actions if mounted top rail.",
+      "weightKg": 0.1,
+      "costCr": 10,
+      "universal": true,
+      "mounts": [
+        "any"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Aiming",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "laser-aiming",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "requiresNoAimActionForBonus": true,
+        "topRailAimPenalty": -20
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "toHit",
+          "mode": "add",
+          "value": 5,
+          "when": "no-aim"
+        },
+        {
+          "target": "self",
+          "stat": "aimActionToHit",
+          "mode": "add",
+          "value": -20,
+          "when": "mounted-top-rail"
+        }
+      ],
+      "opponentModifiers": [
+        {
+          "target": "opponent",
+          "stat": "evasion",
+          "mode": "add",
+          "value": 5,
+          "when": "opponent-notices-laser"
+        }
+      ],
+      "stateTracking": {
+        "laserSpottedByOpponent": false
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Define laser notice check gate for opponent evasion bonus."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "m301-grenade-launcher",
+      "name": "M301 Grenade Launcher",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "Attaches an underbarrel grenade launcher using the Underbarrel Grenade Launcher profile from UNSC explosive launchers.",
+      "weightKg": 1.4,
+      "costCr": 63,
+      "universal": false,
+      "mounts": [
+        "lower"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Underslung",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "underbarrel-ranged-variant",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {},
+      "modifiers": [],
+      "opponentModifiers": [],
+      "stateTracking": {},
+      "variantAttackRefs": [
+        "gear:ranged-unsc-m301-underbarrel-grenade-launcher"
+      ],
+      "implementationTodos": [
+        "Resolve underbarrel grenade variant to canonical attack profile during weapon designer phase."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "tactical-flashlight",
+      "name": "Tactical Flashlight",
+      "source": "mythic",
+      "sourcePage": 146,
+      "faction": "UNSC",
+      "description": "Lowers Darkness penalties by 40 and Low-Light penalties by 10. In Darkness, opponents take -20 To Hit and -30 Visual Perception. In Low-Light, opponents take -10 To Hit and -15 Visual Perception. -20 to Aim Actions if mounted top rail.",
+      "weightKg": 0.2,
+      "costCr": 15,
+      "universal": true,
+      "mounts": [
+        "any"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Flashlight",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "light-control-advanced",
+      "activation": {
+        "passive": true,
+        "toggleable": true
+      },
+      "conditions": {
+        "topRailAimPenalty": -20
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "darknessPenalty",
+          "mode": "add",
+          "value": 40
+        },
+        {
+          "target": "self",
+          "stat": "lowLightPenalty",
+          "mode": "add",
+          "value": 10
+        },
+        {
+          "target": "self",
+          "stat": "aimActionToHit",
+          "mode": "add",
+          "value": -20,
+          "when": "mounted-top-rail"
+        }
+      ],
+      "opponentModifiers": [
+        {
+          "target": "opponent",
+          "stat": "toHit",
+          "mode": "add",
+          "value": -20,
+          "when": "darkness"
+        },
+        {
+          "target": "opponent",
+          "stat": "visualPerception",
+          "mode": "add",
+          "value": -30,
+          "when": "darkness"
+        },
+        {
+          "target": "opponent",
+          "stat": "toHit",
+          "mode": "add",
+          "value": -10,
+          "when": "low-light"
+        },
+        {
+          "target": "opponent",
+          "stat": "visualPerception",
+          "mode": "add",
+          "value": -15,
+          "when": "low-light"
+        }
+      ],
+      "stateTracking": {
+        "enabled": true
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Integrate environment-light-state driven opponent penalties.",
+        "Apply top-rail aim penalty via mount-aware resolver."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "tripod",
+      "name": "Tripod",
+      "source": "mythic",
+      "sourcePage": 147,
+      "faction": "UNSC",
+      "description": "Deploy/undeploy as a Full Action. While deployed and rested on a surface and weapon not moved, attacks gain +5 To Hit and weapon is Braced. Detach/reattach as Half Action. Moving while deployed halves movement distances. If moved or not braced while deployed, attacks take -30 To Hit.",
+      "weightKg": 5.4,
+      "costCr": 18,
+      "universal": true,
+      "mounts": [
+        "lower"
+      ],
+      "railSlotsConsumed": 2,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Heavy Brace",
+      "restrictionRaw": "Sniper Rifles, Machine Guns, and Explosive Launchers",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [
+          "Sniper Rifle",
+          "Machine Gun",
+          "Explosive Launcher"
+        ],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "deployable-heavy-brace",
+      "activation": {
+        "deployAction": "full",
+        "undeployAction": "full",
+        "detachReattachAction": "half"
+      },
+      "conditions": {
+        "requiresRestedSurfaceForBonus": true,
+        "requiresNoWeaponMovementForBonus": true
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "toHit",
+          "mode": "add",
+          "value": 5,
+          "when": "deployed-and-rested-and-stationary"
+        },
+        {
+          "target": "self",
+          "stat": "isBraced",
+          "mode": "set",
+          "value": true,
+          "when": "deployed-and-rested-and-stationary"
+        },
+        {
+          "target": "self",
+          "stat": "movementDistanceMultiplier",
+          "mode": "multiply",
+          "value": 0.5,
+          "when": "moving-while-deployed"
+        },
+        {
+          "target": "self",
+          "stat": "toHit",
+          "mode": "add",
+          "value": -30,
+          "when": "deployed-not-rested-or-moved"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "deployed": false,
+        "rested": false,
+        "detachedFromWeapon": false
+      },
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Implement deploy and detached-in-place states.",
+        "Hook movement-halving and -30 deployed misuse penalties to movement/attack workflows."
+      ],
+      "placeholder": {}
+    },
+    {
+      "id": "underslung-shotgun",
+      "name": "Underslung Shotgun",
+      "source": "mythic",
+      "sourcePage": 147,
+      "faction": "UNSC",
+      "description": "Attaches an underbarrel shotgun using the Underbarrel Shotgun profile from UNSC armory shotgun section.",
+      "weightKg": 0,
+      "costCr": 30,
+      "universal": false,
+      "mounts": [
+        "lower"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Underslung",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "underbarrel-ranged-variant",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {},
+      "modifiers": [],
+      "opponentModifiers": [],
+      "stateTracking": {
+        "weightPlaceholder": true
+      },
+      "variantAttackRefs": [
+        "gear:ranged-unsc-underbarrel-shotgun"
+      ],
+      "implementationTodos": [
+        "Replace placeholder weight when canonical source value is available.",
+        "Resolve underbarrel shotgun variant mapping in weapon designer phase."
+      ],
+      "placeholder": {
+        "weightKgUnknown": true,
+        "sourceWeightText": "--",
+        "resolution": "Set to 0 for phase-1 scaffold; replace with canonical value later."
+      }
+    },
+    {
+      "id": "vertical-grip",
+      "name": "Vertical Grip",
+      "source": "mythic",
+      "sourcePage": 147,
+      "faction": "UNSC",
+      "description": "Reduces Charge and Run movement To Hit penalties by 10.",
+      "weightKg": 0.6,
+      "costCr": 15,
+      "universal": true,
+      "mounts": [
+        "lower",
+        "side"
+      ],
+      "railSlotsConsumed": 1,
+      "railSlotsGranted": 0,
+      "stacking": {
+        "allowed": false,
+        "maxInstances": 1,
+        "penaltyPerAdditionalToHit": 0,
+        "suppressAdditionalBenefits": false
+      },
+      "railType": "Forward Brace",
+      "restrictionRaw": "None",
+      "restrictionStructured": {
+        "requiredWeaponTagsAll": [],
+        "requiredWeaponTagsAny": [],
+        "allowedWeaponTypes": [],
+        "requiredOptic": {},
+        "requiredSensorsAny": [],
+        "timeline": {
+          "minYear": null,
+          "maxYear": null
+        },
+        "notes": []
+      },
+      "restrictionConflictPolicy": "followProseIntent",
+      "effectFamily": "run-charge-mitigation",
+      "activation": {
+        "passive": true
+      },
+      "conditions": {
+        "appliesToChargeAndRun": true
+      },
+      "modifiers": [
+        {
+          "target": "self",
+          "stat": "movementPenaltyToHit",
+          "mode": "add",
+          "value": 10,
+          "when": "run-or-charge"
+        }
+      ],
+      "opponentModifiers": [],
+      "stateTracking": {},
+      "variantAttackRefs": [],
+      "implementationTodos": [
+        "Apply run/charge penalty mitigation branch in attack penalty resolver."
+      ],
+      "placeholder": {}
+    }
+  ]
+}

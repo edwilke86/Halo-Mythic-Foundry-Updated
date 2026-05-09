@@ -1,5 +1,5 @@
 import { toNonNegativeWhole } from "../utils/helpers.mjs";
-import { normalizeCharacterSystemData } from "../data/normalization.mjs";
+import { normalizeActorCharacterSystemData } from "../mechanics/final-characteristics.mjs";
 import { formatCreationPathModifier } from "./actor-sheet-helpers.mjs";
 
 export const creationPathLifestyleMethods = {
@@ -49,7 +49,7 @@ export const creationPathLifestyleMethods = {
   },
 
   async _promptAndApplyLifestyleVariant(slotIndex) {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const systemData = normalizeActorCharacterSystemData(this.actor, this.actor.system);
     const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
     creationPath.lifestyles ??= [];
     creationPath.lifestyles[slotIndex] ??= { itemId: "", mode: "manual", variantId: "", rollResult: 0, choiceSelections: {} };

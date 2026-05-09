@@ -275,10 +275,33 @@
   </section>
 
   <section class="tab" data-tab="weapon-mods" data-group="melee-tabs">
-    <div class="ability-info-row ability-notes-row">
-      <p class="gear-tab-section-label">Weapon Mods</p>
-      <label for="gear-attachments">Weapon Mods / Notes</label>
-      <textarea id="gear-attachments" name="system.attachments" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{gear.attachments}}</textarea>
+    <div class="ability-info-row ability-notes-row mythic-weapon-mods-tab">
+      <div class="mythic-weapon-mods-header-row">
+        <p class="gear-tab-section-label">Weapon Mods</p>
+        <button type="button" class="action-btn weapon-workbench-open-btn" title="Workbench" aria-label="Workbench"><i class="fas fa-screwdriver-wrench"></i></button>
+      </div>
+
+      {{#if weaponModsDisplayEntries.length}}
+        <div class="mythic-weapon-mods-list">
+          {{#each weaponModsDisplayEntries as |mod|}}
+            <div class="mythic-weapon-mods-row" data-mod-id="{{mod.id}}">
+              <span class="mythic-weapon-mods-row-name">
+                {{mod.name}}
+                {{#if mod.builtIn}}<span class="mythic-weapon-mods-badge" title="Built-in">Built-in</span>{{/if}}
+              </span>
+              <span class="mythic-weapon-mods-row-mount">{{mod.mountLabel}}</span>
+            </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="ccadv-note">No attached modifications yet.</p>
+      {{/if}}
+
+      <details class="mythic-weapon-mods-notes" data-collapse-key="weapon-mods-notes" {{#if gear.attachments}}open{{/if}}>
+        <summary>Legacy Notes</summary>
+        <label class="sr-only" for="gear-attachments">Weapon Mods / Notes</label>
+        <textarea id="gear-attachments" name="system.attachments" rows="6" {{#unless canEditFields}}disabled{{/unless}}>{{gear.attachments}}</textarea>
+      </details>
     </div>
   </section>
 </div>

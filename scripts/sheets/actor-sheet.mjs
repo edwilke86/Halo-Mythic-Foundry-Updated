@@ -91,6 +91,18 @@ import {
   getWorldGravity,
 } from "../mechanics/derived.mjs";
 import {
+  resolveActorWoundsMaximum,
+  traceWounds,
+} from "../mechanics/wounds.mjs";
+import {
+  buildActorDerivedSystemData,
+  resolveActorDrRows,
+} from "../mechanics/damage-resistance.mjs";
+import {
+  normalizeActorCharacterSystemData,
+  prepareCharacterSystemForNormalization,
+} from "../mechanics/final-characteristics.mjs";
+import {
   coerceMythicCharacteristicMap,
   getActorEquippedGearMythicCharacteristicModifiers,
   getCharacterBaseMythicCharacteristics,
@@ -184,6 +196,7 @@ import {
 import {
   consumeActorHalfActions,
   isActorActivelyInCombat,
+  spendActorReaction,
 } from "../mechanics/action-economy.mjs";
 
 import {
@@ -224,6 +237,7 @@ import {
 
 import { buildRollTooltipHtml } from "../ui/roll-tooltips.mjs";
 import { openEffectReferenceDialog } from "../ui/effect-reference-dialog.mjs";
+import { openMythicWeaponWorkbench } from "../ui/weapon-workbench.mjs";
 import { promptAttackModifiersDialog } from "../ui/attack-modifiers-dialog.mjs";
 import { mythicStartFearTest } from "../core/chat-fear.mjs";
 import { mythicPostVehicleSplatter } from "../core/chat-splatter.mjs";
@@ -264,6 +278,7 @@ import {
   collectCreationPathGroupModifiers,
   addCreationPathModifiersToOutcome,
 } from "./actor-sheet-helpers.mjs";
+import { resolveCharacteristicBuilderTotals } from "../mechanics/final-characteristics.mjs";
 
 const MYTHIC_ADVANCEMENT_LUCK_XP_COST = 1500;
 const MYTHIC_ADVANCEMENT_LANGUAGE_XP_COST = 150;
@@ -2279,9 +2294,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _tabSelectArmed = false;
   _tabSelectTimestamp = 0;
   _energyCellBackfillSignature = "";
+  _energyCellBackfillAttempted = false;
+  _energyCellBackfillPending = false;
 
   async _prepareContext(options) {
-    await this._backfillEnergyCellsForExistingWeapons();
     const context = await super._prepareContext(options);
     const isVehicleActor = this._isVehicleActor();
     if (isVehicleActor) {
@@ -2755,7 +2771,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const shouldPrepareSetup = Boolean(preparedPrimaryTabs.setup);
     const shouldPrepareOutliers =
       shouldPrepareAbilities || shouldPrepareAdvancements;
-    const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
+    const normalizedSystem = normalizeActorCharacterSystemData(
+      this.actor,
+      this.actor.system,
+      { traceLabel: "actor sheet prepare context" },
+    );
     const creationPathOutcome =
       await this._resolveCreationPathOutcome(normalizedSystem);
     const _charPerfT1 = performance.now();
@@ -2799,7 +2819,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     _derivedSource.mythic.preFatigueTouModifier =
       fatigueState.preFatigueTouModifier;
     const derived = computeCharacterDerivedValues(_derivedSource);
-    this._syncDerivedWoundsMaximumToActor(derived);
     const berserkerSystem = foundry.utils.deepClone(_derivedSource);
     foundry.utils.setProperty(
       berserkerSystem,
@@ -3158,7 +3177,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     );
     context.mythicVehicleBreakpointManagementEditable = false;
 
-    {
+    if (isMythicSheetPerformanceDebugEnabled()) {
       const _tEnd = performance.now();
       console.groupCollapsed(
         `[Mythic] Character Sheet | _prepareContext: ${Math.round(_tEnd - _charPerfT0)}ms — ${this.actor?.name ?? "?"}`,
@@ -3248,7 +3267,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ].join("::");
   }
 
-  async _backfillEnergyCellsForExistingWeapons() {
+  async _backfillEnergyCellsForExistingWeapons(updateOptions = {}) {
     if (!this.actor || this.actor.type !== "character") return;
     const signature = this._getEnergyCellBackfillSignature();
     if (signature && signature === this._energyCellBackfillSignature) return;
@@ -3308,11 +3327,47 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    await this.actor.update({
-      "system.equipment.energyCells": nextEnergyCells,
-      "system.equipment.weaponState": nextWeaponState,
-    });
+    await this._updateActorIfChanged(
+      {
+        "system.equipment.energyCells": nextEnergyCells,
+        "system.equipment.weaponState": nextWeaponState,
+      },
+      updateOptions,
+    );
     this._energyCellBackfillSignature = this._getEnergyCellBackfillSignature();
+  }
+
+  _areSheetUpdateValuesEquivalent(currentValue, nextValue) {
+    if (Object.is(currentValue, nextValue)) return true;
+    const currentIsObject =
+      currentValue && typeof currentValue === "object";
+    const nextIsObject = nextValue && typeof nextValue === "object";
+    if (!currentIsObject && !nextIsObject) return false;
+    try {
+      return JSON.stringify(currentValue) === JSON.stringify(nextValue);
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  _getChangedActorUpdateData(updateData = {}) {
+    const changed = {};
+    for (const [path, nextValue] of Object.entries(updateData ?? {})) {
+      const currentValue = foundry.utils.getProperty(this.actor ?? {}, path);
+      if (this._areSheetUpdateValuesEquivalent(currentValue, nextValue))
+        continue;
+      changed[path] = nextValue;
+    }
+    return changed;
+  }
+
+  async _updateActorIfChanged(updateData = {}, options = {}) {
+    if (!this.actor || !updateData || typeof updateData !== "object")
+      return false;
+    const changed = this._getChangedActorUpdateData(updateData);
+    if (!Object.keys(changed).length) return false;
+    await this.actor.update(changed, options);
+    return true;
   }
 
   _getVehiclePropulsionTypeOptions() {
@@ -8650,6 +8705,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       nextEntry,
       normalizedEmplacementId,
     );
+    if (
+      this._areSheetUpdateValuesEquivalent(currentEmplacements, nextEmplacements)
+    )
+      return;
     await this._updateVehicleWeaponEmplacements(nextEmplacements, {
       vehicleControl: this._getVehicleActorUpdateRequestOptions({
         controlKind: options.controlKind ?? "weapon",
@@ -13426,21 +13485,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     });
 
-    // Totals include all rows
-    const totals = {};
-    for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
-      totals[key] = Math.max(
-        0,
-        (cb.soldierTypeRow?.[key] ?? 0) +
-          (cb.creationPoints?.[key] ?? 0) +
-          (upbringingRow[key] ?? 0) +
-          (environmentRow[key] ?? 0) +
-          (lifestylesRow[key] ?? 0) +
-          (cb.advancements?.[key] ?? 0) +
-          (equipmentRow?.[key] ?? 0) +
-          (cb.misc?.[key] ?? 0),
-      );
-    }
+    // Totals include all rows (shared helper; also used by chat DR resolution).
+    const totals = resolveCharacteristicBuilderTotals({
+      charBuilder: cb,
+      upbringingRow,
+      environmentRow,
+      lifestylesRow,
+      advancementsRow: cb.advancements,
+      equipmentRow,
+      miscRow: cb.misc,
+    });
 
     const headerColumns = displayKeys.map((key) => ({
       key,
@@ -14179,8 +14233,29 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         .replace(/\.0+$/u, "");
     };
 
-    const activePackSelection =
-      systemData?.equipment?.activePackSelection ?? {};
+    const rawEquipped = systemData?.equipment?.equipped ?? {};
+    const equippedWeaponIdsRaw = Array.isArray(rawEquipped?.weaponIds)
+      ? rawEquipped.weaponIds
+          .map((entry) => String(entry ?? "").trim())
+          .filter(Boolean)
+      : [];
+    const equippedArmorIdRaw = String(rawEquipped?.armorId ?? "").trim();
+    const wieldedWeaponIdRaw = String(
+      rawEquipped?.wieldedWeaponId ?? "",
+    ).trim();
+    const readyOnlyGearIdSet = includeInventoryDetails
+      ? null
+      : new Set(
+          [
+            ...equippedWeaponIdsRaw,
+            equippedArmorIdRaw,
+            wieldedWeaponIdRaw,
+          ].filter(Boolean),
+        );
+
+    const activePackSelection = includeInventoryDetails
+      ? (systemData?.equipment?.activePackSelection ?? {})
+      : {};
     const activePackGrants = Array.isArray(activePackSelection?.grants)
       ? activePackSelection.grants
       : [];
@@ -14222,10 +14297,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return b > 0 ? Math.max(1, b - _reloadReduction) : 0;
     };
 
-    const actorStorageView = buildActorStorageView(this.actor);
+    const actorStorageView = includeInventoryDetails
+      ? buildActorStorageView(this.actor)
+      : { rowsByItemId: new Map() };
 
     const baseGearItems = (this.actor?.items ?? [])
       .filter((item) => item.type === "gear")
+      .filter(
+        (item) =>
+          includeInventoryDetails ||
+          readyOnlyGearIdSet?.has(String(item.id ?? "").trim()),
+      )
       .map((item) => {
         const gear = normalizeGearSystemData(
           item.system ?? {},
@@ -14233,12 +14315,16 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         );
         const storageView =
           actorStorageView.rowsByItemId.get(String(item.id ?? "").trim()) ?? {};
-        const grantFlag =
-          item.getFlag("Halo-Mythic-Foundry-Updated", "equipmentPackGrant") ??
-          {};
+        const grantFlag = includeInventoryDetails
+          ? (item.getFlag(
+              "Halo-Mythic-Foundry-Updated",
+              "equipmentPackGrant",
+            ) ?? {})
+          : {};
         const isEquipmentPackGranted =
-          activePackItemIds.has(String(item.id ?? "")) ||
-          Boolean(grantFlag?.packKey || grantFlag?.source);
+          includeInventoryDetails &&
+          (activePackItemIds.has(String(item.id ?? "")) ||
+            Boolean(grantFlag?.packKey || grantFlag?.source));
         return {
           id: item.id,
           name: item.name,
@@ -14357,11 +14443,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : [];
     const carriedSet = new Set(carriedIds);
 
-    const equippedWeaponIdsRaw = Array.isArray(
-      systemData?.equipment?.equipped?.weaponIds,
-    )
-      ? systemData.equipment.equipped.weaponIds
-      : [];
     const equippedWeaponIds = Array.from(
       new Set(
         equippedWeaponIdsRaw
@@ -14371,14 +14452,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     );
     const equippedWeaponSet = new Set(equippedWeaponIds);
 
-    let equippedArmorId = String(
-      systemData?.equipment?.equipped?.armorId ?? "",
-    ).trim();
+    let equippedArmorId = equippedArmorIdRaw;
     if (!validItemIds.has(equippedArmorId)) equippedArmorId = "";
 
-    let wieldedWeaponId = String(
-      systemData?.equipment?.equipped?.wieldedWeaponId ?? "",
-    ).trim();
+    let wieldedWeaponId = wieldedWeaponIdRaw;
     if (!equippedWeaponSet.has(wieldedWeaponId)) wieldedWeaponId = "";
 
     const sortedGearItems = sortedBaseGearItems.map((entry) => {
@@ -14697,6 +14774,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (!entry || entry._stub || entry.isCarried === false) continue;
         const weaponId = String(entry.weaponId ?? "").trim();
         if (!weaponId) continue;
+        if (!equippedWeaponSet.has(weaponId)) continue;
         const current = toNonNegativeWhole(entry.current, 0);
         loadedMagazineRoundsByWeaponId.set(
           weaponId,
@@ -16780,7 +16858,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedSystem =
       actorType === "bestiary"
         ? normalizeBestiarySystemData(actorSystem)
-        : normalizeCharacterSystemData(actorSystem);
+        : normalizeActorCharacterSystemData(actorDoc, actorSystem, {
+            traceLabel: "sheet fatigue roll modifier",
+          });
     const runtime = this._buildCharacteristicRuntime(
       normalizedSystem?.characteristics ?? {},
     );
@@ -16799,75 +16879,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _buildDerivedSystemData(systemData) {
-    const source = foundry.utils.deepClone(systemData ?? {});
-    const scope = "Halo-Mythic-Foundry-Updated";
-    source.flags ??= {};
-    source.mythic ??= {};
-
-    const currentScopeFlags =
-      source.flags?.[scope] && typeof source.flags[scope] === "object"
-        ? source.flags[scope]
-        : {};
-    const traitNamesFromItems = this.actor.items
-      .filter((entry) => entry.type === "trait")
-      .map((entry) => String(entry.name ?? "").trim())
-      .filter(Boolean);
-    const mergedCharacterTraits = normalizeStringList([
-      ...(Array.isArray(currentScopeFlags?.characterTraits)
-        ? currentScopeFlags.characterTraits
-        : []),
-      ...traitNamesFromItems,
-    ]);
-
-    const rawScaffold =
-      this.actor.getFlag(scope, "soldierTypeNaturalArmorScaffold") ??
-      currentScopeFlags?.soldierTypeNaturalArmorScaffold ??
-      {};
-    const naturalArmorMod = Math.round(
-      Number(this.actor.system?.mythic?.naturalArmorModifier ?? 0) || 0,
-    );
-    const rawBase = Number(rawScaffold?.baseValue ?? 0) || 0;
-    const modifiedBase = rawBase + naturalArmorMod;
-    const soldierTypeNaturalArmorScaffold = {
-      ...rawScaffold,
-      baseValue: Math.max(0, modifiedBase),
-      enabled: Boolean(rawScaffold?.enabled) || modifiedBase > 0,
-    };
-
-    source.flags[scope] = {
-      ...currentScopeFlags,
-      characterTraits: mergedCharacterTraits,
-      soldierTypeNaturalArmorScaffold,
-      mgalekgoloPhenome:
-        this.actor.getFlag(scope, "mgalekgoloPhenome") ??
-        currentScopeFlags?.mgalekgoloPhenome ??
-        {},
-    };
-
-    source.mythic.baseCharacteristics =
-      getCharacterBaseMythicCharacteristics(source);
-    source.mythic.characteristicModifiers = coerceMythicCharacteristicMap(
-      source.mythic?.characteristicModifiers ?? {},
-      { allowNegative: true },
-    );
-    source.mythic.equipmentCharacteristicModifiers =
-      getActorEquippedGearMythicCharacteristicModifiers(
-        this.actor,
-        source?.equipment?.equipped ?? {},
-      );
-    source.mythic.outlierCharacteristicModifiers =
-      getCharacterOutlierMythicCharacteristicModifiers(source);
-    source.mythic.characteristics = getCharacterEffectiveMythicCharacteristics(
-      source,
-      {
-        base: source.mythic.baseCharacteristics,
-        manual: source.mythic.characteristicModifiers,
-        equipment: source.mythic.equipmentCharacteristicModifiers,
-        outliers: source.mythic.outlierCharacteristicModifiers,
-      },
-    );
-
-    return source;
+    return buildActorDerivedSystemData(this.actor, systemData);
   }
 
   _getCombatViewData(
@@ -16881,29 +16893,18 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const combat = systemData?.combat ?? {};
     const tracksTurnEconomy = isActorActivelyInCombat(this.actor);
     const shields = combat?.shields ?? {};
-    const armor = combat?.dr?.armor ?? {};
-    const touMod = Math.max(
-      0,
-      Number(characteristicModifiers?.tou ?? derived.modifiers?.tou ?? 0),
-    );
-    const mythicTou = Math.max(
-      0,
-      Number(derived.mythicCharacteristics?.tou ?? 0),
-    );
-    const touCombined = Math.max(
-      0,
-      Number(derived.touCombined ?? touMod + mythicTou),
-    );
+    const drRows = resolveActorDrRows(this.actor, {
+      systemData,
+      characteristicModifiers,
+      precomputed: derived,
+    });
+    const touMod = drRows.touModifier;
 
     const asWhole = (value) => {
       const numeric = Number(value ?? 0);
       return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
     };
 
-    const naturalArmorBody = asWhole(derived?.naturalArmor?.effectiveValue);
-    const naturalArmorHead = Boolean(derived?.naturalArmor?.halvedOnHeadshot)
-      ? asWhole(derived?.naturalArmor?.headShotValue)
-      : naturalArmorBody;
     const actionEconomy = tracksTurnEconomy
       ? (combat?.actionEconomy ?? {})
       : {};
@@ -16919,22 +16920,24 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         halfActions: asWhole(entry.halfActions),
       }));
 
-    const withArmor = (key) => {
-      const armorValue = asWhole(armor?.[key]);
-      const naturalArmorValue =
-        key === "head" ? naturalArmorHead : naturalArmorBody;
-      const total = touCombined + naturalArmorValue + armorValue;
-      return {
-        naturalArmor: naturalArmorValue,
-        armor: armorValue,
-        total,
-      };
-    };
+    const woundsBreakdown = resolveActorWoundsMaximum(this.actor, systemData);
+    const displayedWoundsMax = asWhole(
+      woundsBreakdown?.finalWoundsMaximum ??
+        derived?.woundsMaximum ??
+        combat?.wounds?.max,
+    );
+    traceWounds("sheet display max", this.actor, {
+      displayedMaxFromHelper: displayedWoundsMax,
+      existingWoundsMax: combat?.wounds?.max,
+      existingWoundsCurrent: combat?.wounds?.current,
+      existingWoundsBarMax: combat?.woundsBar?.max,
+      helperBreakdown: woundsBreakdown,
+    });
 
     return {
       wounds: {
         current: asWhole(combat?.wounds?.current),
-        max: asWhole(derived?.woundsMaximum ?? combat?.wounds?.max),
+        max: displayedWoundsMax,
       },
       fatigue: {
         current: asWhole(combat?.fatigue?.current),
@@ -16962,17 +16965,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         rechargeRate: asWhole(shields?.rechargeRate),
       },
       dr: {
-        touModifier: touMod,
-        mythicTou,
-        touCombined,
-        naturalArmorBody,
-        naturalArmorHead,
-        head: withArmor("head"),
-        chest: withArmor("chest"),
-        lArm: withArmor("lArm"),
-        rArm: withArmor("rArm"),
-        lLeg: withArmor("lLeg"),
-        rLeg: withArmor("rLeg"),
+        ...drRows,
       },
       reactions: (() => {
         const count = tracksTurnEconomy
@@ -17493,7 +17486,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       );
     }
 
-    const normalizedSystem = normalizeCharacterSystemData(actorDoc.system);
+    const normalizedSystem = normalizeActorCharacterSystemData(
+      actorDoc,
+      actorDoc.system,
+      { traceLabel: "live characteristic runtime" },
+    );
     const creationPathOutcome =
       await this._resolveCreationPathOutcome(normalizedSystem);
     const charBuilderView = this._getCharBuilderViewData(
@@ -17724,7 +17721,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.actor.isOwner && !game.user?.isGM) return;
     if (this._pendingDerivedWoundsSync) return;
 
-    const derivedMax = toNonNegativeWhole(derived?.woundsMaximum, 0);
+    const wounds = resolveActorWoundsMaximum(
+      this.actor,
+      this.actor.system ?? {},
+    );
+    const derivedMax = toNonNegativeWhole(
+      wounds?.finalWoundsMaximum ?? derived?.woundsMaximum,
+      0,
+    );
     if (derivedMax <= 0) return;
 
     const currentMax = toNonNegativeWhole(
@@ -17743,12 +17747,25 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       this.actor.system?.combat?.woundsBar?.max,
       0,
     );
+    const traceBase = {
+      helperFinalWoundsMaximum: wounds?.finalWoundsMaximum,
+      existingWoundsMax: currentMax,
+      existingWoundsCurrent: currentWounds,
+      existingWoundsBarMax: currentBarMax,
+      helperBreakdown: wounds,
+    };
     if (
       currentMax === derivedMax &&
       currentBarMax === derivedMax &&
       currentBarValue === currentWounds
-    )
+    ) {
+      traceWounds("sync derived wounds max", this.actor, {
+        ...traceBase,
+        updatePayload: null,
+        skipped: "existing values already match helper max",
+      });
       return;
+    }
 
     const nextCurrent =
       currentMax > 0 && currentWounds === currentMax && derivedMax > currentMax
@@ -17760,6 +17777,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "system.combat.woundsBar.value": nextCurrent,
       "system.combat.woundsBar.max": derivedMax,
     };
+    traceWounds("sync derived wounds max", this.actor, {
+      ...traceBase,
+      updatePayload: updates,
+    });
 
     this._pendingDerivedWoundsSync = true;
     setTimeout(() => {
@@ -19178,6 +19199,39 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   _prepareSubmitData(event, form, formData, updateData = {}) {
+    const isWoundsSubmitPath = (path) =>
+      [
+        "system.combat.wounds.current",
+        "combat.wounds.current",
+        "system.combat.woundsBar.value",
+        "combat.woundsBar.value",
+      ].some((woundsPath) => String(path ?? "").trim().includes(woundsPath));
+    const hasSubmitPath = (data, path) => {
+      if (!data || !path) return false;
+      return (
+        Object.prototype.hasOwnProperty.call(data, path) ||
+        foundry.utils.hasProperty(data, path)
+      );
+    };
+    const getSubmitPath = (data, path, fallback = undefined) => {
+      if (!data || !path) return fallback;
+      if (Object.prototype.hasOwnProperty.call(data, path)) return data[path];
+      if (foundry.utils.hasProperty(data, path))
+        return foundry.utils.getProperty(data, path);
+      return fallback;
+    };
+    const collectWoundsSubmitKeys = (data, prefix = "", keys = []) => {
+      if (!data || typeof data !== "object" || Array.isArray(data)) return keys;
+      for (const [key, value] of Object.entries(data)) {
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (path.toLowerCase().includes("wounds")) keys.push(path);
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          collectWoundsSubmitKeys(value, path, keys);
+        }
+      }
+      return keys;
+    };
+    const targetName = String(event?.target?.name ?? "").trim();
     const normalizeMultilineNotes = (raw) => {
       if (typeof raw !== "string" || !raw.includes("\n")) return raw;
       const lines = raw.split(/\r?\n/);
@@ -19207,6 +19261,42 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       formData,
       updateData,
     );
+    if (isWoundsSubmitPath(targetName)) {
+      traceWounds("prepare submit data wounds initial", this.actor, {
+        targetName,
+        targetValue: event?.target?.value,
+        updateDataWoundsCurrent: getSubmitPath(
+          updateData,
+          "system.combat.wounds.current",
+        ),
+        updateDataWoundsBarValue: getSubmitPath(
+          updateData,
+          "system.combat.woundsBar.value",
+        ),
+        submitWoundsCurrent: getSubmitPath(
+          submitData,
+          "system.combat.wounds.current",
+        ),
+        submitWoundsMax: getSubmitPath(submitData, "system.combat.wounds.max"),
+        submitWoundsBarValue: getSubmitPath(
+          submitData,
+          "system.combat.woundsBar.value",
+        ),
+        submitWoundsBarMax: getSubmitPath(
+          submitData,
+          "system.combat.woundsBar.max",
+        ),
+        hasNestedWoundsCurrent: hasSubmitPath(
+          submitData?.system,
+          "combat.wounds.current",
+        ),
+        hasLiteralWoundsCurrent: Object.prototype.hasOwnProperty.call(
+          submitData,
+          "system.combat.wounds.current",
+        ),
+        woundsKeys: collectWoundsSubmitKeys(submitData).sort(),
+      });
+    }
     const arrayPaths = [
       "system.skills.custom",
       "system.biography.physical.extraFields",
@@ -19922,6 +20012,63 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           persistOutliers: true,
         },
       );
+      const mergedSubmitSystem = foundry.utils.mergeObject(
+        foundry.utils.deepClone(this.actor.system ?? {}),
+        submitData.system ?? {},
+        {
+          inplace: false,
+          insertKeys: true,
+          insertValues: true,
+          overwrite: true,
+          recursive: true,
+        },
+      );
+      const prepared = prepareCharacterSystemForNormalization(
+        this.actor,
+        mergedSubmitSystem,
+        { traceLabel: "actor sheet submit prepare" },
+      );
+      if (prepared.applied) {
+        for (const key of MYTHIC_CHARACTERISTIC_KEYS) {
+          foundry.utils.setProperty(
+            submitData,
+            `system.characteristics.${key}`,
+            toNonNegativeWhole(
+              prepared.systemData?.characteristics?.[key],
+              0,
+            ),
+          );
+        }
+      }
+    }
+
+    if (isWoundsSubmitPath(targetName)) {
+      traceWounds("prepare submit data wounds final", this.actor, {
+        targetName,
+        targetValue: event?.target?.value,
+        submitWoundsCurrent: getSubmitPath(
+          submitData,
+          "system.combat.wounds.current",
+        ),
+        submitWoundsMax: getSubmitPath(submitData, "system.combat.wounds.max"),
+        submitWoundsBarValue: getSubmitPath(
+          submitData,
+          "system.combat.woundsBar.value",
+        ),
+        submitWoundsBarMax: getSubmitPath(
+          submitData,
+          "system.combat.woundsBar.max",
+        ),
+        hasNestedWoundsCurrent: hasSubmitPath(
+          submitData?.system,
+          "combat.wounds.current",
+        ),
+        hasLiteralWoundsCurrent: Object.prototype.hasOwnProperty.call(
+          submitData,
+          "system.combat.wounds.current",
+        ),
+        woundsKeys: collectWoundsSubmitKeys(submitData).sort(),
+      });
     }
 
     return submitData;
@@ -19931,6 +20078,32 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this._rememberSheetScrollPosition();
 
     const input = event.target;
+    const inputName = String(input?.name ?? "").trim();
+    const isManualWoundsEdit = [
+      "system.combat.wounds.current",
+      "combat.wounds.current",
+      "system.combat.woundsBar.value",
+      "combat.woundsBar.value",
+    ].some((path) => inputName.includes(path));
+    if (isManualWoundsEdit) {
+      const preparedPreview = {};
+      if (inputName) {
+        preparedPreview[inputName] = input?.value;
+        foundry.utils.setProperty(preparedPreview, inputName, input?.value);
+      }
+      traceWounds("onChangeForm wounds edit", this.actor, {
+        targetName: inputName,
+        targetValue: input?.value,
+        preparedSubmitPreview: preparedPreview,
+        isLiteralFlattened: Object.prototype.hasOwnProperty.call(
+          preparedPreview,
+          inputName,
+        ),
+        isNested: inputName
+          ? foundry.utils.hasProperty(preparedPreview?.system ?? {}, inputName.replace(/^system\./u, ""))
+          : false,
+      });
+    }
 
     const normalizeMultilineNotes = (raw) => {
       if (typeof raw !== "string" || !raw.includes("\n")) return raw;
@@ -20301,6 +20474,333 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (position.width !== undefined && position.width < 980)
       position.width = 980;
     return super.setPosition(position);
+  }
+
+  _asDelegatedSheetEvent(event, currentTarget) {
+    return {
+      currentTarget,
+      target: event?.target ?? currentTarget,
+      dataTransfer: event?.dataTransfer,
+      relatedTarget: event?.relatedTarget,
+      clientX: event?.clientX,
+      clientY: event?.clientY,
+      altKey: Boolean(event?.altKey),
+      ctrlKey: Boolean(event?.ctrlKey),
+      metaKey: Boolean(event?.metaKey),
+      shiftKey: Boolean(event?.shiftKey),
+      preventDefault: () => event?.preventDefault?.(),
+      stopPropagation: () => event?.stopPropagation?.(),
+      stopImmediatePropagation: () => event?.stopImmediatePropagation?.(),
+      originalEvent: event,
+    };
+  }
+
+  _bindDelegatedCharacterEquipmentControls(root) {
+    if (!(root instanceof HTMLElement)) return;
+
+    const getDelegatedTarget = (event, selector) => {
+      const target = event?.target instanceof Element ? event.target : null;
+      const matched = target?.closest(selector) ?? null;
+      return matched instanceof HTMLElement && root.contains(matched)
+        ? matched
+        : null;
+    };
+    const delegatedEvent = (event, currentTarget) =>
+      this._asDelegatedSheetEvent(event, currentTarget);
+
+    root.addEventListener("click", (event) => {
+      const openGearButton = getDelegatedTarget(
+        event,
+        ".gear-open-btn[data-item-id]",
+      );
+      if (openGearButton) {
+        event.preventDefault();
+        const itemId = String(openGearButton.dataset.itemId ?? "");
+        const item = itemId ? this.actor.items.get(itemId) : null;
+        if (item?.sheet) item.sheet.render(true);
+        return;
+      }
+
+      const workbenchButton = getDelegatedTarget(
+        event,
+        ".weapon-workbench-open-btn[data-item-id]",
+      );
+      if (workbenchButton) {
+        event.preventDefault();
+        const itemId = String(workbenchButton.dataset.itemId ?? "").trim();
+        const item = itemId ? this.actor.items.get(itemId) : null;
+        if (item) openMythicWeaponWorkbench(item);
+        return;
+      }
+
+      const containerButton = getDelegatedTarget(
+        event,
+        ".container-open-btn[data-item-id], .mythic-storage-container-open-trigger",
+      );
+      if (containerButton) {
+        event.preventDefault();
+        const itemId =
+          String(containerButton.dataset.itemId ?? "") ||
+          String(
+            containerButton.closest?.("[data-item-id]")?.dataset?.itemId ?? "",
+          );
+        const item = itemId ? this.actor.items.get(itemId) : null;
+        if (item && isStorageContainerItem(item)) openMythicContainerSheet(item);
+        return;
+      }
+
+      const weaponReloadButton = getDelegatedTarget(
+        event,
+        ".weapon-reload-btn[data-item-id]",
+      );
+      if (weaponReloadButton) {
+        if (
+          weaponReloadButton.dataset?.vehicleActorId ||
+          weaponReloadButton.dataset?.vehicleUuid
+        ) {
+          void this._onCharacterVehicleWeaponReload(
+            delegatedEvent(event, weaponReloadButton),
+          );
+        } else {
+          void this._onReloadWeapon(delegatedEvent(event, weaponReloadButton));
+        }
+        return;
+      }
+
+      const weaponAttackButton = getDelegatedTarget(
+        event,
+        ".weapon-attack-btn[data-item-id][data-action]",
+      );
+      if (weaponAttackButton) {
+        if (
+          weaponAttackButton.dataset?.vehicleActorId ||
+          weaponAttackButton.dataset?.vehicleUuid
+        ) {
+          void this._onCharacterVehicleWeaponAttack(
+            delegatedEvent(event, weaponAttackButton),
+          );
+        } else {
+          void this._onWeaponAttack(delegatedEvent(event, weaponAttackButton));
+        }
+        return;
+      }
+
+      const weaponFireModeButton = getDelegatedTarget(
+        event,
+        ".weapon-fire-mode-btn[data-item-id][data-fire-mode]",
+      );
+      if (weaponFireModeButton) {
+        if (
+          weaponFireModeButton.dataset?.vehicleActorId ||
+          weaponFireModeButton.dataset?.vehicleUuid
+        ) {
+          void this._onCharacterVehicleWeaponFireModeToggle(
+            delegatedEvent(event, weaponFireModeButton),
+          );
+        } else {
+          void this._onWeaponFireModeToggle(
+            delegatedEvent(event, weaponFireModeButton),
+          );
+        }
+        return;
+      }
+
+      const weaponChargeButton = getDelegatedTarget(
+        event,
+        ".weapon-charge-btn[data-item-id]",
+      );
+      if (weaponChargeButton) {
+        if (
+          weaponChargeButton.dataset?.vehicleActorId ||
+          weaponChargeButton.dataset?.vehicleUuid
+        ) {
+          void this._onCharacterVehicleWeaponCharge(
+            delegatedEvent(event, weaponChargeButton),
+          );
+        } else {
+          void this._onWeaponCharge(delegatedEvent(event, weaponChargeButton));
+        }
+        return;
+      }
+
+      const weaponClearChargeButton = getDelegatedTarget(
+        event,
+        ".weapon-clear-charge-btn[data-item-id]",
+      );
+      if (weaponClearChargeButton) {
+        if (
+          weaponClearChargeButton.dataset?.vehicleActorId ||
+          weaponClearChargeButton.dataset?.vehicleUuid
+        ) {
+          void this._onCharacterVehicleWeaponClearCharge(
+            delegatedEvent(event, weaponClearChargeButton),
+          );
+        } else {
+          void this._onWeaponClearCharge(
+            delegatedEvent(event, weaponClearChargeButton),
+          );
+        }
+        return;
+      }
+
+      const clickHandlers = [
+        [".loader-label-btn[data-item-id]", this._onSetBallisticLoaderLabel],
+        [".gear-remove-btn[data-item-id]", this._onRemoveGearItem],
+        [".gear-wield-btn[data-item-id]", this._onSetWieldedWeapon],
+        [".inventory-add-custom-item-btn", this._onAddCustomInventoryItem],
+        [".battery-buy-btn[data-weapon-id]", this._onPurchaseEnergyCell],
+        [
+          ".ballistic-container-buy-btn[data-group-key]",
+          this._onPurchaseBallisticContainer,
+        ],
+        [".special-ammo-designer-btn", this._onOpenSpecialAmmoDesigner],
+        [
+          ".item-backed-loader-buy-btn",
+          this._onPurchaseItemBackedBallisticLoader,
+        ],
+        [".battery-group-toggle[data-weapon-id]", this._onToggleBatteryGroup],
+        [
+          ".ballistic-group-toggle[data-group-key]",
+          this._onToggleBallisticGroup,
+        ],
+        [
+          ".battery-remove-btn[data-weapon-id][data-cell-id]",
+          this._onRemoveEnergyCell,
+        ],
+        [
+          ".battery-recharge-btn[data-weapon-id][data-cell-id]",
+          this._onRechargeEnergyCell,
+        ],
+        [
+          ".ballistic-container-remove-btn[data-group-key][data-container-id]",
+          this._onRemoveBallisticContainer,
+        ],
+        [
+          ".ballistic-fill-btn[data-group-key][data-container-id]",
+          this._onFillMagazineFromPool,
+        ],
+        [".ammo-split-btn[data-ammo-source]", this._onAmmoSplit],
+      ];
+      for (const [selector, handler] of clickHandlers) {
+        const control = getDelegatedTarget(event, selector);
+        if (!control) continue;
+        void handler.call(this, delegatedEvent(event, control));
+        return;
+      }
+    });
+
+    root.addEventListener("change", (event) => {
+      const changeHandlers = [
+        [".gear-carried-toggle[data-item-id]", this._onToggleCarriedGear],
+        [
+          ".gear-equipped-toggle[data-item-id][data-kind]",
+          this._onToggleEquippedGear,
+        ],
+        [".gear-quantity-input[data-item-id]", this._onChangeGearQuantity],
+        [".ammo-count-input[data-ammo-key]", this._onAmmoCountChange],
+        [".ammo-carried-toggle[data-ammo-key]", this._onAmmoCarriedToggle],
+        [
+          ".weapon-state-input[data-item-id][data-field]",
+          (delegatedChangeEvent) => {
+            if (
+              delegatedChangeEvent.currentTarget?.dataset?.vehicleActorId ||
+              delegatedChangeEvent.currentTarget?.dataset?.vehicleUuid
+            ) {
+              return this._onCharacterVehicleWeaponStateInputChange(
+                delegatedChangeEvent,
+              );
+            }
+            return this._onWeaponStateInputChange(delegatedChangeEvent);
+          },
+        ],
+        [
+          ".ballistic-container-carried-toggle[data-group-key][data-container-id]",
+          this._onBallisticContainerCarriedToggle,
+        ],
+        [
+          ".independent-ammo-count-input[data-ammo-uuid]",
+          this._onIndependentAmmoCountChange,
+        ],
+        [
+          ".independent-ammo-carried-toggle[data-ammo-uuid]",
+          this._onIndependentAmmoCarriedToggle,
+        ],
+      ];
+      for (const [selector, handler] of changeHandlers) {
+        const control = getDelegatedTarget(event, selector);
+        if (!control) continue;
+        void handler.call(this, delegatedEvent(event, control));
+        return;
+      }
+    });
+
+    root.addEventListener("dragstart", (event) => {
+      if (getDelegatedTarget(event, "input, select, textarea")) {
+        event.stopPropagation();
+        return;
+      }
+      const gearRow = getDelegatedTarget(
+        event,
+        ".mythic-equipment-data-row[data-item-id]",
+      );
+      if (gearRow) {
+        this._onGearRowDragStart(delegatedEvent(event, gearRow));
+        return;
+      }
+      const ammoRow = getDelegatedTarget(
+        event,
+        ".mythic-loose-ammo-row[draggable='true']",
+      );
+      if (ammoRow) this._onLooseAmmoRowDragStart(delegatedEvent(event, ammoRow));
+    });
+
+    root.addEventListener("dragover", (event) => {
+      const storageRow = getDelegatedTarget(
+        event,
+        ".mythic-storage-container-row[data-item-id]",
+      );
+      if (storageRow) {
+        event.preventDefault();
+        storageRow.classList.add("is-storage-drag-over");
+        return;
+      }
+      const ammoZone = getDelegatedTarget(event, ".ammo-drop-zone[data-kind]");
+      if (ammoZone) {
+        event.preventDefault();
+        ammoZone.classList.add("is-dragover");
+      }
+    });
+
+    root.addEventListener("dragleave", (event) => {
+      const storageRow = getDelegatedTarget(
+        event,
+        ".mythic-storage-container-row[data-item-id]",
+      );
+      if (storageRow) storageRow.classList.remove("is-storage-drag-over");
+      const ammoZone = getDelegatedTarget(event, ".ammo-drop-zone[data-kind]");
+      if (ammoZone) ammoZone.classList.remove("is-dragover");
+    });
+
+    root.addEventListener("drop", (event) => {
+      const storageRow = getDelegatedTarget(
+        event,
+        ".mythic-storage-container-row[data-item-id]",
+      );
+      if (storageRow) {
+        event.preventDefault();
+        event.stopPropagation();
+        storageRow.classList.remove("is-storage-drag-over");
+        void this._onDropItem(delegatedEvent(event, storageRow), null);
+        return;
+      }
+      const ammoZone = getDelegatedTarget(event, ".ammo-drop-zone[data-kind]");
+      if (ammoZone) {
+        event.preventDefault();
+        event.stopPropagation();
+        ammoZone.classList.remove("is-dragover");
+        void this._onAmmoItemDrop(delegatedEvent(event, ammoZone));
+      }
+    });
   }
 
   async _onRender(context, options) {
@@ -20679,6 +21179,27 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const root =
       this.element?.querySelector(".mythic-character-sheet") ?? this.element;
     if (!root) return;
+
+    if (
+      this.isEditable &&
+      !this._energyCellBackfillAttempted &&
+      !this._energyCellBackfillPending
+    ) {
+      this._energyCellBackfillAttempted = true;
+      this._energyCellBackfillPending = true;
+      setTimeout(() => {
+        this._backfillEnergyCellsForExistingWeapons({ render: false })
+          .catch((error) => {
+            console.warn(
+              "[mythic-system] Failed to backfill weapon energy cells.",
+              error,
+            );
+          })
+          .finally(() => {
+            this._energyCellBackfillPending = false;
+          });
+      }, 0);
+    }
 
     if (this.isEditable) {
       const headerPortrait = root.querySelector(
@@ -21124,276 +21645,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         });
       });
 
-    // Gear: open, remove, and inventory toggles
-    root.querySelectorAll(".gear-open-btn[data-item-id]").forEach((button) => {
-      button.addEventListener("click", (event) => {
-        event.preventDefault();
-        const itemId = String(event.currentTarget.dataset.itemId ?? "");
-        if (!itemId) return;
-        const item = this.actor.items.get(itemId);
-        if (!item?.sheet) return;
-        item.sheet.render(true);
-      });
-    });
-
-    root
-      .querySelectorAll(
-        ".container-open-btn[data-item-id], .mythic-storage-container-open-trigger",
-      )
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          event.preventDefault();
-          const itemId =
-            String(event.currentTarget.dataset.itemId ?? "") ||
-            String(
-              event.currentTarget.closest?.("[data-item-id]")?.dataset
-                ?.itemId ?? "",
-            );
-          if (!itemId) return;
-          const item = this.actor.items.get(itemId);
-          if (!item || !isStorageContainerItem(item)) return;
-          openMythicContainerSheet(item);
-        });
-      });
-
-    root
-      .querySelectorAll(".loader-label-btn[data-item-id]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onSetBallisticLoaderLabel(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".mythic-equipment-data-row[data-item-id]")
-      .forEach((row) => {
-        row.addEventListener("dragstart", (event) => {
-          this._onGearRowDragStart(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".mythic-loose-ammo-row[draggable='true']")
-      .forEach((row) => {
-        row.addEventListener("dragstart", (event) => {
-          this._onLooseAmmoRowDragStart(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".mythic-storage-container-row[data-item-id]")
-      .forEach((row) => {
-        row.addEventListener("dragover", (event) => {
-          event.preventDefault();
-          row.classList.add("is-storage-drag-over");
-        });
-        row.addEventListener("dragleave", () => {
-          row.classList.remove("is-storage-drag-over");
-        });
-        row.addEventListener("drop", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          row.classList.remove("is-storage-drag-over");
-          void this._onDropItem(event, null);
-        });
-      });
-
-    // Prevent dragging from input elements to avoid accidental drags when interacting with form controls
-    root.querySelectorAll("input, select, textarea").forEach((input) => {
-      input.addEventListener("dragstart", (event) => event.stopPropagation());
-    });
-
-    root
-      .querySelectorAll(".gear-remove-btn[data-item-id]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onRemoveGearItem(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".gear-carried-toggle[data-item-id]")
-      .forEach((checkbox) => {
-        checkbox.addEventListener("change", (event) => {
-          void this._onToggleCarriedGear(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".gear-equipped-toggle[data-item-id][data-kind]")
-      .forEach((checkbox) => {
-        checkbox.addEventListener("change", (event) => {
-          void this._onToggleEquippedGear(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".gear-quantity-input[data-item-id]")
-      .forEach((input) => {
-        input.addEventListener("change", (event) => {
-          void this._onChangeGearQuantity(event);
-        });
-      });
-
-    root.querySelectorAll(".gear-wield-btn[data-item-id]").forEach((button) => {
-      button.addEventListener("click", (event) => {
-        void this._onSetWieldedWeapon(event);
-      });
-    });
-
-    root
-      .querySelectorAll(".inventory-add-custom-item-btn")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onAddCustomInventoryItem(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".battery-buy-btn[data-weapon-id]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onPurchaseEnergyCell(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".ballistic-container-buy-btn[data-group-key]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onPurchaseBallisticContainer(event);
-        });
-      });
-
-    root.querySelectorAll(".special-ammo-designer-btn").forEach((button) => {
-      button.addEventListener("click", (event) => {
-        void this._onOpenSpecialAmmoDesigner(event);
-      });
-    });
-
-    root.querySelectorAll(".item-backed-loader-buy-btn").forEach((button) => {
-      button.addEventListener("click", (event) => {
-        void this._onPurchaseItemBackedBallisticLoader(event);
-      });
-    });
-
-    root
-      .querySelectorAll(".battery-group-toggle[data-weapon-id]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onToggleBatteryGroup(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".ballistic-group-toggle[data-group-key]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onToggleBallisticGroup(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".battery-remove-btn[data-weapon-id][data-cell-id]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onRemoveEnergyCell(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".battery-recharge-btn[data-weapon-id][data-cell-id]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onRechargeEnergyCell(event);
-        });
-      });
-
-    root
-      .querySelectorAll(
-        ".ballistic-container-remove-btn[data-group-key][data-container-id]",
-      )
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onRemoveBallisticContainer(event);
-        });
-      });
-
-    root
-      .querySelectorAll(
-        ".ballistic-fill-btn[data-group-key][data-container-id]",
-      )
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onFillMagazineFromPool(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".ammo-count-input[data-ammo-key]")
-      .forEach((input) => {
-        input.addEventListener("change", (event) => {
-          void this._onAmmoCountChange(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".ammo-carried-toggle[data-ammo-key]")
-      .forEach((checkbox) => {
-        checkbox.addEventListener("change", (event) => {
-          void this._onAmmoCarriedToggle(event);
-        });
-      });
-
-    root
-      .querySelectorAll(
-        ".ballistic-container-carried-toggle[data-group-key][data-container-id]",
-      )
-      .forEach((checkbox) => {
-        checkbox.addEventListener("change", (event) => {
-          void this._onBallisticContainerCarriedToggle(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".ammo-split-btn[data-ammo-source]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          void this._onAmmoSplit(event);
-        });
-      });
-
-    root.querySelectorAll(".ammo-drop-zone[data-kind]").forEach((zone) => {
-      zone.addEventListener("dragover", (event) => {
-        event.preventDefault();
-        zone.classList.add("is-dragover");
-      });
-      zone.addEventListener("dragleave", (event) => {
-        zone.classList.remove("is-dragover");
-      });
-      zone.addEventListener("drop", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        zone.classList.remove("is-dragover");
-        void this._onAmmoItemDrop(event);
-      });
-    });
-
-    root
-      .querySelectorAll(".independent-ammo-count-input[data-ammo-uuid]")
-      .forEach((input) => {
-        input.addEventListener("change", (event) => {
-          void this._onIndependentAmmoCountChange(event);
-        });
-      });
-
-    root
-      .querySelectorAll(".independent-ammo-carried-toggle[data-ammo-uuid]")
-      .forEach((checkbox) => {
-        checkbox.addEventListener("change", (event) => {
-          void this._onIndependentAmmoCarriedToggle(event);
-        });
-      });
+    this._bindDelegatedCharacterEquipmentControls(root);
 
     root.addEventListener("click", (event) => {
       const target = event.target;
@@ -21418,51 +21670,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     });
 
-    root
-      .querySelectorAll(".weapon-reload-btn[data-item-id]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          if (
-            event.currentTarget?.dataset?.vehicleActorId ||
-            event.currentTarget?.dataset?.vehicleUuid
-          ) {
-            void this._onCharacterVehicleWeaponReload(event);
-          } else {
-            void this._onReloadWeapon(event);
-          }
-        });
-      });
-
-    root
-      .querySelectorAll(".weapon-attack-btn[data-item-id][data-action]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          if (
-            event.currentTarget?.dataset?.vehicleActorId ||
-            event.currentTarget?.dataset?.vehicleUuid
-          ) {
-            void this._onCharacterVehicleWeaponAttack(event);
-          } else {
-            void this._onWeaponAttack(event);
-          }
-        });
-      });
-
-    root
-      .querySelectorAll(".weapon-fire-mode-btn[data-item-id][data-fire-mode]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          if (
-            event.currentTarget?.dataset?.vehicleActorId ||
-            event.currentTarget?.dataset?.vehicleUuid
-          ) {
-            void this._onCharacterVehicleWeaponFireModeToggle(event);
-          } else {
-            void this._onWeaponFireModeToggle(event);
-          }
-        });
-      });
-
     root.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -21479,51 +21686,6 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         void this._onWeaponVariantSelect(event);
       }
     });
-
-    root
-      .querySelectorAll(".weapon-charge-btn[data-item-id]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          if (
-            event.currentTarget?.dataset?.vehicleActorId ||
-            event.currentTarget?.dataset?.vehicleUuid
-          ) {
-            void this._onCharacterVehicleWeaponCharge(event);
-          } else {
-            void this._onWeaponCharge(event);
-          }
-        });
-      });
-
-    root
-      .querySelectorAll(".weapon-clear-charge-btn[data-item-id]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          if (
-            event.currentTarget?.dataset?.vehicleActorId ||
-            event.currentTarget?.dataset?.vehicleUuid
-          ) {
-            void this._onCharacterVehicleWeaponClearCharge(event);
-          } else {
-            void this._onWeaponClearCharge(event);
-          }
-        });
-      });
-
-    root
-      .querySelectorAll(".weapon-state-input[data-item-id][data-field]")
-      .forEach((input) => {
-        input.addEventListener("change", (event) => {
-          if (
-            event.currentTarget?.dataset?.vehicleActorId ||
-            event.currentTarget?.dataset?.vehicleUuid
-          ) {
-            void this._onCharacterVehicleWeaponStateInputChange(event);
-          } else {
-            void this._onWeaponStateInputChange(event);
-          }
-        });
-      });
 
     root
       .querySelectorAll(
@@ -27601,7 +27763,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : [];
     const nextCarried = Array.from(new Set([...carriedIds, beltItem.id]));
     if (nextCarried.length !== carriedIds.length) {
-      await this.actor.update({ "system.equipment.carriedIds": nextCarried });
+      await this._updateActorIfChanged({
+        "system.equipment.carriedIds": nextCarried,
+      });
     }
   }
 
@@ -29737,7 +29901,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _setInfusionRadiusRechargeRemaining(itemId = "", value) {
     if (!itemId) return;
     const next = Math.max(0, Math.floor(Number(value ?? 0) || 0));
-    await this.actor.update({
+    await this._updateActorIfChanged({
       [`system.equipment.weaponState.${itemId}.rechargeRemaining`]: next,
     });
   }
@@ -30938,7 +31102,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       weaponState[weaponId] = stateEntry;
     }
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       "system.equipment.energyCells": energyCells,
       "system.equipment.weaponState": weaponState,
     });
@@ -30991,7 +31155,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
     energyCells[weaponId] = weaponCells;
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       "system.equipment.energyCells": energyCells,
     });
 
@@ -31074,7 +31238,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       "system.equipment.ballisticContainers": containersMap,
       "system.equipment.weaponState": weaponState,
     });
@@ -32248,7 +32412,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ? Array.from(new Set([...carriedIds, ...targetIds]))
       : carriedIds.filter((id) => !targetIds.includes(String(id)));
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       "system.equipment.carriedIds": nextCarried,
     });
   }
@@ -32416,7 +32580,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       );
     }
 
-    await this.actor.update(updateData);
+    const didUpdate = await this._updateActorIfChanged(updateData);
+    if (!didUpdate) return;
     if (kind === "armor") {
       const resolvedNextArmorItem = nextArmorId
         ? this.actor.items.get(nextArmorId)
@@ -32581,9 +32746,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!equippedWeaponIds.includes(itemId)) return;
 
-    await this.actor.update({
+    const didUpdate = await this._updateActorIfChanged({
       "system.equipment.equipped.wieldedWeaponId": itemId,
     });
+    if (!didUpdate) return;
 
     const esc = (value) => foundry.utils.escapeHTML(String(value ?? ""));
     await ChatMessage.create({
@@ -32656,7 +32822,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       [`system.equipment.weaponState.${itemId}.${field}`]: value,
     });
   }
@@ -32689,7 +32855,14 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    await this.actor.update({
+    const currentFireMode = String(
+      this.actor.system?.equipment?.weaponState?.[itemId]?.fireMode ?? "",
+    )
+      .trim()
+      .toLowerCase();
+    if (currentFireMode === fireMode) return;
+
+    await this._updateActorIfChanged({
       [`system.equipment.weaponState.${itemId}.fireMode`]: fireMode,
     });
   }
@@ -32751,7 +32924,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       variantIndex,
     };
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       "system.equipment.weaponState": nextWeaponState,
     });
   }
@@ -34159,15 +34332,34 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onWoundsFullHeal(event) {
     event.preventDefault();
-    const source = this._buildDerivedSystemData(
-      normalizeCharacterSystemData(this.actor.system ?? {}),
+    const normalized = normalizeActorCharacterSystemData(
+      this.actor,
+      this.actor.system ?? {},
+      { traceLabel: "full heal prepare" },
     );
-    const derived = computeCharacterDerivedValues(source);
+    const wounds = resolveActorWoundsMaximum(this.actor, normalized);
     const maxWounds = toNonNegativeWhole(
-      derived?.woundsMaximum ?? this.actor.system?.combat?.wounds?.max,
+      wounds?.finalWoundsMaximum ?? normalized?.combat?.wounds?.max,
       0,
     );
-    await this.actor.update({ "system.combat.wounds.current": maxWounds });
+    const updatePayload = {
+      "system.combat.wounds.max": maxWounds,
+      "system.combat.wounds.current": maxWounds,
+      "system.combat.woundsBar.value": maxWounds,
+      "system.combat.woundsBar.max": maxWounds,
+    };
+    traceWounds("full heal before update", this.actor, {
+      helperFinalWoundsMaximum: wounds?.finalWoundsMaximum,
+      updatePayload,
+      existingWounds: this.actor.system?.combat?.wounds,
+      existingWoundsBar: this.actor.system?.combat?.woundsBar,
+      helperBreakdown: wounds,
+    });
+    await this.actor.update(updatePayload);
+    traceWounds("full heal after update", this.actor, {
+      actorWounds: this.actor.system?.combat?.wounds,
+      actorWoundsBar: this.actor.system?.combat?.woundsBar,
+    });
   }
 
   async _onToggleFlyMode(event) {
@@ -34750,7 +34942,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       [`system.equipment.weaponState.${itemId}.chargeLevel`]: currentLevel + 1,
     });
   }
@@ -34802,7 +34994,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       [`system.equipment.weaponState.${itemId}.chargeLevel`]: 0,
     });
   }
@@ -34916,7 +35108,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       count: epCount + purchasedCount,
     };
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       "system.equipment.ammoPools": ammoPools,
     });
   }
@@ -34936,14 +35128,17 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
 
     const isCarried = event.currentTarget?.checked !== false;
-    ammoPools[ammoKey] = {
-      ...(ammoPools[ammoKey] && typeof ammoPools[ammoKey] === "object"
+    const currentPool =
+      ammoPools[ammoKey] && typeof ammoPools[ammoKey] === "object"
         ? ammoPools[ammoKey]
-        : {}),
+        : {};
+    if ((currentPool?.isCarried !== false) === isCarried) return;
+    ammoPools[ammoKey] = {
+      ...currentPool,
       isCarried,
     };
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       "system.equipment.ammoPools": ammoPools,
     });
   }
@@ -34974,8 +35169,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     );
     if (!container) return;
 
-    container.isCarried = checkbox?.checked !== false;
-    await this.actor.update({
+    const isCarried = checkbox?.checked !== false;
+    if ((container?.isCarried !== false) === isCarried) return;
+    container.isCarried = isCarried;
+    await this._updateActorIfChanged({
       "system.equipment.ballisticContainers": ballisticContainers,
     });
   }
@@ -37123,7 +37320,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           const baseMultiplier = 15;
           const multiplierAfterWeight = baseMultiplier - weightPenalty;
           const carryCapacityKg = Number(
-            computeCharacterDerivedValues(attackActor.system ?? {})
+            computeCharacterDerivedValues(
+              buildActorDerivedSystemData(attackActor, attackActor.system ?? {}),
+            )
               ?.carryingCapacity?.carry ?? 0,
           );
           const exceedsCarryWeight =
@@ -38942,7 +39141,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
                       if (isGrenadeThrowAction) return "";
                       return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Detonation: Blast <span class="mythic-roll-inline" title="${damageTitle}">${grenadeBlast}</span> | Kill <span class="mythic-roll-inline" title="Kill radius damage is double blast damage">${grenadeKill}</span>${specialBadge}${shieldBadge}${hardlightBadge}</div>`;
                     }
-                    return `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; Hit ${idx + 1}: <span class="mythic-roll-inline" title="${damageTitle}">${entry.damageTotal}</span> @ ${locHtml} | Pierce <strong>${pierceDisplay}</strong>${specialBadge}${shieldBadge}${hardlightBadge}</div>`;
+                    return `<div class="mythic-attack-subline mythic-attack-hit-line" data-hit-index="${esc(idx + 1)}">&nbsp;&nbsp;&bull; Hit ${idx + 1}: <span class="mythic-roll-inline" title="${damageTitle}">${entry.damageTotal}</span> @ ${locHtml} | Pierce <strong class="mythic-attack-hit-pierce">${pierceDisplay}</strong>${specialBadge}${shieldBadge}${hardlightBadge}</div>`;
                   })
                   .join("");
                 return hitLines;
@@ -39023,13 +39222,13 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             })()
           : "";
 
+        const overrideBtnHtml = `<button type="button" class="action-btn mythic-row-override-btn" data-attack-index="${esc(row.index)}">Override</button>`;
+        const overrideLine = `<div class="mythic-attack-subline mythic-attack-override-line">${overrideBtnHtml}</div>`;
         const rowTargetMode = String(
           row.targetMode ?? finalTargetMode ?? "character",
         );
         const rowLocHtml = _buildHitLocHtml(row.hitLoc, rowTargetMode, esc);
-        const primaryPreviewEntry = row.isSuccess
-          ? row.damageInstances?.[0]
-          : row.wouldDamage?.[0];
+        const primaryPreviewEntry = row.wouldDamage?.[0];
         const previewFormula = String(
           primaryPreviewEntry?.damageFormula ?? damageFormula ?? "",
         ).trim();
@@ -39042,10 +39241,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const previewDamageLine = primaryPreviewEntry
           ? `<span class="mythic-roll-inline" title="${previewRollTitle}">${Number(primaryPreviewEntry?.damageTotal ?? 0)}</span>`
           : "0";
-        const overrideBtnHtml = `<button type="button" class="action-btn mythic-row-override-btn" data-attack-index="${esc(row.index)}">Override</button>`;
-        const previewLine = `<div class="mythic-attack-subline mythic-attack-preview-line">${previewDamageLine}${previewFormula ? ` (${esc(previewFormula)})` : ""}, Pierce ${previewPierce} ${overrideBtnHtml}</div>`;
+        const previewLine =
+          !row.isSuccess && primaryPreviewEntry
+            ? `<div class="mythic-attack-subline mythic-attack-preview-line">${previewDamageLine}${previewFormula ? ` (${esc(previewFormula)})` : ""}, Pierce ${previewPierce}</div>`
+            : "";
         const locLine = `<div class="mythic-attack-subline">&nbsp;&nbsp;&bull; ${rowLocHtml}</div>`;
-        const attackDetailsContent = `${grenadeThrowDetail}${calledShotDetail}${grenadeMissDetail}${locLine}${previewLine}`;
+        const attackDetailsContent = `${grenadeThrowDetail}${calledShotDetail}${grenadeMissDetail}${locLine}${previewLine}${successDetail}${missDetail}${overrideLine}`;
 
         return `<div class="mythic-attack-line" data-attack-index="${esc(row.index)}">
         <details class="mythic-attack-entry ${row.isSuccess ? "is-hit" : "is-miss"}" data-attack-index="${esc(row.index)}">
@@ -39406,12 +39607,8 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (actionType === "pump-reaction") {
       if (trackedCombat) {
-        const currentReactions = Math.max(
-          0,
-          Math.floor(Number(attackActor.system?.combat?.reactions?.count ?? 0)),
-        );
-        await attackActor.update({
-          "system.combat.reactions.count": currentReactions + 1,
+        await spendActorReaction(attackActor, {
+          combat: trackedCombat,
         });
       }
     }
@@ -39504,8 +39701,9 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toNonNegativeWhole(attackActor.system?.mythic?.characteristics?.str, 0),
     );
     const carryCapacityKg = Number(
-      computeCharacterDerivedValues(attackActor.system ?? {})?.carryingCapacity
-        ?.carry ?? 0,
+      computeCharacterDerivedValues(
+        buildActorDerivedSystemData(attackActor, attackActor.system ?? {}),
+      )?.carryingCapacity?.carry ?? 0,
     );
     const hasServoAssisted = attackActor.items.some((entry) => {
       const nameText = String(entry?.name ?? "")
@@ -39794,17 +39992,7 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onReactionAdd(event) {
     event.preventDefault();
-    if (!isActorActivelyInCombat(this.actor)) {
-      ui.notifications?.info(
-        "Turn economy is only tracked for active combatants.",
-      );
-      return;
-    }
-    const current = Math.max(
-      0,
-      Math.floor(Number(this.actor.system?.combat?.reactions?.count ?? 0)),
-    );
-    await this.actor.update({ "system.combat.reactions.count": current + 1 });
+    await spendActorReaction(this.actor, { notify: true });
   }
 
   async _onReactionReset(event) {
@@ -39871,7 +40059,11 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const characteristicRuntime = await this._getLiveCharacteristicRuntime();
     const agiMod = Number(characteristicRuntime.modifiers.agi ?? 0);
-    const normalizedSystem = normalizeCharacterSystemData(this.actor.system);
+    const normalizedSystem = normalizeActorCharacterSystemData(
+      this.actor,
+      this.actor.system,
+      { traceLabel: "roll initiative prepare" },
+    );
     const mythicAgi = Number(
       normalizedSystem?.mythic?.characteristics?.agi ?? 0,
     );
@@ -42785,9 +42977,10 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ? foundry.utils.deepClone(this.actor.system.equipment.independentAmmo)
         : {};
     if (!independentAmmo[ammoUuid]) return;
+    if ((independentAmmo[ammoUuid]?.isCarried !== false) === isCarried) return;
 
     independentAmmo[ammoUuid].isCarried = isCarried;
-    await this.actor.update({
+    await this._updateActorIfChanged({
       "system.equipment.independentAmmo": independentAmmo,
     });
   }
@@ -42842,11 +43035,12 @@ export class MythicActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (value <= 0) {
       await this._deleteIndependentAmmoKey(ammoUuid, independentAmmo);
       return;
-    } else {
-      independentAmmo[ammoUuid].quantity = value;
     }
+    if (toNonNegativeWhole(independentAmmo[ammoUuid]?.quantity, 0) === value)
+      return;
+    independentAmmo[ammoUuid].quantity = value;
 
-    await this.actor.update({
+    await this._updateActorIfChanged({
       "system.equipment.independentAmmo": independentAmmo,
     });
   }

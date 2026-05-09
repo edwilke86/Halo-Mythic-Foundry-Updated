@@ -300,6 +300,7 @@
                       {{/if}}
                       <div class="mythic-ready-weapon-name-row">
                         <div class="mythic-ready-weapon-name">{{weapon.name}}</div>
+                        <button type="button" class="action-btn weapon-workbench-open-btn" data-item-id="{{weapon.id}}" title="Workbench" aria-label="Workbench"><i class="fas fa-screwdriver-wrench"></i></button>
                         <button type="button" class="action-btn gear-open-btn mythic-ready-weapon-edit-btn" data-item-id="{{weapon.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
                       </div>
                       {{#if weapon.nickname}}<div class="mythic-ready-weapon-nickname">"{{weapon.nickname}}"</div>{{/if}}
@@ -492,6 +493,8 @@
                     <span class="mythic-bestiary-embedded-name">{{weapon.name}}</span>
                     <span class="mythic-bestiary-embedded-tag">{{#if weapon.isMelee}}Melee{{else}}Ranged{{/if}}</span>
                   </div>
+                  <button type="button" class="action-btn weapon-workbench-open-btn" data-item-id="{{weapon.id}}" title="Workbench" aria-label="Workbench"><i class="fas fa-screwdriver-wrench"></i></button>
+                  <button type="button" class="action-btn gear-open-btn" data-item-id="{{weapon.id}}" title="Edit item" aria-label="Edit item"><i class="fas fa-pen-to-square"></i></button>
                   <button type="button" class="mythic-bestiary-embedded-remove" data-bestiary-remove-weapon="{{weapon.id}}" title="Remove weapon">✕</button>
                 </div>
               {{/each}}

@@ -1,8 +1,8 @@
-import { normalizeCharacterSystemData } from "../data/normalization.mjs";
+import { normalizeActorCharacterSystemData } from "../mechanics/final-characteristics.mjs";
 
 export const creationPathChoiceMethods = {
   async _promptAndApplyUpbringingChoices() {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const systemData = normalizeActorCharacterSystemData(this.actor, this.actor.system);
     const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
     const selectedUpbringingId = String(creationPath.upbringingItemId ?? "").trim();
     if (!selectedUpbringingId) {
@@ -29,7 +29,7 @@ export const creationPathChoiceMethods = {
   },
 
   async _promptAndApplyEnvironmentChoices() {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const systemData = normalizeActorCharacterSystemData(this.actor, this.actor.system);
     const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
     const selectedEnvironmentId = String(creationPath.environmentItemId ?? "").trim();
     if (!selectedEnvironmentId) {

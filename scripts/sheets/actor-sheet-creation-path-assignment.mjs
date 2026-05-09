@@ -1,9 +1,9 @@
 import { normalizeStringList, normalizeLookupText } from "../utils/helpers.mjs";
-import { normalizeCharacterSystemData } from "../data/normalization.mjs";
+import { normalizeActorCharacterSystemData } from "../mechanics/final-characteristics.mjs";
 
 export const creationPathAssignmentMethods = {
   async _assignCreationUpbringing(upbringingId) {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const systemData = normalizeActorCharacterSystemData(this.actor, this.actor.system);
     const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
     const requiredUpbringingFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "requiredUpbringing") ?? {};
     const allowedUpbringingsFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedUpbringings") ?? {};
@@ -55,7 +55,7 @@ export const creationPathAssignmentMethods = {
   },
 
   async _assignCreationEnvironment(environmentId) {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const systemData = normalizeActorCharacterSystemData(this.actor, this.actor.system);
     const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
     const selectedEnvironmentId = String(environmentId ?? "").trim();
 
@@ -100,7 +100,7 @@ export const creationPathAssignmentMethods = {
   },
 
   async _assignCreationLifestyle(slotIndex, lifestyleId) {
-    const systemData = normalizeCharacterSystemData(this.actor.system);
+    const systemData = normalizeActorCharacterSystemData(this.actor, this.actor.system);
     const creationPath = foundry.utils.deepClone(systemData.advancements?.creationPath ?? {});
     const allowedLifestylesFlag = this.actor.getFlag("Halo-Mythic-Foundry-Updated", "allowedLifestyles") ?? {};
     const allowedLifestyleNames = Boolean(allowedLifestylesFlag?.enabled)

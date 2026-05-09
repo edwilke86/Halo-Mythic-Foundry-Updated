@@ -1,4 +1,4 @@
-import { normalizeCharacterSystemData } from "../data/normalization.mjs";
+import { normalizeActorCharacterSystemData } from "./final-characteristics.mjs";
 
 function getCombatContext(combat = game.combat) {
   return {
@@ -8,14 +8,40 @@ function getCombatContext(combat = game.combat) {
   };
 }
 
-export function isActorActivelyInCombat(actor, combat = game.combat) {
+export function isActorActivelyInCombat(actor, combat = game.combat, token = null) {
   const actorId = String(actor?.id ?? "").trim();
-  if (!actorId || !combat?.combatants) return false;
+  const tokenId = String(token?.id ?? token?.document?.id ?? actor?.token?.id ?? actor?.token?.document?.id ?? "").trim();
+  const tokenActorId = String(token?.actorId ?? token?.document?.actorId ?? actor?.token?.actorId ?? actor?.token?.document?.actorId ?? "").trim();
+  if ((!actorId && !tokenId && !tokenActorId) || !combat?.combatants) return false;
   for (const combatant of combat.combatants) {
+    const combatantTokenId = String(combatant?.tokenId ?? combatant?.token?.id ?? "").trim();
+    if (tokenId && combatantTokenId && combatantTokenId === tokenId) return true;
+
     const combatantActorId = String(combatant?.actor?.id ?? combatant?.actorId ?? "").trim();
     if (combatantActorId && combatantActorId === actorId) return true;
+    if (tokenActorId && combatantActorId && combatantActorId === tokenActorId) return true;
   }
   return false;
+}
+
+export async function spendActorReaction(actor, {
+  token = null,
+  combat = game.combat,
+  amount = 1,
+  notify = false
+} = {}) {
+  const delta = Math.max(0, Math.floor(Number(amount ?? 0)));
+  const updateActor = token?.actor ?? token?.document?.actor ?? actor;
+  if (!updateActor || delta <= 0) return null;
+  if (!isActorActivelyInCombat(updateActor, combat, token)) {
+    if (notify) ui.notifications?.info("Turn economy is only tracked for active combatants.");
+    return null;
+  }
+
+  const previousCount = Math.max(0, Math.floor(Number(updateActor.system?.combat?.reactions?.count ?? 0)));
+  const nextCount = previousCount + delta;
+  await updateActor.update({ "system.combat.reactions.count": nextCount });
+  return { actor: updateActor, previousCount, nextCount };
 }
 
 function cloneActionEconomyState(state = {}) {
@@ -107,7 +133,9 @@ async function postMedicalExpiryChat(actor, expiredEffects = [], { triggerLabel 
 export function buildCombatTurnStartUpdateData(actor, combat = game.combat) {
   if (!actor || actor.type !== "character") return null;
   if (!isActorActivelyInCombat(actor, combat)) return null;
-  const normalized = normalizeCharacterSystemData(actor.system ?? {});
+  const normalized = normalizeActorCharacterSystemData(actor, actor.system ?? {}, {
+    traceLabel: "combat turn start prepare",
+  });
   const context = getCombatContext(combat);
   const { nextEffects, expiredEffects } = advanceTrackedEffects(normalized?.medical?.activeEffects, { rounds: 1 });
   return {
@@ -144,7 +172,9 @@ export async function consumeActorHalfActions(actor, {
   if (cost <= 0) return;
   if (!isActorActivelyInCombat(actor, combat)) return;
 
-  const normalized = normalizeCharacterSystemData(actor.system ?? {});
+  const normalized = normalizeActorCharacterSystemData(actor, actor.system ?? {}, {
+    traceLabel: "consume half actions prepare",
+  });
   const context = getCombatContext(combat);
   const currentState = cloneActionEconomyState(normalized?.combat?.actionEconomy ?? {});
   const { nextEffects, expiredEffects } = advanceTrackedEffects(normalized?.medical?.activeEffects, { halfActions: cost });

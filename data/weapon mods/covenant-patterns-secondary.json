@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "source": "mythic",
+  "sourceCategoryLabel": "Covenant Weapon Patterns — Secondary Systems",
+  "patterns": [
+    {
+      "id": "assault-pattern",
+      "name": "Assault Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "When making Charge or Run actions, the Penalty To Hit is reduced by 15."
+        ]
+      }
+    },
+    {
+      "id": "guard-pattern",
+      "name": "Guard Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "Can only be used with Plasma-based weaponry.",
+          "Increases projectile velocity and decay rate.",
+          "Grants the weapon a +10 To Hit."
+        ]
+      }
+    },
+    {
+      "id": "heavy-pattern",
+      "name": "Heavy Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "The Magazine capacity of the weapon is doubled."
+        ]
+      }
+    },
+    {
+      "id": "marauder-pattern",
+      "name": "Marauder Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "The weapon gains a +20 to concealment and allows [HW] weapons to be concealed as [TH] weapons.",
+          "The weapon must be rebuilt before use.",
+          "Rebuilding the weapon takes as long as its base reload in actions."
+        ]
+      }
+    },
+    {
+      "id": "officer-pattern",
+      "name": "Officer Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "The weapon's furniture is replaced with decorated plating and symbols which give a +10 to Leadership and Charisma Tests against characters of your own faction."
+        ]
+      }
+    },
+    {
+      "id": "ranger-pattern",
+      "name": "Ranger Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "The Maximum Range of the weapon is doubled."
+        ]
+      }
+    },
+    {
+      "id": "stalker-pattern",
+      "name": "Stalker Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "The Close Range and Maximum Range of the weapon increases by 50%."
+        ]
+      }
+    },
+    {
+      "id": "support-pattern",
+      "name": "Support Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "Explosive launchers only.",
+          "When fired indirectly the weapon's max range is quadrupled and its projectile only detonates when it hits an object or terrain."
+        ]
+      }
+    },
+    {
+      "id": "tracker-pattern",
+      "name": "Tracker Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "The weapon gains a +10 Bonus to Strength Tests to not drop the weapon when firing.",
+          "Halves the weapon's Breakpoints and Weight."
+        ]
+      }
+    },
+    {
+      "id": "accord-pattern",
+      "name": "Accord Pattern",
+      "sourcePage": 198,
+      "category": "weaponMod",
+      "modGroup": "covenantWeaponPattern",
+      "modType": "pattern",
+      "mount": "patternSystem",
+      "patternSystemType": "secondary",
+      "faction": "COVENANT",
+      "armorySelection": "COVENANT",
+      "fixedWeight": 0,
+      "weightMode": "notApplicable",
+      "costMode": "weaponCostMultiplier",
+      "costMultiplier": 1,
+      "effects": {
+        "rules": [
+          "The weapon gains the ability to use human attachments with a side Rail installed."
+        ]
+      }
+    }
+  ]
+}
+

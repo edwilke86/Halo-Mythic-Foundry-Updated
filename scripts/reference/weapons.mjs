@@ -25,8 +25,7 @@ const MYTHIC_RANGED_SYSTEM_COLLECTION_BY_GROUP = Object.freeze({
   human: "Halo-Mythic-Foundry-Updated.mythic-weapons-human-ranged",
   covenant: "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
   banished: "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
-  forerunner: "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
-  shared: "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged"
+  forerunner: "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged"
 });
 
 const MYTHIC_WEAPON_SYSTEM_COLLECTION_BY_GROUP = Object.freeze({
@@ -34,12 +33,10 @@ const MYTHIC_WEAPON_SYSTEM_COLLECTION_BY_GROUP = Object.freeze({
   "covenant-ranged": "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-ranged",
   "banished-ranged": "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-ranged",
   "forerunner-ranged": "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-ranged",
-  "shared-ranged": "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-ranged",
   "human-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-human-melee",
   "covenant-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-covenant-melee",
   "banished-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-banished-melee",
   "forerunner-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-forerunner-melee",
-  "shared-melee": "Halo-Mythic-Foundry-Updated.mythic-weapons-shared-melee",
   flood: "Halo-Mythic-Foundry-Updated.mythic-weapons-flood"
 });
 
@@ -658,28 +655,6 @@ export async function buildCompendiumCanonicalMap(pack) {
   return map;
 }
 
-function getRangedSharedBucket(rawFaction) {
-  const text = String(rawFaction ?? "").trim().toLowerCase();
-  if (!text) return { key: "shared", label: "Shared" };
-
-  const sharedMarkers = [
-    "shared",
-    "universal",
-    "cross-faction",
-    "cross faction",
-    "multi-faction",
-    "multi faction",
-    "all factions",
-    "all"
-  ];
-
-  if (sharedMarkers.some((marker) => text.includes(marker))) {
-    return { key: "shared", label: "Shared" };
-  }
-
-  return null;
-}
-
 export function getRangedWeaponCompendiumDescriptor(itemData) {
   const weaponClass = String(itemData?.system?.weaponClass ?? "").trim().toLowerCase();
   if (weaponClass !== "ranged") return null;
@@ -697,15 +672,7 @@ export function getRangedWeaponCompendiumDescriptor(itemData) {
       label: `${faction.label} Ranged Weapons`
     };
   }
-
-  const shared = getRangedSharedBucket(factionRaw);
-  if (!shared) return null;
-
-  return {
-    key: shared.key,
-    name: "mythic-weapons-shared-ranged",
-    label: "Shared Ranged Weapons"
-  };
+  return null;
 }
 
 function getRangedSystemPack(descriptor) {
@@ -766,15 +733,7 @@ function getMeleeWeaponCompendiumDescriptor(itemData) {
       label: `${faction.label} Melee Weapons`
     };
   }
-
-  const shared = getRangedSharedBucket(factionRaw);
-  if (!shared) return null;
-
-  return {
-    key: "shared-melee",
-    name: "mythic-weapons-shared-melee",
-    label: "Shared Melee Weapons"
-  };
+  return null;
 }
 
 async function withUnlockedPack(pack, dryRun, fn) {

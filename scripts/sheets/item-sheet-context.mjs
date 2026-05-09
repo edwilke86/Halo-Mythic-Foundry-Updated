@@ -2,6 +2,7 @@ import { normalizeGearSystemData } from "../data/normalization.mjs";
 import { loadMythicSpecialAmmoCategoryOptions } from "../data/content-loading.mjs";
 import { toNonNegativeWhole } from "../utils/helpers.mjs";
 import { measureSheetPerformance } from "../utils/sheet-performance.mjs";
+import { normalizeWeaponModsData } from "../mechanics/weapon-mods.mjs";
 import {
   MYTHIC_ARMOR_ABILITY_DEFINITIONS,
   MYTHIC_ARMOR_SPECIAL_RULE_DEFINITIONS,
@@ -93,6 +94,20 @@ const MELEE_DAMAGE_MODIFIER_OPTIONS = Object.freeze(MYTHIC_MELEE_DAMAGE_MODIFIER
 })));
 const EXPLOSIVE_WEAPON_CATEGORIES = Object.freeze(["Grenade", "Satchel Charge", "Demolitions", "Landmine"]);
 
+function toWeaponModMountLabel(mount = "") {
+  const raw = String(mount ?? "").trim().toLowerCase();
+  if (!raw || raw === "none") return "—";
+  if (raw === "upper") return "Upper";
+  if (raw === "lower") return "Lower";
+  if (raw === "side") return "Side";
+  if (raw === "barrel") return "Barrel";
+  if (raw === "rearbrace") return "Rear Brace";
+  if (raw === "internal") return "Internal";
+  if (raw === "builtin" || raw === "built-in") return "Built-In";
+  if (raw === "multi") return "Multi";
+  return raw;
+}
+
 export async function prepareMythicItemSheetGearContext(sheet, context) {
   return measureSheetPerformance(sheet, "gear context total", async () => {
     if (!context?.isGearItem) return;
@@ -114,6 +129,31 @@ export async function prepareMythicItemSheetGearContext(sheet, context) {
     context.isRangedWeaponItem = gear.equipmentType === "ranged-weapon";
     context.isAmmoItem = gear.equipmentType === "ammunition";
     context.isAmmoModItem = gear.equipmentType === "ammo-modification";
+
+    context.weaponMods = context.isMeleeWeaponItem || context.isRangedWeaponItem
+      ? normalizeWeaponModsData(gear.mods ?? {}, {
+        legacyNotes: String(gear.attachments ?? ""),
+        itemName: String(sheet.item.name ?? ""),
+        equipmentType: String(gear.equipmentType ?? ""),
+        applyKnownBuiltIns: true
+      })
+      : null;
+    context.weaponModsDisplayEntries = context.weaponMods
+      ? [
+        ...(Array.isArray(context.weaponMods.builtIn) ? context.weaponMods.builtIn : []).map((entry) => ({
+          id: String(entry?.id ?? "").trim() || foundry.utils.randomID(),
+          name: String(entry?.name ?? "").trim(),
+          mountLabel: toWeaponModMountLabel(entry?.mount),
+          builtIn: true
+        })).filter((entry) => entry.name),
+        ...(Array.isArray(context.weaponMods.installed) ? context.weaponMods.installed : []).map((entry) => ({
+          id: String(entry?.id ?? "").trim() || foundry.utils.randomID(),
+          name: String(entry?.name ?? "").trim(),
+          mountLabel: toWeaponModMountLabel(entry?.mount),
+          builtIn: false
+        })).filter((entry) => entry.name)
+      ]
+      : [];
 
     context.equipmentTypeOptions = EQUIPMENT_TYPE_OPTIONS;
     context.armorySelectionOptions = ARMORY_SELECTION_OPTIONS;

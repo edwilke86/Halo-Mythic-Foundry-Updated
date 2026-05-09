@@ -164,6 +164,15 @@ export const MYTHIC_CONTAINER_EQUIPMENT_DEFINITIONS_PATH = "systems/Halo-Mythic-
 export const MYTHIC_ARMOR_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/armor.json";
 export const MYTHIC_RANGED_WEAPON_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapons-ranged.json";
 export const MYTHIC_MELEE_WEAPON_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapons-melee.json";
+export const MYTHIC_WEAPON_OPTICS_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapon mods/optics.json";
+export const MYTHIC_WEAPON_RAILS_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapon mods/rails.json";
+export const MYTHIC_WEAPON_BARRELS_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapon mods/barrels.json";
+export const MYTHIC_WEAPON_CONVERSIONS_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapon mods/conversions.json";
+export const MYTHIC_COVENANT_WEAPON_PATTERNS_PRIMARY_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapon mods/covenant-patterns-primary.json";
+export const MYTHIC_COVENANT_WEAPON_PATTERNS_SECONDARY_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapon mods/covenant-patterns-secondary.json";
+export const MYTHIC_COVENANT_WEAPON_PATTERNS_TACTICAL_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapon mods/covenant-patterns-tactical.json";
+export const MYTHIC_COVENANT_INFANTRY_ALTERATIONS_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapon mods/covenant-infantry-alterations.json";
+export const MYTHIC_BANISHED_WEAPON_MODIFICATIONS_DEFINITIONS_PATH = "systems/Halo-Mythic-Foundry-Updated/data/weapon mods/banished-weapon-modifications.json";
 
 // --- Weapon Training Definitions ---
 export const MYTHIC_WEAPON_TRAINING_DEFINITIONS = [
@@ -509,7 +518,7 @@ export const MYTHIC_UPBRINGING_SCHEMA_VERSION = 1;
 export const MYTHIC_ENVIRONMENT_SCHEMA_VERSION = 1;
 export const MYTHIC_LIFESTYLE_SCHEMA_VERSION = 1;
 export const MYTHIC_CONTENT_SYNC_VERSION = 1;
-export const MYTHIC_WORLD_MIGRATION_VERSION = 13;
+export const MYTHIC_WORLD_MIGRATION_VERSION = 14;
 export const MYTHIC_COMPENDIUM_CANONICAL_MIGRATION_VERSION = 4;
 export const MYTHIC_WEAPON_JSON_MIGRATION_VERSION = 1;
 export const MYTHIC_ARMOR_JSON_MIGRATION_VERSION = 1;
